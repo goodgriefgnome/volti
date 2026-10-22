@@ -51,6 +51,7 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
     arrow beside the score lists them; each one's **⋯** renames it, changes its cuts or deletes it.
     A setlist entry that plays the same cuts plays the named excerpt and shows its name, so
     changing its cuts changes every setlist that plays it. Deleting one only takes the name away.
+    Searching the library finds excerpts by name too, shown with their score's name.
   - Cuts and markings always belong to the score: changing them in a setlist changes the score,
     and every setlist's excerpts follow the change.
   - **Archive** hides a setlist behind **Show archived**; only archived setlists can be deleted.

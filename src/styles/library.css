@@ -69,3 +69,5 @@
 .score-folder { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
 .badge { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); border: 1px solid currentColor; border-radius: 999px; padding: 0 8px; }
 .empty { padding: 24px 4px; color: var(--muted); }
+/* A named excerpt found by searching, lined up with the scores. */
+.list > li.hit { gap: 4px; }

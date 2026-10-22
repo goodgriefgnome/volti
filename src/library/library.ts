@@ -34,6 +34,8 @@ export class Library {
   /** What the library shows that isn't data, kept while the app runs. */
   private openRows = new Set<string>();
   private showArchived = false;
+  /** For giving each score row's excerpt list an id. */
+  private rowSeq = 0;
 
   private root = el('main', 'library');
   private folderPanel = el('section', 'folder');
@@ -53,8 +55,8 @@ export class Library {
 
     this.search.type = 'search';
     this.search.id = 'search';
-    this.search.placeholder = 'Find a score';
-    this.search.setAttribute('aria-label', 'Find a score');
+    this.search.placeholder = 'Find a score or excerpt';
+    this.search.setAttribute('aria-label', 'Find a score or excerpt');
     this.search.addEventListener('input', () => { this.query = this.search.value; this.renderList(); });
 
     this.fileInput.type = 'file';
@@ -355,7 +357,13 @@ export class Library {
 
   private renderList() {
     const q = this.query.trim().toLowerCase();
-    const shown = q ? this.originals.filter((s) => `${s.title} ${s.folder}`.toLowerCase().includes(q)) : this.originals;
+    const matches = (s: Original) => !q || `${s.title} ${s.folder}`.toLowerCase().includes(q);
+    // Named excerpts whose names match, found under their scores.
+    const hits = (s: Original) => {
+      const score = this.saved.get(s.id);
+      return q && score ? sortedNames(score).filter((x) => x.name.toLowerCase().includes(q)).map((x) => this.excerptHit(s, score, x)) : [];
+    };
+    const rows = this.originals.flatMap((s) => [...(matches(s) ? [this.scoreRow(s)] : []), ...hits(s)]);
     this.list.replaceChildren();
     if (!this.originals.length) {
       this.list.append(el('li', 'empty', this.folder.kind === 'none'
@@ -363,11 +371,24 @@ export class Library {
         : 'No PDFs found in this folder or its subfolders.'));
       return;
     }
-    if (!shown.length) {
+    if (!rows.length) {
       this.list.append(el('li', 'empty', `Nothing matches “${this.query}”.`));
       return;
     }
-    for (const s of shown) this.list.append(this.scoreRow(s));
+    this.list.append(...rows);
+  }
+
+  /** A named excerpt found by searching: its name, with its score's, as names are only unique within a score. */
+  private excerptHit(o: Original, score: Score, x: ExcerptName): HTMLLIElement {
+    const li = el('li', 'score hit');
+    const first = score.cuts[spanOf(score.cuts, x).i0]?.id;
+    const open = button('', () => void this.open(o, first), 'open');
+    const pages = spanLabel(score.cuts, x, this.shapes.get(score.id));
+    open.append(el('span', 'score-title', `${x.name} · ${o.title}`));
+    open.append(el('span', 'score-folder', [pages, o.folder].filter(Boolean).join(' · ')));
+    open.setAttribute('aria-label', `${x.name}, an excerpt of ${o.title}`);
+    li.append(el('span', 'expand'), open);
+    return li;
   }
 
   /** A score: tap to open it; the arrow slides its named excerpts open; ⋯ for the rest. */
@@ -376,7 +397,7 @@ export class Library {
     const open = this.openRows.has(s.id) && names.length > 0;
     const li = el('li', 'score set' + (open ? ' open' : ''));
     const body = el('div', 'set-body');
-    body.id = 'excerpts-' + this.list.children.length;
+    body.id = 'excerpts-' + ++this.rowSeq;
     body.inert = !open;
     let expand: HTMLElement = el('span', 'expand');
     if (names.length) {
