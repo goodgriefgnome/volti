@@ -1,8 +1,7 @@
 import {
-  deleteArchived, edgeKind, edgeRange, freeze, insertArchived, insertPages, joinNext, pullUp, release, remove,
-  restoreEdge, setEdge, setPad, splitCue, tidy, type Aspects, type Cut, type Frame, type InsertAt, type State,
+  cutAt, deleteArchived, edgeKind, edgeRange, freeze, insertArchived, insertPages, joinNext, release, remove,
+  restoreEdge, roomBefore, setEdge, setPad, tidy, type Aspects, type Cut, type Frame, type InsertAt, type Placed, type State,
 } from '../pieces/model';
-import { snapSplit } from '../pieces/snap';
 import { el } from './dom';
 import type { Hatches } from './frames';
 
@@ -16,7 +15,7 @@ export interface FrameSlot {
   ink: HTMLCanvasElement;
   /** A sharp close-up of the visible part while zoomed in: drawn as if the frame were W device pixels wide, from (x, y). */
   detail?: { canvas: HTMLCanvasElement; ink: HTMLCanvasElement; W: number; x: number; y: number };
-  /** The editing tabs and cues over the frame. */
+  /** The editing tabs and shading over the frame. */
   ui?: HTMLElement;
 }
 
@@ -31,8 +30,6 @@ export interface EditorHost {
   commit(s: State, focus?: string): void;
   /** Show a drag in progress with the layout frozen, or (null) go back to the real layout. */
   preview(s: State | null, frames: Frame[] | null, hatches?: Hatches): void;
-  /** The row ink profile of a page, for snapping a split. */
-  rows(page: number): Promise<Float32Array>;
   thumb(page: number, width: number): Promise<HTMLCanvasElement>;
   /** An ink tool is selected, so a long press on the music draws instead of opening a menu. */
   inking(): boolean;
@@ -47,8 +44,7 @@ type Edge = 'top' | 'bottom';
 
 type Drag =
   | { kind: 'edge'; pointer: number; id: string; edge: Edge; y0: number; orig: Cut; range: [number, number]; perUnit: number; before: State; frames: Frame[]; moved: boolean; current: State; tab: Element }
-  | { kind: 'pad'; pointer: number; id: string; y0: number; orig: number; perUnit: number; before: State; frames: Frame[]; moved: boolean; current: State; tab: Element }
-  | { kind: 'cue'; pointer: number; frame: number };
+  | { kind: 'pad'; pointer: number; id: string; y0: number; orig: number; perUnit: number; before: State; frames: Frame[]; moved: boolean; current: State; tab: Element };
 
 type Action = [label: string, run: () => void];
 
@@ -61,7 +57,8 @@ const pageLabel = (c: Cut) => `page ${c.page + 1}`;
 
 /**
  * Editing the played order on the frames themselves: tabs that move a cut's edges, a tab for
- * white space at the top of a frame, the "split page here" cue, and menus on a right-click or a
+ * white space at the top of a frame, shading for the room left on the frame before, and menus
+ * on a right-click or a
  * long press. Everything else on the frames (turning, writing, zooming) works as usual.
  */
 export class CutEditor {
@@ -69,6 +66,7 @@ export class CutEditor {
   private drag: Drag | null = null;
   private press: { pointer: number; x: number; y: number; timer: ReturnType<typeof setTimeout> } | null = null;
   private menu: HTMLElement | null = null;
+  private mark: HTMLElement | null = null;
   private dialog: HTMLElement | null = null;
 
   constructor(private host: EditorHost) {
@@ -87,7 +85,7 @@ export class CutEditor {
   /** Stop a drag or long press, as when a second finger lands. */
   cancel() {
     this.endPress();
-    if (this.drag && this.drag.kind !== 'cue' && this.drag.moved) this.host.preview(null, null);
+    if (this.drag?.moved) this.host.preview(null, null);
     this.drag = null;
   }
 
@@ -96,16 +94,17 @@ export class CutEditor {
     const had = !!(this.menu || this.dialog);
     this.menu?.remove();
     this.dialog?.remove();
-    this.menu = this.dialog = null;
+    this.mark?.remove();
+    this.menu = this.dialog = this.mark = null;
     return had;
   }
 
-  /* ---------- the tabs and cues over each frame ---------- */
+  /* ---------- the tabs and shading over each frame ---------- */
 
   decorate(slots: FrameSlot[], frames: Frame[], dragging = false) {
     for (const s of slots) { s.ui?.remove(); s.ui = undefined; }
     if (!this.enabled) return;
-    const d = this.drag && this.drag.kind !== 'cue' ? this.drag : null;
+    const d = this.drag;
     const cuts = (d?.current ?? this.host.state()).piece.cuts;
     const now = new Map(cuts.map((c) => [c.id, c]));
     const { aspects } = this.host;
@@ -115,30 +114,20 @@ export class CutEditor {
       const w = slot.w, ui = el('div', 'cuts-ui');
       const at = (y: number) => y * w + 'px';
 
-      const room = dragging ? null : splitCue(frames, slot.index, aspects);
+      // How much of this frame's music would fit on the frame before, when that one is fairly empty.
+      const room = dragging ? null : roomBefore(frames, slot.index, aspects);
       if (room !== null) {
-        const band = el('div', 'cue-band');
+        const band = el('div', 'room');
         band.style.height = at(room);
-        const line = el('button', 'cue-line');
-        line.type = 'button';
-        line.style.top = `calc(${at(room)} - 16px)`;
-        line.append(el('span', 'pill', '✂ split page here'));
-        line.addEventListener('click', (e) => { if (e.detail === 0) void this.split(slot.index); });
-        ui.append(band, line);
+        ui.append(band);
       }
 
-      f.items.forEach((p, n) => {
+      for (const p of f.items) {
         // While dragging, the cut is drawn with all the music it had or has; its tabs sit at its edges now.
         const c = now.get(p.cut.id) ?? p.cut, a = aspects[c.page];
         const y = (v: number) => p.top + (v - p.cut.y0) * a;
         ui.append(this.tab(c, 'top', at(y(c.y0))), this.tab(c, 'bottom', at(y(c.y1))));
-        if (n < f.items.length - 1 && edgeKind(cuts, p.index, 'bottom') === 'cutOut') {
-          const seam = el('div', 'seam');
-          seam.style.top = at(p.top + p.h);
-          seam.append(el('span', 'pill', '✂ cut'));
-          ui.append(seam);
-        }
-      });
+      }
 
       const first = f.items[0], c = now.get(first.cut.id) ?? first.cut;
       if (first.top > 0.001) {
@@ -160,7 +149,7 @@ export class CutEditor {
     b.style.top = top;
     b.setAttribute('aria-label', kind === 'pad' ? 'Space above the music' : `${kind === 'top' ? 'Top' : 'Bottom'} of this cut (${pageLabel(c)})`);
     const d = this.drag;
-    if (d && d.kind !== 'cue' && d.moved && d.id === c.id && (d.kind === 'pad' ? 'pad' : d.edge) === kind) b.classList.add('dragging');
+    if (d && d.moved && d.id === c.id && (d.kind === 'pad' ? 'pad' : d.edge) === kind) b.classList.add('dragging');
     // From the keyboard, a tab opens its menu.
     b.addEventListener('click', (e) => {
       if (e.detail !== 0) return;
@@ -194,10 +183,6 @@ export class CutEditor {
       });
       return true;
     }
-    if (target.closest('.cue-line') && slot) {
-      this.drag = { kind: 'cue', pointer: e.pointerId, frame: slot.index };
-      return true;
-    }
     if (!this.host.inking()) {
       this.startPress(e, () => {
         this.host.cancelGesture();
@@ -212,7 +197,6 @@ export class CutEditor {
     if (p && p.pointer === e.pointerId && Math.hypot(e.clientX - p.x, e.clientY - p.y) > PRESS_SLOP) this.endPress();
     const d = this.drag;
     if (!d || d.pointer !== e.pointerId) return false;
-    if (d.kind === 'cue') return true;
     const dy = e.clientY - d.y0;
     if (!d.moved && Math.abs(dy) <= DRAG_SLOP) return true;
     d.moved = true;
@@ -239,15 +223,10 @@ export class CutEditor {
     const d = this.drag;
     if (!d || d.pointer !== e.pointerId) return false;
     this.drag = null;
-    if (d.kind === 'cue') {
-      if (!cancelled) void this.split(d.frame);
-      return true;
-    }
     if (!d.moved) return true; // a tap on a tab does nothing
     if (cancelled) { this.host.preview(null, null); return true; }
-    const { aspects } = this.host;
-    if (d.kind === 'pad') { this.host.commit(tidy(d.current, aspects), d.id); return true; }
-    const after = release(d.current, d.before, d.id, aspects);
+    if (d.kind === 'pad') { this.host.commit(tidy(d.current), d.id); return true; }
+    const after = release(d.current, d.before, d.id);
     this.host.commit(after, d.id);
     if (after.piece.archived.length > d.before.piece.archived.length) this.sayArchived();
     return true;
@@ -257,7 +236,7 @@ export class CutEditor {
     if (!this.enabled) return;
     e.preventDefault();
     this.endPress();
-    if (this.drag && this.drag.kind !== 'cue' && this.drag.moved) this.host.preview(null, null);
+    if (this.drag?.moved) this.host.preview(null, null);
     this.drag = null;
     this.host.cancelGesture();
     // Android may send this after a long press has already opened the same menu.
@@ -278,17 +257,6 @@ export class CutEditor {
     this.host.say('The cut had markings, so it was archived. Insert it again from "Insert pages…".');
   }
 
-  /** Tap on the cue: split the frame's first cut at a gap between systems, and show the frame before. */
-  private async split(frame: number) {
-    const first = this.host.frames()[frame]?.items[0];
-    if (!first) return;
-    const rows = await this.host.rows(first.cut.page).catch(() => undefined);
-    const s = this.host.state();
-    const r = pullUp(s, frame, this.host.aspects, (_page, y, lo) => (rows ? snapSplit(rows, y, lo) : y));
-    if (!r) { this.host.say('There is no gap between systems to split at.'); return; }
-    this.host.commit(r.state, r.keep);
-  }
-
   /* ---------- menus ---------- */
 
   private openContext(x: number, y: number) {
@@ -303,7 +271,7 @@ export class CutEditor {
     const r = slot.box.getBoundingClientRect();
     const fy = (y - r.top) / r.width;
     const item = f.items.find((p) => fy >= p.top && fy < p.top + p.h);
-    if (item) { this.cutMenu(item.cut, x, y); return; }
+    if (item) { this.cutMenu(slot, item, fy, x, y); return; }
     const above = fy < f.items[0].top;
     const c = above ? f.items[0].cut : f.items.at(-1)!.cut;
     this.showMenu(x, y, above ? 'Above the music' : 'Below the music', [
@@ -314,7 +282,7 @@ export class CutEditor {
   /** Apply an edit from a menu: tidy, and show the given cut. */
   private apply(s: State, focus?: string) {
     const before = this.host.state();
-    this.host.commit(tidy(s, this.host.aspects), focus);
+    this.host.commit(tidy(s), focus);
     if (this.host.state().piece.archived.length > before.piece.archived.length) this.sayArchived();
   }
 
@@ -350,12 +318,24 @@ export class CutEditor {
     this.showMenu(x, y, `${top ? 'Top' : 'Bottom'} of this cut (${pageLabel(c)})`, acts);
   }
 
-  private cutMenu(c: Cut, x: number, y: number) {
+  /** The menu on a cut's music, pressed `fy` frame widths from the top of the frame. */
+  private cutMenu(slot: FrameSlot, p: Placed, fy: number, x: number, y: number) {
+    const c = p.cut, s = this.host.state();
+    const at = c.y0 + (fy - p.top) / this.host.aspects[c.page];
+    const cut = cutAt(s, c.id, at, this.host.aspects);
     this.showMenu(x, y, `Cut from ${pageLabel(c)}`, [
+      ...(cut ? [['Cut here', () => this.host.commit(cut, c.id)] as Action] : []),
       ['Insert pages before this cut…', () => this.openPicker({ id: c.id, after: false }, `Insert pages before this cut (${pageLabel(c)})`, c.page)],
       ['Insert pages after this cut…', () => this.openPicker({ id: c.id, after: true }, `Insert pages after this cut (${pageLabel(c)})`, c.page)],
       ...this.removeAction(c),
     ]);
+    // Show where "Cut here" would cut while the menu is open.
+    if (cut && slot.ui) {
+      const mark = el('div', 'cut-mark');
+      mark.style.top = fy * slot.w + 'px';
+      slot.ui.append(mark);
+      this.mark = mark;
+    }
   }
 
   /** A small menu at (x, y) on the screen, kept inside the stage. */
@@ -475,7 +455,7 @@ export class CutEditor {
       this.dismiss();
       const now = this.host.state();
       if (pick.archived) {
-        this.host.commit(insertArchived(now, at, pick.archived, this.host.aspects), pick.archived);
+        this.host.commit(insertArchived(now, at, pick.archived), pick.archived);
         this.host.say('Brought back the archived cut.');
         return;
       }

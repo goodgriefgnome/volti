@@ -4,7 +4,6 @@ import { drawPenSegment } from '../ink/draw';
 import { compact, HIGHLIGHT_COLOR, HIGHLIGHT_SIZE, PEN_COLORS, PEN_SIZE, touches, type InkTool, type Point, type Stroke } from '../ink/model';
 import { claimStroke, visible } from '../pieces/ink';
 import { frameHeight, frameOf, pack, setInk, type Aspects, type Cut, type Frame, type State } from '../pieces/model';
-import { rowInk } from '../pieces/snap';
 import { loadPiece, pieceSaver, savePosition } from '../pieces/store';
 import { el } from './dom';
 import { CutEditor, type FrameSlot } from './edit';
@@ -21,7 +20,6 @@ interface Undo { state: State; focus?: string }
 
 const GAP = 6;
 const ERASER_RADIUS = 0.012;
-const PROFILE_WIDTH = 1600;
 /** After the pen lifts, finger touches are ignored this long, as they are probably the writing hand. */
 const PALM_GUARD_MS = 600;
 /** Wait this long after a pinch or pan settles before drawing the sharp close-up. */
@@ -59,7 +57,6 @@ class Viewer {
   private slots: FrameSlot[] = [];
   /** Page canvases drawn at the frame's width, by 0-based page, for the frames on screen. */
   private pages = new Map<number, HTMLCanvasElement>();
-  private rows = new Map<number, Promise<Float32Array>>();
 
   private zoom: Zoom = NO_ZOOM;
   private detailTimer: ReturnType<typeof setTimeout> | undefined;
@@ -112,7 +109,6 @@ class Viewer {
       slots: () => this.slots,
       commit: (s, focus) => this.commit(s, focus),
       preview: (s, frames, hatches) => this.preview(s, frames, hatches),
-      rows: (page) => this.rowsFor(page),
       thumb: (page, w) => this.cache.render(page + 1, w, Math.round(w * aspects[page]), dpr()),
       inking: () => this.tool !== 'none',
       cancelGesture: () => { this.gesture = null; },
@@ -339,20 +335,6 @@ class Viewer {
     }
   }
 
-  /** The row ink profile of a page, from a drawing 1600 pixels wide: enough to see small print. */
-  private rowsFor(page: number): Promise<Float32Array> {
-    let r = this.rows.get(page);
-    if (!r) {
-      r = this.cache.render(page + 1, PROFILE_WIDTH, Math.round(PROFILE_WIDTH * this.aspects[page]), 1).then((c) => {
-        const { data } = c.getContext('2d')!.getImageData(0, 0, c.width, c.height);
-        return rowInk(data, c.width, c.height);
-      });
-      r.catch(() => this.rows.delete(page));
-      this.rows.set(page, r);
-    }
-    return r;
-  }
-
   private turn(dir: 1 | -1) {
     const next = this.frame + dir * this.perScreen;
     if (next < 0 || next >= this.frames.length) return;
@@ -536,7 +518,7 @@ class Viewer {
     if (this.active || this.pinching) return;
     if (e.button === 2) return; // right-click opens a menu instead
     this.stage.setPointerCapture(e.pointerId);
-    // A tab or the split cue takes the pointer before writing, panning or turning.
+    // A tab takes the pointer before writing, panning or turning.
     if (this.editor.onDown(e)) return;
 
     const eraserButton = e.pointerType === 'pen' && !!(e.buttons & 32); // the pen's eraser end or button

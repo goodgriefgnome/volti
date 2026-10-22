@@ -112,7 +112,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 .viewer { --select: #1f6fe0; --tab-grey: #5b6170; --cut: #8a5a12; }
 /* While editing, the frames sit below the toolbar so the tabs at their tops can be reached. */
 .editing:not(.chrome-hidden) .stage { top: var(--bar-h, 56px); }
-/* The layer over a frame passes taps through to the music, except on its tabs and cues. */
+/* The layer over a frame passes taps through to the music, except on its tabs. */
 .cuts-ui { position: absolute; inset: 0; pointer-events: none; }
 .cuts-ui button { pointer-events: auto; position: absolute; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; touch-action: none; }
 /* A tab's touch area is about 56 x 34; what shows is 30 x 14, flush with the frame's side and the seam. */
@@ -129,15 +129,11 @@ button:disabled { opacity: 0.4; cursor: default; }
 .tab:focus-visible { outline: none; }
 .tab:focus-visible::after { opacity: 1; outline: 3px solid var(--select); }
 
-.pill { display: inline-block; font-size: 12px; line-height: 1; padding: 4px 8px; border-radius: 999px; background: var(--cut); color: #ffffff; white-space: nowrap; }
-.seam { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--cut); display: flex; justify-content: center; }
-.seam .pill { margin-top: -11px; }
 .pad-line { position: absolute; left: 0; right: 0; border-top: 1px dashed rgba(0, 0, 0, 0.3); }
-.cue-band { position: absolute; left: 0; right: 0; top: 0; background: rgba(138, 90, 18, 0.06); }
-.cuts-ui .cue-line { left: 0; right: 0; height: 32px; display: flex; align-items: center; justify-content: center; }
-.cue-line::before { content: ""; position: absolute; left: 0; right: 0; top: 15px; border-top: 2px dashed var(--cut); opacity: 0.7; }
-.cue-line .pill { position: relative; font-size: 13px; padding: 6px 12px; }
-.cue-line:focus-visible .pill { outline: 3px solid var(--select); }
+/* The room left on the frame before: this much of the frame's top would fit there. */
+.room { position: absolute; left: 0; right: 0; top: 0; background: rgba(138, 90, 18, 0.06); }
+/* Where "Cut here" would cut, while the menu is open. */
+.cut-mark { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--select); }
 
 .menu {
   position: fixed; z-index: 20; min-width: 220px; max-width: min(340px, calc(100vw - 16px)); display: grid;

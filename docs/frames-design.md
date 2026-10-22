@@ -52,8 +52,8 @@ Use these words in the UI. The user chose "cut" to mean the *piece of paper*, no
 | **Cut** | A horizontal band of one source page: `page`, `y0..y1` (fractions of the page height, 0 = top). Called `part` in the prototype's code. |
 | **Played order** | The piece's flat list of cuts, in the order they're played. The same page can appear any number of times. |
 | **Frame** | A page-shaped area on the screen. Cuts are stacked into frames. Landscape shows two frames side by side; portrait shows one. |
-| **Split** | Two consecutive cuts of the same page that touch (`a.y1 === b.y0`). It lets the top of a page sit on an earlier frame. |
-| **Music cut out** | The gap between two consecutive cuts of the same page when `b.y0 > a.y1`. It is shown on the frame as a brown dashed seam with a "✂ cut" pill. |
+| **Split** | Two consecutive cuts of the same page that touch (`a.y1 === b.y0`). It lets the top of a page sit on an earlier frame, or gives each part its own tabs, to trim the space between systems (or words). |
+| **Music cut out** | The gap between two consecutive cuts of the same page when `b.y0 > a.y1`. Nothing marks it on the frame. |
 | **Trim** | A cut whose `y0 > 0` or `y1 < 1` where it meets a *different* page (or nothing). In other words, the top or bottom of a page was cut away. |
 | **Pad** | Optional white space above a cut, used only when that cut starts a frame. |
 
@@ -90,13 +90,10 @@ interface Piece {
 
 - **A new file becomes one piece:** every page once, in order, `y0 = 0`, `y1 = 1`. Default
   orientation: landscape (two frames) for portrait-shaped pages, as in the prototype.
-- **Invariants after every edit** (the prototype's `tidy()`):
-  - Drop cuts thinner than 0.004 of a page.
-  - **Join a split whose halves land on the same frame.** If two consecutive cuts of the same
-    page touch and end up on one frame, merge them into one cut. A split only exists to carry
-    music onto an earlier frame. Once both halves sit together it means nothing, and keeping it
-    would leave stray seams and tabs. Repeat until nothing changes, since merging can't change
-    the layout.
+- **Invariant after every edit** (`tidy()`): drop cuts thinner than 0.004 of a page.
+- **Splits are never joined automatically.** The prototype joined a split whose halves landed
+  on the same frame; the user dropped that rule, because cuts of one page that touch are how you
+  trim the space between systems (or words). Joining is done from a tab's menu.
 - **The played order alone defines what is "cut out".** There is no separate record of removed
   bands. A gap is music cut out only if the two cuts either side of it are from the same page
   and in page order (`b.y0 >= a.y1`). If the next cut jumps backwards (a repeat), the seam
@@ -192,38 +189,23 @@ While an ink tool is selected, a long press on the music draws rather than openi
   reflow moves the cut down a frame, its pad is ignored, and comes back if the cut starts a
   frame again.
 
-### 5.3 "✂ split page here": filling a frame that's mostly empty
+### 5.3 Room on the frame before, and "Cut here"
 
 This is the user's "reflow": splitting a later page so its top fills the space on an earlier
 frame.
 
-- **When it shows:** on frame *n*, if frame *n − 1* is **more than 20% empty**
-  (`ROOM_CUE = 0.2`). It is always on; there's no setting.
-- **What it looks like:**
-  - a very faint warm tint (`rgba(138,90,18,.06)`) from the top of frame *n* down to the height
-    of the room left on frame *n − 1*
-  - a brown dashed line at that height, at 70% opacity
-  - a brown pill on the line: **"✂ split page here"**
-- **It is not shown when:**
-  - frame *n* already starts with the same page that frame *n − 1* ended on, further down
-    (there's already a split or a cut there)
-  - the line would fall within 3% of the frame height of the end of frame *n*'s first cut
-    (splitting there would do nothing useful)
-  - a drag is in progress
-- **Tapping the line (±16 px)** splits frame *n*'s first cut:
-  1. The split point is snapped **up** to the nearest blank band between systems (`snapSplit()`):
-     - Take a row ink profile of the source page: for each pixel row, the fraction of sampled
-       pixels that are dark, sampling every 3rd pixel, where dark means R+G+B < 450.
-     - A row is blank if under 0.2% of its samples are dark.
-     - From the line, move up out of any music, find the blank band there, and split at its
-       middle. The band must be at least 6 rows tall.
-     - If no band is found, split at the line.
-  2. If either half would be thinner than 1% of the page, show "There is no gap between systems
-     to split at." and do nothing.
-  3. Otherwise, reflow and **show the frame before**, which now holds the top half.
-- The first cut on frame *n* is always taller than the room left, since greedy packing would
-  otherwise have placed it on the frame before. So the line always falls inside that first cut.
-- This is a plain tap, not a menu.
+- **The room left on the frame before is shaded.** On frame *n*, if frame *n − 1* is **more
+  than 20% empty** (`ROOM_CUE = 0.2`), a very faint warm tint (`rgba(138,90,18,.06)`) covers
+  frame *n* from its top down to the height of that room. It is always on (in edit mode), and
+  hidden during a drag. There is no line and no pill.
+- **"Cut here"** in the menu on a cut's music (section 5.4) splits the cut exactly where it was
+  pressed, with no snapping. While the menu is open, a blue dashed line marks the place.
+  - Pressed inside the shading, the top half fits on the frame before and moves there.
+  - Pressed anywhere else, both halves stay where they are, now as two cuts with their own
+    tabs, for trimming the space between them.
+  - It isn't offered within 1% of a page of the cut's top or bottom.
+- The prototype's tappable "✂ split page here" line, and snapping the split to a gap between
+  systems, were dropped at the user's request.
 
 ### 5.4 Context menus
 
@@ -242,7 +224,7 @@ frame.
 | A **tab** at a split (the neighbour is the same page and touches) | same | **Join with the cut above** (or **below**): merge them. **Remove this cut.** |
 | A **tab** at a trimmed page edge (the neighbour is a different page, or there is none) | same | **Restore the top of the page** (`y0 = 0`) or **Restore the bottom of the page** (`y1 = 1`), when trimmed. **Remove this cut.** |
 | The **white-space tab** | "Space above the music" | **Remove the white space**, when there is some. |
-| The **music** of a cut | "Cut from page N" | **Insert pages before this cut…** **Insert pages after this cut…** **Remove this cut.** |
+| The **music** of a cut | "Cut from page N" | **Cut here** (section 5.3). **Insert pages before this cut…** **Insert pages after this cut…** **Remove this cut.** |
 | **Blank space** on a frame, above its first cut (a pad) or below its last | "Above the music" or "Below the music" | **Insert pages here…**: before the frame's first cut, or after its last. |
 
 - "Remove this cut" isn't offered when the piece has only one cut.
@@ -341,15 +323,11 @@ frame.
 ## 8. In the app
 
 - `src/pieces/model.ts`: the pure model. `pack`, `tidy`, `freeze` (the layout held still during a
-  drag), trims and their clamps, pad, split, join, restore, the split cue and `pullUp`, insert
+  drag), trims and their clamps, pad, split and `cutAt`, join, restore, `roomBefore`, insert
   (pages or an archived cut), remove and archive, and `setInk`. Every edit takes the piece and
   its ink together (`State`) and returns a new one, so undo keeps whole states.
 - `src/pieces/ink.ts`: the share of a stroke's path length in a band, which strokes a cut shows,
   splitting ink, choosing the markings to copy on insert, and `claimStroke` for pen-up.
-- `src/pieces/snap.ts`: the row ink profile and `snapSplit`. The profile comes from the page
-  drawn 1600 pixels wide, as in the prototype; at frame width, small print can vanish. When the
-  blank band above the line is under 6 rows tall (just under a line of small print), the search
-  carries on upwards to the next band.
 - `src/pieces/store.ts`: `piece:<id>`, `ink:<id>` (by cut, written in the same transaction as
   the piece) and `pos:<id>`, and the migration from `ink:<id>` by page and `page:<id>`. One
   piece per score for now, with the score's id.
@@ -359,8 +337,7 @@ frame.
 - `src/viewer/edit.ts`: edit mode, as DOM elements over each frame (tabs are buttons; from the
   keyboard they open their menu), the menus, the insert picker and the archived-cuts dialog.
 - **Edit cuts** on the toolbar switches edit mode. While it is on and the toolbar shows, the
-  frames sit below the toolbar, so the tabs at their tops can be reached. "✂ cut" seams show
-  only in edit mode. **Archived (n)** on the toolbar opens the archived-cuts dialog.
+  frames sit below the toolbar, so the tabs at their tops can be reached. **Archived (n)** on the toolbar opens the archived-cuts dialog.
 - Frames per screen still come from the toolbar's **Auto / 1 page / 2 pages** setting, for all
   scores. The piece's `orientation` is stored but not used yet. **Open question:** should it
   replace that setting, per piece?

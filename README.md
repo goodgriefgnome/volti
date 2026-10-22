@@ -27,10 +27,11 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
 - **Edit cuts** lets you change the order the pages are played in, on the pages themselves:
   - Drag the faint tab at the top left or bottom right of a cut to cut music away or bring it
     back. The grey tab at the top right of a page adds white space above the music.
-  - When the page before has room, tap **✂ split page here** to move the top of this page up
-    onto it.
-  - Right-click or press and hold for more: insert pages (for a repeat), restore music you cut,
-    or remove a cut. A cut with markings on it is archived rather than deleted.
+  - Right-click or press and hold on the music for more: cut it in two there, insert pages (for
+    a repeat), or remove a cut. A cut with markings on it is archived rather than deleted. Press
+    and hold on a tab to restore music you cut or join two cuts.
+  - When the page before has room left, a faint shading shows how much of this page would fit
+    there. Cut inside the shading to move the top of this page up onto it.
 
 Markings, cuts and the place you were at are stored in the app, per score. They are not written into
 the PDFs.

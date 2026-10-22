@@ -38,6 +38,7 @@ export interface Placed { cut: Cut; index: number; top: number; h: number }
 export interface Frame { items: Placed[]; fill: number }
 
 export const MIN_CUT = 0.004;
+export const MIN_SPLIT = 0.01;
 export const ROOM_CUE = 0.2;
 export const MAX_PAD = 0.6;
 const EPS = 1e-6;
@@ -95,9 +96,6 @@ export function freeze(frames: Frame[], cuts: readonly Cut[], aspects: Aspects):
 
 export const frameOf =(frames: Frame[], id: string) => frames.findIndex((f) => f.items.some((p) => p.cut.id === id));
 
-/** b carries on straight from a: the same page, touching. */
-const touching = (a: Cut, b: Cut) => a.page === b.page && Math.abs(a.y1 - b.y0) < EPS;
-
 /** Same page and in page order, so the gap between them (if any) is music cut out. */
 const inOrder = (a: Cut, b: Cut) => a.page === b.page && b.y0 >= a.y1 - EPS;
 
@@ -143,10 +141,10 @@ export function setPad(s: State, id: string, pad: number, aspects: Aspects): Sta
 }
 
 /** End a drag. A cut dragged to nothing is removed as it was before the drag, so its ink is archived whole. */
-export function release(s: State, before: State, id: string, aspects: Aspects): State {
+export function release(s: State, before: State, id: string): State {
   const c = s.piece.cuts.find((c) => c.id === id);
-  if (c && c.y1 - c.y0 <= MIN_CUT) return tidy(remove(before, id), aspects);
-  return tidy(s, aspects);
+  if (c && c.y1 - c.y0 <= MIN_CUT) return tidy(remove(before, id));
+  return tidy(s);
 }
 
 const hasOwnInk = (s: State, c: Cut) => !!c.ownInk && !!s.ink[c.id]?.length;
@@ -206,49 +204,28 @@ export function split(s: State, id: string, y: number, aspects: Aspects): { stat
   };
 }
 
-/** Drop cuts thinner than MIN_CUT, and join any split whose halves have landed on one frame. */
-export function tidy(s: State, aspects: Aspects): State {
+/** Drop cuts thinner than MIN_CUT. */
+export function tidy(s: State): State {
   for (const c of s.piece.cuts) if (c.y1 - c.y0 <= MIN_CUT) s = remove(s, c.id);
-  for (;;) {
-    const frames = pack(s.piece.cuts, aspects);
-    let join: Cut | undefined;
-    for (const f of frames) {
-      const n = f.items.findIndex((p, n) => n > 0 && touching(f.items[n - 1].cut, p.cut));
-      if (n > 0) { join = f.items[n - 1].cut; break; }
-    }
-    if (!join) return s;
-    s = joinNext(s, join.id);
-  }
+  return s;
 }
 
 /**
- * The "split page here" cue on frame `n`: the room left on the frame before, in page widths
- * from the top of frame n, or null when there should be no cue.
+ * The room left on the frame before frame `n`, in page widths, when it is more than ROOM_CUE
+ * of the frame; otherwise null. It is shown as a faint shading at the top of frame n.
  */
-export function splitCue(frames: Frame[], n: number, aspects: Aspects): number | null {
-  const prev = frames[n - 1], first = frames[n]?.items[0];
-  if (!prev || !first) return null;
+export function roomBefore(frames: Frame[], n: number, aspects: Aspects): number | null {
+  const prev = frames[n - 1];
+  if (!prev || !frames[n]?.items.length) return null;
   const H = frameHeight(aspects), room = H - prev.fill;
-  if (room <= ROOM_CUE * H) return null;
-  if (inOrder(prev.items.at(-1)!.cut, first.cut)) return null;
-  if (room >= first.top + first.h - 0.03 * H) return null;
-  return room;
+  return room > ROOM_CUE * H ? room : null;
 }
 
-/**
- * Tap on the cue of frame `n`: split its first cut so the top fills the frame before.
- * `snap` moves the split up to a gap between systems. Returns null when there is no gap.
- */
-export function pullUp(
-  s: State, n: number, aspects: Aspects, snap: (page: number, y: number, lo: number) => number,
-): { state: State; keep: string } | null {
-  const frames = pack(s.piece.cuts, aspects);
-  const room = splitCue(frames, n, aspects);
-  if (room === null) return null;
-  const c = frames[n].items[0].cut;
-  const y = snap(c.page, c.y0 + room / aspects[c.page], c.y0);
-  if (y - c.y0 < 0.01 || c.y1 - y < 0.01) return null;
-  return { state: tidy(split(s, c.id, y, aspects).state, aspects), keep: c.id };
+/** Cut a cut in two at y (a fraction of its page's height), unless either half would be a sliver. */
+export function cutAt(s: State, id: string, y: number, aspects: Aspects): State | null {
+  const c = s.piece.cuts.find((c) => c.id === id);
+  if (!c || y - c.y0 < MIN_SPLIT || c.y1 - y < MIN_SPLIT) return null;
+  return split(s, id, y, aspects).state;
 }
 
 export interface InsertAt { id: string; after: boolean }
@@ -276,15 +253,15 @@ export function insertPages(
       if (strokes.length) ink[c.id] = strokes.map((st) => ({ ...st, points: st.points.map((p) => [...p]) }));
     }
   }
-  return { state: tidy({ piece: { ...s.piece, cuts: place(s, at, add) }, ink }, aspects), first: add[0].id };
+  return { state: tidy({ piece: { ...s.piece, cuts: place(s, at, add) }, ink }), first: add[0].id };
 }
 
 /** Put an archived cut back into the played order, with its ink. */
-export function insertArchived(s: State, at: InsertAt, id: string, aspects: Aspects): State {
+export function insertArchived(s: State, at: InsertAt, id: string): State {
   const c = s.piece.archived.find((c) => c.id === id);
   if (!c) return s;
   const piece = { ...s.piece, cuts: place(s, at, [c]), archived: s.piece.archived.filter((x) => x !== c) };
-  return tidy({ ...s, piece }, aspects);
+  return tidy({ ...s, piece });
 }
 
 /** Record that a cut's ink was changed by hand, then set its strokes. */

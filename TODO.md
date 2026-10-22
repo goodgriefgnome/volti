@@ -14,10 +14,10 @@ The full design is in [docs/frames-design.md](docs/frames-design.md), with a wor
   between two cuts of the same page has been cut out; two cuts that touch are a **split**.
 - **Reflow**: frames have the page's own shape and scale (landscape shows two side by side). Parts
   are stacked in order; a part goes on the current frame if it fits, otherwise it starts the next.
-  A split whose halves end up on the same frame is joined again.
+  Splits are never joined automatically.
 - **Editing happens in the frame view**, never on the raw page:
   - Menus open only on a right-click or a long press (half a second without moving), never on a
-    tap. On the music of a cut: insert pages before or after this cut (a picker with thumbnails
+    tap. On the music of a cut: cut here, insert pages before or after this cut (a picker with thumbnails
     of the piece's pages; tap one page, or two for a range), or remove the cut. On blank space
     above a frame's first cut or below its last: insert pages here.
   - Every part has a faint tab at its top left (its start) and its bottom right (its end). Tabs
@@ -28,11 +28,8 @@ The full design is in [docs/frames-design.md](docs/frames-design.md), with a wor
     dragging the bottom tab down does. Dragging an edge across the whole cut removes it.
   - A grey tab at the top right of each frame adds white space above the music (stored on the
     part, used only when that part starts a frame).
-  - When the frame before is more than a fifth empty, a faint band and a dashed "✂ split page
-    here" line show how much would fit there (always on; no setting). Tapping the line splits the
-    page at the nearest gap between systems above it and moves the top part onto the frame
-    before, which is then shown. No cue when the frame already continues the page from the frame
-    before, or when the line would fall at the end of the frame's first cut.
+  - When the frame before is more than a fifth empty, a faint shading shows how much would fit
+    there (always on; no setting). "Cut here" inside it moves the top part onto the frame before.
   - A tab's menu: restore the music cut out above/below
     (joins the two cuts), join a split, restore a trimmed page top/bottom, remove the cut; the white-space tab
     offers "remove the white space". Not covered yet: bringing back a part that was removed.

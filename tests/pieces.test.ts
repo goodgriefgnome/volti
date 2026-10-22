@@ -2,10 +2,9 @@ import { describe, expect, it } from 'vitest';
 import type { Stroke } from '../src/ink/model';
 import { claimFirstPass, claimStroke, share, splitStrokes, visible } from '../src/pieces/ink';
 import {
-  deleteArchived, edgeKind, edgeRange, insertArchived, insertPages, joinNext, newPiece, pack, pullUp,
-  release, remove, setEdge, setInk, setPad, split, splitCue, tidy, type Cut, type State,
+  cutAt, deleteArchived, edgeKind, edgeRange, insertArchived, insertPages, joinNext, newPiece, pack,
+  release, remove, roomBefore, setEdge, setInk, setPad, split, tidy, type Cut, type State,
 } from '../src/pieces/model';
-import { rowInk, snapSplit } from '../src/pieces/snap';
 
 const A4 = 297 / 210;
 const aspects = [A4, A4, A4];
@@ -80,23 +79,13 @@ describe('edges', () => {
 });
 
 describe('tidy', () => {
-  it('joins a split whose halves land on one frame', () => {
-    const s = tidy(state([cut(0, 0, 0.3), cut(0, 0.3, 0.6), cut(1)]), aspects);
-    expect(pages(s)).toEqual([[0, 0, 0.6], [1, 0, 1]]);
+  it('drops slivers', () => {
+    const s = tidy(state([cut(0, 0, 0.3), cut(0, 0.5, 0.502), cut(1)]));
+    expect(pages(s)).toEqual([[0, 0, 0.3], [1, 0, 1]]);
   });
-  it('keeps a split whose halves are on different frames', () => {
-    const s = tidy(state([cut(1, 0, 0.6), cut(0, 0, 0.3), cut(0, 0.3, 1)]), aspects);
-    expect(pages(s)).toEqual([[1, 0, 0.6], [0, 0, 0.3], [0, 0.3, 1]]);
-  });
-  it('keeps music cut out even on one frame', () => {
-    const s = tidy(state([cut(0, 0, 0.3), cut(0, 0.5, 0.8)]), aspects);
-    expect(s.piece.cuts).toHaveLength(2);
-  });
-  it('joins the halves\' ink', () => {
-    const a = cut(0, 0, 0.3), b = cut(0, 0.3, 0.6);
-    const s = tidy(state([a, b], { [a.id]: [line(0.1, 0.2)], [b.id]: [line(0.4, 0.5)] }), aspects);
-    expect(s.ink[a.id]).toHaveLength(2);
-    expect(s.ink[b.id]).toBeUndefined();
+  it('keeps cuts of one page that touch, even on one frame', () => {
+    const s = tidy(state([cut(0, 0, 0.3), cut(0, 0.3, 0.6), cut(1)]));
+    expect(pages(s)).toEqual([[0, 0, 0.3], [0, 0.3, 0.6], [1, 0, 1]]);
   });
 });
 
@@ -128,7 +117,7 @@ describe('remove and archive', () => {
   it('brings an archived cut back with its id and ink', () => {
     const a = cut(0), b = cut(1, 0.2, 0.7);
     let s = remove(setInk(state([a, b]), b.id, [line(0.3, 0.4)]), b.id);
-    s = insertArchived(s, { id: a.id, after: false }, b.id, aspects);
+    s = insertArchived(s, { id: a.id, after: false }, b.id);
     expect(s.piece.cuts.map((c) => c.id)).toEqual([b.id, a.id]);
     expect(s.piece.cuts[0]).toMatchObject({ y0: 0.2, y1: 0.7 });
     expect(s.piece.archived).toEqual([]);
@@ -145,7 +134,7 @@ describe('remove and archive', () => {
     const a = cut(0), b = cut(1, 0.2, 0.9);
     const before = setInk(state([a, b]), b.id, [line(0.3, 0.4)]);
     const dragged = setEdge(before, b.id, 'bottom', 0, edgeRange(before.piece.cuts, 1, 'bottom'));
-    const s = release(dragged, before, b.id, aspects);
+    const s = release(dragged, before, b.id);
     expect(s.piece.cuts.map((c) => c.id)).toEqual([a.id]);
     expect(s.piece.archived[0]).toMatchObject({ id: b.id, y0: 0.2, y1: 0.9 });
   });
@@ -180,28 +169,31 @@ describe('split', () => {
   });
 });
 
-describe('the split cue', () => {
-  it('shows on the frame after one that is mostly empty, at the room left', () => {
+describe('roomBefore', () => {
+  it('is the room left on the frame before, when that is more than a fifth of a frame', () => {
     const frames = pack(sarabande().piece.cuts, aspects);
-    expect(splitCue(frames, 3, aspects)).toBeCloseTo(A4 / 3);
-    expect(splitCue(frames, 1, aspects)).toBeNull();
+    expect(roomBefore(frames, 3, aspects)).toBeCloseTo(A4 / 3);
+    expect(roomBefore(frames, 1, aspects)).toBeNull();
+    expect(roomBefore(frames, 0, aspects)).toBeNull();
   });
-  it('is not shown where the frame carries on the page from the frame before', () => {
-    const frames = pack([cut(1, 0, 0.5), cut(0, 0, 0.3), cut(0, 0.3, 1)], aspects);
-    expect(splitCue(frames, 1, aspects)).toBeNull();
+});
+
+describe('cutAt', () => {
+  it('cuts a cut in two where you pressed, and the halves stay apart', () => {
+    const c = cut(0, 0.1, 0.9);
+    const s = cutAt(state([c, cut(1)]), c.id, 0.4, aspects)!;
+    expect(pages(s)).toEqual([[0, 0.1, 0.4], [0, 0.4, 0.9], [1, 0, 1]]);
+    expect(edgeKind(s.piece.cuts, 0, 'bottom')).toBe('split');
   });
-  it('is not shown where it would fall at the end of the first cut', () => {
-    const frames = pack([cut(0, 0, 0.5), cut(1, 0, 0.52)], aspects);
-    expect(splitCue(frames, 1, aspects)).toBeNull();
+  it('lets a split carry the top of a page onto the frame before', () => {
+    const t = sarabande();
+    const r = cutAt(t, t.piece.cuts[4].id, 0.3, aspects)!;
+    expect(pack(r.piece.cuts, aspects).map((f) => f.items.length)).toEqual([1, 1, 3, 1]);
   });
-  it('pulls the top of the page up onto the frame before', () => {
-    const s = sarabande();
-    const r = pullUp(s, 3, aspects, (_p, y) => y - 0.01)!;
-    expect(pages(r.state)).toEqual([[0, 0, 1], [1, 0, 1], [2, 0, 0.333], [1, 0.667, 1], [2, 0, 0.323], [2, 0.323, 1]]);
-    expect(pack(r.state.piece.cuts, aspects).map((f) => f.items.length)).toEqual([1, 1, 3, 1]);
-  });
-  it('does nothing when there is no gap to split at', () => {
-    expect(pullUp(sarabande(), 3, aspects, (_p, _y, lo) => lo)).toBeNull();
+  it('will not leave a sliver', () => {
+    const c = cut(0, 0.1, 0.9);
+    expect(cutAt(state([c]), c.id, 0.105, aspects)).toBeNull();
+    expect(cutAt(state([c]), c.id, 0.895, aspects)).toBeNull();
   });
 });
 
@@ -278,30 +270,5 @@ describe('claimStroke', () => {
     const [, , f] = pack(sarabande().piece.cuts, aspects);
     const s: Stroke = { ...line(0, 0), points: [[0.5, A4 - 0.05, 0.5]] };
     expect(claimStroke(f, s, aspects)!.cut.page).toBe(1);
-  });
-});
-
-describe('snapSplit', () => {
-  const rows = (pattern: string) => Float32Array.from(pattern, (ch) => (ch === '#' ? 0.3 : 0));
-  it('moves up out of the music to the middle of the blank band', () => {
-    const r = rows('#'.repeat(40) + '.'.repeat(20) + '#'.repeat(40));
-    expect(snapSplit(r, 0.75, 0)).toBeCloseTo(49.5 / 100);
-  });
-  it('keeps the line when the band is too thin or there is none', () => {
-    expect(snapSplit(rows('#'.repeat(45) + '.'.repeat(3) + '#'.repeat(52)), 0.75, 0)).toBe(0.75);
-    expect(snapSplit(rows('#'.repeat(100)), 0.75, 0)).toBe(0.75);
-  });
-  it('looks past a band too thin to split in, such as under small print', () => {
-    const r = rows('#'.repeat(30) + '.'.repeat(20) + '#'.repeat(10) + '.'.repeat(3) + '#'.repeat(37));
-    expect(snapSplit(r, 0.62, 0)).toBeCloseTo(39.5 / 100);
-  });
-  it('does not look above lo', () => {
-    const r = rows('.'.repeat(20) + '#'.repeat(80));
-    expect(snapSplit(r, 0.75, 0.3)).toBe(0.75);
-  });
-  it('profiles dark pixels per row', () => {
-    const w = 6, h = 2, data = new Uint8ClampedArray(w * h * 4).fill(255);
-    data.fill(0, 0, 4); // the first pixel of the first row is black
-    expect(Array.from(rowInk(data, w, h))).toEqual([0.5, 0]);
   });
 });
