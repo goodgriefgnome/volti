@@ -1,29 +1,27 @@
 import type { Score } from '../lib/library';
-import { lastPage, savePrefs, type PagesPerScreen, type Prefs } from '../lib/prefs';
-import { drawAll, drawPenSegment, wholePage, type InkTarget } from '../ink/draw';
-import { compact, HIGHLIGHT_COLOR, HIGHLIGHT_SIZE, PEN_COLORS, PEN_SIZE, touches, type InkTool, type Point, type ScoreInk, type Stroke } from '../ink/model';
-import { inkSaver, loadInk } from '../ink/store';
-import { fitPages, pagesPerScreen, spread, turnTarget, type Size } from './layout';
+import { savePrefs, type PagesPerScreen, type Prefs } from '../lib/prefs';
+import { drawPenSegment } from '../ink/draw';
+import { compact, HIGHLIGHT_COLOR, HIGHLIGHT_SIZE, PEN_COLORS, PEN_SIZE, touches, type InkTool, type Point, type Stroke } from '../ink/model';
+import { claimStroke, visible } from '../pieces/ink';
+import { frameHeight, frameOf, pack, setInk, type Aspects, type Cut, type Frame, type State } from '../pieces/model';
+import { rowInk } from '../pieces/snap';
+import { loadPiece, pieceSaver, savePosition } from '../pieces/store';
+import { el } from './dom';
+import { CutEditor, type FrameSlot } from './edit';
+import { drawFrame, drawFrameInk, frameTarget, regionBands, type Hatches } from './frames';
+import { fitPages, pagesPerScreen } from './layout';
 import { openPdf, type PageCache } from './renderer';
 import { gestureFor, gestureForKey, type Gesture } from './turns';
 import { isZoomed, NO_ZOOM, pan, pinch, visiblePart, type Pt, type Zoom } from './zoom';
 
 type Tool = 'none' | InkTool | 'eraser';
 
-interface Slot {
-  num: number;
-  box: HTMLElement;
-  /** Where the page sits in the unzoomed spread, in CSS pixels. */
-  x: number; y: number; w: number; h: number;
-  ink: InkTarget;
-  /** A sharp close-up of the visible part of the page while zoomed in, with its own ink layer. */
-  detail?: { page: HTMLCanvasElement; ink: InkTarget };
-}
-
-type Edit = { kind: 'add' | 'remove'; page: number; index: number; stroke: Stroke };
+/** Undo keeps whole states: each entry is the state before an edit, and the cut to show. */
+interface Undo { state: State; focus?: string }
 
 const GAP = 6;
 const ERASER_RADIUS = 0.012;
+const PROFILE_WIDTH = 1600;
 /** After the pen lifts, finger touches are ignored this long, as they are probably the writing hand. */
 const PALM_GUARD_MS = 600;
 /** Wait this long after a pinch or pan settles before drawing the sharp close-up. */
@@ -33,17 +31,15 @@ const LAYOUT_NEXT: Record<string, PagesPerScreen> = { auto: 1, 1: 2, 2: 'auto' }
 
 const dpr = () => window.devicePixelRatio || 1;
 
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text) e.textContent = text;
-  return e;
-}
+/** Whether two played orders put the same music in the same places. */
+const sameLayout = (a: readonly Cut[], b: readonly Cut[]) =>
+  a.length === b.length && a.every((c, i) => c.id === b[i].id && c.page === b[i].page && c.y0 === b[i].y0 && c.y1 === b[i].y1 && c.pad === b[i].pad);
 
 export async function openViewer(score: Score, prefs: Prefs, onClose: () => void): Promise<void> {
-  const file = await score.getFile();
-  const [cache, ink, page] = await Promise.all([openPdf(file), loadInk(score.id), lastPage.get(score.id)]);
-  new Viewer(score, cache, ink, prefs, Math.min(page, cache.numPages), onClose);
+  const cache = await openPdf(await score.getFile());
+  const aspects = await cache.allAspects();
+  const { state, position } = await loadPiece(score.id, score.title, aspects);
+  new Viewer(score, cache, aspects, state, position, prefs, onClose);
 }
 
 class Viewer {
@@ -52,12 +48,18 @@ class Viewer {
   private spreadEl = el('div', 'spread');
   private bar = el('div', 'bar');
   private info = el('span', 'page-info');
+  private toast = el('p', 'toast');
   private buttons: Record<string, HTMLButtonElement> = {};
 
   private perScreen: 1 | 2 = 1;
+  /** The first frame on the screen. */
+  private frame = 0;
+  private frames: Frame[] = [];
   private seq = 0;
-  private slots: Slot[] = [];
-  private sizes = new Map<number, Size>();
+  private slots: FrameSlot[] = [];
+  /** Page canvases drawn at the frame's width, by 0-based page, for the frames on screen. */
+  private pages = new Map<number, HTMLCanvasElement>();
+  private rows = new Map<number, Promise<Float32Array>>();
 
   private zoom: Zoom = NO_ZOOM;
   private detailTimer: ReturnType<typeof setTimeout> | undefined;
@@ -65,15 +67,17 @@ class Viewer {
 
   private tool: Tool = 'none';
   private penColor: string = PEN_COLORS[0];
-  private undoStack: Edit[] = [];
-  private redoStack: Edit[] = [];
+  private undoStack: Undo[] = [];
+  private redoStack: Undo[] = [];
   private saver;
+  private editor: CutEditor;
+  private toastTimer: ReturnType<typeof setTimeout> | undefined;
 
   /** Fingers currently on the screen, by pointer id. */
   private fingers = new Map<number, Pt>();
   /** Pointers to disregard until they lift: palms, and the finger left over after a pinch. */
   private ignored = new Set<number>();
-  private active: { id: number; type: string; slot: Slot; rect: DOMRect; stroke?: Stroke; erasing: boolean } | null = null;
+  private active: { id: number; type: string; slot: FrameSlot; rect: DOMRect; stroke?: Stroke; erasing: boolean; before: State } | null = null;
   private gesture: { id: number; x: number; y: number; t: number } | null = null;
   private pinching: { ids: [number, number]; start: Zoom; c0: Pt; d0: number } | null = null;
   private panning: { id: number; start: Zoom; x0: number; y0: number } | null = null;
@@ -89,15 +93,35 @@ class Viewer {
   constructor(
     private score: Score,
     private cache: PageCache,
-    private ink: ScoreInk,
+    private aspects: Aspects,
+    private state: State,
+    position: string | undefined,
     private prefs: Prefs,
-    private page: number,
     private onClose: () => void,
   ) {
-    this.saver = inkSaver(score.id, () => this.ink);
+    this.saver = pieceSaver(score.id, () => this.state);
+    this.frames = pack(state.piece.cuts, aspects);
+    this.frame = Math.max(0, position ? frameOf(this.frames, position) : 0);
+    this.toast.setAttribute('role', 'status');
+    this.editor = new CutEditor({
+      root: this.root,
+      stage: this.stage,
+      aspects,
+      state: () => this.state,
+      frames: () => this.frames,
+      slots: () => this.slots,
+      commit: (s, focus) => this.commit(s, focus),
+      preview: (s, frames, hatches) => this.preview(s, frames, hatches),
+      rows: (page) => this.rowsFor(page),
+      thumb: (page, w) => this.cache.render(page + 1, w, Math.round(w * aspects[page]), dpr()),
+      inking: () => this.tool !== 'none',
+      cancelGesture: () => { this.gesture = null; },
+      say: (t) => this.say(t),
+      changed: () => this.syncBar(),
+    });
     this.buildBar();
     this.stage.append(this.spreadEl);
-    this.root.append(this.stage, this.bar);
+    this.root.append(this.stage, this.bar, this.toast);
     document.body.append(this.root);
     document.body.classList.add('viewing');
 
@@ -105,6 +129,7 @@ class Viewer {
     this.stage.addEventListener('pointermove', this.onMove);
     this.stage.addEventListener('pointerup', (e) => this.onUp(e, false));
     this.stage.addEventListener('pointercancel', (e) => this.onUp(e, true));
+    this.stage.addEventListener('contextmenu', (e) => this.editor.onContext(e));
     document.addEventListener('keydown', this.onKey);
     document.addEventListener('visibilitychange', this.onVisible);
     window.addEventListener('popstate', this.onPop);
@@ -151,6 +176,8 @@ class Viewer {
 
     const right = el('div', 'group');
     right.append(
+      this.button('edit', 'Edit cuts', () => { this.editor.setEnabled(!this.editor.enabled); this.syncBar(); this.decorate(); }),
+      this.button('archived', 'Archived', () => this.editor.openArchive()),
       this.button('fit', 'Fit page', () => this.setZoom(NO_ZOOM)),
       this.button('layout', '', () => {
         this.prefs.pagesPerScreen = LAYOUT_NEXT[String(this.prefs.pagesPerScreen)];
@@ -175,12 +202,18 @@ class Viewer {
     pressed('pen', this.tool === 'pen');
     pressed('highlighter', this.tool === 'highlighter');
     pressed('eraser', this.tool === 'eraser');
+    pressed('edit', this.editor.enabled);
     for (const c of PEN_COLORS) pressed('color' + c, this.tool === 'pen' && this.penColor === c);
+    const archived = this.state.piece.archived.length;
+    this.buttons.archived.hidden = !this.editor.enabled || !archived;
+    this.buttons.archived.textContent = `Archived (${archived})`;
     this.buttons.layout.textContent = LAYOUT_LABEL[String(this.prefs.pagesPerScreen)];
     this.buttons.fit.hidden = !isZoomed(this.zoom);
     this.buttons.undo.disabled = !this.undoStack.length;
     this.buttons.redo.disabled = !this.redoStack.length;
     this.root.classList.toggle('writing', this.tool !== 'none');
+    this.root.classList.toggle('editing', this.editor.enabled);
+    this.root.style.setProperty('--bar-h', this.bar.offsetHeight + 'px');
   }
 
   /** The toolbar showing means annotation mode: zooming and writing are available. */
@@ -191,91 +224,142 @@ class Viewer {
     if (!show) this.setZoom(NO_ZOOM);
   }
 
-  /* ---------- pages ---------- */
-
-  private async sizesFor(nums: number[], W: number, H: number): Promise<Size[]> {
-    const aspects = await Promise.all(nums.map((n) => this.cache.aspect(n)));
-    return fitPages(W, H, aspects, GAP);
+  private say(text: string) {
+    this.toast.textContent = text;
+    this.toast.hidden = false;
+    clearTimeout(this.toastTimer);
+    this.toastTimer = setTimeout(() => { this.toast.hidden = true; }, 3500);
   }
 
+  /* ---------- frames ---------- */
+
+  /** The first frame of the screen that holds frame `f`. */
+  private screenOf(f: number) { return Math.floor(f / this.perScreen) * this.perScreen; }
+
+  private frameSize(W: number, H: number) {
+    const sizes = fitPages(W, H, Array(this.perScreen).fill(frameHeight(this.aspects)), GAP);
+    return sizes[0];
+  }
+
+  private pageSize(page: number, w: number) { return { w, h: Math.round(w * this.aspects[page]) }; }
+
   private async show() {
-    const seq = ++this.seq; // a newer show() (turn, resize, layout change) supersedes this one
+    const seq = ++this.seq; // a newer show() (turn, resize, edit) supersedes this one
     const W = this.stage.clientWidth;
     const H = this.stage.clientHeight;
     if (!W || !H) return;
-    const n = pagesPerScreen(this.prefs.pagesPerScreen, W, H);
-    this.perScreen = n;
-    const nums = spread(this.page, n, this.cache.numPages);
-    const sizes = await this.sizesFor(nums, W, H);
+    this.perScreen = pagesPerScreen(this.prefs.pagesPerScreen, W, H);
+    this.frame = this.screenOf(Math.min(this.frame, this.frames.length - 1));
+    const size = this.frameSize(W, H);
     const scale = dpr();
+    const on = this.frames.slice(this.frame, this.frame + this.perScreen);
+    const pageNums = [...new Set(on.flatMap((f) => f.items.map((p) => p.cut.page)))];
     let canvases: HTMLCanvasElement[];
     try {
-      canvases = await Promise.all(nums.map((num, i) => this.cache.render(num, sizes[i].w, sizes[i].h, scale)));
+      canvases = await Promise.all(pageNums.map((p) => this.cache.render(p + 1, size.w, this.pageSize(p, size.w).h, scale)));
     } catch (e) {
       if (seq === this.seq) this.info.textContent = 'Could not draw this page';
       console.error(e);
       return;
     }
     if (seq !== this.seq) return;
+    this.pages = new Map(pageNums.map((p, i) => [p, canvases[i]]));
 
-    this.slots = [];
-    // Place pages on whole screen pixels so they are shown exactly as drawn, without resampling.
+    // Place frames on whole screen pixels so they are shown exactly as drawn, without resampling.
     const devW = Math.round(W * scale), devH = Math.round(H * scale), devGap = Math.round(GAP * scale);
-    const total = canvases.reduce((sum, c) => sum + c.width, 0) + devGap * (canvases.length - 1);
+    const fw = Math.round(size.w * scale), fh = Math.round(size.h * scale);
+    const total = fw * on.length + devGap * (on.length - 1);
     let x = Math.floor((devW - total) / 2);
-    const boxes = canvases.map((pageCanvas, i) => {
-      const slot: Slot = {
-        num: nums[i],
+    this.slots = on.map((frame, i) => {
+      const slot: FrameSlot = {
+        index: this.frame + i,
+        frame,
         box: el('div', 'page'),
         x: x / scale,
-        y: Math.floor((devH - pageCanvas.height) / 2) / scale,
-        w: pageCanvas.width / scale,
-        h: pageCanvas.height / scale,
-        ink: wholePage(Object.assign(el('canvas', 'ink'), { width: pageCanvas.width, height: pageCanvas.height })),
+        y: Math.floor((devH - fh) / 2) / scale,
+        w: fw / scale,
+        h: fh / scale,
+        canvas: Object.assign(el('canvas'), { width: fw, height: fh }),
+        ink: Object.assign(el('canvas', 'ink'), { width: fw, height: fh }),
       };
-      x += pageCanvas.width + devGap;
+      x += fw + devGap;
       Object.assign(slot.box.style, { left: slot.x + 'px', top: slot.y + 'px', width: slot.w + 'px', height: slot.h + 'px' });
-      slot.box.append(pageCanvas, slot.ink.ctx.canvas);
-      drawAll(slot.ink, this.ink[slot.num] ?? []);
-      this.slots.push(slot);
-      return slot.box;
+      slot.box.append(slot.canvas, slot.ink);
+      return slot;
     });
-    this.spreadEl.replaceChildren(...boxes);
+    for (const s of this.slots) this.paint(s, this.state);
+    this.spreadEl.replaceChildren(...this.slots.map((s) => s.box));
     this.setZoom(NO_ZOOM);
-    this.info.textContent = nums.length > 1
-      ? `${nums[0]}–${nums.at(-1)} of ${this.cache.numPages}`
-      : `${nums[0]} of ${this.cache.numPages}`;
-    void lastPage.set(this.score.id, this.page);
-    void this.predraw(seq, W, H, scale, nums, sizes);
+    this.decorate();
+    const last = this.frame + on.length;
+    this.info.textContent = on.length > 1 ? `${this.frame + 1}–${last} of ${this.frames.length}` : `${last} of ${this.frames.length}`;
+    const first = on[0]?.items[0];
+    if (first) void savePosition(this.score.id, first.cut.id);
+    void this.predraw(seq, size.w, scale);
   }
 
-  /** Draw the next and previous spreads in the background. */
-  private async predraw(seq: number, W: number, H: number, scale: number, nums: number[], sizes: Size[]) {
-    this.sizes = new Map(nums.map((n, i) => [n, sizes[i]]));
-    const total = this.cache.numPages;
-    const neighbours = [
-      spread(turnTarget(this.page, this.perScreen, total, 1), this.perScreen, total),
-      spread(turnTarget(this.page, this.perScreen, total, -1), this.perScreen, total),
-    ].filter((s) => s[0] !== this.page);
-    for (const s of neighbours) {
-      const ss = await this.sizesFor(s, W, H);
-      if (seq !== this.seq) return;
-      s.forEach((n, i) => this.sizes.set(n, ss[i]));
+  /** Draw a frame's music and ink at its current layout. */
+  private paint(slot: FrameSlot, s: State, hatches?: Hatches, extra?: Stroke) {
+    const W = slot.canvas.width;
+    drawFrame(slot.canvas.getContext('2d', { alpha: false })!, slot.frame, W, (p) => this.pages.get(p), this.aspects, hatches);
+    this.paintInk(slot, s, extra);
+  }
+
+  private paintInk(slot: FrameSlot, s: State, extra?: Stroke) {
+    drawFrameInk(slot.ink.getContext('2d')!, slot.frame, s.ink, this.aspects, slot.ink.width, 0, 0, extra);
+    const d = slot.detail;
+    if (d) drawFrameInk(d.ink.getContext('2d')!, slot.frame, s.ink, this.aspects, d.W, d.x, d.y, extra);
+  }
+
+  private decorate() {
+    this.editor.decorate(this.slots, this.frames);
+  }
+
+  /** While a cut is dragged: show it with the layout frozen, the music being cut away hatched. */
+  private preview(s: State | null, frames: Frame[] | null, hatches?: Hatches) {
+    const all = frames ?? this.frames;
+    this.dropDetail();
+    for (const slot of this.slots) {
+      slot.frame = all[slot.index] ?? slot.frame;
+      this.paint(slot, s ?? this.state, hatches);
     }
-    this.cache.keepOnly([...this.sizes.keys()], (n) => this.sizes.get(n));
-    for (const s of neighbours) for (const n of s) {
+    this.editor.decorate(this.slots, all, !!frames);
+  }
+
+  /** Draw the next and previous screens' pages in the background. */
+  private async predraw(seq: number, w: number, scale: number) {
+    const screens = [this.frame + this.perScreen, this.frame - this.perScreen]
+      .filter((f) => f >= 0 && f < this.frames.length)
+      .map((f) => this.frames.slice(f, f + this.perScreen));
+    const near = new Set([...this.pages.keys(), ...screens.flat().flatMap((f) => f.items.map((p) => p.cut.page))]);
+    this.cache.keepOnly([...near].map((p) => p + 1), (n) => this.pageSize(n - 1, w));
+    for (const p of near) {
       if (seq !== this.seq) return;
-      const sz = this.sizes.get(n)!;
-      await this.cache.render(n, sz.w, sz.h, scale).catch(() => {});
+      await this.cache.render(p + 1, w, this.pageSize(p, w).h, scale).catch(() => {});
     }
+  }
+
+  /** The row ink profile of a page, from a drawing 1600 pixels wide: enough to see small print. */
+  private rowsFor(page: number): Promise<Float32Array> {
+    let r = this.rows.get(page);
+    if (!r) {
+      r = this.cache.render(page + 1, PROFILE_WIDTH, Math.round(PROFILE_WIDTH * this.aspects[page]), 1).then((c) => {
+        const { data } = c.getContext('2d')!.getImageData(0, 0, c.width, c.height);
+        return rowInk(data, c.width, c.height);
+      });
+      r.catch(() => this.rows.delete(page));
+      this.rows.set(page, r);
+    }
+    return r;
   }
 
   private turn(dir: 1 | -1) {
-    const next = turnTarget(this.page, this.perScreen, this.cache.numPages, dir);
-    if (next === this.page) return;
-    this.page = next;
+    const next = this.frame + dir * this.perScreen;
+    if (next < 0 || next >= this.frames.length) return;
+    this.frame = next;
     // Put the tool away so taps turn pages again. The toolbar stays until you dismiss it.
     this.tool = 'none';
+    this.syncBar();
     void this.show();
   }
 
@@ -283,6 +367,38 @@ class Viewer {
     if (g === 'next') this.turn(1);
     else if (g === 'prev') this.turn(-1);
     else this.showChrome(!this.annotating);
+  }
+
+  /* ---------- editing ---------- */
+
+  /**
+   * Take a new state from an edit: remember the old one for undo, save, reflow, and show the
+   * frame holding `focus` (or stay where you are, if that cut is gone). Undo shows it too.
+   */
+  private commit(s: State, focus?: string) {
+    this.undoStack.push({ state: this.state, focus });
+    this.redoStack = [];
+    this.setState(s, focus);
+  }
+
+  private setState(s: State, focus?: string) {
+    const moved = !sameLayout(s.piece.cuts, this.state.piece.cuts);
+    this.state = s;
+    this.saver.soon();
+    this.syncBar();
+    this.frames = pack(s.piece.cuts, this.aspects);
+    const f = focus ? frameOf(this.frames, focus) : -1;
+    const target = f >= 0 ? this.screenOf(f) : this.frame;
+    if (!moved && target === this.frame) {
+      for (const slot of this.slots) {
+        slot.frame = this.frames[slot.index];
+        this.paintInk(slot, s);
+      }
+      this.decorate();
+      return;
+    }
+    this.frame = Math.min(target, Math.max(0, this.frames.length - 1));
+    void this.show();
   }
 
   /* ---------- zoom ---------- */
@@ -299,15 +415,15 @@ class Viewer {
   private dropDetail() {
     this.detailSeq++;
     for (const s of this.slots) {
-      s.detail?.page.remove();
-      s.detail?.ink.ctx.canvas.remove();
+      s.detail?.canvas.remove();
+      s.detail?.ink.remove();
       s.detail = undefined;
     }
   }
 
   /**
-   * Zoomed in, the page drawings are stretched and soft. Draw the visible part of each page
-   * again at the zoomed size, on top: the close-up hides the soft page and ink beneath it.
+   * Zoomed in, the frame drawings are stretched and soft. Draw the visible part of each frame
+   * again at the zoomed size, on top: the close-up hides the soft music and ink beneath it.
    */
   private async drawDetail() {
     const seq = ++this.detailSeq;
@@ -317,49 +433,49 @@ class Viewer {
     for (const slot of this.slots) {
       const part = visiblePart(z, W, H, slot);
       if (!part) continue;
-      const pageWidth = Math.round(slot.w * k);
+      const fw = Math.round(slot.w * k);
       const x = Math.floor(part.x * k), y = Math.floor(part.y * k);
       const region = { x, y, w: Math.ceil((part.x + part.w) * k) - x, h: Math.ceil((part.y + part.h) * k) - y };
-      let page: HTMLCanvasElement;
+      const canvas = Object.assign(el('canvas', 'detail'), { width: region.w, height: region.h });
+      const ctx = canvas.getContext('2d', { alpha: false })!;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, region.w, region.h);
       try {
-        page = await this.cache.renderRegion(slot.num, pageWidth, region);
+        for (const b of regionBands(slot.frame, fw, this.aspects, region)) {
+          const part = await this.cache.renderRegion(b.p.cut.page + 1, fw, { x, y: b.pageY, w: region.w, h: b.h });
+          if (seq !== this.detailSeq) return;
+          ctx.drawImage(part, 0, b.destY);
+        }
       } catch (e) {
         console.error(e);
         continue;
       }
       if (seq !== this.detailSeq) return;
-      const inkCanvas = Object.assign(el('canvas', 'ink'), { width: region.w, height: region.h });
-      for (const c of [page, inkCanvas]) {
-        c.className = 'detail';
+      const ink = Object.assign(el('canvas', 'ink detail'), { width: region.w, height: region.h });
+      for (const c of [canvas, ink]) {
         Object.assign(c.style, { left: x / k + 'px', top: y / k + 'px', width: region.w / k + 'px', height: region.h / k + 'px' });
       }
-      const ink: InkTarget = { ctx: inkCanvas.getContext('2d')!, w: pageWidth, h: slot.h * k, ox: x, oy: y };
-      drawAll(ink, this.ink[slot.num] ?? []);
-      slot.detail?.page.remove();
-      slot.detail?.ink.ctx.canvas.remove();
-      slot.detail = { page, ink };
-      slot.box.append(page, inkCanvas);
+      slot.detail?.canvas.remove();
+      slot.detail?.ink.remove();
+      slot.detail = { canvas, ink, W: fw, x, y };
+      drawFrameInk(ink.getContext('2d')!, slot.frame, this.state.ink, this.aspects, fw, x, y);
+      slot.box.insertBefore(canvas, slot.ui ?? null);
+      slot.box.insertBefore(ink, slot.ui ?? null);
     }
   }
 
   /* ---------- ink on screen ---------- */
 
-  private targets(slot: Slot): InkTarget[] {
-    return slot.detail ? [slot.ink, slot.detail.ink] : [slot.ink];
-  }
-
-  private redraw(slot: Slot, extra?: Stroke) {
-    for (const t of this.targets(slot)) drawAll(t, this.ink[slot.num] ?? [], extra);
-  }
-
-  private drawLive(slot: Slot, s: Stroke, a: Point, b: Point) {
-    if (s.tool === 'pen') for (const t of this.targets(slot)) drawPenSegment(t, s, a, b);
-    else this.redraw(slot, s);
+  private drawLive(slot: FrameSlot, s: Stroke, a: Point, b: Point) {
+    if (s.tool !== 'pen') { this.paintInk(slot, this.state, s); return; }
+    drawPenSegment(frameTarget(slot.ink.getContext('2d')!, slot.ink.width), s, a, b);
+    const d = slot.detail;
+    if (d) drawPenSegment(frameTarget(d.ink.getContext('2d')!, d.W, d.x, d.y), s, a, b);
   }
 
   /* ---------- input ---------- */
 
-  private slotAt(x: number, y: number): { slot: Slot; rect: DOMRect } | null {
+  private slotAt(x: number, y: number): { slot: FrameSlot; rect: DOMRect } | null {
     for (const slot of this.slots) {
       const rect = slot.box.getBoundingClientRect(); // includes the zoom
       if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) return { slot, rect };
@@ -367,8 +483,9 @@ class Viewer {
     return null;
   }
 
+  /** A point on a frame: x as a fraction of its width, y in frame widths from its top. */
   private point(e: PointerEvent, rect: DOMRect): Point {
-    return [(e.clientX - rect.left) / rect.width, (e.clientY - rect.top) / rect.height, e.pointerType === 'pen' ? e.pressure : 0.5];
+    return [(e.clientX - rect.left) / rect.width, (e.clientY - rect.top) / rect.width, e.pointerType === 'pen' ? e.pressure : 0.5];
   }
 
   private stagePoint(x: number, y: number): Pt {
@@ -381,7 +498,7 @@ class Viewer {
     const a = this.active;
     if (!a) return;
     this.active = null;
-    if (a.stroke) this.redraw(a.slot);
+    if (a.stroke) this.paintInk(a.slot, this.state);
   }
 
   private startPinch() {
@@ -409,6 +526,7 @@ class Viewer {
       if (this.fingers.size >= 2) {
         // A second finger: this is a pinch, not writing, turning or panning.
         this.dropActive();
+        this.editor.cancel();
         this.gesture = this.panning = null;
         if (this.fingers.size === 2 && this.annotating) this.startPinch();
         else this.ignored.add(e.pointerId);
@@ -416,7 +534,10 @@ class Viewer {
       }
     }
     if (this.active || this.pinching) return;
+    if (e.button === 2) return; // right-click opens a menu instead
     this.stage.setPointerCapture(e.pointerId);
+    // A tab or the split cue takes the pointer before writing, panning or turning.
+    if (this.editor.onDown(e)) return;
 
     const eraserButton = e.pointerType === 'pen' && !!(e.buttons & 32); // the pen's eraser end or button
     if (this.tool !== 'none' || eraserButton) {
@@ -424,7 +545,7 @@ class Viewer {
       if (!hit) return;
       const erasing = this.tool === 'eraser' || eraserButton;
       const p = this.point(e, hit.rect);
-      this.active = { id: e.pointerId, type: e.pointerType, ...hit, erasing };
+      this.active = { id: e.pointerId, type: e.pointerType, ...hit, erasing, before: this.state };
       if (erasing) { this.eraseAt(hit.slot, p); return; }
       const hl = this.tool === 'highlighter';
       this.active.stroke = {
@@ -446,6 +567,7 @@ class Viewer {
   private onMove = (e: PointerEvent) => {
     if (e.pointerType === 'pen') this.lastPen = performance.now();
     if (e.pointerType === 'touch' && this.fingers.has(e.pointerId)) this.fingers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (this.editor.onMove(e)) return;
     const W = this.stage.clientWidth, H = this.stage.clientHeight;
 
     const pz = this.pinching;
@@ -472,13 +594,14 @@ class Viewer {
       a.stroke!.points.push(p);
       if (a.stroke!.tool === 'pen') this.drawLive(a.slot, a.stroke!, prev, p);
     }
-    if (a.stroke?.tool === 'highlighter') this.redraw(a.slot, a.stroke);
+    if (a.stroke?.tool === 'highlighter') this.paintInk(a.slot, this.state, a.stroke);
   };
 
   private onUp(e: PointerEvent, cancelled: boolean) {
     if (e.pointerType === 'pen') this.lastPen = performance.now();
     this.fingers.delete(e.pointerId);
     if (this.ignored.delete(e.pointerId)) return;
+    if (this.editor.onUp(e, cancelled)) return;
 
     if (this.pinching?.ids.includes(e.pointerId)) {
       // The other finger stays down; don't let it write or turn pages when it lifts.
@@ -500,30 +623,44 @@ class Viewer {
     const a = this.active;
     if (!a || e.pointerId !== a.id) return;
     this.active = null;
+    if (a.erasing) {
+      // One undo step for the whole sweep of the eraser.
+      if (this.state !== a.before) {
+        this.undoStack.push({ state: a.before, focus: a.slot.frame.items[0]?.cut.id });
+        this.redoStack = [];
+        this.frames = pack(this.state.piece.cuts, this.aspects);
+        a.slot.frame = this.frames[a.slot.index];
+        this.syncBar();
+      }
+      return;
+    }
     if (!a.stroke) return;
-    if (cancelled) { this.redraw(a.slot); return; } // the system decided it was a palm
-    const stroke = { ...a.stroke, points: compact(a.stroke.points) };
-    const list = (this.ink[a.slot.num] ??= []);
-    list.push(stroke);
-    this.record({ kind: 'add', page: a.slot.num, index: list.length - 1, stroke });
+    if (cancelled) { this.paintInk(a.slot, this.state); return; } // the system decided it was a palm
+    const claimed = claimStroke(a.slot.frame, { ...a.stroke, points: compact(a.stroke.points) }, this.aspects);
+    if (!claimed) { this.paintInk(a.slot, this.state); return; }
+    const { cut, stroke } = claimed;
+    this.commit(setInk(this.state, cut.id, [...(this.state.ink[cut.id] ?? []), stroke]), cut.id);
   }
 
-  private eraseAt(slot: Slot, p: Point) {
-    const list = this.ink[slot.num] ?? [];
-    const aspect = slot.h / slot.w;
-    let changed = false;
-    for (let i = list.length - 1; i >= 0; i--) {
-      // The eraser stays the same size on screen however far you zoom in.
-      if (!touches(list[i], p, aspect, ERASER_RADIUS / this.zoom.s)) continue;
-      const [stroke] = list.splice(i, 1);
-      this.record({ kind: 'remove', page: slot.num, index: i, stroke });
-      changed = true;
+  private eraseAt(slot: FrameSlot, p: Point) {
+    let s = this.state;
+    for (const item of slot.frame.items) {
+      const { cut } = item, aspect = this.aspects[cut.page];
+      const list = s.ink[cut.id] ?? [];
+      // The point on this cut's page; the eraser stays the same size on screen however far you zoom in.
+      const q: Point = [p[0], cut.y0 + (p[1] - item.top) / aspect, p[2]];
+      const keep = list.filter((st) => !(visible(st, cut, aspect) && touches(st, q, aspect, ERASER_RADIUS / this.zoom.s)));
+      if (keep.length !== list.length) s = setInk(s, cut.id, keep);
     }
-    if (changed) this.redraw(slot);
+    if (s === this.state) return;
+    this.state = s;
+    this.saver.soon();
+    this.paintInk(slot, s);
   }
 
   private onKey = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') { history.back(); return; }
+    if (e.key === 'Escape') { if (!this.editor.dismiss()) history.back(); return; }
+    if ((e.target as Element | null)?.closest?.('.menu, .dialog')) return;
     const g = gestureForKey(e.key);
     if (!g) return;
     e.preventDefault();
@@ -532,41 +669,18 @@ class Viewer {
 
   /* ---------- undo ---------- */
 
-  private record(edit: Edit) {
-    this.undoStack.push(edit);
-    this.redoStack = [];
-    this.saver.soon();
-    this.syncBar();
-  }
-
-  private apply(edit: Edit, reverse: boolean) {
-    const list = (this.ink[edit.page] ??= []);
-    const adding = (edit.kind === 'add') !== reverse;
-    if (adding) list.splice(edit.index, 0, edit.stroke);
-    else {
-      const i = list.indexOf(edit.stroke);
-      if (i >= 0) list.splice(i, 1);
-    }
-    for (const s of this.slots) if (s.num === edit.page) this.redraw(s);
-    // Show the page that changed if it is not on screen.
-    if (!this.slots.some((s) => s.num === edit.page)) { this.page = edit.page; void this.show(); }
-    this.saver.soon();
-  }
-
   private undo() {
     const e = this.undoStack.pop();
     if (!e) return;
-    this.apply(e, true);
-    this.redoStack.push(e);
-    this.syncBar();
+    this.redoStack.push({ state: this.state, focus: e.focus });
+    this.setState(e.state, e.focus);
   }
 
   private redo() {
     const e = this.redoStack.pop();
     if (!e) return;
-    this.apply(e, false);
-    this.undoStack.push(e);
-    this.syncBar();
+    this.undoStack.push({ state: this.state, focus: e.focus });
+    this.setState(e.state, e.focus);
   }
 
   /* ---------- lifecycle ---------- */
@@ -590,6 +704,7 @@ class Viewer {
     clearTimeout(this.detailTimer);
     this.seq++;
     this.detailSeq++;
+    this.editor.dismiss();
     await this.saver.flush();
     void this.wake?.release().catch(() => {});
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});

@@ -24,8 +24,15 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
 - **Pen**, **Highlight** and **Erase** work with the stylus or one finger; two fingers still zoom
   and pan. A palm resting on the screen is ignored while the stylus writes. The stylus eraser end
   or button erases too.
+- **Edit cuts** lets you change the order the pages are played in, on the pages themselves:
+  - Drag the faint tab at the top left or bottom right of a cut to cut music away or bring it
+    back. The grey tab at the top right of a page adds white space above the music.
+  - When the page before has room, tap **✂ split page here** to move the top of this page up
+    onto it.
+  - Right-click or press and hold for more: insert pages (for a repeat), restore music you cut,
+    or remove a cut. A cut with markings on it is archived rather than deleted.
 
-Markings and the last page you were on are stored in the app, per score. They are not written into
+Markings, cuts and the place you were at are stored in the app, per score. They are not written into
 the PDFs.
 
 ## Development

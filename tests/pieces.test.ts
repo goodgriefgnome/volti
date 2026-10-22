@@ -291,6 +291,10 @@ describe('snapSplit', () => {
     expect(snapSplit(rows('#'.repeat(45) + '.'.repeat(3) + '#'.repeat(52)), 0.75, 0)).toBe(0.75);
     expect(snapSplit(rows('#'.repeat(100)), 0.75, 0)).toBe(0.75);
   });
+  it('looks past a band too thin to split in, such as under small print', () => {
+    const r = rows('#'.repeat(30) + '.'.repeat(20) + '#'.repeat(10) + '.'.repeat(3) + '#'.repeat(37));
+    expect(snapSplit(r, 0.62, 0)).toBeCloseTo(39.5 / 100);
+  });
   it('does not look above lo', () => {
     const r = rows('.'.repeat(20) + '#'.repeat(80));
     expect(snapSplit(r, 0.75, 0.3)).toBe(0.75);

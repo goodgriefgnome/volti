@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fitPages, pagesPerScreen, spread, turnTarget } from '../src/viewer/layout';
+import { fitPages, pagesPerScreen } from '../src/viewer/layout';
 
 describe('pagesPerScreen', () => {
   it('shows two pages in landscape and one in portrait on auto', () => {
@@ -33,23 +33,5 @@ describe('fitPages', () => {
     const [a, b] = fitPages(1280, 800, [A4, 0.7], 6);
     expect(a.h).toBe(b.h);
     expect(b.w).toBeGreaterThan(a.w);
-  });
-});
-
-describe('turning', () => {
-  it('moves by a whole spread', () => {
-    expect(turnTarget(1, 2, 10, 1)).toBe(3);
-    expect(turnTarget(3, 2, 10, -1)).toBe(1);
-  });
-  it('stays put at the last spread', () => {
-    expect(turnTarget(9, 2, 10, 1)).toBe(9);
-    expect(turnTarget(10, 1, 10, 1)).toBe(10);
-  });
-  it('can still reach the last page on an odd page count', () => {
-    expect(turnTarget(9, 2, 11, 1)).toBe(11);
-    expect(spread(11, 2, 11)).toEqual([11]);
-  });
-  it('never goes before page 1', () => {
-    expect(turnTarget(2, 2, 10, -1)).toBe(1);
   });
 });

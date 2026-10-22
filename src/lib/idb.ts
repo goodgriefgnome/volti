@@ -27,6 +27,9 @@ export const kv = {
   get: <T>(key: string) => run<T | undefined>('readonly', (s) => s.get(key)),
   set: (key: string, value: unknown) => run<void>('readwrite', (s) => { s.put(value, key); }),
   del: (key: string) => run<void>('readwrite', (s) => { s.delete(key); }),
+  /** Several writes in one transaction, so they all happen or none do. */
+  setMany: (entries: [string, unknown][]) =>
+    run<void>('readwrite', (s) => { for (const [k, v] of entries) s.put(v, k); }),
   /** Read-modify-write in one transaction. */
   update: <T>(key: string, fn: (old: T | undefined) => T) =>
     run<void>('readwrite', (s) => {

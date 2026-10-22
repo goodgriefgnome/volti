@@ -74,7 +74,26 @@ export function pack(cuts: readonly Cut[], aspects: Aspects): Frame[] {
   return frames;
 }
 
-export const frameOf = (frames: Frame[], id: string) => frames.findIndex((f) => f.items.some((p) => p.cut.id === id));
+/** Lay cuts out on the frames they were on, without reflowing: how a drag shows while it happens. */
+export function freeze(frames: Frame[], cuts: readonly Cut[], aspects: Aspects): Frame[] {
+  const H = frameHeight(aspects);
+  const at = new Map(cuts.map((c, index) => [c.id, index]));
+  return frames.map((f) => {
+    const items: Placed[] = [];
+    let fill = 0;
+    for (const p of f.items) {
+      const index = at.get(p.cut.id);
+      if (index === undefined) continue;
+      const cut = cuts[index], h = cutHeight(cut, aspects);
+      if (!items.length) fill = Math.max(0, Math.min(cut.pad ?? 0, H - h));
+      items.push({ cut, index, top: fill, h });
+      fill += h;
+    }
+    return { items, fill };
+  });
+}
+
+export const frameOf =(frames: Frame[], id: string) => frames.findIndex((f) => f.items.some((p) => p.cut.id === id));
 
 /** b carries on straight from a: the same page, touching. */
 const touching = (a: Cut, b: Cut) => a.page === b.page && Math.abs(a.y1 - b.y0) < EPS;

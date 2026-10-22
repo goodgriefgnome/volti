@@ -50,6 +50,11 @@ export class PageCache {
     return a;
   }
 
+  /** Height / width of every page, in order. */
+  allAspects(): Promise<number[]> {
+    return Promise.all(Array.from({ length: this.numPages }, (_, i) => this.aspect(i + 1)));
+  }
+
   private key(num: number, cssW: number, cssH: number) { return `${num}@${cssW}x${cssH}`; }
 
   has(num: number, cssW: number, cssH: number) { return this.cache.has(this.key(num, cssW, cssH)); }

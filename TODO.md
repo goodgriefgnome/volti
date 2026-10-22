@@ -1,6 +1,6 @@
 # TODO
 
-## Pieces, pages and setlists (designed, not built)
+## Pieces, pages and setlists (built for PDFs, except setlists)
 
 The full design is in [docs/frames-design.md](docs/frames-design.md), with a working prototype in
 [docs/prototypes/volti-frames.html](docs/prototypes/volti-frames.html). Summary:

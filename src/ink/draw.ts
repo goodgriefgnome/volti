@@ -6,10 +6,6 @@ import { widthPx, type Point, type Stroke } from './model';
  */
 export interface InkTarget { ctx: CanvasRenderingContext2D; w: number; h: number; ox: number; oy: number }
 
-export function wholePage(canvas: HTMLCanvasElement): InkTarget {
-  return { ctx: canvas.getContext('2d')!, w: canvas.width, h: canvas.height, ox: 0, oy: 0 };
-}
-
 function seg(t: InkTarget, s: Stroke, a: Point, b: Point) {
   const { ctx } = t;
   ctx.lineWidth = widthPx(s, (a[2] + b[2]) / 2, t.w);
@@ -52,8 +48,6 @@ function drawStroke(t: InkTarget, s: Stroke) {
   for (let i = 1; i < pts.length; i++) seg(t, s, pts[i - 1], pts[i]);
 }
 
-export function drawAll(t: InkTarget, strokes: Stroke[], extra?: Stroke) {
-  t.ctx.clearRect(0, 0, t.ctx.canvas.width, t.ctx.canvas.height);
+export function drawStrokes(t: InkTarget, strokes: readonly Stroke[]) {
   for (const s of strokes) drawStroke(t, s);
-  if (extra) drawStroke(t, extra);
 }

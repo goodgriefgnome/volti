@@ -1,8 +1,8 @@
 # Pieces, cuts and frames: design
 
-Status: **designed and prototyped, not built into the app.** This document is the hand-off for
-whoever builds it. The user has agreed to the design as described here. Anything marked
-**Open question** was not settled, so ask the user rather than guessing.
+Status: **built into the app** for PDFs (section 8 says where), without setlists, images as a
+source or the whiteout tool. The user has agreed to the design as described here. Anything
+marked **Open question** was not settled, so ask the user rather than guessing.
 
 The working prototype is [`prototypes/volti-frames.html`](prototypes/volti-frames.html): one
 self-contained page that loads pdf.js 3.11.174 from cdnjs. To try it, open it in a browser (any
@@ -338,36 +338,33 @@ frame.
 
 ---
 
-## 8. Building it into Volti: suggested plan
+## 8. In the app
 
-The current app, in TypeScript with Vite and pdf.js 6:
-
-- `src/viewer/viewer.ts`: the reader, about 600 lines. It handles page turns, the toolbar,
-  zoom, ink tools and palm rejection.
-- `src/viewer/layout.ts` (`fitPages`, `spread`, `turnTarget`), `turns.ts` (tap, swipe and key
-  → gesture), `zoom.ts`, `renderer.ts`. `renderer.ts` has `PageCache`, which renders a whole
-  page at the stage size, supersampled; `renderRegion()` renders part of a page.
-- `src/ink/*`: strokes per page; `src/lib/library.ts`: scores; `src/lib/idb.ts`: a key-value
-  store; `src/lib/prefs.ts`: preferences and last page.
-
-Suggested order:
-
-1. **A pure model module, with unit tests first:** `src/pieces/model.ts` with `pack`, `tidy`,
-   split, join, restore, trim clamps, insert and remove. All of it is pure and easy to test
-   with vitest, like `tests/layout.test.ts`. Port the logic from the prototype (section 9).
-2. **Storage:** a `piece:<id>` record in `kv`. A score without one gets one cut per page.
-3. **The reader draws frames instead of pages.** Each frame is a stack of cuts. Rendering a cut
-   means drawing a band of the cached page canvas: render the page at frame width with
-   `PageCache.render`, then `drawImage` the band. Turning moves by screen (one or two frames).
-   Zoom and pan apply to the whole screen as they do now. Ink is drawn per cut, clipped and
-   offset.
-4. **Edit mode:** tabs, the white-space tab, the split cue, context menus and the insert picker,
-   as in section 5. Use canvas hit regions or absolutely-positioned DOM elements. DOM gives
-   accessibility and focus for free, which is probably better in the app than the prototype's
-   canvas drawing.
-5. **Snapping** needs page pixels. Use the rendered page canvas, or render the page once at a
-   modest width just for the ink profile.
-6. Images as a source: a later step, together with the library work.
+- `src/pieces/model.ts`: the pure model. `pack`, `tidy`, `freeze` (the layout held still during a
+  drag), trims and their clamps, pad, split, join, restore, the split cue and `pullUp`, insert
+  (pages or an archived cut), remove and archive, and `setInk`. Every edit takes the piece and
+  its ink together (`State`) and returns a new one, so undo keeps whole states.
+- `src/pieces/ink.ts`: the share of a stroke's path length in a band, which strokes a cut shows,
+  splitting ink, choosing the markings to copy on insert, and `claimStroke` for pen-up.
+- `src/pieces/snap.ts`: the row ink profile and `snapSplit`. The profile comes from the page
+  drawn 1600 pixels wide, as in the prototype; at frame width, small print can vanish. When the
+  blank band above the line is under 6 rows tall (just under a line of small print), the search
+  carries on upwards to the next band.
+- `src/pieces/store.ts`: `piece:<id>`, `ink:<id>` (by cut, written in the same transaction as
+  the piece) and `pos:<id>`, and the migration from `ink:<id>` by page and `page:<id>`. One
+  piece per score for now, with the score's id.
+- `src/viewer/viewer.ts` draws frames: each one a canvas with the cuts' bands drawn from pages
+  rendered at the frame's width (`src/viewer/frames.ts`), and an ink canvas on top. Turning
+  moves by screen. The close-up while zoomed renders each cut's part of the visible region.
+- `src/viewer/edit.ts`: edit mode, as DOM elements over each frame (tabs are buttons; from the
+  keyboard they open their menu), the menus, the insert picker and the archived-cuts dialog.
+- **Edit cuts** on the toolbar switches edit mode. While it is on and the toolbar shows, the
+  frames sit below the toolbar, so the tabs at their tops can be reached. "✂ cut" seams show
+  only in edit mode. **Archived (n)** on the toolbar opens the archived-cuts dialog.
+- Frames per screen still come from the toolbar's **Auto / 1 page / 2 pages** setting, for all
+  scores. The piece's `orientation` is stored but not used yet. **Open question:** should it
+  replace that setting, per piece?
+- Images as a source: a later step, together with the library work.
 
 Rules for this repo:
 
