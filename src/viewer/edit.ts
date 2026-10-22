@@ -409,7 +409,8 @@ export class CutEditor {
       b.append(ph, el('span', '', String(p + 1)));
       b.addEventListener('click', () => {
         pick.archived = undefined;
-        if (pick.next === 'a') { pick.a = pick.b = p; pick.next = 'b'; } else { pick.b = p; pick.next = 'a'; }
+        // A range always runs in page order: a page before the first one picked starts it instead.
+        if (pick.next === 'a') { pick.a = pick.b = p; pick.next = 'b'; } else { [pick.a, pick.b] = [Math.min(pick.a, p), Math.max(pick.a, p)]; pick.next = 'a'; }
         sync();
       });
       pageButtons.push(b);
@@ -480,7 +481,7 @@ export class CutEditor {
       copyLabel.hidden = !!pick.archived;
       hint.textContent = pick.archived
         ? 'The archived cut comes back with its markings.'
-        : (lo === hi ? `Page ${lo + 1}` : `Pages ${pick.a + 1}–${pick.b + 1}`)
+        : (lo === hi ? `Page ${lo + 1}` : `Pages ${lo + 1}–${hi + 1}`)
           + (pick.next === 'b' ? '. Tap another page to insert a range.' : '. Tap a page to start again.');
     };
     sync();

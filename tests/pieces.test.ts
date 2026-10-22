@@ -198,10 +198,10 @@ describe('cutAt', () => {
 });
 
 describe('insertPages', () => {
-  it('inserts a range of whole pages, backwards if picked backwards', () => {
+  it('inserts a range of whole pages in page order, however it was picked', () => {
     const s = state([cut(0), cut(2)]);
     const r = insertPages(s, { id: s.piece.cuts[0].id, after: true }, 2, 1, false, aspects);
-    expect(pages(r.state)).toEqual([[0, 0, 1], [2, 0, 1], [1, 0, 1], [2, 0, 1]]);
+    expect(pages(r.state)).toEqual([[0, 0, 1], [1, 0, 1], [2, 0, 1], [2, 0, 1]]);
     expect(r.first).toBe(r.state.piece.cuts[1].id);
   });
   it('copies the markings from the first time each part of the page is played', () => {

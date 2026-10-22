@@ -237,8 +237,8 @@ frame.
   - A title such as "Insert pages after this cut (page 3)" or "Insert pages here".
   - A horizontal strip of **thumbnails of the piece's source pages**, 84 px wide, numbered.
   - **Tap one page, then another, to choose a range.** Tapping the same page twice gives just
-    that page, and the next tap starts a new range. A backwards range is inserted in that
-    backwards order.
+    that page, and the next tap starts a new range. A range always runs in page order: tapping
+    a page before the first one makes the range run from it up to the first.
   - The selection starts on the cut's own page and is scrolled into view.
   - A hint line ("Pages 1–2.") and **Cancel** and **Insert** buttons.
 - Inserted pages are whole (`y0 = 0`, `y1 = 1`). After inserting, reflow and show the frame

@@ -237,15 +237,15 @@ const place = (s: State, at: InsertAt, add: Cut[]): Cut[] => {
 };
 
 /**
- * Insert whole pages `from`..`to` (0-based; a backwards range goes in backwards order).
+ * Insert whole pages `from`..`to` (0-based), always in page order.
  * With `copyInk`, each new cut gets a copy of the markings from the first time each part of
  * its page is played. Returns the id of the first new cut.
  */
 export function insertPages(
   s: State, at: InsertAt, from: number, to: number, copyInk: boolean, aspects: Aspects,
 ): { state: State; first: string } {
-  const step = from <= to ? 1 : -1, add: Cut[] = [];
-  for (let p = from; p !== to + step; p += step) add.push({ id: newCutId(), page: p, y0: 0, y1: 1 });
+  const add: Cut[] = [];
+  for (let p = Math.min(from, to); p <= Math.max(from, to); p++) add.push({ id: newCutId(), page: p, y0: 0, y1: 1 });
   const ink = { ...s.ink };
   if (copyInk) {
     for (const c of add) {
