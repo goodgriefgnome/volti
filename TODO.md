@@ -12,9 +12,14 @@ Decisions so far; a working sketch is the "Volti reflow" prototype.
   spans, each "play from system X to system Y" in page order. A repeat is another span, e.g.
   1a→1c, 1b→1c, 1d→2d. Reordering single systems should almost never be needed, so the UI works
   in spans: select a system and choose "play from here" or "play to here".
-- The reader **reflows** the entries onto the screen: stacked down a column at the column's
-  width, as many as fit, then the next column, then the next screen. Forward always means "next
-  screenful", whatever jumps the played order makes.
+- A piece comes from **one PDF**, or from a set of images whose page widths are meant to match.
+- The reader **reflows** the played systems onto the screen: stacked down a column, as many as
+  fit, then the next column, then the next screen. Forward always means "next screenful",
+  whatever jumps the played order makes.
+- Systems keep **one consistent scale** within a piece, measured in page widths: the widest
+  stretch of the played systems fills the column, and every system keeps its printed size and
+  position across the page (an indented first system stays indented, a short last line stays
+  short). Only a system taller than the screen is shrunk.
 - **Ink and masks** belong to one system within one span, stored relative to the clip. A marking
   on the 2nd time through a repeat does not appear on the 1st.
 - A new file becomes one piece in page order; it can be split or rearranged later.
