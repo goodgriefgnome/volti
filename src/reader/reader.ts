@@ -22,7 +22,8 @@ import { pagesPerScreen } from './layout';
 import { Saver } from './saver';
 import { blankBox, PieceCard, showSetlistTitle } from './setlist';
 import { frameSize, paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './spread';
-import { nextLayout, Toolbar, type Tool } from './toolbar';
+import { nextLayout, Toolbar, type ToolChoice } from './toolbar';
+import type { ToolName } from './tools/tool';
 import { isZoomed, NO_ZOOM, type Zoom } from './zoom';
 
 /**
@@ -101,7 +102,7 @@ class Reader {
   private zoom: Zoom = NO_ZOOM;
   private detail: Detail;
 
-  private tool: Tool = 'none';
+  private tool: ToolChoice = 'none';
   private penColor: string = PEN_COLORS[0];
   private undos = new History<Undo>();
   private saver: Saver;
@@ -188,6 +189,7 @@ class Reader {
       tool: () => this.tool,
       penColor: () => this.penColor,
       zoom: () => this.zoom,
+      scale: () => this.zoom.s,
       setZoom: (z) => this.setZoom(z),
       annotating: () => this.annotating,
       act: (g) => this.act(g),
@@ -244,7 +246,7 @@ class Reader {
   /* ---------- toolbar ---------- */
 
   /** Tapping the active tool again puts it away. */
-  private setTool(t: Tool) {
+  private setTool(t: ToolName) {
     this.tool = this.tool === t ? 'none' : t;
     this.syncBar();
   }

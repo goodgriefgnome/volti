@@ -1,57 +1,42 @@
-import { drawPenSegment } from '../ink/draw';
-import { compact, HIGHLIGHT_COLOR, HIGHLIGHT_SIZE, PEN_SIZE, touches, type Point, type Stroke } from '../ink/model';
-import { setInk } from '../pieces/edits';
-import { claimStroke, visible } from '../pieces/ink';
-import type { Aspects, State } from '../pieces/model';
+import type { Point } from '../ink/model';
 import { closeOverlay, overlayOpen } from '../ui/overlay';
 import type { CutEditor } from './cuts/editor';
-import { frameTarget } from './frames';
 import { gestureFor, gestureForKey, type Gesture } from './gestures';
 import type { FrameSlot } from './spread';
-import type { Tool } from './toolbar';
+import type { ToolChoice } from './toolbar';
+import { TOOLS } from './tools';
+import type { ToolHost, ToolPointer } from './tools/tool';
 import { isZoomed, pan, pinch, type Pt, type Zoom } from './zoom';
 
-const ERASER_RADIUS = 0.012;
 /** After the pen lifts, finger touches are ignored this long, as they are probably the writing hand. */
 const PALM_GUARD_MS = 600;
 
-/** What pointer and key handling needs from the reader. */
-export interface InputHost {
+/** What pointer and key handling needs from the reader, besides what the tools need. */
+export interface InputHost extends ToolHost {
   stage: HTMLElement;
-  /** The current piece's: read each time, as the reader turns from piece to piece. */
-  readonly aspects: Aspects;
   editor: CutEditor;
   slots(): FrameSlot[];
-  state(): State;
-  tool(): Tool;
-  penColor(): string;
+  tool(): ToolChoice;
   zoom(): Zoom;
   setZoom(z: Zoom): void;
   /** The toolbar showing means annotation mode: zooming and writing are available. */
   annotating(): boolean;
   /** Turn a page, or show or hide the toolbar. */
   act(g: Gesture): void;
-  /** Draw a frame's ink again; `extra` is a stroke still being drawn. */
-  paintInk(slot: FrameSlot, extra?: Stroke): void;
-  /** Take an edit: undo, save, reflow, and show the frame holding `focus`. */
-  commit(s: State, focus?: string): void;
-  /** The eraser took strokes away from the frame in `slot`: show and save it, without an undo step yet. */
-  erased(s: State, slot: FrameSlot): void;
-  /** The eraser lifted: one undo step, back to `before`, for its whole sweep. */
-  eraseEnded(before: State, slot: FrameSlot): void;
 }
 
 /**
  * Pointers and keys on the score: two fingers pinch, one pans when zoomed in, a pen or finger
- * writes or erases with a tool selected, and otherwise taps, swipes and keys turn pages. A palm
- * resting while the pen writes is ignored. The cut editor gets the pointer first.
+ * uses the selected tool (tools/), and otherwise taps, swipes and keys turn pages. A palm resting
+ * while the pen writes is ignored. The cut editor gets the pointer first.
  */
 export class Input {
   /** Fingers currently on the screen, by pointer id. */
   private fingers = new Map<number, Pt>();
   /** Pointers to disregard until they lift: palms, and the finger left over after a pinch. */
   private ignored = new Set<number>();
-  private active: { id: number; type: string; slot: FrameSlot; rect: DOMRect; stroke?: Stroke; erasing: boolean; before: State } | null = null;
+  /** The pointer using a tool, and the frame it started on. */
+  private active: { id: number; type: string; slot: FrameSlot; rect: DOMRect; use: ToolPointer } | null = null;
   private gesture: { id: number; x: number; y: number; t: number } | null = null;
   private pinching: { ids: [number, number]; start: Zoom; c0: Pt; d0: number } | null = null;
   private panning: { id: number; start: Zoom; x0: number; y0: number } | null = null;
@@ -95,25 +80,18 @@ export class Input {
     return { x: x - r.left, y: y - r.top };
   }
 
-  /** A stroke made by a finger is dropped, not kept: a palm, or the start of a pinch. */
+  /** Forget what a pointer was doing with a tool: it was a palm, or a finger starting a pinch. */
   private dropActive() {
     const a = this.active;
     if (!a) return;
     this.active = null;
-    if (a.stroke) this.host.paintInk(a.slot);
+    a.use.drop();
   }
 
   private startPinch() {
     const [a, b] = [...this.fingers.entries()];
     const c0 = this.stagePoint((a[1].x + b[1].x) / 2, (a[1].y + b[1].y) / 2);
     this.pinching = { ids: [a[0], b[0]], start: this.host.zoom(), c0, d0: Math.max(1, Math.hypot(a[1].x - b[1].x, a[1].y - b[1].y)) };
-  }
-
-  private drawLive(slot: FrameSlot, s: Stroke, a: Point, b: Point) {
-    if (s.tool !== 'pen') { this.host.paintInk(slot, s); return; }
-    drawPenSegment(frameTarget(slot.ink.getContext('2d')!, slot.ink.width), s, a, b);
-    const d = slot.detail;
-    if (d) drawPenSegment(frameTarget(d.ink.getContext('2d')!, d.W, d.x, d.y), s, a, b);
   }
 
   private onDown = (e: PointerEvent) => {
@@ -149,23 +127,13 @@ export class Input {
     // A tab takes the pointer before writing, panning or turning.
     if (host.editor.onDown(e)) return;
 
-    const tool = host.tool();
     const eraserButton = e.pointerType === 'pen' && !!(e.buttons & 32); // the pen's eraser end or button
-    if (tool !== 'none' || eraserButton) {
+    const tool = eraserButton ? 'eraser' : host.tool();
+    if (tool !== 'none') {
       const hit = this.slotAt(e.clientX, e.clientY);
       if (!hit) return;
-      const erasing = tool === 'eraser' || eraserButton;
-      const p = this.point(e, hit.rect);
-      this.active = { id: e.pointerId, type: e.pointerType, ...hit, erasing, before: host.state() };
-      if (erasing) { this.eraseAt(hit.slot, p); return; }
-      const hl = tool === 'highlighter';
-      this.active.stroke = {
-        tool: hl ? 'highlighter' : 'pen',
-        color: hl ? HIGHLIGHT_COLOR : host.penColor(),
-        size: hl ? HIGHLIGHT_SIZE : PEN_SIZE,
-        points: [p],
-      };
-      this.drawLive(hit.slot, this.active.stroke, p, p);
+      const use = TOOLS[tool].start(host, hit.slot, this.point(e, hit.rect));
+      this.active = { id: e.pointerId, type: e.pointerType, ...hit, use };
       return;
     }
     if (isZoomed(host.zoom())) {
@@ -199,14 +167,8 @@ export class Input {
     const a = this.active;
     if (!a || e.pointerId !== a.id) return;
     const events = e.getCoalescedEvents?.() ?? [];
-    for (const ce of events.length ? events : [e]) {
-      const p = this.point(ce, a.rect);
-      if (a.erasing) { this.eraseAt(a.slot, p); continue; }
-      const prev = a.stroke!.points.at(-1)!;
-      a.stroke!.points.push(p);
-      if (a.stroke!.tool === 'pen') this.drawLive(a.slot, a.stroke!, prev, p);
-    }
-    if (a.stroke?.tool === 'highlighter') host.paintInk(a.slot, a.stroke);
+    for (const ce of events.length ? events : [e]) a.use.move(this.point(ce, a.rect));
+    a.use.moved?.();
   };
 
   private onUp(e: PointerEvent, cancelled: boolean) {
@@ -236,31 +198,7 @@ export class Input {
     const a = this.active;
     if (!a || e.pointerId !== a.id) return;
     this.active = null;
-    if (a.erasing) {
-      if (host.state() !== a.before) host.eraseEnded(a.before, a.slot);
-      return;
-    }
-    if (!a.stroke) return;
-    if (cancelled) { host.paintInk(a.slot); return; } // the system decided it was a palm
-    const claimed = claimStroke(a.slot.frame, { ...a.stroke, points: compact(a.stroke.points) }, host.aspects);
-    if (!claimed) { host.paintInk(a.slot); return; }
-    const { cut, stroke } = claimed, s = host.state();
-    host.commit(setInk(s, cut.id, [...(s.ink[cut.id] ?? []), stroke]), cut.id);
-  }
-
-  private eraseAt(slot: FrameSlot, p: Point) {
-    const { host } = this;
-    let s = host.state();
-    for (const item of slot.frame.items) {
-      const { cut } = item, aspect = host.aspects[cut.page];
-      const list = s.ink[cut.id] ?? [];
-      // The point on this cut's page; the eraser stays the same size on screen however far you zoom in.
-      const q: Point = [p[0], cut.y0 + (p[1] - item.top) / aspect, p[2]];
-      const keep = list.filter((st) => !(visible(st, cut, aspect) && touches(st, q, aspect, ERASER_RADIUS / host.zoom().s)));
-      if (keep.length !== list.length) s = setInk(s, cut.id, keep);
-    }
-    if (s === host.state()) return;
-    host.erased(s, slot);
+    a.use.end(cancelled);
   }
 
   private onKey = (e: KeyboardEvent) => {

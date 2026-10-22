@@ -69,7 +69,8 @@ Every push to `main` is tested, built and published to GitHub Pages by
 | `src/reader/reader.ts` | The score screen, for a piece or a setlist: turning pages and pieces, applying edits, opening and closing |
 | `src/reader/docs.ts` | The pieces being read, each PDF open only while near the one being read |
 | `src/reader/saver.ts` | Saving pieces and setlists together |
-| `src/reader/input.ts` | Pointers and keys: palm rejection, pinch and pan, writing and erasing, taps and swipes |
+| `src/reader/input.ts` | Pointers and keys: palm rejection, pinch and pan, handing a pointer to the selected tool, taps and swipes |
+| `src/reader/tools/` | The toolbar's tools that act on the frames: pen and highlighter, eraser; `index.ts` lists them |
 | `src/reader/toolbar.ts` | The toolbar |
 | `src/reader/spread.ts` | Placing frames on the screen and drawing them |
 | `src/reader/detail.ts` | The sharp close-up drawn while zoomed in |

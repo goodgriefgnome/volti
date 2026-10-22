@@ -1,8 +1,10 @@
-import { PEN_COLORS, type InkTool } from '../ink/model';
+import { PEN_COLORS } from '../ink/model';
 import type { PagesPerScreen } from '../storage/prefs';
 import { el } from '../ui/dom';
+import type { ToolName } from './tools/tool';
 
-export type Tool = 'none' | InkTool | 'eraser';
+/** The tool selected in the toolbar, if any. */
+export type ToolChoice = 'none' | ToolName;
 
 const LAYOUT_LABEL: Record<string, string> = { auto: 'Auto', 1: '1 page', 2: '2 pages' };
 const LAYOUT_NEXT: Record<string, PagesPerScreen> = { auto: 1, 1: 2, 2: 'auto' };
@@ -18,7 +20,7 @@ export interface ToolbarActions {
   /** In a piece's own reader: add it to a setlist. */
   addToSetlist(): void;
   /** Tapping the active tool again puts it away. */
-  tool(t: Tool): void;
+  tool(t: ToolName): void;
   penColor(c: string): void;
   undo(): void;
   redo(): void;
@@ -32,7 +34,7 @@ export interface ToolbarActions {
 export interface ToolbarView {
   /** The piece is open; a piece that can't be opened can't be written on or edited. */
   open: boolean;
-  tool: Tool;
+  tool: ToolChoice;
   penColor: string;
   editing: boolean;
   archived: number;
