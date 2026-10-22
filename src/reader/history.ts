@@ -1,31 +1,30 @@
-import type { State } from '../pieces/model';
-
-/** Undo keeps whole states: each entry is the state before an edit, and the cut to show. */
-export interface Undo { state: State; focus?: string }
-
-export class History {
-  private past: Undo[] = [];
-  private future: Undo[] = [];
+/** Undo and redo of whole states. An entry `U` holds what to go back to, as the reader needs it. */
+export class History<U> {
+  private past: U[] = [];
+  private future: U[] = [];
 
   get canUndo() { return this.past.length > 0; }
   get canRedo() { return this.future.length > 0; }
 
   /** Remember the state before an edit. A new edit forgets what was undone. */
-  record(before: State, focus?: string) {
-    this.past.push({ state: before, focus });
+  record(before: U) {
+    this.past.push(before);
     this.future = [];
   }
 
-  /** Step back from `now`: the state to go back to, or undefined when there is none. */
-  undo(now: State): Undo | undefined {
+  /**
+   * Step back: the entry to go back to, or undefined when there is none. `now(e)` is the entry
+   * that redoes it, made from the state as it is now.
+   */
+  undo(now: (e: U) => U): U | undefined {
     const e = this.past.pop();
-    if (e) this.future.push({ state: now, focus: e.focus });
+    if (e) this.future.push(now(e));
     return e;
   }
 
-  redo(now: State): Undo | undefined {
+  redo(now: (e: U) => U): U | undefined {
     const e = this.future.pop();
-    if (e) this.past.push({ state: now, focus: e.focus });
+    if (e) this.past.push(now(e));
     return e;
   }
 }

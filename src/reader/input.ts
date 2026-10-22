@@ -3,6 +3,7 @@ import { compact, HIGHLIGHT_COLOR, HIGHLIGHT_SIZE, PEN_SIZE, touches, type Point
 import { setInk } from '../pieces/edits';
 import { claimStroke, visible } from '../pieces/ink';
 import type { Aspects, State } from '../pieces/model';
+import { closeOverlay, overlayOpen } from '../ui/overlay';
 import type { CutEditor } from './cuts/editor';
 import { frameTarget } from './frames';
 import { gestureFor, gestureForKey, type Gesture } from './gestures';
@@ -17,7 +18,8 @@ const PALM_GUARD_MS = 600;
 /** What pointer and key handling needs from the reader. */
 export interface InputHost {
   stage: HTMLElement;
-  aspects: Aspects;
+  /** The current piece's: read each time, as the reader turns from piece to piece. */
+  readonly aspects: Aspects;
   editor: CutEditor;
   slots(): FrameSlot[];
   state(): State;
@@ -262,8 +264,8 @@ export class Input {
   }
 
   private onKey = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') { if (!this.host.editor.dismiss()) history.back(); return; }
-    if ((e.target as Element | null)?.closest?.('.menu, .dialog')) return;
+    if (e.key === 'Escape') { if (!this.host.editor.dismiss() && !closeOverlay()) history.back(); return; }
+    if (overlayOpen() || (e.target as Element | null)?.closest?.('.menu, .dialog')) return;
     const g = gestureForKey(e.key);
     if (!g) return;
     e.preventDefault();

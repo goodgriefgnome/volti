@@ -8,7 +8,8 @@ import type { FrameSlot } from '../spread';
 export interface EditorHost {
   root: HTMLElement;
   stage: HTMLElement;
-  aspects: Aspects;
+  /** The current piece's: read each time, as the reader turns from piece to piece. */
+  readonly aspects: Aspects;
   state(): State;
   frames(): Frame[];
   slots(): FrameSlot[];

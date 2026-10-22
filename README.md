@@ -33,7 +33,17 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   - When the page before has room left, a faint shading shows how much of this page would fit
     there. Cut inside the shading to move the top of this page up onto it.
 
-Markings, cuts and the place you were at are stored in the app, per score. They are not written into
+- **Setlists**, above the scores in the library, play several pieces as one continuous score:
+  turning past the end of a piece goes into the next, and each piece starts on a fresh screen.
+  - Tick scores and use **Add to setlist**, or **Add to setlist** in a score's toolbar. The arrow
+    beside a setlist shows its pieces, to reorder or remove; its **⋯** button has the rest.
+  - A setlist can play part of a piece: **Excerpt** in its toolbar (or **Choose the excerpt to
+    play…** in the library) picks the first and last cut to play.
+  - Cuts and markings always belong to the piece: changing them in a setlist changes the piece,
+    and every setlist's excerpts follow the change.
+  - **Archive** hides a setlist behind **Show archived**; only archived setlists can be deleted.
+
+Markings, cuts, setlists and the place you were at are stored in the app. They are not written into
 the PDFs.
 
 ## Development
@@ -53,20 +63,24 @@ Every push to `main` is tested, built and published to GitHub Pages by
 | `src/storage/` | IndexedDB key-value store, with every key listed in `keys.ts`; preferences |
 | `src/sources/` | Where scores come from (linked folder, imported copies, shared-file inbox); opening PDFs with pdf.js |
 | `src/pieces/` | Cuts and the played order (`model`), editing it (`edits`), laying it out on frames (`frames`), which cut owns a stroke (`ink`), loading and saving (`store`) |
+| `src/setlists/` | Setlists, the excerpt of each piece they play, and keeping excerpts in step with cut edits |
 | `src/ink/` | Stroke model and drawing |
-| `src/library/` | The Library screen |
-| `src/reader/reader.ts` | The score screen: turning pages, applying edits, opening and closing |
+| `src/library/` | The Library screen: setlists and scores |
+| `src/reader/reader.ts` | The score screen, for a piece or a setlist: turning pages and pieces, applying edits, opening and closing |
+| `src/reader/docs.ts` | The pieces being read, each PDF open only while near the one being read |
+| `src/reader/saver.ts` | Saving pieces and setlists together |
 | `src/reader/input.ts` | Pointers and keys: palm rejection, pinch and pan, writing and erasing, taps and swipes |
 | `src/reader/toolbar.ts` | The toolbar |
 | `src/reader/spread.ts` | Placing frames on the screen and drawing them |
 | `src/reader/detail.ts` | The sharp close-up drawn while zoomed in |
 | `src/reader/history.ts` | Undo and redo |
+| `src/reader/excerpt-picker.ts` | Choosing the excerpt of a piece a setlist plays |
 | `src/reader/cuts/` | Editing cuts on the frames: tabs and drags (`editor`), menus, the insert-pages picker, archived cuts |
 | `src/reader/frames.ts` | Drawing a frame's music and ink |
 | `src/reader/gestures.ts` | How taps, swipes and keys turn pages |
 | `src/reader/layout.ts` | Fitting frames to the screen |
 | `src/reader/zoom.ts` | Pinch and pan maths; which part of a page is in view |
-| `src/ui/` | DOM helpers, menus and dialogs, shared by both screens |
+| `src/ui/` | DOM helpers; menus, dialogs and toasts (`menu`, `overlay`); choosing a setlist to add to (`add-to`) |
 | `src/sw.ts` | Offline copy and the share target |
 
 pdf.js comes from its legacy build, which carries fallbacks for JavaScript features newer than some

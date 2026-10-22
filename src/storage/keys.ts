@@ -22,4 +22,12 @@ export const keys = {
   pos: (id: string) => 'pos:' + id,
   /** Before pieces: the 1-based page you were reading. Only read, to migrate it. */
   oldPage: (id: string) => 'page:' + id,
+
+  /* Setlists (setlists/store.ts). Cuts and markings are only ever stored in the piece. */
+  /** Setlist ids, newest first. */
+  setlists: 'setlists',
+  /** The Setlist. */
+  setlist: (id: string) => 'setlist:' + id,
+  /** { entry, cut }: the entry, and the first cut on the screen, you were reading. */
+  setlistPos: (id: string) => 'pos:set:' + id,
 };

@@ -21,6 +21,9 @@ export type FolderState =
 const MAX_DEPTH = 4;
 const titleOf = (name: string) => name.replace(/\.pdf$/i, '');
 
+/** A score's title from its id alone, for a score whose file can't be found. */
+export const titleFromId = (id: string) => titleOf(id.slice(id.lastIndexOf('/') + 1).replace(/^(folder|imported):/, ''));
+
 /* ---------- linked folder ---------- */
 
 let dir: FileSystemDirectoryHandle | undefined;

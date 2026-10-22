@@ -12,6 +12,11 @@ export const nextLayout = (p: PagesPerScreen) => LAYOUT_NEXT[String(p)];
 
 export interface ToolbarActions {
   close(): void;
+  /** In a setlist: the menu of its pieces, and choosing the excerpt of this one. */
+  pieces(): void;
+  excerpt(): void;
+  /** In a piece's own reader: add it to a setlist. */
+  addToSetlist(): void;
   /** Tapping the active tool again puts it away. */
   tool(t: Tool): void;
   penColor(c: string): void;
@@ -25,6 +30,8 @@ export interface ToolbarActions {
 
 /** What the toolbar shows. */
 export interface ToolbarView {
+  /** The piece is open; a piece that can't be opened can't be written on or edited. */
+  open: boolean;
   tool: Tool;
   penColor: string;
   editing: boolean;
@@ -37,12 +44,13 @@ export interface ToolbarView {
 
 export class Toolbar {
   readonly el = el('div', 'bar');
+  readonly title = el('span', 'title');
   readonly info = el('span', 'page-info');
   private buttons: Record<string, HTMLButtonElement> = {};
 
-  constructor(title: string, act: ToolbarActions) {
+  constructor(inSetlist: boolean, act: ToolbarActions) {
     const left = el('div', 'group');
-    left.append(this.button('close', 'Library', act.close), el('span', 'title', title));
+    left.append(this.button('close', 'Library', act.close), this.title);
 
     const tools = el('div', 'group');
     tools.append(
@@ -64,6 +72,16 @@ export class Toolbar {
     );
 
     const right = el('div', 'group');
+    if (inSetlist) {
+      right.append(
+        this.button('pieces', 'Pieces', act.pieces),
+        this.button('excerpt', 'Excerpt', act.excerpt),
+      );
+      this.buttons.pieces.setAttribute('aria-haspopup', 'menu');
+    } else {
+      right.append(this.button('addTo', 'Add to setlist', act.addToSetlist));
+      this.buttons.addTo.setAttribute('aria-haspopup', 'menu');
+    }
     right.append(
       this.button('edit', 'Edit cuts', act.toggleEditing),
       this.button('archived', 'Archived', act.openArchive),
@@ -82,6 +100,9 @@ export class Toolbar {
     return b;
   }
 
+  /** A toolbar button, for a menu to open below it. */
+  anchor(key: 'pieces' | 'addTo'): HTMLElement { return this.buttons[key]; }
+
   sync(v: ToolbarView) {
     const pressed = (k: string, on: boolean) => this.buttons[k].setAttribute('aria-pressed', String(on));
     pressed('pen', v.tool === 'pen');
@@ -89,6 +110,7 @@ export class Toolbar {
     pressed('eraser', v.tool === 'eraser');
     pressed('edit', v.editing);
     for (const c of PEN_COLORS) pressed('color' + c, v.tool === 'pen' && v.penColor === c);
+    for (const k of ['pen', 'highlighter', 'eraser', 'edit', 'excerpt']) if (this.buttons[k]) this.buttons[k].disabled = !v.open;
     this.buttons.archived.hidden = !v.editing || !v.archived;
     this.buttons.archived.textContent = `Archived (${v.archived})`;
     this.buttons.layout.textContent = LAYOUT_LABEL[String(v.layout)];

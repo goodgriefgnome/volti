@@ -12,8 +12,9 @@ const dpr = () => window.devicePixelRatio || 1;
 
 export interface DetailHost {
   stage: HTMLElement;
-  cache: PageCache;
-  aspects: Aspects;
+  /** The current piece's: read each time, as the reader turns from piece to piece. */
+  readonly cache: PageCache;
+  readonly aspects: Aspects;
   slots(): FrameSlot[];
   zoom(): Zoom;
   ink(): PieceInk;

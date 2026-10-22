@@ -1,7 +1,7 @@
 # Setlists: design
 
-Status: **designed and prototyped, not built into the app.** This document is the hand-off for
-whoever builds it. The user made the decisions in section 2. The rest is proposed and shown in the
+Status: **built into the app** (`src/setlists/`, `src/library/`, `src/reader/`). This document was
+the hand-off for building it. The user made the decisions in section 2. The rest is proposed and shown in the
 prototype. Anything marked **Open question** is not settled, so ask the user rather than guessing.
 
 The working prototype is [`prototypes/volti-setlists.html`](prototypes/volti-setlists.html): one

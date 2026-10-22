@@ -30,28 +30,39 @@ export function frameSize(W: number, H: number, perScreen: number, aspects: Aspe
 }
 
 /**
- * Slots for `frames`, the first being frame number `first`, centred on a W x H stage. They are
- * placed on whole screen pixels so they are shown exactly as drawn, without resampling.
+ * Lay out boxes the size of a frame across a W x H stage, centred, on whole screen pixels so
+ * they are shown exactly as drawn, without resampling. `fw` and `fh` are in device pixels.
  */
-export function placeSlots(frames: Frame[], first: number, W: number, H: number, size: Size, scale: number): FrameSlot[] {
+export function placeBoxes(boxes: HTMLElement[], size: Size, W: number, H: number, scale: number) {
   const devW = Math.round(W * scale), devH = Math.round(H * scale), devGap = Math.round(GAP * scale);
   const fw = Math.round(size.w * scale), fh = Math.round(size.h * scale);
-  const total = fw * frames.length + devGap * (frames.length - 1);
+  const total = fw * boxes.length + devGap * (boxes.length - 1);
   let x = Math.floor((devW - total) / 2);
+  return boxes.map((box) => {
+    const r = { x: x / scale, y: Math.floor((devH - fh) / 2) / scale, w: fw / scale, h: fh / scale, fw, fh };
+    Object.assign(box.style, { left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px' });
+    x += fw + devGap;
+    return r;
+  });
+}
+
+/**
+ * Slots for `frames`, the first being frame number `first`, placed with `after` (boxes that
+ * fill the rest of the screen) following them.
+ */
+export function placeSlots(frames: Frame[], first: number, W: number, H: number, size: Size, scale: number, after: HTMLElement[] = []): FrameSlot[] {
+  const boxes = frames.map(() => el('div', 'page'));
+  const rects = placeBoxes([...boxes, ...after], size, W, H, scale);
   return frames.map((frame, i) => {
+    const r = rects[i];
     const slot: FrameSlot = {
       index: first + i,
       frame,
-      box: el('div', 'page'),
-      x: x / scale,
-      y: Math.floor((devH - fh) / 2) / scale,
-      w: fw / scale,
-      h: fh / scale,
-      canvas: Object.assign(el('canvas'), { width: fw, height: fh }),
-      ink: Object.assign(el('canvas', 'ink'), { width: fw, height: fh }),
+      box: boxes[i],
+      x: r.x, y: r.y, w: r.w, h: r.h,
+      canvas: Object.assign(el('canvas'), { width: r.fw, height: r.fh }),
+      ink: Object.assign(el('canvas', 'ink'), { width: r.fw, height: r.fh }),
     };
-    x += fw + devGap;
-    Object.assign(slot.box.style, { left: slot.x + 'px', top: slot.y + 'px', width: slot.w + 'px', height: slot.h + 'px' });
     slot.box.append(slot.canvas, slot.ink);
     return slot;
   });
