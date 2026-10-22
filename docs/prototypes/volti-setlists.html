@@ -1,0 +1,1279 @@
+<title>Volti Setlists Prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* A tablet-shaped app on the left, as you would use it; the data it keeps on the right. */
+:root {
+  --bg: #f2f3f6;
+  --surface: #ffffff;
+  --fg: #16181d;
+  --muted: #5b6170;
+  --line: #dde0e7;
+  --accent: #8a5a12;
+  --accent-soft: rgba(138, 90, 18, 0.12);
+  --accent-fg: #ffffff;
+  --select: #1f6fe0;
+  --stage: #1b1d22;
+  --bar: rgba(20, 22, 27, 0.92);
+  --bar-fg: #eceef2;
+  --bezel: #0d0e11;
+  --warn: #a8461c;
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-brand: "Iowan Old Style", "Palatino Linotype", Palatino, "Noto Serif", Georgia, serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121419; --surface: #1b1e25; --fg: #e9eaee; --muted: #9aa0ad; --line: #2c313b;
+    --accent: #d6a64a; --accent-soft: rgba(214, 166, 74, 0.16); --accent-fg: #17130a;
+    --select: #7da6ff; --bezel: #000000; --warn: #e58a5c; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121419; --surface: #1b1e25; --fg: #e9eaee; --muted: #9aa0ad; --line: #2c313b;
+  --accent: #d6a64a; --accent-soft: rgba(214, 166, 74, 0.16); --accent-fg: #17130a;
+  --select: #7da6ff; --bezel: #000000; --warn: #e58a5c; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.45 var(--font-ui);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 16px 32px;
+  -webkit-tap-highlight-color: transparent;
+}
+p { margin: 0; }
+.wrap { max-width: 1560px; margin: 0 auto; display: grid; gap: 14px; }
+.intro { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: baseline; }
+.intro h1 { margin: 0; font: italic 600 1.7rem/1.1 var(--font-brand); text-wrap: balance; }
+.intro p { color: var(--muted); max-width: 80ch; flex: 1 1 360px; }
+.intro .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.panes { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 1200px) { .panes { grid-template-columns: minmax(0, 1fr) 380px; } }
+
+button {
+  font: inherit; font-size: 15px; min-height: 44px; padding: 8px 16px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer;
+}
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+button.quiet { border-color: transparent; background: transparent; color: var(--muted); }
+button.danger { background: var(--warn); border-color: var(--warn); color: #fff; }
+button:disabled { opacity: 0.4; cursor: default; }
+button:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid var(--select); outline-offset: 2px; }
+input[type="text"], input[type="search"], input[type="date"] {
+  font: inherit; min-height: 44px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--fg); min-width: 0;
+}
+
+/* ---------- the tablet ---------- */
+.device {
+  position: relative; aspect-ratio: 16 / 10; width: 100%; max-width: 100%; overflow: hidden;
+  border: 10px solid var(--bezel); border-radius: 18px; background: var(--bg); container-type: size;
+}
+@media (max-width: 700px) { .device { aspect-ratio: 10 / 15; } }
+.device.full { position: fixed; inset: 0; z-index: 50; aspect-ratio: auto; border: 0; border-radius: 0; }
+.screen { position: absolute; inset: 0; overflow: auto; }
+.home, .setlist {
+  max-width: 880px; margin: 0 auto; display: grid; gap: 18px; align-content: start; padding: 24px 20px 40px;
+}
+.masthead { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.brand { font: italic 600 2.2rem/1 var(--font-brand); margin: 0; }
+.tagline { margin: 0; color: var(--muted); font: italic 1rem var(--font-brand); }
+.section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.section-head h2 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 600; }
+.list { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.list > li { display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--line); min-width: 0; }
+.list .open {
+  flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; text-align: left;
+  border: 0; border-radius: 0; background: transparent; padding: 12px 4px; min-height: 56px;
+}
+.list .open:active { background: var(--line); }
+.item-title { font-size: 17px; overflow-wrap: anywhere; }
+.setlist-title { font: italic 1.15rem var(--font-brand); }
+.meta { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+.pill { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; border: 1px solid currentColor; border-radius: 999px; padding: 0 8px; white-space: nowrap; }
+.pill.own { color: var(--accent); }
+.pill.frozen { color: var(--muted); }
+.empty { padding: 18px 4px; color: var(--muted); }
+details.archived-sets > summary { cursor: pointer; color: var(--muted); padding: 10px 4px; min-height: 44px; display: flex; align-items: center; }
+.search { flex: 1 1 240px; }
+
+.setlist .top { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.setlist .top .grow { flex: 1; }
+.setlist .fields { display: flex; gap: 10px; flex-wrap: wrap; }
+.setlist .fields .name { flex: 1 1 320px; font: italic 1.5rem var(--font-brand); min-height: 52px; }
+.banner { background: var(--accent-soft); border-radius: 10px; padding: 10px 14px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.banner p { flex: 1 1 260px; }
+.entry .num { width: 2.2em; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
+.entry .handle { flex: none; width: 40px; min-height: 56px; padding: 0; border: 0; background: transparent; color: var(--muted); cursor: grab; touch-action: none; font-size: 18px; letter-spacing: -2px; }
+.entry.dragging { background: var(--accent-soft); }
+.entry .more { flex: none; width: 48px; padding: 0; }
+.confirm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+.confirm p { flex: 1 1 260px; }
+
+/* ---------- the reader ---------- */
+.reader { position: absolute; inset: 0; background: var(--stage); user-select: none; -webkit-user-select: none; }
+.stage { position: absolute; inset: 0; overflow: hidden; touch-action: none; }
+.editing:not(.chrome-hidden) .stage { top: var(--bar-h, 56px); }
+.frame { position: absolute; background: #fff; box-shadow: 0 2px 14px rgba(0, 0, 0, 0.45); }
+.frame canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.frame.blank { background: transparent; box-shadow: none; border: 1px dashed rgba(255, 255, 255, 0.16); display: grid; place-content: center; text-align: center; color: rgba(236, 238, 242, 0.7); gap: 6px; padding: 16px; }
+.frame.blank .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+.frame.blank .t { font: italic 1.4rem var(--font-brand); color: var(--bar-fg); }
+.bar {
+  position: absolute; top: 0; left: 0; right: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; justify-content: space-between;
+  background: var(--bar); color: var(--bar-fg); padding: 8px 12px; transition: transform 160ms ease, opacity 160ms ease; z-index: 3;
+}
+.chrome-hidden .bar { transform: translateY(-100%); opacity: 0; pointer-events: none; }
+.bar .group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
+.bar button { min-height: 40px; padding: 6px 12px; background: transparent; color: inherit; border-color: rgba(255, 255, 255, 0.22); }
+.bar button[aria-pressed="true"] { background: var(--bar-fg); color: #14161b; border-color: var(--bar-fg); }
+.bar .title { font: italic 1.05rem var(--font-brand); max-width: 34ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar .title b { font-style: normal; font-weight: 400; opacity: 0.6; }
+.bar .info { font-size: 14px; font-variant-numeric: tabular-nums; opacity: 0.85; }
+/* Names the piece for a moment when the reader turns into it. */
+.piece-card {
+  position: absolute; z-index: 2; left: 50%; bottom: 14px; transform: translateX(-50%); pointer-events: none;
+  background: var(--bar); color: var(--bar-fg); border-radius: 999px; padding: 6px 16px; font: italic 1rem var(--font-brand);
+  white-space: nowrap; max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis; transition: opacity 300ms ease;
+}
+.piece-card b { font: 600 12px var(--font-ui); letter-spacing: 0.06em; opacity: 0.7; margin-right: 8px; }
+.piece-card.gone { opacity: 0; }
+.chrome-hidden .scope { top: 8px; }
+.scope {
+  position: absolute; z-index: 2; left: 50%; top: calc(var(--bar-h, 56px) + 8px); transform: translateX(-50%); pointer-events: none;
+  max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis; background: var(--accent); color: var(--accent-fg); border-radius: 999px; padding: 4px 14px; font-size: 13px; white-space: nowrap;
+}
+.cut-mark { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--select); pointer-events: none; }
+
+.menu {
+  position: absolute; z-index: 20; min-width: 230px; max-width: min(340px, calc(100% - 16px)); display: grid;
+  background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35); padding: 6px;
+}
+.menu .label { color: var(--muted); font-size: 13px; padding: 6px 10px; }
+.menu button { border: 0; text-align: left; min-height: 44px; background: transparent; }
+.menu button:hover, .menu button:focus-visible { background: var(--bg); }
+.menu button[aria-checked="true"]::before { content: "✓ "; }
+.scrim { position: absolute; inset: 0; z-index: 19; background: rgba(10, 11, 14, 0.45); }
+.dialog {
+  position: absolute; z-index: 20; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(620px, calc(100% - 32px)); max-height: calc(100% - 32px); overflow: auto;
+  background: var(--surface); color: var(--fg); border-radius: 12px; padding: 18px 20px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5); display: grid; gap: 10px;
+}
+.dialog h2 { margin: 0; font-size: 18px; text-wrap: balance; }
+.dialog h3 { margin: 6px 0 0; font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+.dialog .hint { color: var(--muted); }
+.dialog .buttons { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 4px; }
+.check { display: flex; gap: 10px; align-items: center; min-height: 44px; cursor: pointer; }
+.check input { width: 20px; height: 20px; accent-color: var(--accent); flex: none; }
+.check .meta { margin-left: auto; }
+.kept { display: flex; gap: 10px; align-items: baseline; min-height: 36px; color: var(--muted); }
+.picklist { display: grid; max-height: 46cqh; overflow: auto; border-block: 1px solid var(--line); }
+.toast {
+  position: absolute; z-index: 25; left: 50%; bottom: 16px; transform: translateX(-50%); margin: 0; max-width: calc(100% - 32px);
+  padding: 10px 16px; border-radius: 10px; background: var(--bar); color: var(--bar-fg); font-size: 15px; pointer-events: none;
+}
+
+/* ---------- inspector ---------- */
+.inspector { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 12px; min-width: 0; }
+.inspector h2 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+.inspector .hint { color: var(--muted); font-size: 13px; }
+.insp-block { display: grid; gap: 6px; min-width: 0; }
+.insp-block h3 { margin: 0; font-size: 14px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.insp-entry { display: grid; gap: 4px; padding-left: 10px; border-left: 2px solid var(--line); min-width: 0; }
+.insp-entry > div:first-child { font-size: 13px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font: 12px/1.6 var(--font-mono); border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.chip.derived { border-color: var(--accent); color: var(--accent); }
+.chip.layer { background: var(--accent-soft); border-color: transparent; }
+.chip.copied { background: transparent; border-style: dashed; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; color: var(--muted); align-items: center; }
+
+@media (prefers-reduced-motion: reduce) { .bar, .piece-card { transition: none; } }
+</style>
+
+<div class="wrap">
+  <div class="intro">
+    <h1>Volti setlists</h1>
+    <p>Prototype. Open a setlist and read it as one score, or open a piece, change its cuts, and go back to the library to see which setlists it offers to update. In a score, tap the middle for the toolbar and the sides to turn. Changes are kept in this browser.</p>
+    <div class="row">
+      <button type="button" id="fill">Fill the window</button>
+      <button type="button" id="reset" class="quiet">Start the example again</button>
+    </div>
+  </div>
+  <div class="panes">
+    <div class="device" id="device"></div>
+    <aside class="inspector" id="inspector" aria-label="What Volti stores"></aside>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ================= helpers ================= */
+const $ = (s, r = document) => r.querySelector(s);
+function h(tag, attrs = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v === undefined || v === null || v === false) continue;
+    if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (k === 'class') e.className = v;
+    else if (k === 'text') e.textContent = v;
+    else e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const c of kids.flat()) if (c !== null && c !== undefined && c !== false) e.append(c);
+  return e;
+}
+const btn = (label, onclick, cls = '', extra = {}) => h('button', { type: 'button', class: cls, onclick, ...extra }, label);
+const uid = () => Math.random().toString(36).slice(2, 6) + Math.random().toString(36).slice(2, 4);
+const clone = (x) => JSON.parse(JSON.stringify(x));
+const short = (id) => id.slice(0, 4);
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const fmtDate = (d) => d ? new Date(d + 'T12:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+const A4 = 297 / 210;
+const STORE = 'volti-setlists-proto-v2';
+const device = $('#device');
+
+/* ================= example scores ================= */
+const SCORES = [
+  { id: 'sarabande', title: 'Sarabande in D minor', by: 'after G. F. Handel', key: 'D minor', pages: 3, kind: 'piano', systems: 4, bars: 4, time: '3/4', flats: 1 },
+  { id: 'gymno', title: 'Gymnopédie No. 1', by: 'Erik Satie', key: 'D major', pages: 3, kind: 'piano', systems: 5, bars: 4, time: '3/4', flats: 0 },
+  { id: 'autumn', title: 'Autumn Leaves', by: 'Joseph Kosma', key: 'G minor', pages: 2, kind: 'lead', systems: 9, bars: 4, time: '4/4', flats: 2,
+    chords: ['Cm7', 'F7', 'B♭maj7', 'E♭maj7', 'Am7♭5', 'D7', 'Gm6', 'Gm6'] },
+  { id: 'bossa', title: 'Blue Bossa', by: 'Kenny Dorham', key: 'C minor', pages: 1, kind: 'lead', systems: 9, bars: 4, time: '4/4', flats: 3,
+    chords: ['Cm7', 'Cm7', 'Fm7', 'Fm7', 'Dm7♭5', 'G7', 'Cm7', 'Cm7', 'E♭m7', 'A♭7', 'D♭maj7', 'D♭maj7'] },
+  { id: 'avemaria', title: 'Ave Maria', by: 'Franz Schubert', key: 'B♭ major', pages: 4, kind: 'voice', systems: 3, bars: 3, time: '4/4', flats: 2 },
+];
+const scoreOf = (id) => SCORES.find((s) => s.id === id);
+
+function rng(seed) {
+  let a = 0;
+  for (const ch of seed) a = (a * 31 + ch.charCodeAt(0)) | 0;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/* Where each system sits on a page, as fractions of the page height. */
+const GAP = 0.0095; // staff line gap, in page widths
+function pageLayout(sc, page) {
+  const staves = sc.kind === 'piano' ? 2 : sc.kind === 'voice' ? 3 : 1;
+  const g = GAP / A4, staffH = 4 * g, between = sc.kind === 'lead' ? 0 : 7 * g;
+  const sysH = staves * staffH + (staves - 1) * between;
+  const top = page === 0 ? 0.17 : 0.07, bottom = 0.93;
+  const n = sc.systems - (page === 0 ? 1 : 0);
+  const slot = (bottom - top) / n;
+  let m = 1;
+  for (let p = 0; p < page; p++) m += (sc.systems - (p === 0 ? 1 : 0)) * sc.bars;
+  const systems = [];
+  for (let i = 0; i < n; i++) {
+    const y = top + i * slot + (slot - sysH) / 2 + (sc.kind === 'lead' ? g : 0);
+    systems.push({ top: y, bottom: y + sysH, staffTops: Array.from({ length: staves }, (_, k) => y + k * (staffH + between)), m });
+    m += sc.bars;
+  }
+  return { systems, slot };
+}
+/* The blank band between system i and the next, as a fraction of page height. */
+function gapBelow(sc, page, i) {
+  const L = pageLayout(sc, page).systems;
+  return L[i + 1] ? (L[i].bottom + L[i + 1].top) / 2 + (sc.kind === 'lead' ? -0.008 : 0) : 1;
+}
+
+const pageCache = new Map();
+function pageCanvas(sc, page) {
+  const k = sc.id + ':' + page;
+  if (!pageCache.has(k)) pageCache.set(k, drawPage(sc, page, 1100));
+  return pageCache.get(k);
+}
+function drawPage(sc, page, W) {
+  const H = Math.round(W * A4);
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const c = cv.getContext('2d');
+  const rnd = rng(sc.id + page);
+  c.fillStyle = '#fff'; c.fillRect(0, 0, W, H);
+  c.fillStyle = '#111'; c.strokeStyle = '#111';
+  const g = GAP * W;
+  if (page === 0) {
+    c.textAlign = 'center';
+    c.font = `italic 600 ${W * 0.042}px "Iowan Old Style", Palatino, Georgia, serif`;
+    c.fillText(sc.title, W / 2, H * 0.085);
+    c.font = `${W * 0.017}px "Iowan Old Style", Palatino, Georgia, serif`;
+    c.textAlign = 'right'; c.fillText(sc.by, W * 0.92, H * 0.128);
+    c.textAlign = 'left'; c.font = `italic ${W * 0.017}px Georgia, serif`;
+    c.fillText(sc.kind === 'lead' ? 'Medium swing' : sc.kind === 'voice' ? 'Sehr langsam' : 'Lent et douloureux', W * 0.1, H * 0.142);
+  }
+  const { systems } = pageLayout(sc, page);
+  const last = page === sc.pages - 1;
+  systems.forEach((sys, si) => {
+    const x0 = W * (page === 0 && si === 0 ? 0.13 : 0.1), x1 = W * 0.92;
+    const tops = sys.staffTops.map((t) => t * H);
+    c.lineWidth = Math.max(1, W / 900);
+    for (const t of tops) for (let l = 0; l < 5; l++) { c.beginPath(); c.moveTo(x0, t + l * g); c.lineTo(x1, t + l * g); c.stroke(); }
+    const yTop = tops[0], yBot = tops[tops.length - 1] + 4 * g;
+    c.lineWidth = Math.max(1.2, W / 700);
+    c.beginPath(); c.moveTo(x0, yTop); c.lineTo(x0, yBot); c.stroke();
+    c.font = `italic ${W * 0.012}px Georgia, serif`; c.textAlign = 'left';
+    c.fillText(String(sys.m), x0, yTop - g * 1.3);
+    // clef stand-in, key signature, and the time signature on the first system
+    let xs = x0 + g * 1.2;
+    for (const t of tops) {
+      c.font = `${g * 3.2}px Georgia, serif`;
+      c.fillText(sc.kind === 'piano' && t === tops[1] ? '𝄢' : '𝄞', xs, t + g * 3.3);
+      c.font = `${g * 2.4}px Georgia, serif`;
+      for (let f = 0; f < sc.flats; f++) c.fillText('♭', xs + g * (2.6 + f * 1.1), t + g * (1.6 + (f % 2) * 1.5));
+      if (page === 0 && si === 0) {
+        const [a, b] = sc.time.split('/');
+        c.font = `bold ${g * 2}px Georgia, serif`;
+        const tx = xs + g * (2.8 + sc.flats * 1.1);
+        c.fillText(a, tx, t + g * 1.8); c.fillText(b, tx, t + g * 3.9);
+      }
+    }
+    const start = xs + g * (4 + sc.flats * 1.1 + (page === 0 && si === 0 ? 2 : 0));
+    const bw = (x1 - start) / sc.bars;
+    for (let b = 0; b < sc.bars; b++) {
+      const bx = start + b * bw;
+      if (sc.kind === 'lead' && sc.chords) {
+        c.font = `600 ${g * 1.7}px "Helvetica Neue", Arial, sans-serif`;
+        const ci = (sys.m - 1 + b) % sc.chords.length;
+        c.fillText(sc.chords[ci], bx + g * 0.6, yTop - g * 1.4);
+      }
+      tops.forEach((t, k) => {
+        const n = sc.kind === 'lead' ? 4 : k === 0 ? 3 : 2;
+        for (let i = 0; i < n; i++) {
+          const nx = bx + bw * (i + 0.6) / (n + 0.4);
+          const pos = Math.floor(rnd() * 9) - 1;
+          const ny = t + (8 - pos) * g / 2;
+          c.beginPath(); c.ellipse(nx, ny, g * 0.62, g * 0.44, -0.35, 0, Math.PI * 2);
+          if (sc.kind !== 'piano' || k === 0 || rnd() > 0.3) c.fill(); else { c.lineWidth = g * 0.18; c.stroke(); }
+          c.lineWidth = Math.max(1, W / 1000);
+          const up = pos < 4;
+          c.beginPath();
+          c.moveTo(nx + (up ? g * 0.58 : -g * 0.58), ny);
+          c.lineTo(nx + (up ? g * 0.58 : -g * 0.58), ny + (up ? -3.3 : 3.3) * g); c.stroke();
+          if (pos < 0) { c.beginPath(); c.moveTo(nx - g, t + 5 * g); c.lineTo(nx + g, t + 5 * g); c.stroke(); }
+        }
+      });
+      if (sc.kind === 'voice') {
+        const words = ['A-', 've', 'Ma-', 'ri-', 'a!', 'Jung-', 'frau', 'mild'];
+        c.font = `${g * 1.5}px Georgia, serif`;
+        for (let i = 0; i < 3; i++) c.fillText(words[(sys.m + b + i) % words.length], bx + bw * (i + 0.45) / 3.4, tops[0] + g * 6.3);
+      }
+      c.lineWidth = Math.max(1, W / 900);
+      const ex = bx + bw;
+      c.beginPath(); c.moveTo(ex, yTop); c.lineTo(ex, yBot); c.stroke();
+    }
+    if (last && si === systems.length - 1) {
+      c.lineWidth = g * 0.5; c.beginPath(); c.moveTo(x1 - g * 0.3, yTop); c.lineTo(x1 - g * 0.3, yBot); c.stroke();
+    }
+  });
+  if (page > 0) {
+    c.font = `${W * 0.014}px Georgia, serif`; c.textAlign = 'center';
+    c.fillText(String(page + 1), W / 2, H * 0.965);
+  }
+  return cv;
+}
+
+/* ================= data ================= */
+/*
+ * D.pieces[id]        { id, title, key, aspects, cuts }          cut = { id, page, y0, y1 }
+ * D.pieceInk[id]      strokes by cut id
+ * D.setlists[]        { id, title, date, archived, entries: [{ id, pieceId, cuts, edited }] }
+ *                     `edited`: the setlist changed this piece's cuts itself
+ *                     a setlist's cut may carry `from`: the piece cut it was made from
+ * D.layers[entryId]   { [cutId]: { strokes, own } }: a setlist's own ink, read before the piece's
+ */
+let D;
+
+function seed() {
+  const d = { pieces: {}, pieceInk: {}, setlists: [], layers: {}, pos: {} };
+  for (const s of SCORES) {
+    d.pieces[s.id] = {
+      id: s.id, title: s.title, key: s.key, aspects: Array(s.pages).fill(A4),
+      cuts: Array.from({ length: s.pages }, (_, page) => ({ id: uid(), page, y0: 0, y1: 1 })),
+    };
+    d.pieceInk[s.id] = {};
+  }
+  // The sarabande's repeat: page 3's first system, back to page 2's last, then page 3 again.
+  const sb = scoreOf('sarabande'), sp = d.pieces.sarabande;
+  sp.cuts = [
+    { id: uid(), page: 0, y0: 0, y1: 1 },
+    { id: uid(), page: 1, y0: 0, y1: 1 },
+    { id: uid(), page: 2, y0: 0, y1: gapBelow(sb, 2, 0) },
+    { id: uid(), page: 1, y0: gapBelow(sb, 1, 2), y1: 1 },
+    { id: uid(), page: 2, y0: 0, y1: 1 },
+  ];
+  const ring = (cx, cy, rx, ry, color, n = 28) => ({
+    id: uid(), color, w: 0.003,
+    pts: Array.from({ length: n + 1 }, (_, i) => [cx + rx * Math.cos(i / n * 6.283), cy + ry * Math.sin(i / n * 6.283)]),
+  });
+  const tick = (x, y, color) => ({ id: uid(), color, w: 0.004, pts: [[x, y], [x + 0.012, y + 0.012], [x + 0.035, y - 0.02]] });
+  d.pieceInk.sarabande[sp.cuts[0].id] = [ring(0.42, 0.39, 0.07, 0.035, '#1a1a1a')];
+  d.pieceInk.sarabande[sp.cuts[1].id] = [tick(0.7, 0.24, '#1a1a1a')];
+  const au = d.pieces.autumn;
+  d.pieceInk.autumn[au.cuts[0].id] = [ring(0.3, 0.33, 0.06, 0.03, '#1a1a1a'), tick(0.82, 0.58, '#1a1a1a')];
+
+  const entry = (pieceId) => ({ id: uid(), pieceId, cuts: clone(d.pieces[pieceId].cuts) });
+  const spring = { id: uid(), title: 'Spring recital', date: '2026-11-14', archived: false, entries: [entry('sarabande'), entry('gymno'), entry('autumn')] };
+  // In the recital, the Gymnopédie's title is cut away, so that cut is the setlist's own.
+  const gy = spring.entries[1], g0 = gy.cuts[0];
+  gy.cuts[0] = { id: uid(), from: g0.id, page: 0, y0: 0.15, y1: 1 };
+  gy.edited = true;
+  // ...and a breath mark was added to Autumn Leaves for the recital only.
+  const au0 = spring.entries[2].cuts[0];
+  d.layers[spring.entries[2].id] = { [au0.id]: { own: true, strokes: [...clone(d.pieceInk.autumn[au0.id]), tick(0.55, 0.45, '#c0392b')] } };
+  const cafe = { id: uid(), title: 'Café Lumen, Friday', date: '2026-10-30', archived: false, entries: [entry('autumn'), entry('bossa'), entry('gymno')] };
+  const wedding = { id: uid(), title: 'Summer wedding', date: '2026-07-04', archived: false, entries: [entry('avemaria'), entry('sarabande')] };
+  d.setlists.push(spring, cafe, wedding);
+  D = d;
+  archive(wedding);
+  return d;
+}
+
+function load() {
+  try { const s = localStorage.getItem(STORE); if (s) return JSON.parse(s); } catch { /* storage may be blocked */ }
+  return seed();
+}
+function save() {
+  try { localStorage.setItem(STORE, JSON.stringify(D)); } catch { /* storage may be blocked */ }
+  renderInspector();
+}
+
+const setlistOf = (id) => D.setlists.find((s) => s.id === id);
+const rootOf = (c) => c.from ?? c.id;
+const sameCuts = (a, b) => a.length === b.length && a.every((c, i) => c.id === b[i].id && c.page === b[i].page && c.y0 === b[i].y0 && c.y1 === b[i].y1);
+/** The setlist changed this piece's cuts itself. */
+const ownCuts = (e) => !!e.edited;
+/** The setlist never changed them, but the piece has changed since they were copied. */
+const olderCuts = (e) => !e.edited && !sameCuts(e.cuts, D.pieces[e.pieceId].cuts);
+const setlistsWith = (pieceId) => D.setlists.filter((s) => s.entries.some((e) => e.pieceId === pieceId));
+
+const midY = (s) => { const ys = s.pts.map((p) => p[1]).sort((a, b) => a - b); return ys[ys.length >> 1]; };
+const shows = (s, c) => { const y = midY(s); return y >= c.y0 && y <= c.y1; };
+const splitStrokes = (strokes, y) => [strokes.filter((s) => midY(s) < y), strokes.filter((s) => midY(s) >= y)];
+
+/** The strokes a cut shows: the setlist's layer for that cut if it has one, otherwise the piece's. */
+function strokesFor(it, c) {
+  if (!it.entry) return D.pieceInk[it.piece.id][c.id] ?? [];
+  const l = D.layers[it.entry.id]?.[c.id];
+  return l ? l.strokes : D.pieceInk[it.piece.id][rootOf(c)] ?? [];
+}
+/** The strokes a draw or erase changes. The first on a setlist cut copies the piece's into the layer. */
+function writableStrokes(it, c) {
+  if (!it.entry) return (D.pieceInk[it.piece.id][c.id] ??= []);
+  const L = (D.layers[it.entry.id] ??= {});
+  L[c.id] ??= { strokes: clone(D.pieceInk[it.piece.id][rootOf(c)] ?? []), own: true };
+  L[c.id].own = true;
+  return L[c.id].strokes;
+}
+
+/**
+ * The piece is about to change or drop the ink of one of its cuts. Setlists still reading
+ * that ink through get a copy first, so they keep what they showed.
+ */
+function copyDown(pieceId, cutId) {
+  const strokes = D.pieceInk[pieceId][cutId];
+  if (!strokes?.length) return;
+  for (const s of D.setlists) {
+    if (s.archived) continue;
+    for (const e of s.entries) {
+      if (e.pieceId !== pieceId) continue;
+      for (const c of e.cuts) {
+        if (rootOf(c) !== cutId) continue;
+        const L = (D.layers[e.id] ??= {});
+        L[c.id] ??= { strokes: clone(strokes), own: false };
+      }
+    }
+  }
+}
+
+/** Archiving freezes a setlist: every cut gets its own copy of the ink it shows. */
+function archive(s) {
+  for (const e of s.entries) {
+    const L = (D.layers[e.id] ??= {});
+    for (const c of e.cuts) {
+      const ink = D.pieceInk[e.pieceId][rootOf(c)];
+      if (!L[c.id] && ink?.length) L[c.id] = { strokes: clone(ink), own: false };
+    }
+  }
+  s.archived = true;
+}
+
+/**
+ * Give a setlist entry the piece's cuts. Layers that were only copies are dropped, so the
+ * piece's ink shows through again. Markings the setlist made itself stay: on the same cut if
+ * it is still there, otherwise on the first new cut of that page that shows them.
+ */
+function takePieceCuts(e) {
+  const piece = D.pieces[e.pieceId], old = D.layers[e.id] ?? {}, oldCuts = e.cuts;
+  e.cuts = clone(piece.cuts);
+  e.edited = false;
+  const L = {};
+  for (const [id, l] of Object.entries(old)) {
+    if (!l.own) continue;
+    if (e.cuts.some((c) => c.id === id)) { L[id] = l; continue; }
+    const page = oldCuts.find((c) => c.id === id)?.page;
+    const pieceIds = new Set(Object.values(D.pieceInk[e.pieceId]).flat().map((s) => s.id));
+    for (const s of l.strokes) {
+      if (pieceIds.has(s.id)) continue;
+      const to = e.cuts.find((c) => c.page === page && shows(s, c));
+      if (!to) continue;
+      L[to.id] ??= { strokes: clone(D.pieceInk[e.pieceId][to.id] ?? []), own: true };
+      L[to.id].strokes.push(s);
+    }
+  }
+  D.layers[e.id] = L;
+}
+
+/* ---------- cut edits ---------- */
+/*
+ * In a piece, edits work as they do in the app now: a split keeps the upper half's id.
+ * In a setlist, a cut whose shape changes gets a new id that remembers the cut it came from.
+ */
+function editCut(it, id, op, y) {
+  const cuts = it.entry ? it.entry.cuts : it.piece.cuts;
+  const i = cuts.findIndex((c) => c.id === id), c = cuts[i];
+  const range = op === 'split' ? null : op === 'above' ? [y, c.y1] : op === 'below' ? [c.y0, y] : op === 'restore' ? [0, 1] : null;
+  let next;
+  if (!it.entry) {
+    const ink = D.pieceInk[it.piece.id];
+    if (op === 'split' || op === 'remove') copyDown(it.piece.id, c.id);
+    if (op === 'split') {
+      const lower = { id: uid(), page: c.page, y0: y, y1: c.y1 };
+      const [up, down] = splitStrokes(ink[c.id] ?? [], y);
+      if (up.length) ink[c.id] = up; else delete ink[c.id];
+      if (down.length) ink[lower.id] = down;
+      next = [...cuts.slice(0, i), { ...c, y1: y }, lower, ...cuts.slice(i + 1)];
+    } else if (op === 'remove') {
+      delete ink[c.id];
+      next = cuts.filter((x) => x !== c);
+    } else {
+      next = cuts.map((x) => (x === c ? { ...c, y0: range[0], y1: range[1] } : x));
+    }
+    it.piece.cuts = next;
+  } else {
+    const L = (D.layers[it.entry.id] ??= {}), root = rootOf(c);
+    const fresh = (y0, y1) => ({ id: uid(), from: root, page: c.page, y0, y1 });
+    if (op === 'split') {
+      const a = fresh(c.y0, y), b = fresh(y, c.y1);
+      if (L[c.id]) {
+        const [up, down] = splitStrokes(L[c.id].strokes, y);
+        L[a.id] = { strokes: up, own: L[c.id].own };
+        L[b.id] = { strokes: down, own: L[c.id].own };
+        delete L[c.id];
+      }
+      next = [...cuts.slice(0, i), a, b, ...cuts.slice(i + 1)];
+    } else if (op === 'remove') {
+      delete L[c.id];
+      next = cuts.filter((x) => x !== c);
+    } else {
+      const n = fresh(range[0], range[1]);
+      if (L[c.id]) { L[n.id] = L[c.id]; delete L[c.id]; }
+      next = cuts.map((x) => (x === c ? n : x));
+    }
+    it.entry.cuts = next;
+    it.entry.edited = true;
+  }
+}
+
+/* ================= screens ================= */
+let ui = { screen: 'home' };
+let overlay = null; // the open menu or dialog, with its scrim
+let toastTimer;
+
+function go(next) {
+  closeOverlay();
+  ui = next;
+  render();
+}
+function render() {
+  closeOverlay();
+  device.replaceChildren();
+  if (ui.screen === 'home') renderHome();
+  else if (ui.screen === 'setlist') renderSetlist();
+  else if (ui.screen === 'reader') renderReader();
+  renderInspector();
+}
+function say(text) {
+  device.querySelector('.toast')?.remove();
+  const t = h('p', { class: 'toast', role: 'status', text });
+  device.append(t);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.remove(), 3800);
+}
+
+/* ---------- menus and dialogs ---------- */
+function closeOverlay() {
+  overlay?.forEach((e) => e.remove());
+  overlay = null;
+  device.querySelector('.cut-mark')?.remove();
+}
+function showMenu(x, y, label, items) {
+  closeOverlay();
+  const m = h('div', { class: 'menu', role: 'menu' }, label ? h('div', { class: 'label', text: label }) : null,
+    items.filter(Boolean).map((it) => btn(it.label, () => { closeOverlay(); it.run(); }, '', { role: it.checked !== undefined ? 'menuitemradio' : 'menuitem', 'aria-checked': it.checked === undefined ? undefined : String(it.checked) })));
+  const catcher = h('div', { style: 'position:absolute;inset:0;z-index:19' });
+  catcher.addEventListener('pointerdown', (e) => { e.preventDefault(); closeOverlay(); });
+  device.append(catcher, m);
+  overlay = [catcher, m];
+  const r = device.getBoundingClientRect();
+  const left = Math.min(Math.max(8, x - r.left), r.width - m.offsetWidth - 8);
+  const top = y - r.top + m.offsetHeight + 8 > r.height ? Math.max(8, y - r.top - m.offsetHeight) : y - r.top;
+  m.style.left = left + 'px';
+  m.style.top = top + 'px';
+  m.querySelector('button')?.focus();
+}
+const menuAt = (button, label, items) => {
+  const b = button.getBoundingClientRect();
+  showMenu(b.left, b.bottom + 4, label, items);
+};
+function showDialog(...kids) {
+  closeOverlay();
+  const scrim = h('div', { class: 'scrim', onclick: closeOverlay });
+  const d = h('div', { class: 'dialog', role: 'dialog', 'aria-modal': 'true' }, ...kids);
+  device.append(scrim, d);
+  overlay = [scrim, d];
+  d.querySelector('input, button.primary, button')?.focus();
+  return d;
+}
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && overlay) closeOverlay(); });
+
+/* ---------- library ---------- */
+let query = '';
+function renderHome() {
+  const root = h('main', { class: 'home' });
+  root.append(h('header', { class: 'masthead' }, h('h1', { class: 'brand', text: 'Volti' }), h('p', { class: 'tagline', text: 'volti subito · turn the page' })));
+
+  const active = D.setlists.filter((s) => !s.archived).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const archived = D.setlists.filter((s) => s.archived).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const row = (s) => h('li', {}, btn([
+    h('span', { class: 'item-title setlist-title', text: s.title || 'Untitled setlist' }),
+    h('span', { class: 'meta', text: [fmtDate(s.date), plural(s.entries.length, 'piece')].filter(Boolean).join(' · ') }),
+  ], () => go({ screen: 'setlist', setlistId: s.id }), 'open'));
+  root.append(h('section', { class: 'section-head' }, h('h2', { text: 'Setlists' }), btn('New setlist', newSetlist)));
+  const list = h('ul', { class: 'list' });
+  if (!active.length) list.append(h('li', { class: 'empty', text: 'No setlists yet. A setlist keeps pieces in concert order, each with its own cuts and markings.' }));
+  active.forEach((s) => list.append(row(s)));
+  root.append(list);
+  if (archived.length) {
+    const det = h('details', { class: 'archived-sets' }, h('summary', { text: `Archived (${archived.length})` }));
+    const al = h('ul', { class: 'list' });
+    archived.forEach((s) => al.append(row(s)));
+    det.append(al);
+    root.append(det);
+  }
+
+  root.append(h('section', { class: 'section-head' }, h('h2', { text: 'Scores' })));
+  const search = h('input', { type: 'search', class: 'search', id: 'find-score', placeholder: 'Find a score', 'aria-label': 'Find a score', value: query });
+  const scores = h('ul', { class: 'list' });
+  const fill = () => {
+    scores.replaceChildren();
+    const q = query.trim().toLowerCase();
+    const shown = SCORES.filter((s) => `${s.title} ${s.by}`.toLowerCase().includes(q));
+    if (!shown.length) scores.append(h('li', { class: 'empty', text: `Nothing matches “${query}”.` }));
+    for (const s of shown) {
+      const n = setlistsWith(s.id).length;
+      scores.append(h('li', {}, btn([
+        h('span', { class: 'item-title', text: s.title }),
+        h('span', { class: 'meta', text: [s.by, n ? `in ${plural(n, 'setlist')}` : ''].filter(Boolean).join(' · ') }),
+      ], () => openReader({ kind: 'piece', pieceId: s.id }), 'open')));
+    }
+  };
+  search.addEventListener('input', () => { query = search.value; fill(); });
+  fill();
+  root.append(search, scores);
+  device.append(h('div', { class: 'screen' }, root));
+}
+function newSetlist() {
+  const s = { id: uid(), title: '', date: new Date().toISOString().slice(0, 10), archived: false, entries: [] };
+  D.setlists.push(s);
+  save();
+  go({ screen: 'setlist', setlistId: s.id, fresh: true });
+}
+
+/* ---------- a setlist ---------- */
+function renderSetlist() {
+  const s = setlistOf(ui.setlistId);
+  if (!s) return go({ screen: 'home' });
+  const root = h('main', { class: 'setlist' });
+  const frozen = s.archived;
+  const more = btn('More', () => menuAt(more, null, [
+    { label: 'Duplicate', run: () => duplicate(s) },
+    frozen ? { label: 'Unarchive', run: () => { s.archived = false; save(); render(); say('Unarchived. It keeps the markings it had.'); } }
+      : { label: 'Archive', run: () => { archive(s); save(); render(); say('Archived. Changes to its pieces no longer reach it.'); } },
+    { label: 'Delete setlist…', run: () => confirmDelete(s) },
+  ]), '', { 'aria-haspopup': 'menu' });
+  root.append(h('div', { class: 'top' },
+    btn('‹ Library', () => go({ screen: 'home' })),
+    h('span', { class: 'grow' }),
+    more,
+    btn('Play', () => openReader({ kind: 'setlist', setlistId: s.id }), 'primary', { disabled: !s.entries.length }),
+  ));
+  const name = h('input', { type: 'text', class: 'name', id: 'setlist-name', value: s.title, placeholder: 'Name this setlist', 'aria-label': 'Setlist name', disabled: frozen });
+  name.addEventListener('input', () => { s.title = name.value; save(); });
+  const date = h('input', { type: 'date', id: 'setlist-date', value: s.date, 'aria-label': 'Date', disabled: frozen });
+  date.addEventListener('change', () => { s.date = date.value; save(); });
+  root.append(h('div', { class: 'fields' }, name, date));
+  if (frozen) {
+    root.append(h('div', { class: 'banner' }, h('p', { text: 'Archived. This setlist is frozen as it was played: changes to its pieces do not reach it, and it can be read but not changed.' }),
+      btn('Unarchive', () => { s.archived = false; save(); render(); })));
+  }
+  root.append(h('div', { id: 'confirm-slot' }));
+
+  const list = h('ul', { class: 'list', 'aria-label': 'Pieces in this setlist' });
+  s.entries.forEach((e, i) => list.append(entryRow(s, e, i, list)));
+  if (!s.entries.length) list.append(h('li', { class: 'empty', text: 'No pieces yet. Add the pieces in the order you will play them.' }));
+  root.append(list);
+  if (!frozen) root.append(h('div', {}, btn('Add pieces', () => addPieces(s))));
+  device.append(h('div', { class: 'screen' }, root));
+  if (ui.fresh) { ui.fresh = false; name.focus(); }
+}
+
+function entryRow(s, e, i, list) {
+  const p = D.pieces[e.pieceId], frozen = s.archived, own = ownCuts(e), older = olderCuts(e);
+  const li = h('li', { class: 'entry' });
+  const handle = h('button', { type: 'button', class: 'handle', 'aria-label': `Move ${p.title}`, disabled: frozen }, '⋮⋮');
+  if (!frozen) dragToReorder(handle, li, list, s, i);
+  const status = frozen ? h('span', { class: 'pill frozen', text: 'Frozen' })
+    : own ? h('span', { class: 'pill own', text: 'Own cuts' })
+    : older ? h('span', { class: 'pill frozen', text: 'Piece’s older cuts' }) : null;
+  const open = btn([
+    h('span', { class: 'item-title', text: p.title }),
+    h('span', { class: 'meta', text: p.key }), status,
+  ], () => openReader({ kind: 'setlist', setlistId: s.id }, e.id), 'open');
+  const more = btn('⋯', () => menuAt(more, p.title, [
+    { label: 'Play from here', run: () => openReader({ kind: 'setlist', setlistId: s.id }, e.id) },
+    !frozen && i > 0 && { label: 'Move up', run: () => move(s, i, i - 1) },
+    !frozen && i < s.entries.length - 1 && { label: 'Move down', run: () => move(s, i, i + 1) },
+    !frozen && (own || older) && { label: 'Use the piece’s cuts…', run: () => confirmTakeCuts(s, e) },
+    !frozen && { label: 'Remove from setlist', run: () => removeEntry(s, e) },
+  ]), 'quiet more', { 'aria-label': `More for ${p.title}`, 'aria-haspopup': 'menu' });
+  li.append(handle, h('span', { class: 'num', text: String(i + 1) }), open, more);
+  return li;
+}
+function move(s, from, to) {
+  const [e] = s.entries.splice(from, 1);
+  s.entries.splice(to, 0, e);
+  save();
+  render();
+}
+function dragToReorder(handle, li, list, s, i) {
+  handle.addEventListener('pointerdown', (ev) => {
+    ev.preventDefault();
+    handle.setPointerCapture(ev.pointerId);
+    li.classList.add('dragging');
+    let to = i;
+    const rows = [...list.children];
+    const onMove = (m) => {
+      to = rows.findIndex((r) => m.clientY < r.getBoundingClientRect().top + r.offsetHeight / 2);
+      if (to < 0) to = rows.length - 1; else if (to > i) to -= 1;
+      rows.forEach((r, k) => { r.style.boxShadow = k === to && k !== i ? `inset 0 ${to < i ? 3 : -3}px 0 var(--select)` : ''; });
+    };
+    const onUp = () => {
+      handle.removeEventListener('pointermove', onMove);
+      li.classList.remove('dragging');
+      if (to !== i) move(s, i, to); else rows.forEach((r) => { r.style.boxShadow = ''; });
+    };
+    handle.addEventListener('pointermove', onMove);
+    handle.addEventListener('pointerup', onUp, { once: true });
+    handle.addEventListener('pointercancel', onUp, { once: true });
+  });
+}
+function removeEntry(s, e) {
+  const at = s.entries.indexOf(e);
+  s.entries.splice(at, 1);
+  const layer = D.layers[e.id];
+  delete D.layers[e.id];
+  save();
+  render();
+  const slot = $('#confirm-slot', device);
+  slot.replaceChildren(h('div', { class: 'confirm' }, h('p', { text: `Removed “${D.pieces[e.pieceId].title}”.` }),
+    btn('Undo', () => { s.entries.splice(at, 0, e); if (layer) D.layers[e.id] = layer; save(); render(); })));
+}
+function duplicate(s) {
+  const c = { id: uid(), title: `${s.title || 'Untitled setlist'} (copy)`, date: s.date, archived: false, entries: [] };
+  for (const e of s.entries) {
+    const n = { id: uid(), pieceId: e.pieceId, cuts: clone(e.cuts), edited: e.edited };
+    if (D.layers[e.id]) D.layers[n.id] = clone(D.layers[e.id]);
+    c.entries.push(n);
+  }
+  D.setlists.push(c);
+  save();
+  go({ screen: 'setlist', setlistId: c.id, fresh: true });
+}
+function confirmDelete(s) {
+  const slot = $('#confirm-slot', device);
+  slot.replaceChildren(h('div', { class: 'confirm' },
+    h('p', { text: `Delete “${s.title || 'Untitled setlist'}”? Its own cuts and markings are deleted too. The pieces stay in the library.` }),
+    btn('Cancel', () => slot.replaceChildren()),
+    btn('Delete', () => {
+      for (const e of s.entries) delete D.layers[e.id];
+      D.setlists = D.setlists.filter((x) => x !== s);
+      save();
+      go({ screen: 'home' });
+    }, 'danger')));
+}
+function confirmTakeCuts(s, e) {
+  const p = D.pieces[e.pieceId];
+  showDialog(
+    h('h2', { text: `Use the piece’s cuts for “${p.title}”?` }),
+    h('p', { text: ownCuts(e) ? 'This setlist’s own cuts of it are replaced by the piece’s, as they are now. Markings made in this setlist stay where the music they mark is still played.'
+      : 'The piece’s cuts have changed since this setlist copied them. Markings made in this setlist stay where the music they mark is still played.' }),
+    h('div', { class: 'buttons' }, btn('Cancel', closeOverlay), btn('Use the piece’s cuts', () => { takePieceCuts(e); save(); render(); say('This setlist now uses the piece’s cuts.'); }, 'primary')),
+  );
+}
+function addPieces(s) {
+  const chosen = new Set();
+  const list = h('div', { class: 'picklist' });
+  const add = btn('Add', () => {
+    for (const id of SCORES.map((x) => x.id).filter((id) => chosen.has(id))) s.entries.push({ id: uid(), pieceId: id, cuts: clone(D.pieces[id].cuts) });
+    save();
+    render();
+    say(`Added ${plural(chosen.size, 'piece')}.`);
+  }, 'primary', { disabled: true });
+  const fill = (q) => {
+    list.replaceChildren();
+    for (const sc of SCORES.filter((x) => x.title.toLowerCase().includes(q.toLowerCase()))) {
+      const n = s.entries.filter((e) => e.pieceId === sc.id).length;
+      const box = h('input', { type: 'checkbox', id: 'pick-' + sc.id, checked: chosen.has(sc.id) });
+      box.addEventListener('change', () => {
+        box.checked ? chosen.add(sc.id) : chosen.delete(sc.id);
+        add.disabled = !chosen.size;
+        add.textContent = chosen.size ? `Add ${plural(chosen.size, 'piece')}` : 'Add';
+      });
+      list.append(h('label', { class: 'check', for: 'pick-' + sc.id }, box, h('span', { text: sc.title }), h('span', { class: 'meta', text: n ? 'already in this setlist' : sc.key })));
+    }
+  };
+  const find = h('input', { type: 'search', id: 'pick-find', placeholder: 'Find a score', 'aria-label': 'Find a score' });
+  find.addEventListener('input', () => fill(find.value));
+  fill('');
+  showDialog(h('h2', { text: 'Add pieces' }), h('p', { class: 'hint', text: 'They go at the end, in the order shown, each with a copy of the piece’s cuts as they are now.' }),
+    find, list, h('div', { class: 'buttons' }, btn('Cancel', closeOverlay), add));
+}
+
+/* ================= the reader ================= */
+let R = null;
+
+function itemsFor(src) {
+  if (src.kind === 'piece') return [{ key: src.pieceId, piece: D.pieces[src.pieceId], entry: null }];
+  return setlistOf(src.setlistId).entries.map((e) => ({ key: e.id, piece: D.pieces[e.pieceId], entry: e }));
+}
+const cutsOf = (it) => (it.entry ? it.entry.cuts : it.piece.cuts);
+const posKey = (src) => (src.kind === 'piece' ? 'piece:' + src.pieceId : 'set:' + src.setlistId);
+
+function openReader(src, startEntry) {
+  R = {
+    src, frames: [], screen: 0, per: 2, tool: 'none', editing: false, chrome: true, undo: [],
+    before: src.kind === 'piece' ? clone(D.pieces[src.pieceId].cuts) : null, lastPiece: null,
+  };
+  go({ screen: 'reader' });
+  build();
+  const pos = startEntry ? { key: startEntry } : D.pos[posKey(src)];
+  R.screen = pos ? screenOf(pos.key, pos.cut) : 0;
+  show();
+}
+
+function pack(cuts, aspects) {
+  const H = aspects[0], frames = [];
+  let open = null;
+  cuts.forEach((cut, index) => {
+    const hh = (cut.y1 - cut.y0) * aspects[cut.page];
+    if (!open || open.fill + hh > H + 1e-6) { open = { items: [], fill: 0 }; frames.push(open); }
+    open.items.push({ cut, index, top: open.fill, h: hh });
+    open.fill += hh;
+  });
+  return frames;
+}
+/** Every piece starts on a fresh screen; a two-frame screen left half empty says what comes next. */
+function build() {
+  const st = $('.stage', device).getBoundingClientRect();
+  R.per = st.width > st.height ? 2 : 1;
+  R.items = itemsFor(R.src);
+  R.frames = [];
+  R.items.forEach((it, k) => {
+    const fr = pack(cutsOf(it), it.piece.aspects);
+    fr.forEach((f, j) => R.frames.push({ it, f, k, j, count: fr.length }));
+    if (R.per === 2 && fr.length % 2) R.frames.push({ it, k, blank: true, next: R.items[k + 1] });
+  });
+}
+const screens = () => Math.ceil(R.frames.length / R.per);
+function screenOf(key, cutId) {
+  let i = R.frames.findIndex((fr) => fr.it.key === key && !fr.blank && (!cutId || fr.f.items.some((p) => p.cut.id === cutId)));
+  if (i < 0) i = R.frames.findIndex((fr) => fr.it.key === key);
+  return Math.max(0, Math.floor(i / R.per));
+}
+const firstOnScreen = () => R.frames[R.screen * R.per];
+
+function renderReader() {
+  const isSet = R.src.kind === 'setlist';
+  const sl = isSet ? setlistOf(R.src.setlistId) : null;
+  const root = h('div', { class: 'reader' + (R.chrome ? '' : ' chrome-hidden') + (R.editing ? ' editing' : '') });
+  const stage = h('div', { class: 'stage' });
+  const bar = h('div', { class: 'bar' });
+  const pressed = (on) => ({ 'aria-pressed': String(on) });
+  const frozen = !!sl?.archived;
+  const tool = (t, label) => btn(label, () => { R.tool = R.tool === t ? 'none' : t; renderReader(); }, '', { ...pressed(R.tool === t), disabled: frozen });
+  const piecesBtn = isSet ? btn('Pieces', () => menuAt(piecesBtn, sl.title, R.items.map((it, k) => ({
+    label: `${k + 1}. ${it.piece.title}`, checked: firstOnScreen()?.k === k,
+    run: () => { R.screen = screenOf(it.key); show(); },
+  }))), '', { 'aria-haspopup': 'menu' }) : null;
+  bar.append(
+    h('div', { class: 'group' }, btn(isSet ? '‹ Setlist' : '‹ Library', closeReader), h('span', { class: 'title', id: 'reader-title' })),
+    h('div', { class: 'group' }, tool('pen', 'Pen'), tool('eraser', 'Erase'), btn('Undo', undo, '', { disabled: !R.undo.length })),
+    h('div', { class: 'group' }, piecesBtn,
+      btn('Edit cuts', () => { R.editing = !R.editing; R.tool = 'none'; renderReader(); }, '', { ...pressed(R.editing), disabled: frozen }),
+      h('span', { class: 'info', id: 'reader-info' })),
+  );
+  root.append(stage, bar);
+  if (R.editing && isSet) root.append(h('div', { class: 'scope', text: `Cuts changed here apply to “${sl.title || 'this setlist'}” only` }));
+  device.querySelector('.reader')?.remove();
+  device.append(root);
+  root.style.setProperty('--bar-h', bar.offsetHeight + 'px');
+  stage.addEventListener('pointerdown', onDown);
+  stage.addEventListener('pointermove', onMove);
+  stage.addEventListener('pointerup', onUp);
+  stage.addEventListener('pointercancel', () => { R.drag = null; });
+  if (R.frames.length) show();
+}
+
+function show() {
+  const stage = $('.stage', device);
+  if (!stage) return;
+  R.screen = Math.max(0, Math.min(R.screen, screens() - 1));
+  const { width: W, height: Hs } = stage.getBoundingClientRect();
+  const per = R.per, gap = 10;
+  const first = firstOnScreen(), aspect = first.it.piece.aspects[0];
+  const fw = Math.floor(Math.min((W - gap * (per + 1)) / per, (Hs - gap * 2) / aspect));
+  const fh = Math.round(fw * aspect);
+  const x0 = Math.round((W - per * fw - (per - 1) * gap) / 2), y0 = Math.round((Hs - fh) / 2);
+  stage.replaceChildren();
+  R.slots = [];
+  for (let k = 0; k < per; k++) {
+    const fr = R.frames[R.screen * per + k];
+    if (!fr) continue;
+    const box = h('div', { class: 'frame' + (fr.blank ? ' blank' : ''), style: `left:${x0 + k * (fw + gap)}px;top:${y0}px;width:${fw}px;height:${fh}px` });
+    if (fr.blank) {
+      box.append(...(fr.next ? [h('span', { class: 'label', text: 'Next' }), h('span', { class: 't', text: fr.next.piece.title })]
+        : [h('span', { class: 'label', text: R.src.kind === 'setlist' ? 'End of the setlist' : 'End' })]));
+    } else {
+      const cv = h('canvas');
+      box.append(cv);
+      R.slots.push({ fr, box, cv, fw });
+    }
+    stage.append(box);
+  }
+  for (const s of R.slots) drawSlot(s);
+  // The toolbar title and position
+  const sl = R.src.kind === 'setlist' ? setlistOf(R.src.setlistId) : null;
+  const t = $('#reader-title', device);
+  t.replaceChildren(...(sl ? [h('b', { text: `${first.k + 1}/${R.items.length} ` }), first.it.piece.title] : [first.it.piece.title]));
+  const inPiece = R.frames.filter((f) => f.k === first.k && !f.blank);
+  const at = inPiece.findIndex((f) => f === first || f === R.frames[R.screen * per + 1]);
+  $('#reader-info', device).textContent = `${Math.floor(Math.max(0, at) / per) + 1} of ${Math.ceil(inPiece.length / per)}`;
+  if (sl && R.lastPiece !== first.it.key) {
+    const card = h('div', { class: 'piece-card' }, h('b', { text: `${first.k + 1} OF ${R.items.length}` }), first.it.piece.title);
+    stage.append(card);
+    setTimeout(() => card.classList.add('gone'), 2200);
+  }
+  R.lastPiece = first.it.key;
+  const p = first.f?.items[0]?.cut.id;
+  D.pos[posKey(R.src)] = { key: first.it.key, cut: p };
+  save();
+}
+
+function drawSlot({ fr, cv, fw }) {
+  const dpr = window.devicePixelRatio || 1;
+  const it = fr.it, sc = scoreOf(it.piece.id), aspects = it.piece.aspects;
+  const Wd = Math.round(fw * dpr), Hd = Math.round(fw * aspects[0] * dpr);
+  cv.width = Wd; cv.height = Hd;
+  const c = cv.getContext('2d');
+  c.fillStyle = '#fff'; c.fillRect(0, 0, Wd, Hd);
+  for (const p of fr.f.items) {
+    const src = pageCanvas(sc, p.cut.page);
+    const y0 = Math.round(p.top * Wd), y1 = Math.round((p.top + p.h) * Wd);
+    c.drawImage(src, 0, p.cut.y0 * src.height, src.width, (p.cut.y1 - p.cut.y0) * src.height, 0, y0, Wd, y1 - y0);
+  }
+  for (const p of fr.f.items) {
+    const a = aspects[p.cut.page];
+    for (const s of strokesFor(it, p.cut)) {
+      if (!shows(s, p.cut)) continue;
+      drawStroke(c, s.pts.map(([x, y]) => [x * Wd, (p.top + (y - p.cut.y0) * a) * Wd]), s, Wd);
+    }
+  }
+  if (R.editing) {
+    c.font = `${12 * dpr}px system-ui, sans-serif`;
+    fr.f.items.forEach((p, i) => {
+      const y = Math.round(p.top * Wd);
+      if (i) { c.save(); c.setLineDash([6 * dpr, 5 * dpr]); c.strokeStyle = 'rgba(138,90,18,.8)'; c.lineWidth = 1.5 * dpr; c.beginPath(); c.moveTo(0, y); c.lineTo(Wd, y); c.stroke(); c.restore(); }
+      const own = it.entry && p.cut.from;
+      const label = `page ${p.cut.page + 1}${own ? ' · this setlist’s cut' : ''}`;
+      const w = c.measureText(label).width + 12 * dpr;
+      c.fillStyle = own ? 'rgba(138,90,18,.9)' : 'rgba(40,42,48,.55)';
+      c.fillRect(Wd - w - 4 * dpr, y + 4 * dpr, w, 18 * dpr);
+      c.fillStyle = '#fff';
+      c.fillText(label, Wd - w + 2 * dpr, y + 17 * dpr);
+    });
+  }
+  if (R.drag?.slot === cv && R.drag.pts.length) drawStroke(c, R.drag.pts.map(([x, y]) => [x * Wd, y * Wd]), { color: '#1a1a1a', w: 0.003 }, Wd);
+}
+function drawStroke(c, pts, s, Wd) {
+  c.save();
+  c.strokeStyle = s.color; c.lineWidth = Math.max(1, s.w * Wd); c.lineCap = 'round'; c.lineJoin = 'round';
+  c.beginPath();
+  pts.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y)));
+  c.stroke();
+  c.restore();
+}
+
+/* ---------- reader input ---------- */
+function slotAt(e) {
+  for (const s of R.slots) {
+    const r = s.box.getBoundingClientRect();
+    if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+      return { s, x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.width, r };
+    }
+  }
+  return null;
+}
+/** The cut under a point on a frame, and where that is on its page. */
+function cutAt(hit) {
+  const p = hit.s.fr.f.items.find((p) => hit.y >= p.top && hit.y < p.top + p.h);
+  if (!p) return null;
+  return { p, pageY: p.cut.y0 + (hit.y - p.top) / hit.s.fr.it.piece.aspects[p.cut.page] };
+}
+function remember() {
+  R.undo.push(clone(D));
+  if (R.undo.length > 40) R.undo.shift();
+}
+function undo() {
+  if (!R.undo.length) return;
+  const key = firstOnScreen()?.it.key;
+  D = R.undo.pop();
+  save();
+  renderReader();
+  build();
+  R.screen = Math.min(R.screen, screens() - 1);
+  if (key && !R.frames.some((f) => f.it.key === key)) R.screen = 0;
+  show();
+}
+
+function onDown(e) {
+  if (overlay) return;
+  const hit = slotAt(e);
+  if (R.tool === 'pen' && hit) {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    R.drag = { slot: hit.s.cv, s: hit.s, pts: [[hit.x, hit.y]] };
+    return;
+  }
+  if (R.tool === 'eraser' && hit) {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    R.drag = { erasing: true, s: hit.s, before: clone(D), changed: false };
+    erase(hit);
+    return;
+  }
+  R.tap = { x: e.clientX, y: e.clientY, t: performance.now() };
+}
+function onMove(e) {
+  if (!R.drag) return;
+  const r = R.drag.s.box.getBoundingClientRect();
+  const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.width;
+  if (R.drag.erasing) { erase({ s: R.drag.s, x, y, r }); return; }
+  R.drag.pts.push([x, y]);
+  drawSlot(R.drag.s);
+}
+function onUp(e) {
+  if (R.drag) {
+    const d = R.drag;
+    R.drag = null;
+    if (d.erasing) { if (d.changed) { R.undo.push(d.before); save(); renderReader(); } return; }
+    if (d.pts.length > 1) commitStroke(d.s, d.pts);
+    else drawSlot(d.s);
+    return;
+  }
+  const t = R.tap;
+  R.tap = null;
+  if (!t || Math.hypot(e.clientX - t.x, e.clientY - t.y) > 10) return;
+  const hit = slotAt(e);
+  if (R.editing && hit) { cutMenu(e, hit); return; }
+  const r = $('.stage', device).getBoundingClientRect();
+  const fx = (e.clientX - r.left) / r.width;
+  if (fx > 0.66) turn(1);
+  else if (fx < 0.33) turn(-1);
+  else { R.chrome = !R.chrome; R.tool = R.chrome ? R.tool : 'none'; renderReader(); }
+}
+function turn(d) {
+  const next = R.screen + d;
+  if (next < 0 || next >= screens()) return;
+  R.screen = next;
+  show();
+}
+document.addEventListener('keydown', (e) => {
+  if (ui.screen !== 'reader' || overlay) return;
+  if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); turn(1); }
+  if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); turn(-1); }
+});
+
+function commitStroke(slot, pts) {
+  const fr = slot.fr, it = fr.it;
+  // The cut that holds most of the stroke takes it, in its page's coordinates.
+  const counts = fr.f.items.map((p) => pts.filter(([, y]) => y >= p.top && y < p.top + p.h).length);
+  const p = fr.f.items[counts.indexOf(Math.max(...counts))];
+  if (!p) return;
+  const a = it.piece.aspects[p.cut.page];
+  remember();
+  writableStrokes(it, p.cut).push({ id: uid(), color: '#1a1a1a', w: 0.003, pts: pts.map(([x, y]) => [x, p.cut.y0 + (y - p.top) / a]) });
+  save();
+  renderReader();
+}
+function erase(hit) {
+  const fr = hit.s.fr, it = fr.it, R2 = 14 / hit.r.width;
+  for (const p of fr.f.items) {
+    const a = it.piece.aspects[p.cut.page];
+    const victim = strokesFor(it, p.cut).find((s) => shows(s, p.cut) && s.pts.some(([x, y]) => Math.hypot(x - hit.x, p.top + (y - p.cut.y0) * a - hit.y) < R2));
+    if (!victim) continue;
+    const list = writableStrokes(it, p.cut);
+    const i = list.findIndex((s) => s.id === victim.id);
+    if (i >= 0) list.splice(i, 1);
+    R.drag.changed = true;
+    drawSlot(hit.s);
+    renderInspector();
+    return;
+  }
+}
+
+function cutMenu(e, hit) {
+  const at = cutAt(hit);
+  if (!at) return;
+  const { p, pageY } = at, c = p.cut, it = hit.s.fr.it, cuts = cutsOf(it);
+  const y = Math.min(c.y1, Math.max(c.y0, pageY));
+  const room = y - c.y0 > 0.02 && c.y1 - y > 0.02;
+  const act = (op) => () => {
+    remember();
+    const shownKey = it.key;
+    editCut(it, c.id, op, y);
+    save();
+    renderReader();
+    build();
+    const keep = cutsOf(it).find((x) => x.page === c.page && x.y0 <= y && x.y1 >= y) ?? cutsOf(it)[0];
+    R.screen = screenOf(shownKey, keep?.id);
+    show();
+  };
+  showMenu(e.clientX, e.clientY, `Cut from page ${c.page + 1}${it.entry ? (c.from ? ' · this setlist’s own' : ' · same as the piece') : ''}`, [
+    room && { label: 'Cut in two here', run: act('split') },
+    room && { label: 'Cut away the music above here', run: act('above') },
+    room && { label: 'Cut away the music below here', run: act('below') },
+    (c.y0 > 0.001 || c.y1 < 0.999) && { label: 'Restore the whole page', run: act('restore') },
+    cuts.length > 1 && { label: 'Remove this cut', run: act('remove') },
+  ]);
+  const mark = h('div', { class: 'cut-mark', style: `top:${(p.top + (y - c.y0) * it.piece.aspects[c.page]) * hit.r.width}px` });
+  hit.s.box.append(mark);
+  overlay.push(mark);
+}
+
+/* ---------- leaving the reader ---------- */
+function closeReader() {
+  const src = R.src, before = R.before;
+  R = null;
+  if (src.kind === 'setlist') return go({ screen: 'setlist', setlistId: src.setlistId });
+  go({ screen: 'home' });
+  const piece = D.pieces[src.pieceId];
+  if (sameCuts(before, piece.cuts)) return;
+  offerUpdates(piece);
+}
+
+/**
+ * The piece's cuts changed. Setlists that still had the piece's old cuts can take the new
+ * ones; setlists with their own cuts keep them. Archived setlists are left alone.
+ */
+function offerUpdates(piece) {
+  const open = D.setlists.filter((s) => !s.archived);
+  const untouched = [], kept = [];
+  for (const s of open) for (const e of s.entries) {
+    if (e.pieceId !== piece.id) continue;
+    (ownCuts(e) ? kept : untouched).push({ s, e });
+  }
+  if (!untouched.length) {
+    if (kept.length) say(`${[...new Set(kept.map((k) => k.s.title))].join(', ')} ${kept.length === 1 ? 'keeps its' : 'keep their'} own cuts of this piece.`);
+    return;
+  }
+  const boxes = untouched.map(({ s, e }, i) => {
+    const box = h('input', { type: 'checkbox', id: 'upd-' + i, checked: true });
+    const repeat = s.entries.filter((x) => x.pieceId === piece.id).length > 1 ? ` (piece ${s.entries.indexOf(e) + 1})` : '';
+    return { box, s, e, row: h('label', { class: 'check', for: 'upd-' + i }, box, h('span', { text: (s.title || 'Untitled setlist') + repeat }), h('span', { class: 'meta', text: fmtDate(s.date) })) };
+  });
+  showDialog(
+    h('h2', { text: `Update setlists with the new cuts of “${piece.title}”?` }),
+    h('p', { class: 'hint', text: 'These setlists have never changed this piece’s cuts. Markings made in a setlist stay where the music they mark is still played.' }),
+    h('div', {}, boxes.map((b) => b.row)),
+    kept.length ? h('h3', { text: 'Keeping their own cuts' }) : null,
+    kept.map(({ s }) => h('div', { class: 'kept' }, h('span', { text: s.title || 'Untitled setlist' }), h('span', { class: 'pill own', text: 'Own cuts' }))),
+    h('div', { class: 'buttons' },
+      btn('Leave them as they are', closeOverlay),
+      btn('Update', () => {
+        const ticked = boxes.filter((b) => b.box.checked);
+        ticked.forEach((b) => takePieceCuts(b.e));
+        save();
+        closeOverlay();
+        render();
+        say(ticked.length ? `Updated ${plural(ticked.length, 'setlist')}.` : 'No setlists were changed.');
+      }, 'primary')),
+  );
+}
+
+/* ================= inspector ================= */
+function renderInspector() {
+  const ins = $('#inspector');
+  const counts = (n) => (n ? ` ✎${n}` : '');
+  const range = (c) => `p${c.page + 1} ${c.y0.toFixed(2)}–${c.y1.toFixed(2)}`;
+  const kids = [
+    h('h2', { text: 'What Volti stores' }),
+    h('p', { class: 'hint', text: 'Cut ids are shortened. ✎ counts strokes. A setlist cut in brown was made from the piece cut after the arrow. Shaded chips are the setlist’s own ink layer; dashed ones are copies it was given so it keeps what it showed.' }),
+  ];
+  const pieces = h('div', { class: 'insp-block' }, h('h3', { text: 'Pieces' }));
+  for (const sc of SCORES) {
+    const p = D.pieces[sc.id], ink = D.pieceInk[sc.id];
+    pieces.append(h('div', { class: 'insp-entry' }, h('div', { text: p.title }),
+      h('div', { class: 'chips' }, p.cuts.map((c) => h('span', { class: 'chip', text: `#${short(c.id)} ${range(c)}${counts(ink[c.id]?.length)}` })))));
+  }
+  kids.push(pieces);
+  for (const s of D.setlists) {
+    const b = h('div', { class: 'insp-block' }, h('h3', {}, h('span', { text: s.title || 'Untitled setlist' }), s.archived ? h('span', { class: 'pill frozen', text: 'Archived' }) : null));
+    for (const e of s.entries) {
+      const L = D.layers[e.id] ?? {};
+      b.append(h('div', { class: 'insp-entry' },
+        h('div', {}, D.pieces[e.pieceId].title + ' ', h('span', { class: 'meta', text: ownCuts(e) ? '· own cuts' : olderCuts(e) ? '· the piece’s older cuts' : '· same cuts as the piece' })),
+        h('div', { class: 'chips' }, e.cuts.map((c) => h('span', { class: 'chip' + (c.from ? ' derived' : ''), text: `#${short(c.id)}${c.from ? '←' + short(c.from) : ''} ${range(c)}` }))),
+        Object.keys(L).length ? h('div', { class: 'chips' }, Object.entries(L).map(([id, l]) => h('span', { class: 'chip layer' + (l.own ? '' : ' copied'), text: `ink #${short(id)}${counts(l.strokes.length) || ' ✎0'} ${l.own ? 'own' : 'copy'}` }))) : null));
+    }
+    if (!s.entries.length) b.append(h('p', { class: 'hint', text: 'No pieces.' }));
+    kids.push(b);
+  }
+  ins.replaceChildren(...kids);
+}
+
+/* ================= start ================= */
+D = load();
+render();
+new ResizeObserver(() => { if (ui.screen === 'reader' && R) { const key = firstOnScreen()?.it.key; const cut = firstOnScreen()?.f?.items[0]?.cut.id; build(); R.screen = screenOf(key, cut); show(); } }).observe(device);
+$('#fill').addEventListener('click', () => {
+  const on = !device.classList.contains('full');
+  device.classList.toggle('full', on);
+  $('#fill').textContent = on ? 'Back to the page' : 'Fill the window';
+  if (on) {
+    const back = btn('Back to the page', () => $('#fill').click(), '', { id: 'unfill', style: 'position:fixed;z-index:60;right:12px;bottom:12px;' });
+    document.body.append(back);
+  } else $('#unfill')?.remove();
+});
+$('#reset').addEventListener('click', () => {
+  try { localStorage.removeItem(STORE); } catch { /* storage may be blocked */ }
+  D = seed();
+  save();
+  R = null;
+  go({ screen: 'home' });
+  say('The example is back as it started.');
+});
+</script>
