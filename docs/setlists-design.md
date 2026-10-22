@@ -7,7 +7,7 @@ than guessing.
 
 The working prototype is [`prototypes/volti-setlists.html`](prototypes/volti-setlists.html): one
 self-contained page with no dependencies. It draws five made-up scores, shows a tablet-shaped app
-(library, setlist screen, reader) and, beside it, the data Volti would store. Section 10 maps its
+(library with setlists, reader) and, beside it, the data Volti would store. Section 10 maps its
 code to this document.
 
 ---
@@ -30,7 +30,11 @@ order and its own markings**, which start out the same as the piece's.
 |---|---|
 | How to move between pieces while reading a setlist | **One continuous score.** Turning past the end of a piece goes into the next. Each piece starts on a fresh screen. A list in the toolbar jumps to any piece. |
 | What happens to setlists when a piece's cuts change | **Only setlists that never changed that piece's cuts are offered the update**, one checkbox each. Setlists with their own cuts keep them and are only listed. |
-| Where setlists live | **A Setlists section above the scores** on the library page. |
+| Where setlists live | **A Setlists section above the scores** on the library page. There is no separate setlist screen. |
+| Tapping a setlist or a score | **Always opens the reader.** A setlist's pieces show by **expanding its row** (they slide open) with an arrow button; its **⋯ button** has the rest. |
+| Adding pieces | **Press and hold scores** to pick several, then add them to a setlist. Also **Add pieces…** in a setlist's ⋯ menu, which adds at the end. |
+| Deleting | **Only archived setlists can be deleted.** |
+| Dates | **None.** A setlist has a name only. |
 | Markings made while reading a setlist | **Stay in the setlist.** To mark the piece itself, open the piece. |
 
 Already decided earlier (in `TODO.md`): archived setlists are frozen, and setlist ink is a
@@ -42,7 +46,7 @@ copy-on-write layer over the piece's, by cut id.
 
 | Term | Meaning |
 |---|---|
-| **Setlist** | A named, dated list of pieces in concert order. |
+| **Setlist** | A named list of pieces in concert order. |
 | **Entry** | One piece in a setlist. It has its own copy of the piece's cuts. The same piece can be in a setlist more than once, as separate entries. |
 | **Own cuts** | The setlist changed this entry's cuts itself. Shown as an "Own cuts" pill. |
 | **The piece's older cuts** | The setlist never changed this entry's cuts, but the piece's cuts have changed since they were copied (the user said no to the update). Shown as a grey pill. |
@@ -76,7 +80,6 @@ interface Entry {
 interface Setlist {
   id: string;
   title: string;
-  date: string;      // yyyy-mm-dd; may be empty
   archived: boolean;
   entries: Entry[];
 }
@@ -88,7 +91,7 @@ type Layer = Record<string, { strokes: Stroke[]; own: boolean }>;
 Storage, in `kv` like pieces:
 
 ```
-setlists           string[]   setlist ids, in the order they were made
+setlists           string[]   setlist ids, newest first
 setlist:<id>       Setlist
 layer:<entryId>    Layer
 pos:set:<id>       { entry: string; cut: string }   the first cut on the screen you were reading
@@ -173,7 +176,7 @@ Archiving a setlist gives every cut without a layer a copy of the piece's ink it
      plus that stroke. Strokes no cut shows are archived with the old cut.
 - **Leave them as they are:** those entries keep the piece's older cuts and stay `edited: false`.
   They are offered the update again the next time the piece's cuts change.
-- **"Use the piece's cuts…"** is in each entry's menu on the setlist screen when it has own cuts
+- **"Use the piece's cuts…"** is in each piece's ⋯ menu under its setlist when it has own cuts
   or the piece's older cuts. It confirms first, then does the same update. This is how a setlist
   with its own cuts gets back in step.
 - **Open question:** should an entry offered the update and declined be offered again next time?
@@ -185,33 +188,52 @@ Archiving a setlist gives every cut without a layer a copy of the piece's ink it
 
 ### 7.1 Library
 
-- **Setlists**, above the scores, with a **New setlist** button. Each row shows the title (in the
-  brand serif, to tell it from a score), the date and the number of pieces. Active setlists are in
-  date order, soonest first.
-- **Archived (n)**, folded, newest first.
+Everything about setlists happens on the library page. From the top:
+
+- **Setlists**, with a **New setlist** button. One row per setlist, newest first.
+- **Archived (n)**, folded, with archived setlists in the same kind of rows.
 - **Scores**, as now, with "in 2 setlists" after the folder when a piece is in any.
-- **New setlist** makes an untitled setlist dated today and opens it with the name field focused.
 
-### 7.2 A setlist
+### 7.2 Setlist rows
 
-- Top row: **‹ Library**, **More** (Duplicate, Archive or Unarchive, Delete setlist…), **Play**.
-- The name, large, and the date (a date input).
-- The pieces, numbered. Each row has:
-  - a **drag handle** on the left for reordering
-  - the title and key, plus an "Own cuts", "Piece's older cuts" or "Frozen" pill
-  - a **⋯ menu**: Play from here, Move up, Move down, Use the piece's cuts…, Remove from setlist
-- Tapping a row plays the setlist from that piece.
-- **Add pieces** opens a dialog: a search field, then the scores as checkboxes (one already in the
+- **Tapping the row** (its name, in the brand serif, and "3 pieces") **plays the setlist** from
+  where it was left. A setlist with no pieces says "This setlist has no pieces yet."
+- **The arrow at the left** expands the row: its pieces **slide open** beneath it, indented and
+  numbered, and the arrow turns down. Tapping it again slides them shut. Which rows are open is
+  remembered while the app runs, and a setlist you come back to from the reader is open.
+- **Each piece row** has a **drag handle** for reordering, the number, the title and key, and an
+  "Own cuts" or "Piece's older cuts" pill (section 3). Tapping it **plays the setlist from that
+  piece**. Its **⋯ menu** has: Move up, Move down, Use the piece's cuts… (when it has own or
+  older cuts), Remove from setlist.
+- **Remove from setlist** removes at once, with a toast "Removed “Blue Bossa” from “Spring
+  recital”." and an **Undo** button for about six seconds.
+- **The setlist's ⋯ menu:**
+  - Active setlist: **Add pieces…**, **Rename…**, **Duplicate**, **Archive**.
+  - Archived setlist: **Unarchive**, **Duplicate**, **Delete…**. Delete asks first: "Delete
+    “Summer wedding”? Its own cuts and markings are deleted too. The pieces stay in the library."
+- **Add pieces…** opens a dialog: a search field, the scores as checkboxes (one already in the
   setlist says so), and **Add n pieces**. They go at the end, each with a copy of the piece's
   cuts as they are now.
-- **Remove from setlist** removes at once and shows "Removed “Blue Bossa”." with **Undo**.
-- **Delete setlist…** asks inline: "Delete “Café Lumen, Friday”? Its own cuts and markings are
-  deleted too. The pieces stay in the library."
-- **Duplicate** copies entries and layers with new entry ids, keeps `edited`, and opens the copy.
-- An **archived** setlist shows a banner ("Archived. This setlist is frozen as it was played…")
-  with **Unarchive**. Name, date and pieces can't be changed.
+- **Rename…** and **New setlist** ask for the name in a small dialog. After naming a new setlist,
+  the Add pieces dialog opens.
+- **Duplicate** copies entries and layers with new entry ids, keeps `edited`, names the copy
+  "Spring recital (copy)" and puts it at the top, open.
+- An archived setlist's pieces show without handles or menus.
 
-### 7.3 Reading a setlist
+### 7.3 Picking scores
+
+- **Press and hold a score** (500 ms without moving more than 8 px), or right-click it, to start
+  picking. The score is picked, every score row shows a checkbox, and a dark bar sticks to the top
+  of the library: **Cancel**, "2 scores picked", **Add to setlist**.
+- While picking, **a tap ticks or unticks** a score instead of opening it. Unticking the last one
+  ends picking. Escape or Cancel ends it too.
+- **Add to setlist** opens a menu: "Add 2 pieces to", the active setlists, and **New setlist…**,
+  which asks for a name. The picked scores go at the end of that setlist in library order, picking
+  ends, the setlist opens, and a toast says "Added 2 pieces to “Spring recital”."
+- Android's own long-press menu on the button has to be suppressed
+  (`-webkit-touch-callout: none` and `preventDefault` on `contextmenu`). Check on a tablet.
+
+### 7.4 Reading a setlist
 
 - **One continuous run of frames.** Each entry is packed with `pack()` as a piece is now.
 - **Each piece starts on a fresh screen.** On a two-frame screen where a piece ends on the left
@@ -220,7 +242,7 @@ Archiving a setlist gives every cut without a layer a copy of the piece's ink it
 - **Frames take each piece's own shape** (its first page), so one screen shows one piece only.
 - **Entering a piece** shows a pill at the bottom for about two seconds: "2 OF 3  Gymnopédie No. 1".
 - **Toolbar:**
-  - **‹ Setlist** returns to the setlist screen.
+  - **‹ Library** returns to the library, with the setlist's row open.
   - The title reads "2/3 Gymnopédie No. 1".
   - **Pieces** opens a menu of the numbered pieces with the current one ticked. Choosing one jumps
     to its first screen.
@@ -231,7 +253,7 @@ Archiving a setlist gives every cut without a layer a copy of the piece's ink it
 - **Reading position** is stored per setlist, as entry id and cut id.
 - An **archived** setlist opens read-only: Pen, Erase and Edit cuts are disabled.
 - **Not prototyped:** a missing score (file moved or removed) should show a blank frame that says
-  "Can't find “Blue Bossa”" and carry on with the next piece. The setlist screen marks the entry
+  "Can't find “Blue Bossa”" and carry on with the next piece. Its row in the library says
   "Missing".
 
 ---
@@ -270,8 +292,8 @@ Archiving a setlist gives every cut without a layer a copy of the piece's ink it
    piece is a list of one. Frames carry their item. `CutEditor` works on one item at a time: the
    one whose frame was touched. Undo entries record which item they belong to. Each item needs
    its own `PageCache` (one PDF per piece); open them lazily, a piece or two ahead.
-5. **The update dialog** on leaving a piece, then **the library section** and **the setlist
-   screen** in `src/ui/`.
+5. **The update dialog** on leaving a piece, then **the setlist rows** and **picking scores** in
+   `src/ui/home.ts`.
 
 Rules for this repo:
 
@@ -292,8 +314,9 @@ Rules for this repo:
 | Archiving | `archive()` |
 | Taking the piece's cuts | `takePieceCuts()`, `confirmTakeCuts()` |
 | Cut edits, piece vs setlist | `editCut()` |
-| Library | `renderHome()` |
-| Setlist screen | `renderSetlist()`, `entryRow()`, `dragToReorder()`, `addPieces()` |
+| Library | `renderHome()`, `lib` (open rows, picked scores) |
+| Setlist rows and their menus | `setlistRow()`, `entryRow()`, `dragToReorder()`, `addPieces()`, `askName()`, `confirmDelete()` |
+| Picking scores | `scoreRow()`, `togglePick()`, `pickBar()`, `addPicked()` |
 | Reader layout and turning | `build()`, `show()`, `drawSlot()`, `turn()` |
 | The update dialog | `closeReader()`, `offerUpdates()` |
 | Data view | `renderInspector()` |

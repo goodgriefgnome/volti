@@ -60,7 +60,7 @@ button.quiet { border-color: transparent; background: transparent; color: var(--
 button.danger { background: var(--warn); border-color: var(--warn); color: #fff; }
 button:disabled { opacity: 0.4; cursor: default; }
 button:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid var(--select); outline-offset: 2px; }
-input[type="text"], input[type="search"], input[type="date"] {
+input[type="text"], input[type="search"] {
   font: inherit; min-height: 44px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line);
   background: var(--surface); color: var(--fg); min-width: 0;
 }
@@ -98,18 +98,34 @@ input[type="text"], input[type="search"], input[type="date"] {
 details.archived-sets > summary { cursor: pointer; color: var(--muted); padding: 10px 4px; min-height: 44px; display: flex; align-items: center; }
 .search { flex: 1 1 240px; }
 
-.setlist .top { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.setlist .top .grow { flex: 1; }
-.setlist .fields { display: flex; gap: 10px; flex-wrap: wrap; }
-.setlist .fields .name { flex: 1 1 320px; font: italic 1.5rem var(--font-brand); min-height: 52px; }
-.banner { background: var(--accent-soft); border-radius: 10px; padding: 10px 14px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.banner p { flex: 1 1 260px; }
-.entry .num { width: 2.2em; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
-.entry .handle { flex: none; width: 40px; min-height: 56px; padding: 0; border: 0; background: transparent; color: var(--muted); cursor: grab; touch-action: none; font-size: 18px; letter-spacing: -2px; }
+.list > li.set { display: block; }
+.set-head { display: flex; align-items: center; gap: 4px; }
+.expand { flex: none; width: 44px; padding: 0; border: 0; background: transparent; color: var(--muted); }
+.chev { display: inline-block; width: 10px; height: 10px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform 200ms ease; }
+.set.open .chev { transform: rotate(45deg); }
+/* The pieces slide open: the row's height animates from 0 to its content. */
+.set-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 220ms ease; }
+.set.open .set-body { grid-template-rows: 1fr; }
+.set-inner { overflow: hidden; min-height: 0; }
+.entries { list-style: none; margin: 0 0 8px 44px; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.entries > li { display: flex; align-items: center; gap: 4px; border-bottom: 1px solid var(--line); min-width: 0; }
+.entries > li:last-child { border-bottom: 0; }
+.entries .open { min-height: 48px; padding: 8px 4px; }
+.entries .item-title { font-size: 16px; }
+.entry .num { width: 1.6em; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
+.entry .handle { flex: none; width: 36px; min-height: 48px; padding: 0; border: 0; background: transparent; color: var(--muted); cursor: grab; touch-action: none; font-size: 16px; letter-spacing: -2px; display: grid; place-items: center; }
 .entry.dragging { background: var(--accent-soft); }
-.entry .more { flex: none; width: 48px; padding: 0; }
-.confirm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
-.confirm p { flex: 1 1 260px; }
+.more { flex: none; width: 48px; padding: 0; }
+.pickbar {
+  position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--fg); color: var(--bg); padding: 8px 16px;
+}
+.pickbar .grow { flex: 1; font-weight: 600; }
+.pickbar .quiet { color: inherit; }
+.tick { flex: none; align-self: center; width: 22px; height: 22px; border: 2px solid var(--muted); border-radius: 5px; margin-right: 4px; }
+.picked .tick { background: var(--accent); border-color: var(--accent); box-shadow: inset 0 0 0 3px var(--surface); }
+.picking li.picked { background: var(--accent-soft); }
+.list .open { -webkit-touch-callout: none; }
 
 /* ---------- the reader ---------- */
 .reader { position: absolute; inset: 0; background: var(--stage); user-select: none; -webkit-user-select: none; }
@@ -171,6 +187,9 @@ details.archived-sets > summary { cursor: pointer; color: var(--muted); padding:
 .check .meta { margin-left: auto; }
 .kept { display: flex; gap: 10px; align-items: baseline; min-height: 36px; color: var(--muted); }
 .picklist { display: grid; max-height: 46cqh; overflow: auto; border-block: 1px solid var(--line); }
+/* A toast with an action (Undo) can be tapped. */
+.toast.act { pointer-events: auto; display: flex; gap: 14px; align-items: center; padding-block: 6px; }
+.toast.act button { min-height: 36px; padding: 4px 12px; background: transparent; color: inherit; border-color: rgba(255, 255, 255, 0.35); }
 .toast {
   position: absolute; z-index: 25; left: 50%; bottom: 16px; transform: translateX(-50%); margin: 0; max-width: calc(100% - 32px);
   padding: 10px 16px; border-radius: 10px; background: var(--bar); color: var(--bar-fg); font-size: 15px; pointer-events: none;
@@ -191,13 +210,13 @@ details.archived-sets > summary { cursor: pointer; color: var(--muted); padding:
 .chip.copied { background: transparent; border-style: dashed; }
 .legend { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; color: var(--muted); align-items: center; }
 
-@media (prefers-reduced-motion: reduce) { .bar, .piece-card { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .bar, .piece-card, .set-body, .chev { transition: none; } }
 </style>
 
 <div class="wrap">
   <div class="intro">
     <h1>Volti setlists</h1>
-    <p>Prototype. Open a setlist and read it as one score, or open a piece, change its cuts, and go back to the library to see which setlists it offers to update. In a score, tap the middle for the toolbar and the sides to turn. Changes are kept in this browser.</p>
+    <p>Prototype. Tap a setlist to read it as one score; its arrow shows its pieces. Press and hold scores to pick them for a setlist. Open a piece, change its cuts and go back to see which setlists it offers to update. In a score, tap the middle for the toolbar and the sides to turn. Changes are kept in this browser.</p>
     <div class="row">
       <button type="button" id="fill">Fill the window</button>
       <button type="button" id="reset" class="quiet">Start the example again</button>
@@ -230,9 +249,8 @@ const uid = () => Math.random().toString(36).slice(2, 6) + Math.random().toStrin
 const clone = (x) => JSON.parse(JSON.stringify(x));
 const short = (id) => id.slice(0, 4);
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
-const fmtDate = (d) => d ? new Date(d + 'T12:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '';
 const A4 = 297 / 210;
-const STORE = 'volti-setlists-proto-v2';
+const STORE = 'volti-setlists-proto-v3';
 const device = $('#device');
 
 /* ================= example scores ================= */
@@ -382,7 +400,7 @@ function drawPage(sc, page, W) {
 /*
  * D.pieces[id]        { id, title, key, aspects, cuts }          cut = { id, page, y0, y1 }
  * D.pieceInk[id]      strokes by cut id
- * D.setlists[]        { id, title, date, archived, entries: [{ id, pieceId, cuts, edited }] }
+ * D.setlists[]        { id, title, archived, entries: [{ id, pieceId, cuts, edited }] }
  *                     `edited`: the setlist changed this piece's cuts itself
  *                     a setlist's cut may carry `from`: the piece cut it was made from
  * D.layers[entryId]   { [cutId]: { strokes, own } }: a setlist's own ink, read before the piece's
@@ -418,7 +436,7 @@ function seed() {
   d.pieceInk.autumn[au.cuts[0].id] = [ring(0.3, 0.33, 0.06, 0.03, '#1a1a1a'), tick(0.82, 0.58, '#1a1a1a')];
 
   const entry = (pieceId) => ({ id: uid(), pieceId, cuts: clone(d.pieces[pieceId].cuts) });
-  const spring = { id: uid(), title: 'Spring recital', date: '2026-11-14', archived: false, entries: [entry('sarabande'), entry('gymno'), entry('autumn')] };
+  const spring = { id: uid(), title: 'Spring recital', archived: false, entries: [entry('sarabande'), entry('gymno'), entry('autumn')] };
   // In the recital, the Gymnopédie's title is cut away, so that cut is the setlist's own.
   const gy = spring.entries[1], g0 = gy.cuts[0];
   gy.cuts[0] = { id: uid(), from: g0.id, page: 0, y0: 0.15, y1: 1 };
@@ -426,8 +444,8 @@ function seed() {
   // ...and a breath mark was added to Autumn Leaves for the recital only.
   const au0 = spring.entries[2].cuts[0];
   d.layers[spring.entries[2].id] = { [au0.id]: { own: true, strokes: [...clone(d.pieceInk.autumn[au0.id]), tick(0.55, 0.45, '#c0392b')] } };
-  const cafe = { id: uid(), title: 'Café Lumen, Friday', date: '2026-10-30', archived: false, entries: [entry('autumn'), entry('bossa'), entry('gymno')] };
-  const wedding = { id: uid(), title: 'Summer wedding', date: '2026-07-04', archived: false, entries: [entry('avemaria'), entry('sarabande')] };
+  const cafe = { id: uid(), title: 'Café Lumen, Friday', archived: false, entries: [entry('autumn'), entry('bossa'), entry('gymno')] };
+  const wedding = { id: uid(), title: 'Summer wedding', archived: false, entries: [entry('avemaria'), entry('sarabande')] };
   d.setlists.push(spring, cafe, wedding);
   D = d;
   archive(wedding);
@@ -594,16 +612,16 @@ function render() {
   closeOverlay();
   device.replaceChildren();
   if (ui.screen === 'home') renderHome();
-  else if (ui.screen === 'setlist') renderSetlist();
   else if (ui.screen === 'reader') renderReader();
   renderInspector();
 }
-function say(text) {
+function say(text, action, run) {
   device.querySelector('.toast')?.remove();
-  const t = h('p', { class: 'toast', role: 'status', text });
+  const t = h('p', { class: 'toast' + (action ? ' act' : ''), role: 'status' }, h('span', { text }),
+    action ? btn(action, () => { t.remove(); run(); }) : null);
   device.append(t);
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.remove(), 3800);
+  toastTimer = setTimeout(() => t.remove(), action ? 6000 : 3800);
 }
 
 /* ---------- menus and dialogs ---------- */
@@ -644,117 +662,179 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && overlay)
 
 /* ---------- library ---------- */
 let query = '';
+/* What the library shows that isn't data: which setlists are open, and scores picked by a long press. */
+const lib = { open: new Set(), picking: null, showArchived: false };
+const LONG_PRESS = 500;
+const titleOf = (s) => s.title || 'Untitled setlist';
+
 function renderHome() {
+  const scroller = device.querySelector('.screen');
+  const scrollTop = scroller?.scrollTop ?? 0;
   const root = h('main', { class: 'home' });
   root.append(h('header', { class: 'masthead' }, h('h1', { class: 'brand', text: 'Volti' }), h('p', { class: 'tagline', text: 'volti subito · turn the page' })));
 
-  const active = D.setlists.filter((s) => !s.archived).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-  const archived = D.setlists.filter((s) => s.archived).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-  const row = (s) => h('li', {}, btn([
-    h('span', { class: 'item-title setlist-title', text: s.title || 'Untitled setlist' }),
-    h('span', { class: 'meta', text: [fmtDate(s.date), plural(s.entries.length, 'piece')].filter(Boolean).join(' · ') }),
-  ], () => go({ screen: 'setlist', setlistId: s.id }), 'open'));
-  root.append(h('section', { class: 'section-head' }, h('h2', { text: 'Setlists' }), btn('New setlist', newSetlist)));
+  const active = D.setlists.filter((s) => !s.archived), archived = D.setlists.filter((s) => s.archived);
+  root.append(h('section', { class: 'section-head' }, h('h2', { text: 'Setlists' }), btn('New setlist', () => askName('New setlist', '', 'Next', (name) => {
+    const s = { id: uid(), title: name, archived: false, entries: [] };
+    D.setlists.unshift(s);
+    lib.open.add(s.id);
+    save();
+    render();
+    addPieces(s);
+  }))));
   const list = h('ul', { class: 'list' });
-  if (!active.length) list.append(h('li', { class: 'empty', text: 'No setlists yet. A setlist keeps pieces in concert order, each with its own cuts and markings.' }));
-  active.forEach((s) => list.append(row(s)));
+  if (!active.length) list.append(h('li', { class: 'empty', text: 'No setlists yet. Press and hold a score to pick pieces for one.' }));
+  active.forEach((s) => list.append(setlistRow(s)));
   root.append(list);
   if (archived.length) {
-    const det = h('details', { class: 'archived-sets' }, h('summary', { text: `Archived (${archived.length})` }));
+    const det = h('details', { class: 'archived-sets', open: lib.showArchived }, h('summary', { text: `Archived (${archived.length})` }));
+    det.addEventListener('toggle', () => { lib.showArchived = det.open; });
     const al = h('ul', { class: 'list' });
-    archived.forEach((s) => al.append(row(s)));
+    archived.forEach((s) => al.append(setlistRow(s)));
     det.append(al);
     root.append(det);
   }
 
   root.append(h('section', { class: 'section-head' }, h('h2', { text: 'Scores' })));
   const search = h('input', { type: 'search', class: 'search', id: 'find-score', placeholder: 'Find a score', 'aria-label': 'Find a score', value: query });
-  const scores = h('ul', { class: 'list' });
+  const scores = h('ul', { class: 'list' + (lib.picking ? ' picking' : '') });
   const fill = () => {
     scores.replaceChildren();
     const q = query.trim().toLowerCase();
     const shown = SCORES.filter((s) => `${s.title} ${s.by}`.toLowerCase().includes(q));
     if (!shown.length) scores.append(h('li', { class: 'empty', text: `Nothing matches “${query}”.` }));
-    for (const s of shown) {
-      const n = setlistsWith(s.id).length;
-      scores.append(h('li', {}, btn([
-        h('span', { class: 'item-title', text: s.title }),
-        h('span', { class: 'meta', text: [s.by, n ? `in ${plural(n, 'setlist')}` : ''].filter(Boolean).join(' · ') }),
-      ], () => openReader({ kind: 'piece', pieceId: s.id }), 'open')));
-    }
+    for (const s of shown) scores.append(scoreRow(s));
   };
   search.addEventListener('input', () => { query = search.value; fill(); });
   fill();
   root.append(search, scores);
-  device.append(h('div', { class: 'screen' }, root));
-}
-function newSetlist() {
-  const s = { id: uid(), title: '', date: new Date().toISOString().slice(0, 10), archived: false, entries: [] };
-  D.setlists.push(s);
-  save();
-  go({ screen: 'setlist', setlistId: s.id, fresh: true });
+  const screen = h('div', { class: 'screen' }, lib.picking ? pickBar() : null, root);
+  device.append(screen);
+  screen.scrollTop = scrollTop;
 }
 
-/* ---------- a setlist ---------- */
-function renderSetlist() {
-  const s = setlistOf(ui.setlistId);
-  if (!s) return go({ screen: 'home' });
-  const root = h('main', { class: 'setlist' });
-  const frozen = s.archived;
-  const more = btn('More', () => menuAt(more, null, [
+/* A setlist: tap to play it; the arrow slides its pieces open; ⋯ for the rest. */
+function setlistRow(s) {
+  const open = lib.open.has(s.id), frozen = s.archived;
+  const li = h('li', { class: 'set' + (open ? ' open' : '') });
+  const body = h('div', { class: 'set-body', id: 'set-' + s.id, inert: !open });
+  const expand = h('button', {
+    type: 'button', class: 'expand', 'aria-expanded': String(open), 'aria-controls': 'set-' + s.id, 'aria-label': `Pieces in ${titleOf(s)}`,
+    onclick: () => {
+      const now = !lib.open.has(s.id);
+      now ? lib.open.add(s.id) : lib.open.delete(s.id);
+      li.classList.toggle('open', now);
+      expand.setAttribute('aria-expanded', String(now));
+      body.inert = !now;
+    },
+  }, h('span', { class: 'chev', 'aria-hidden': 'true' }));
+  const play = btn([
+    h('span', { class: 'item-title setlist-title', text: titleOf(s) }),
+    h('span', { class: 'meta', text: plural(s.entries.length, 'piece') }),
+  ], () => (s.entries.length ? openReader({ kind: 'setlist', setlistId: s.id }) : say('This setlist has no pieces yet.')), 'open');
+  const more = btn('⋯', () => menuAt(more, titleOf(s), frozen ? [
+    { label: 'Unarchive', run: () => { s.archived = false; save(); render(); say(`Unarchived “${titleOf(s)}”. It keeps the markings it had.`); } },
     { label: 'Duplicate', run: () => duplicate(s) },
-    frozen ? { label: 'Unarchive', run: () => { s.archived = false; save(); render(); say('Unarchived. It keeps the markings it had.'); } }
-      : { label: 'Archive', run: () => { archive(s); save(); render(); say('Archived. Changes to its pieces no longer reach it.'); } },
-    { label: 'Delete setlist…', run: () => confirmDelete(s) },
-  ]), '', { 'aria-haspopup': 'menu' });
-  root.append(h('div', { class: 'top' },
-    btn('‹ Library', () => go({ screen: 'home' })),
-    h('span', { class: 'grow' }),
-    more,
-    btn('Play', () => openReader({ kind: 'setlist', setlistId: s.id }), 'primary', { disabled: !s.entries.length }),
-  ));
-  const name = h('input', { type: 'text', class: 'name', id: 'setlist-name', value: s.title, placeholder: 'Name this setlist', 'aria-label': 'Setlist name', disabled: frozen });
-  name.addEventListener('input', () => { s.title = name.value; save(); });
-  const date = h('input', { type: 'date', id: 'setlist-date', value: s.date, 'aria-label': 'Date', disabled: frozen });
-  date.addEventListener('change', () => { s.date = date.value; save(); });
-  root.append(h('div', { class: 'fields' }, name, date));
-  if (frozen) {
-    root.append(h('div', { class: 'banner' }, h('p', { text: 'Archived. This setlist is frozen as it was played: changes to its pieces do not reach it, and it can be read but not changed.' }),
-      btn('Unarchive', () => { s.archived = false; save(); render(); })));
-  }
-  root.append(h('div', { id: 'confirm-slot' }));
-
-  const list = h('ul', { class: 'list', 'aria-label': 'Pieces in this setlist' });
-  s.entries.forEach((e, i) => list.append(entryRow(s, e, i, list)));
-  if (!s.entries.length) list.append(h('li', { class: 'empty', text: 'No pieces yet. Add the pieces in the order you will play them.' }));
-  root.append(list);
-  if (!frozen) root.append(h('div', {}, btn('Add pieces', () => addPieces(s))));
-  device.append(h('div', { class: 'screen' }, root));
-  if (ui.fresh) { ui.fresh = false; name.focus(); }
+    { label: 'Delete…', run: () => confirmDelete(s) },
+  ] : [
+    { label: 'Add pieces…', run: () => addPieces(s) },
+    { label: 'Rename…', run: () => askName('Rename setlist', s.title, 'Rename', (name) => { s.title = name; save(); render(); }) },
+    { label: 'Duplicate', run: () => duplicate(s) },
+    { label: 'Archive', run: () => { archive(s); save(); render(); say(`Archived “${titleOf(s)}”. Changes to its pieces no longer reach it.`); } },
+  ]), 'quiet more', { 'aria-label': `More for ${titleOf(s)}`, 'aria-haspopup': 'menu' });
+  const entries = h('ol', { class: 'entries', 'aria-label': `Pieces in ${titleOf(s)}` });
+  s.entries.forEach((e, i) => entries.append(entryRow(s, e, i, entries)));
+  if (!s.entries.length) entries.append(h('li', { class: 'empty', text: 'No pieces yet. Use ⋯ › Add pieces, or press and hold scores below.' }));
+  body.append(h('div', { class: 'set-inner' }, entries));
+  li.append(h('div', { class: 'set-head' }, expand, play, more), body);
+  return li;
 }
 
 function entryRow(s, e, i, list) {
   const p = D.pieces[e.pieceId], frozen = s.archived, own = ownCuts(e), older = olderCuts(e);
   const li = h('li', { class: 'entry' });
-  const handle = h('button', { type: 'button', class: 'handle', 'aria-label': `Move ${p.title}`, disabled: frozen }, '⋮⋮');
+  const handle = frozen ? h('span', { class: 'handle' }) : h('button', { type: 'button', class: 'handle', 'aria-label': `Move ${p.title}` }, '⋮⋮');
   if (!frozen) dragToReorder(handle, li, list, s, i);
-  const status = frozen ? h('span', { class: 'pill frozen', text: 'Frozen' })
+  const status = frozen ? null
     : own ? h('span', { class: 'pill own', text: 'Own cuts' })
     : older ? h('span', { class: 'pill frozen', text: 'Piece’s older cuts' }) : null;
   const open = btn([
     h('span', { class: 'item-title', text: p.title }),
     h('span', { class: 'meta', text: p.key }), status,
   ], () => openReader({ kind: 'setlist', setlistId: s.id }, e.id), 'open');
-  const more = btn('⋯', () => menuAt(more, p.title, [
-    { label: 'Play from here', run: () => openReader({ kind: 'setlist', setlistId: s.id }, e.id) },
-    !frozen && i > 0 && { label: 'Move up', run: () => move(s, i, i - 1) },
-    !frozen && i < s.entries.length - 1 && { label: 'Move down', run: () => move(s, i, i + 1) },
-    !frozen && (own || older) && { label: 'Use the piece’s cuts…', run: () => confirmTakeCuts(s, e) },
-    !frozen && { label: 'Remove from setlist', run: () => removeEntry(s, e) },
-  ]), 'quiet more', { 'aria-label': `More for ${p.title}`, 'aria-haspopup': 'menu' });
-  li.append(handle, h('span', { class: 'num', text: String(i + 1) }), open, more);
+  li.append(handle, h('span', { class: 'num', text: String(i + 1) }), open);
+  if (!frozen) {
+    const more = btn('⋯', () => menuAt(more, p.title, [
+      i > 0 && { label: 'Move up', run: () => move(s, i, i - 1) },
+      i < s.entries.length - 1 && { label: 'Move down', run: () => move(s, i, i + 1) },
+      (own || older) && { label: 'Use the piece’s cuts…', run: () => confirmTakeCuts(s, e) },
+      { label: 'Remove from setlist', run: () => removeEntry(s, e) },
+    ]), 'quiet more', { 'aria-label': `More for ${p.title}`, 'aria-haspopup': 'menu' });
+    li.append(more);
+  }
   return li;
 }
+
+/* A score: tap to read it. Press and hold (or right-click) to start picking scores for a setlist. */
+function scoreRow(sc) {
+  const n = setlistsWith(sc.id).length, picked = lib.picking?.has(sc.id);
+  const b = btn([
+    lib.picking ? h('span', { class: 'tick', 'aria-hidden': 'true' }) : null,
+    h('span', { class: 'item-title', text: sc.title }),
+    h('span', { class: 'meta', text: [sc.by, n ? `in ${plural(n, 'setlist')}` : ''].filter(Boolean).join(' · ') }),
+  ], () => {
+    if (b.dataset.held) { delete b.dataset.held; return; }
+    if (lib.picking) togglePick(sc.id);
+    else openReader({ kind: 'piece', pieceId: sc.id });
+  }, 'open', lib.picking ? { role: 'checkbox', 'aria-checked': String(!!picked) } : {});
+  let timer, x0, y0;
+  const startPicking = () => { b.dataset.held = '1'; if (!lib.picking) lib.picking = new Set(); togglePick(sc.id, true); };
+  b.addEventListener('pointerdown', (e) => { x0 = e.clientX; y0 = e.clientY; clearTimeout(timer); timer = setTimeout(startPicking, LONG_PRESS); });
+  b.addEventListener('pointermove', (e) => { if (Math.hypot(e.clientX - x0, e.clientY - y0) > 8) clearTimeout(timer); });
+  for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) b.addEventListener(ev, () => clearTimeout(timer));
+  b.addEventListener('contextmenu', (e) => { e.preventDefault(); clearTimeout(timer); if (!b.dataset.held) startPicking(); delete b.dataset.held; });
+  return h('li', { class: picked ? 'picked' : '' }, b);
+}
+function togglePick(id, on) {
+  const set = lib.picking;
+  if (on ?? !set.has(id)) set.add(id); else set.delete(id);
+  if (!set.size) lib.picking = null;
+  render();
+}
+function pickBar() {
+  const n = lib.picking.size;
+  const add = btn('Add to setlist', () => menuAt(add, `Add ${plural(n, 'piece')} to`, [
+    ...D.setlists.filter((s) => !s.archived).map((s) => ({ label: titleOf(s), run: () => addPicked(s) })),
+    { label: 'New setlist…', run: () => askName('New setlist', '', 'Make setlist', (name) => {
+      const s = { id: uid(), title: name, archived: false, entries: [] };
+      D.setlists.unshift(s);
+      addPicked(s);
+    }) },
+  ]), 'primary', { 'aria-haspopup': 'menu' });
+  return h('div', { class: 'pickbar', role: 'toolbar', 'aria-label': 'Picked scores' },
+    btn('Cancel', () => { lib.picking = null; render(); }, 'quiet'),
+    h('span', { class: 'grow', text: `${plural(n, 'score')} picked` }), add);
+}
+/* Picked scores go at the end, in library order. */
+function addPicked(s) {
+  const ids = SCORES.map((x) => x.id).filter((id) => lib.picking.has(id));
+  for (const id of ids) s.entries.push({ id: uid(), pieceId: id, cuts: clone(D.pieces[id].cuts), edited: false });
+  lib.picking = null;
+  lib.open.add(s.id);
+  save();
+  render();
+  say(`Added ${plural(ids.length, 'piece')} to “${titleOf(s)}”.`);
+}
+
+function askName(heading, value, okLabel, done) {
+  const input = h('input', { type: 'text', id: 'setlist-name', value, placeholder: 'For example, Spring recital', 'aria-label': 'Setlist name' });
+  const ok = () => { const v = input.value.trim(); if (!v) { input.focus(); return; } closeOverlay(); done(v); };
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok(); });
+  showDialog(h('h2', { text: heading }), input, h('div', { class: 'buttons' }, btn('Cancel', closeOverlay), btn(okLabel, ok, 'primary')));
+  input.focus();
+  input.select();
+}
+
 function move(s, from, to) {
   const [e] = s.entries.splice(from, 1);
   s.entries.splice(to, 0, e);
@@ -790,38 +870,45 @@ function removeEntry(s, e) {
   delete D.layers[e.id];
   save();
   render();
-  const slot = $('#confirm-slot', device);
-  slot.replaceChildren(h('div', { class: 'confirm' }, h('p', { text: `Removed “${D.pieces[e.pieceId].title}”.` }),
-    btn('Undo', () => { s.entries.splice(at, 0, e); if (layer) D.layers[e.id] = layer; save(); render(); })));
+  say(`Removed “${D.pieces[e.pieceId].title}” from “${titleOf(s)}”.`, 'Undo', () => {
+    s.entries.splice(at, 0, e);
+    if (layer) D.layers[e.id] = layer;
+    save();
+    render();
+  });
 }
 function duplicate(s) {
-  const c = { id: uid(), title: `${s.title || 'Untitled setlist'} (copy)`, date: s.date, archived: false, entries: [] };
+  const c = { id: uid(), title: `${titleOf(s)} (copy)`, archived: false, entries: [] };
   for (const e of s.entries) {
     const n = { id: uid(), pieceId: e.pieceId, cuts: clone(e.cuts), edited: e.edited };
     if (D.layers[e.id]) D.layers[n.id] = clone(D.layers[e.id]);
     c.entries.push(n);
   }
-  D.setlists.push(c);
+  D.setlists.unshift(c);
+  lib.open.add(c.id);
   save();
-  go({ screen: 'setlist', setlistId: c.id, fresh: true });
+  render();
+  say(`Made “${c.title}”.`);
 }
+/* Only an archived setlist can be deleted. */
 function confirmDelete(s) {
-  const slot = $('#confirm-slot', device);
-  slot.replaceChildren(h('div', { class: 'confirm' },
-    h('p', { text: `Delete “${s.title || 'Untitled setlist'}”? Its own cuts and markings are deleted too. The pieces stay in the library.` }),
-    btn('Cancel', () => slot.replaceChildren()),
-    btn('Delete', () => {
+  showDialog(
+    h('h2', { text: `Delete “${titleOf(s)}”?` }),
+    h('p', { text: 'Its own cuts and markings are deleted too. The pieces stay in the library.' }),
+    h('div', { class: 'buttons' }, btn('Cancel', closeOverlay), btn('Delete', () => {
       for (const e of s.entries) delete D.layers[e.id];
       D.setlists = D.setlists.filter((x) => x !== s);
       save();
-      go({ screen: 'home' });
-    }, 'danger')));
+      render();
+      say(`Deleted “${titleOf(s)}”.`);
+    }, 'danger')),
+  );
 }
 function confirmTakeCuts(s, e) {
   const p = D.pieces[e.pieceId];
   showDialog(
     h('h2', { text: `Use the piece’s cuts for “${p.title}”?` }),
-    h('p', { text: ownCuts(e) ? 'This setlist’s own cuts of it are replaced by the piece’s, as they are now. Markings made in this setlist stay where the music they mark is still played.'
+    h('p', { text: ownCuts(e) ? `The cuts “${titleOf(s)}” made itself are replaced by the piece’s, as they are now. Markings made in this setlist stay where the music they mark is still played.`
       : 'The piece’s cuts have changed since this setlist copied them. Markings made in this setlist stay where the music they mark is still played.' }),
     h('div', { class: 'buttons' }, btn('Cancel', closeOverlay), btn('Use the piece’s cuts', () => { takePieceCuts(e); save(); render(); say('This setlist now uses the piece’s cuts.'); }, 'primary')),
   );
@@ -830,10 +917,11 @@ function addPieces(s) {
   const chosen = new Set();
   const list = h('div', { class: 'picklist' });
   const add = btn('Add', () => {
-    for (const id of SCORES.map((x) => x.id).filter((id) => chosen.has(id))) s.entries.push({ id: uid(), pieceId: id, cuts: clone(D.pieces[id].cuts) });
+    for (const id of SCORES.map((x) => x.id).filter((id) => chosen.has(id))) s.entries.push({ id: uid(), pieceId: id, cuts: clone(D.pieces[id].cuts), edited: false });
+    lib.open.add(s.id);
     save();
     render();
-    say(`Added ${plural(chosen.size, 'piece')}.`);
+    say(`Added ${plural(chosen.size, 'piece')} to “${titleOf(s)}”.`);
   }, 'primary', { disabled: true });
   const fill = (q) => {
     list.replaceChildren();
@@ -851,7 +939,7 @@ function addPieces(s) {
   const find = h('input', { type: 'search', id: 'pick-find', placeholder: 'Find a score', 'aria-label': 'Find a score' });
   find.addEventListener('input', () => fill(find.value));
   fill('');
-  showDialog(h('h2', { text: 'Add pieces' }), h('p', { class: 'hint', text: 'They go at the end, in the order shown, each with a copy of the piece’s cuts as they are now.' }),
+  showDialog(h('h2', { text: `Add pieces to “${titleOf(s)}”` }), h('p', { class: 'hint', text: 'They go at the end, in the order shown, each with a copy of the piece’s cuts as they are now.' }),
     find, list, h('div', { class: 'buttons' }, btn('Cancel', closeOverlay), add));
 }
 
@@ -922,7 +1010,7 @@ function renderReader() {
     run: () => { R.screen = screenOf(it.key); show(); },
   }))), '', { 'aria-haspopup': 'menu' }) : null;
   bar.append(
-    h('div', { class: 'group' }, btn(isSet ? '‹ Setlist' : '‹ Library', closeReader), h('span', { class: 'title', id: 'reader-title' })),
+    h('div', { class: 'group' }, btn('‹ Library', closeReader), h('span', { class: 'title', id: 'reader-title' })),
     h('div', { class: 'group' }, tool('pen', 'Pen'), tool('eraser', 'Erase'), btn('Undo', undo, '', { disabled: !R.undo.length })),
     h('div', { class: 'group' }, piecesBtn,
       btn('Edit cuts', () => { R.editing = !R.editing; R.tool = 'none'; renderReader(); }, '', { ...pressed(R.editing), disabled: frozen }),
@@ -1178,7 +1266,7 @@ function cutMenu(e, hit) {
 function closeReader() {
   const src = R.src, before = R.before;
   R = null;
-  if (src.kind === 'setlist') return go({ screen: 'setlist', setlistId: src.setlistId });
+  if (src.kind === 'setlist') { lib.open.add(src.setlistId); return go({ screen: 'home' }); }
   go({ screen: 'home' });
   const piece = D.pieces[src.pieceId];
   if (sameCuts(before, piece.cuts)) return;
@@ -1203,7 +1291,7 @@ function offerUpdates(piece) {
   const boxes = untouched.map(({ s, e }, i) => {
     const box = h('input', { type: 'checkbox', id: 'upd-' + i, checked: true });
     const repeat = s.entries.filter((x) => x.pieceId === piece.id).length > 1 ? ` (piece ${s.entries.indexOf(e) + 1})` : '';
-    return { box, s, e, row: h('label', { class: 'check', for: 'upd-' + i }, box, h('span', { text: (s.title || 'Untitled setlist') + repeat }), h('span', { class: 'meta', text: fmtDate(s.date) })) };
+    return { box, s, e, row: h('label', { class: 'check', for: 'upd-' + i }, box, h('span', { text: titleOf(s) + repeat })) };
   });
   showDialog(
     h('h2', { text: `Update setlists with the new cuts of “${piece.title}”?` }),
