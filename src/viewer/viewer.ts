@@ -274,9 +274,8 @@ class Viewer {
     const next = turnTarget(this.page, this.perScreen, this.cache.numPages, dir);
     if (next === this.page) return;
     this.page = next;
-    // A turn means you're playing again: put the tool away and hide the toolbar.
+    // Put the tool away so taps turn pages again. The toolbar stays until you dismiss it.
     this.tool = 'none';
-    this.showChrome(false);
     void this.show();
   }
 
