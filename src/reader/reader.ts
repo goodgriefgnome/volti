@@ -20,6 +20,7 @@ import { History } from './history';
 import { Input } from './input';
 import { pagesPerScreen } from './layout';
 import { Saver } from './saver';
+import { blankBox, PieceCard, showSetlistTitle } from './setlist';
 import { frameSize, paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './spread';
 import { nextLayout, Toolbar, type Tool } from './toolbar';
 import { isZoomed, NO_ZOOM, type Zoom } from './zoom';
@@ -34,7 +35,6 @@ export type Source =
   | { kind: 'piece'; score: Score }
   | { kind: 'setlist'; setlistId: string; scores: readonly Score[]; startEntry?: string; chooseExcerpt?: boolean };
 
-const PIECE_CARD_MS = 2200;
 /** Frames take the first page's shape; a piece that can't be opened is shown this shape. */
 const A4 = 297 / 210;
 
@@ -92,10 +92,7 @@ class Reader {
   private docs: Docs;
   private goSeq = 0;
   private loading = false;
-  /** The item shown last, to name the piece when the reader turns into another one. */
-  private shownItem = -1;
-  private card: HTMLElement | null = null;
-  private cardTimer: ReturnType<typeof setTimeout> | undefined;
+  private card = new PieceCard(this.root);
   private seq = 0;
   private slots: FrameSlot[] = [];
   /** Page canvases drawn at the frame's width, by 0-based page, for the frames on screen. */
@@ -283,24 +280,14 @@ class Reader {
     this.toast.say(text);
   }
 
-  /** "2/3 Gymnopédie No. 1" in a setlist. */
   private showTitle() {
     const it = this.items[this.k];
-    if (!this.setlistId) { this.toolbar.title.textContent = it.title; return; }
-    this.toolbar.title.replaceChildren(el('b', '', `${this.k + 1}/${this.items.length} `), it.title);
+    if (!this.setlistId) this.toolbar.title.textContent = it.title;
+    else showSetlistTitle(this.toolbar.title, this.k, this.items.length, it.title);
   }
 
-  /** Names the piece for a moment when the reader turns into it. */
   private showCard() {
-    if (!this.setlistId || this.shownItem === this.k) return;
-    this.shownItem = this.k;
-    this.card?.remove();
-    clearTimeout(this.cardTimer);
-    const card = el('p', 'piece-card');
-    card.append(el('b', '', `${this.k + 1} OF ${this.items.length}`), this.items[this.k].title);
-    this.root.append(card);
-    this.card = card;
-    this.cardTimer = setTimeout(() => card.classList.add('gone'), PIECE_CARD_MS);
+    if (this.setlistId) this.card.show(this.k, this.items.length, this.items[this.k].title);
   }
 
   /* ---------- toolbar menus ---------- */
@@ -358,14 +345,9 @@ class Reader {
 
   private pageSize(page: number, w: number) { return { w, h: Math.round(w * this.aspects[page]) }; }
 
-  /** In a setlist, what fills the rest of a piece's last screen: the next piece's title, or the end. */
+  /** In a setlist, what fills the rest of a piece's last screen. */
   private blank(missing?: string): HTMLElement {
-    const box = el('div', 'page blank');
-    const next = this.items[this.k + 1];
-    if (missing) box.append(el('span', 'label', 'Can’t find'), el('span', 't', `“${missing}”`));
-    else if (next) box.append(el('span', 'label', 'Next'), el('span', 't', next.title));
-    else box.append(el('span', 'label', 'End of the setlist'));
-    return box;
+    return blankBox(this.items[this.k + 1]?.title, missing);
   }
 
   private async show() {
@@ -605,7 +587,7 @@ class Reader {
     this.detail.stop();
     this.seq++;
     this.editor.dismiss();
-    clearTimeout(this.cardTimer);
+    this.card.stop();
     await this.saver.flush();
     void this.wake?.release().catch(() => {});
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});

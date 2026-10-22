@@ -74,6 +74,7 @@ Every push to `main` is tested, built and published to GitHub Pages by
 | `src/reader/spread.ts` | Placing frames on the screen and drawing them |
 | `src/reader/detail.ts` | The sharp close-up drawn while zoomed in |
 | `src/reader/history.ts` | Undo and redo |
+| `src/reader/setlist.ts` | How the reader shows where it is in a setlist: title, piece card, the box after a piece |
 | `src/reader/excerpt-picker.ts` | Choosing the excerpt of a piece a setlist plays |
 | `src/reader/cuts/` | Editing cuts on the frames: tabs and drags (`editor`), menus, the insert-pages picker, archived cuts |
 | `src/reader/frames.ts` | Drawing a frame's music and ink |
