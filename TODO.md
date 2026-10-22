@@ -16,8 +16,10 @@ from systems; it was dropped as more complicated than it was worth.)
   are stacked in order; a part goes on the current frame if it fits, otherwise it starts the next.
   A split whose halves end up on the same frame is joined again.
 - **Editing happens in the frame view**, never on the raw page:
-  - Tapping the music of a cut opens its menu: insert pages before or after this cut (a picker
-    with thumbnails of the piece's pages; tap one page, or two for a range), or remove the cut.
+  - Menus open only on a right-click or a long press (half a second without moving), never on a
+    tap. On the music of a cut: insert pages before or after this cut (a picker with thumbnails
+    of the piece's pages; tap one page, or two for a range), or remove the cut. On blank space
+    above a frame's first cut or below its last: insert pages here.
   - Every part has a faint tab at its top left (its start) and its bottom right (its end). Tabs
     sit flush against the frame's side, square where they meet the seam and the edge.
     Dragging a tab moves that edge; the music being cut stays visible, hatched, until you let go,
@@ -26,13 +28,12 @@ from systems; it was dropped as more complicated than it was worth.)
     dragging the bottom tab down does. Dragging an edge across the whole cut removes it.
   - A grey tab at the top right of each frame adds white space above the music (stored on the
     part, used only when that part starts a frame).
-  - "Cut out music" arms one drag over the music to cut out.
   - A "show room left" toggle: when the frame before is more than a fifth empty, a faint band and a
     dashed ✂ line show how much would fit there. Tapping the line splits the page at the nearest
     gap between systems above it and moves the top part onto the frame before, which is then
     shown. No cue when the frame already continues the page from the frame before, or when the
     line would fall at the end of the frame's first part.
-  - Tapping a tab (or right-clicking it) opens its menu: restore the music cut out above/below
+  - A tab's menu: restore the music cut out above/below
     (joins the two cuts), join a split, restore a trimmed page top/bottom, remove the cut; the white-space tab
     offers "remove the white space". Not covered yet: bringing back a part that was removed.
 - **Ink** belongs to one cut of the played order (not to the source page), so a marking on the
