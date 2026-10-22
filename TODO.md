@@ -11,9 +11,10 @@ Decisions so far; a working sketch is the "Volti reflow" prototype.
 - A **piece** has a title and a key (tags come later, for search) and a played order: a list of
   spans, each "play from system X to system Y" in page order. A repeat is another span, e.g.
   1a→1c, 1b→1c, 1d→2d. Reordering single systems should almost never be needed, so the UI works
-  in passes built on the page itself: tap the system where a pass starts, then where it ends
-  (possibly on a later page). Each pass shows as a numbered bar beside the systems it plays, and
-  unplayed systems are greyed out. Editing system outlines is a separate mode.
+  in passes built on the page itself. The page normally edits system outlines; "Add a pass" arms
+  the next two taps: the system where the pass starts, then where it ends (possibly on a later
+  page). Each pass shows as a numbered bar in a gutter beside the page, next to the systems it
+  plays.
 - A piece comes from **one PDF**, or from a set of images whose page widths are meant to match.
 - The reader **reflows** the played systems onto the screen: stacked down a column, as many as
   fit, then the next column, then the next screen. Forward always means "next screenful",
@@ -22,11 +23,12 @@ Decisions so far; a working sketch is the "Volti reflow" prototype.
   stretch of the played systems fills the column, and every system keeps its printed size and
   position across the page (an indented first system stays indented, a short last line stays
   short). Only a system taller than the screen is shrunk.
-- **Ink and masks** belong to one system within one span, stored relative to the clip. A marking
-  on the 2nd time through a repeat does not appear on the 1st.
+- **Ink** belongs to one system within one pass, stored relative to the clip. A marking on the 2nd
+  time through a repeat does not appear on the 1st. Hiding a 1st ending on the 2nd time is an
+  annotation (a whiteout tool), not part of the played order.
 - A new file becomes one piece in page order; it can be split or rearranged later.
 - A **setlist** is a list of pieces with its own copy of each piece's spans; cuts shorten or split
-  spans, or mask parts of systems. When a piece changes, offer a checkbox per setlist that contains it to
+  passes; hiding part of a system is an annotation. When a piece changes, offer a checkbox per setlist that contains it to
   update that setlist. Archived setlists are frozen.
 - Replacing a PDF with a new edition is not supported yet.
 - Later: synthetic pages (systems arranged by hand), jump markers (D.S., coda) that generate the
