@@ -2,10 +2,9 @@
 // more excerpts chosen in its preview. "New setlist" and a setlist's ⋯ › Add scores both open it.
 
 import type { Original } from '../originals/originals';
-import type { State } from '../scores/model';
 import { newId, spanLabel, type Entry, type Setlist, type Span } from '../setlists/model';
 import { button, el, plural } from '../ui/dom';
-import { ExcerptStrip } from '../ui/excerpt-picker';
+import { ExcerptStrip, type ExcerptSource } from '../ui/excerpt-picker';
 import { buttonRow, closeOverlay, showDialog, whenOverlayCloses } from '../ui/overlay';
 import type { LibraryScore } from './open-score';
 
@@ -16,11 +15,11 @@ export interface AddScoresHost {
   /** Open a score to preview; null if it can't be (having said why). */
   open(o: Original): Promise<LibraryScore | null>;
   /** Add these entries to the end of the setlist; `scores` are the ones they choose excerpts of. */
-  add(entries: Entry[], scores: State[]): void;
+  add(entries: Entry[], scores: ExcerptSource[]): void;
 }
 
 /** One entry to add: the whole score, or an excerpt chosen in its preview. */
-interface Choice { span: Span; label: string | null; state?: State }
+interface Choice { span: Span; label: string | null; src?: ExcerptSource }
 
 /**
  * Scores as checkboxes; the ticked ones go at the end, in library order. Preview shows a score's
@@ -41,7 +40,7 @@ export function openAddScores(h: AddScoresHost) {
     const picked = h.originals.flatMap((o) => (chosen.get(o.id) ?? []).map((c) => [o.id, c] as const));
     h.add(
       picked.map(([scoreId, c]) => ({ id: newId(), scoreId, ...c.span })),
-      [...new Set(picked.flatMap(([, c]) => (c.state ? [c.state] : [])))],
+      [...new Set(picked.flatMap(([, c]) => (c.src ? [c.src] : [])))],
     );
   }, 'primary');
   const sync = () => {
@@ -112,10 +111,10 @@ export function openAddScores(h: AddScoresHost) {
     open = sc;
     const strip = new ExcerptStrip(sc, {}, 'Adds');
     const use = button('Add this excerpt', () => {
-      const span = strip.span, label = spanLabel(sc.state.score.cuts, span);
+      const span = strip.span, label = spanLabel(sc.state.score.cuts, span, sc.aspects);
       // An excerpt takes the place of the whole score ticked on its own; the same one twice is once.
       const was = (chosen.get(o.id) ?? []).filter((c) => c.label && (c.span.first !== span.first || c.span.last !== span.last));
-      chosen.set(o.id, [...was, { span, label, state: sc.state }]);
+      chosen.set(o.id, [...was, { span, label, src: sc }]);
       sync();
       back();
     }, 'primary');

@@ -1,7 +1,8 @@
 // Setlists, their entries, and the excerpt of a score each entry plays: making them, reading
 // spans, and keeping spans on the same music when a score's cuts change. Pure: no DOM, no storage.
 
-import type { Cut } from '../scores/model';
+import { cutLetter, placeLabel, places } from '../scores/frames';
+import type { Aspects, Cut } from '../scores/model';
 
 /**
  * Which of a score's cuts are played: from `first` to `last`, in the score's order. A missing
@@ -51,12 +52,27 @@ export function spanCuts<C extends { id: string }>(cuts: readonly C[], span: Spa
   return cuts.slice(i0, i1 + 1);
 }
 
-/** "Pages 1–2" for an excerpt, or null when the whole score is played. */
-export function spanLabel(cuts: readonly Cut[], span: Span): string | null {
+/**
+ * The name an excerpt goes by until it is given one, or null when the whole score is played. It
+ * counts the score's pages (its frames), with a letter for a cut that shares its page: "Page 3b – 5"
+ * starts at page 3's second cut and plays all of page 5; "Pages 3–5" plays those pages whole.
+ * Without the original's page shapes it falls back to the original pages: "Original pages 2–3".
+ */
+export function spanLabel(cuts: readonly Cut[], span: Span, aspects?: Aspects): string | null {
   const { i0, i1, whole } = spanOf(cuts, span);
   if (whole || !cuts.length) return null;
-  const a = cuts[i0].page + 1, b = cuts[i1].page + 1;
-  return a === b ? `Page ${a}` : `Pages ${a}–${b}`;
+  if (!aspects) {
+    const a = cuts[i0].page + 1, b = cuts[i1].page + 1;
+    return a === b ? `Original page ${a}` : `Original pages ${a}–${b}`;
+  }
+  const at = places(cuts, aspects), a = at[i0], z = at[i1];
+  const fromTop = a.j === 0, toBottom = z.j === z.n - 1;
+  if (a.page === z.page) {
+    if (fromTop && toBottom) return `Page ${a.page}`;
+    return i0 === i1 ? `Page ${placeLabel(a)}` : `Page ${placeLabel(a)}–${cutLetter(z.j)}`;
+  }
+  if (fromTop && toBottom) return `Pages ${a.page}–${z.page}`;
+  return `Page ${fromTop ? a.page : placeLabel(a)} – ${toBottom ? z.page : placeLabel(z)}`;
 }
 
 /** The span for cuts i0..i1, with ids only where it doesn't reach the score's start or end. */

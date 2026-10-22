@@ -1,8 +1,8 @@
 // The Library screen: setlists, the scores folder, imported scores, and opening the reader. Code
 // only this screen uses; what the reader also needs goes in ui/.
 
-import type { Score } from '../scores/model';
-import { loadSavedScore, scoreEntries } from '../scores/store';
+import type { Aspects, Score } from '../scores/model';
+import { loadAspects, loadSavedScore, scoreEntries } from '../scores/store';
 import { openReader, type ToRead } from '../reader/reader';
 import {
   duplicate, moveEntry, newSetlist, setlistsWith, spanLabel, type Entry, type Setlist,
@@ -14,7 +14,7 @@ import {
 } from '../originals/originals';
 import type { Prefs } from '../storage/prefs';
 import { button, el, plural } from '../ui/dom';
-import { openExcerptPicker } from '../ui/excerpt-picker';
+import { openExcerptPicker, type ExcerptSource } from '../ui/excerpt-picker';
 import { buttonRow, closeOverlay, showDialog, showMenu, whenOverlayCloses } from '../ui/overlay';
 import { askSetlistName } from '../ui/setlists';
 import { Toast } from '../ui/toast';
@@ -26,8 +26,9 @@ export class Library {
   private folder: FolderState = { kind: 'none' };
   private originals: Original[] = [];
   private setlists: Setlist[] = [];
-  /** Scores in setlists as last saved, for the excerpt each entry plays. */
+  /** Scores in setlists as last saved, and their originals' page shapes, for naming the excerpt each entry plays. */
   private saved = new Map<string, Score>();
+  private shapes = new Map<string, Aspects>();
   private query = '';
   /** What the library shows that isn't data, kept while the app runs. */
   private openRows = new Set<string>();
@@ -104,8 +105,9 @@ export class Library {
   private async loadSetlists() {
     this.setlists = await loadSetlists();
     const ids = [...new Set(this.setlists.flatMap((s) => s.entries.map((e) => e.scoreId)))];
-    const saved = await Promise.all(ids.map((id) => loadSavedScore(id)));
+    const [saved, shapes] = await Promise.all([Promise.all(ids.map(loadSavedScore)), Promise.all(ids.map(loadAspects))]);
     this.saved = new Map(saved.filter((x): x is Score => !!x).map((x) => [x.id, x]));
+    this.shapes = new Map(ids.flatMap((id, i) => (shapes[i] ? [[id, shapes[i]] as const] : [])));
     this.renderSetlists();
   }
 
@@ -247,7 +249,7 @@ export class Library {
 
   private entryRow(s: Setlist, e: Entry, i: number, list: HTMLElement): HTMLLIElement {
     const title = this.titleOf(e.scoreId), score = this.saved.get(e.scoreId), missing = !this.originalOf(e.scoreId);
-    const excerpt = score ? spanLabel(score.cuts, e) : null;
+    const excerpt = score ? spanLabel(score.cuts, e, this.shapes.get(e.scoreId)) : null;
     const li = el('li', 'entry');
     const handle = button('⋮⋮', () => {}, 'handle');
     handle.setAttribute('aria-label', `Move ${title}`);
@@ -341,9 +343,9 @@ export class Library {
         const now = this.get(id);
         if (!now) return;
         this.openRows.add(id);
-        for (const x of scores) this.saved.set(x.score.id, x.score);
-        // The scores excerpts were chosen from too: one never opened isn't saved yet, and the spans name its cuts.
-        void this.change(this.setlists.map((x) => (x.id === id ? { ...now, entries: [...now.entries, ...entries] } : x)), scores.flatMap(scoreEntries));
+        for (const x of scores) this.remember(x);
+        // The scores excerpts were chosen from too, so the spans and the cuts they name agree.
+        void this.change(this.setlists.map((x) => (x.id === id ? { ...now, entries: [...now.entries, ...entries] } : x)), scores.flatMap((x) => scoreEntries(x.state)));
         this.toast.say(`Added ${plural(entries.length, 'score')} to “${now.title}”.`);
       },
     });
@@ -398,6 +400,12 @@ export class Library {
     return this.read({ kind: 'setlist', setlistId: s.id, originals: this.originals, startEntry }, originals, `Could not open “${s.title}”.`);
   }
 
+  /** Keep a score opened for a dialog, for naming the excerpts entries play. */
+  private remember(sc: ExcerptSource) {
+    this.saved.set(sc.state.score.id, sc.state.score);
+    this.shapes.set(sc.state.score.id, sc.aspects);
+  }
+
   /** Open a score's original for a dialog over the library; null, having said why, when it can't be. */
   private async openForDialog(o: Original): Promise<LibraryScore | null> {
     // Opening is a tap, so it can also grant folder access for this session.
@@ -428,7 +436,7 @@ export class Library {
       done: (span) => {
         const now = this.get(s.id);
         if (!now) return;
-        this.saved.set(sc.state.score.id, sc.state.score);
+        this.remember(sc);
         const entries = now.entries.map((x) => (x.id === e.id ? { id: x.id, scoreId: x.scoreId, ...span } : x));
         // The score too: one never opened isn't saved yet, and the span names its cuts.
         void this.change(this.setlists.map((x) => (x.id === s.id ? { ...now, entries } : x)), scoreEntries(sc.state));

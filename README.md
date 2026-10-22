@@ -43,7 +43,9 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   - A setlist can play part of a score, and can come back to the same score (the Kyrie, another
     piece, then the Gloria). **Preview** in **Add scores** adds parts of a score; **Excerpt** in the
     reader's toolbar, or **Change excerpt…** on an entry in the library, changes the part an entry
-    plays. Either way, tap the first and last cut to play. Pinch the thumbnails there to
+    plays. Either way, tap the first and last cut to play. An excerpt is named by the score's
+    pages it plays, with a letter for a cut that shares its page: **Page 2b – 4** starts at page 2's
+    second cut. Pinch the thumbnails there to
     zoom in, and drag to move along them.
   - Cuts and markings always belong to the score: changing them in a setlist changes the score,
     and every setlist's excerpts follow the change.

@@ -21,6 +21,8 @@ export const keys = {
   ink: (id: string) => 'ink:' + id,
   /** The id of the first cut on the screen you were reading. */
   pos: (id: string) => 'pos:' + id,
+  /** Aspects, the original's page shapes as last opened: for laying out pages without opening it. */
+  aspects: (id: string) => 'aspects:' + id,
 
   /* Setlists (setlists/store.ts). Cuts and markings are only ever stored in the score. */
   /** Setlist ids, newest first. */

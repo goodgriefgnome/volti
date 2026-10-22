@@ -310,7 +310,7 @@ class Reader {
   /** " · Pages 2–3" for an entry that plays an excerpt of a score that is open; otherwise nothing. */
   private excerptLabel(k: number): string {
     const cur = this.scores.get(this.items[k].scoreId), entry = this.entry(k);
-    const label = cur && entry ? spanLabel(cur.state.score.cuts, entry) : null;
+    const label = cur && entry ? spanLabel(cur.state.score.cuts, entry, cur.aspects) : null;
     return label ? ` · ${label}` : '';
   }
 

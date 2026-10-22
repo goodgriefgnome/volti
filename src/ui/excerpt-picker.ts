@@ -4,9 +4,9 @@
 
 import { drawFrame, drawFrameInk } from '../reader/frames';
 import { scrollForPinch, type Pt } from '../reader/zoom';
-import { pack, type Frame } from '../scores/frames';
+import { pack, placeLabel, places, type Frame, type Place } from '../scores/frames';
 import { frameHeight, type Aspects, type State } from '../scores/model';
-import { spanFor, spanOf, type Span } from '../setlists/model';
+import { spanFor, spanLabel, spanOf, type Span } from '../setlists/model';
 import { button, el } from './dom';
 import { buttonRow, closeOverlay, showDialog } from './overlay';
 
@@ -39,6 +39,8 @@ export class ExcerptStrip {
   private bands: HTMLButtonElement[] = [];
   private n: number;
   private frames: Frame[];
+  /** Each cut's page and letter, for naming it. */
+  private places: Place[];
   private boxes: HTMLElement[];
   /** The width each frame's thumbnail was last drawn at, in CSS pixels; 0 while it draws. */
   private drawnAt: number[];
@@ -57,6 +59,7 @@ export class ExcerptStrip {
     const fh = THUMB_W * frameHeight(aspects);
     const u = (n: number) => `calc(var(--u) * ${n})`;
     const frames = this.frames = pack(cuts, aspects);
+    this.places = places(cuts, aspects);
     this.drawnAt = frames.map(() => 0);
     this.boxes = frames.map((f) => {
       const box = el('div', 'thumb-frame');
@@ -64,9 +67,10 @@ export class ExcerptStrip {
       for (const p of f.items) {
         const b = el('button', 'band');
         b.type = 'button';
-        b.dataset.n = String(p.index + 1);
+        const at = placeLabel(this.places[p.index]);
+        b.dataset.n = at;
         Object.assign(b.style, { top: u(p.top * THUMB_W), height: u(p.h * THUMB_W) });
-        b.setAttribute('aria-label', `Cut ${p.index + 1}, from original page ${p.cut.page + 1}`);
+        b.setAttribute('aria-label', `Page ${at}, from original page ${p.cut.page + 1}`);
         b.addEventListener('click', () => this.tap(p.index));
         this.bands[p.index] = b;
         box.append(b);
@@ -107,17 +111,17 @@ export class ExcerptStrip {
   }
 
   private sync() {
-    const { i0, i1, pending, n } = this, cuts = this.src.state.score.cuts;
+    const { i0, i1, pending } = this, { state, aspects } = this.src;
     this.bands.forEach((b, k) => {
       b.classList.toggle('out', k < i0 || k > i1);
       b.classList.toggle('pending', k === pending);
       b.setAttribute('aria-pressed', String(k >= i0 && k <= i1));
     });
-    const a = cuts[i0].page + 1, z = cuts[i1].page + 1;
-    const what = this.whole ? 'the whole score' : `cuts ${i0 + 1}–${i1 + 1} of ${n} (${a === z ? `original page ${a}` : `original pages ${a}–${z}`})`;
+    const label = spanLabel(state.score.cuts, this.span, aspects);
+    const what = label ? label[0].toLowerCase() + label.slice(1) : 'the whole score';
     this.hint.textContent = pending === null
       ? `${this.verb} ${what}. Tap the first cut to play, then the last.`
-      : `Starts at cut ${pending + 1}. Now tap the last cut to play.`;
+      : `Starts at page ${placeLabel(this.places[pending])}. Now tap the last cut to play.`;
     this.onChange();
   }
 

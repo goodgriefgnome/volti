@@ -56,3 +56,21 @@ export function roomBefore(frames: Frame[], n: number, aspects: Aspects): number
   const H = frameHeight(aspects), room = H - prev.fill;
   return room > ROOM_CUE * H ? room : null;
 }
+
+/** Where a cut is on the score's pages (its frames): page `page` (from 1), `j`th of the `n` cuts on it. */
+export interface Place { page: number; j: number; n: number }
+
+/** Where each cut, by index, is on the score's pages. */
+export function places(cuts: readonly Cut[], aspects: Aspects): Place[] {
+  const out: Place[] = [];
+  pack(cuts, aspects).forEach((f, k) => f.items.forEach((p, j) => { out[p.index] = { page: k + 1, j, n: f.items.length }; }));
+  return out;
+}
+
+/** The letter for the `j`th cut on a page: a, b, …, z, aa, ab, … */
+export function cutLetter(j: number): string {
+  return (j >= 26 ? cutLetter(Math.floor(j / 26) - 1) : '') + String.fromCharCode(97 + (j % 26));
+}
+
+/** "3b" for a cut that shares its page; "3" for the only cut on page 3. */
+export const placeLabel = (p: Place) => `${p.page}${p.n > 1 ? cutLetter(p.j) : ''}`;

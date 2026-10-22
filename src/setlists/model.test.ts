@@ -48,10 +48,36 @@ describe('spanFor and spanLabel', () => {
     expect(spanFor(cuts, 1, 3)).toEqual({ first: cuts[1].id });
     expect(spanFor(cuts, 0, 2)).toEqual({ last: cuts[2].id });
   });
-  it('names the pages played', () => {
+  it('names the original pages played, without their shapes', () => {
     expect(spanLabel(cuts, {})).toBeNull();
-    expect(spanLabel(cuts, spanFor(cuts, 0, 1))).toBe('Pages 1–2');
-    expect(spanLabel(cuts, spanFor(cuts, 2, 2))).toBe('Page 3');
+    expect(spanLabel(cuts, spanFor(cuts, 0, 1))).toBe('Original pages 1–2');
+    expect(spanLabel(cuts, spanFor(cuts, 2, 2))).toBe('Original page 3');
+  });
+});
+
+describe('spanLabel', () => {
+  // Pages (frames) of the score: 1 is original page 1; 2 holds three thirds of original page 2;
+  // 3 is original page 3; 4 holds the two halves of original page 4.
+  const s = state([cut(0), cut(1, 0, 1 / 3), cut(1, 1 / 3, 2 / 3), cut(1, 2 / 3, 1), cut(2), cut(3, 0, 0.5), cut(3, 0.5, 1)]);
+  const cuts = s.score.cuts;
+  const label = (i0: number, i1: number) => spanLabel(cuts, spanFor(cuts, i0, i1), aspects);
+  it('is null for the whole score', () => {
+    expect(label(0, 6)).toBeNull();
+  });
+  it('counts whole pages without letters', () => {
+    expect(label(0, 0)).toBe('Page 1');
+    expect(label(1, 3)).toBe('Page 2');
+    expect(label(0, 4)).toBe('Pages 1–3');
+  });
+  it('gives a letter where an excerpt starts or ends partway down a page', () => {
+    expect(label(2, 4)).toBe('Page 2b – 3');
+    expect(label(0, 5)).toBe('Page 1 – 4a');
+    expect(label(2, 5)).toBe('Page 2b – 4a');
+  });
+  it('names part of one page by its letters', () => {
+    expect(label(2, 2)).toBe('Page 2b');
+    expect(label(1, 2)).toBe('Page 2a–b');
+    expect(label(6, 6)).toBe('Page 4b');
   });
 });
 

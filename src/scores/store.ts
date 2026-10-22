@@ -13,9 +13,15 @@ export function forPages(s: State, aspects: Aspects): State {
   return { ...s, score };
 }
 
-/** A score as saved, or a new one for an original opened the first time. */
+/**
+ * A score as saved, or a new one for an original opened the first time. The original's page
+ * shapes are kept too, for laying out the score's pages without opening it.
+ */
 export async function loadScore(id: string, title: string, aspects: Aspects): Promise<{ state: State; position?: string }> {
-  const [score, ink, position] = await Promise.all([kv.get<Score>(keys.score(id)), kv.get<ScoreInk>(keys.ink(id)), kv.get<string>(keys.pos(id))]);
+  const [score, ink, position, was] = await Promise.all([
+    kv.get<Score>(keys.score(id)), kv.get<ScoreInk>(keys.ink(id)), kv.get<string>(keys.pos(id)), loadAspects(id),
+  ]);
+  if (!was || was.length !== aspects.length || was.some((a, i) => a !== aspects[i])) void kv.set(keys.aspects(id), [...aspects]);
   if (!score) return { state: { score: newScore(id, title, aspects), ink: {} } };
   return { state: forPages({ score, ink: ink ?? {} }, aspects), position };
 }
@@ -25,5 +31,8 @@ export const scoreEntries = (s: State): [string, unknown][] => [[keys.score(s.sc
 
 /** A score as last saved, without opening its original: for showing what a setlist plays. */
 export const loadSavedScore = (id: string) => kv.get<Score>(keys.score(id));
+
+/** The original's page shapes as last opened; undefined if it hasn't been opened since they were kept. */
+export const loadAspects = (id: string) => kv.get<Aspects>(keys.aspects(id));
 
 export const savePosition = (id: string, cutId: string) => kv.set(keys.pos(id), cutId);

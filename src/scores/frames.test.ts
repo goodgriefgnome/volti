@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pack, roomBefore } from './frames';
+import { cutLetter, pack, placeLabel, places, roomBefore } from './frames';
 import { A4, aspects, cut, sarabande } from './testing';
 
 describe('pack', () => {
@@ -30,5 +30,15 @@ describe('roomBefore', () => {
     expect(roomBefore(frames, 3, aspects)).toBeCloseTo(A4 / 3);
     expect(roomBefore(frames, 1, aspects)).toBeNull();
     expect(roomBefore(frames, 0, aspects)).toBeNull();
+  });
+});
+
+describe('places', () => {
+  it('numbers the frames as pages and letters the cuts on each', () => {
+    const cuts = [cut(0), cut(1, 0, 0.5), cut(1, 0.5, 1)];
+    expect(places(cuts, aspects).map(placeLabel)).toEqual(['1', '2a', '2b']);
+  });
+  it('runs on past z', () => {
+    expect([0, 25, 26, 27, 52].map(cutLetter)).toEqual(['a', 'z', 'aa', 'ab', 'ba']);
   });
 });
