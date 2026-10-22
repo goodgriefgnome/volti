@@ -41,11 +41,23 @@ In this order: each step builds on the one before it.
      edit), and undo. Add a test in `src/setlists/model.test.ts` for `followEdit` with two entries
      of one score.
 
-When it's all done, run `npm test` and `npm run build`, and check each step in the running app.
+8. **"Page" means the score's pages.** The wording change in "Named excerpts" below: the score's
+   frames are pages, and the PDF's pages are original pages.
+9. **Generated excerpt names** ("Page 3b – 5"), with the original's page shapes kept with the
+   saved score so the Library can work out pages without opening the PDF.
+10. **Names on spans:** `Score.names`, following cut edits, growing every entry with the same span,
+    and joining names when two spans become one. Unit tests for all of it.
+11. **Named excerpts in the Library:** expandable score rows, "Add excerpt…", and "Rename…",
+    "Change cuts…" and "Delete…" on each excerpt. Entries' pills show the name.
+12. **The dropdown of named excerpts** in the excerpt picker.
+13. **Search matches excerpt names**, with the score's name in the row.
+
+Each step is one commit to `main`. When it's all done, run `npm test` and `npm run build`, and
+check each step in the running app.
 
 ## Named excerpts
 
-Next after the night session. Designed, not built.
+Designed; built in the night session (steps 8–13).
 
 **Words.** "Score" always means the whole score. To the user, a **page** is one of the score's
 frames: the score's cuts stacked in played order (`pack` in `src/scores/frames.ts`), counted
