@@ -48,3 +48,13 @@ export function visiblePart(z: Zoom, W: number, H: number, box: Rect): Rect | nu
   if (right <= left || bottom <= top) return null;
   return { x: left - box.x, y: top - box.y, w: right - left, h: bottom - top };
 }
+
+/**
+ * Pinching content that scrolls rather than moves, such as a strip of thumbnails: at scale `s0`,
+ * scrolled to `scroll0`, the fingers' centre was at `c0` in the scroll box; now the scale is `s`
+ * and the centre is at `c`. The scroll position that keeps the same content under the fingers.
+ */
+export function scrollForPinch(s0: number, scroll0: Pt, c0: Pt, s: number, c: Pt): Pt {
+  const k = s / s0;
+  return { x: (scroll0.x + c0.x) * k - c.x, y: (scroll0.y + c0.y) * k - c.y };
+}

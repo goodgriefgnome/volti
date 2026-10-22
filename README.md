@@ -39,7 +39,8 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
     **Add to setlist** in a score's toolbar. The arrow
     beside a setlist shows its scores, to reorder or remove; its **⋯** button has the rest.
   - A setlist can play an excerpt of a score: **Excerpt** in its toolbar (or **Choose the excerpt to
-    play…** in the library) picks the first and last cut to play.
+    play…** in the library) picks the first and last cut to play. Pinch the thumbnails there to
+    zoom in, and drag to move along them.
   - Cuts and markings always belong to the score: changing them in a setlist changes the score,
     and every setlist's excerpts follow the change.
   - **Archive** hides a setlist behind **Show archived**; only archived setlists can be deleted.

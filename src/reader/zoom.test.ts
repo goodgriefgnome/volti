@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clamp, MAX_ZOOM, NO_ZOOM, pan, pinch, visiblePart } from './zoom';
+import { clamp, MAX_ZOOM, NO_ZOOM, pan, pinch, scrollForPinch, visiblePart } from './zoom';
 
 const W = 1000, H = 800;
 
@@ -47,5 +47,17 @@ describe('visiblePart', () => {
   });
   it('is nothing for a page out of view', () => {
     expect(visiblePart({ s: 4, x: -3000, y: 0 }, W, H, box)).toBeNull();
+  });
+});
+
+describe('scrollForPinch', () => {
+  it('keeps the content under the fingers under them', () => {
+    // At 1x, scrolled 100 across, the fingers at 50 are over content 150; at 2x that is at 300.
+    const p = scrollForPinch(1, { x: 100, y: 0 }, { x: 50, y: 20 }, 2, { x: 50, y: 20 });
+    expect(p).toEqual({ x: 250, y: 20 });
+  });
+  it('follows the fingers when they move together', () => {
+    const p = scrollForPinch(2, { x: 0, y: 0 }, { x: 100, y: 0 }, 2, { x: 60, y: 0 });
+    expect(p.x).toBe(40);
   });
 });
