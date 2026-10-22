@@ -260,7 +260,7 @@ export class Library {
     const more = button('⋯', () => showMenu(more, title, [
       i > 0 && { label: 'Move up', run: () => void this.update(moveEntry(s, i, i - 1)) },
       i < s.entries.length - 1 && { label: 'Move down', run: () => void this.update(moveEntry(s, i, i + 1)) },
-      !missing && { label: 'Choose the excerpt to play…', run: () => void this.chooseExcerpt(s, e) },
+      !missing && { label: 'Change excerpt…', run: () => void this.chooseExcerpt(s, e) },
       !!excerpt && { label: 'Play the whole score', run: () => void this.update({ ...s, entries: s.entries.map((x) => (x === e ? { id: e.id, scoreId: e.scoreId } : x)) }) },
       { label: 'Remove from setlist', run: () => this.removeEntry(s, e) },
     ]), 'quiet more');
@@ -422,7 +422,8 @@ export class Library {
     if (!sc) return;
     openExcerptPicker({
       ...sc,
-      question: `Which excerpt of “${o.title}” does “${s.title}” play?`,
+      question: `Which part of “${o.title}” does entry ${s.entries.indexOf(e) + 1} play?`,
+      verb: 'This entry plays',
       span: e,
       done: (span) => {
         const now = this.get(s.id);

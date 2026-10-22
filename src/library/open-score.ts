@@ -3,7 +3,8 @@
 
 import type { Original } from '../originals/originals';
 import { openPdf } from '../originals/pdf';
-import { loadScore } from '../scores/store';
+import { loadSavedScore, loadScore, scoreEntries } from '../scores/store';
+import { kv } from '../storage/kv';
 import type { ExcerptSource } from '../ui/excerpt-picker';
 
 /** A score and its original, open until `close`. */
@@ -11,11 +12,17 @@ export interface LibraryScore extends ExcerptSource {
   close(): void;
 }
 
+/**
+ * Open a score and its original. A score opened for the first time is saved straight away, so
+ * the cut ids an excerpt chosen now names are the ones the score keeps.
+ */
 export async function openScore(o: Original): Promise<LibraryScore> {
   const cache = await openPdf(await o.getFile());
   try {
     const aspects = await cache.allAspects();
+    const fresh = !(await loadSavedScore(o.id));
     const { state } = await loadScore(o.id, o.title, aspects);
+    if (fresh) await kv.setMany(scoreEntries(state));
     const dpr = window.devicePixelRatio || 1;
     return {
       state,

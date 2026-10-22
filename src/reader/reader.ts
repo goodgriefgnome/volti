@@ -7,7 +7,7 @@ import { PEN_COLORS } from '../markings/stroke';
 import { frameOf, pack, type Frame } from '../scores/frames';
 import type { Aspects, Cut, State } from '../scores/model';
 import { loadScore, savePosition } from '../scores/store';
-import { followScore, newEntry, spanCuts, type Entry, type Setlist, type Span } from '../setlists/model';
+import { followScore, newEntry, spanCuts, spanLabel, type Entry, type Setlist, type Span } from '../setlists/model';
 import { loadPosition, loadSetlists, savePosition as saveSetlistPosition } from '../setlists/store';
 import { openPdf, type PageCache } from '../originals/pdf';
 import { titleFromId, type Original } from '../originals/originals';
@@ -301,10 +301,17 @@ class Reader {
 
   private scoresMenu() {
     showMenu(this.toolbar.anchor('scores'), this.setlist?.title ?? 'Scores', this.items.map((it, k) => ({
-      label: `${k + 1}. ${it.title}`,
+      label: `${k + 1}. ${it.title}${this.excerptLabel(k)}`,
       checked: k === this.k,
       run: () => void this.goTo(k, 'first'),
     })));
+  }
+
+  /** " · Pages 2–3" for an entry that plays an excerpt of a score that is open; otherwise nothing. */
+  private excerptLabel(k: number): string {
+    const cur = this.scores.get(this.items[k].scoreId), entry = this.entry(k);
+    const label = cur && entry ? spanLabel(cur.state.score.cuts, entry) : null;
+    return label ? ` · ${label}` : '';
   }
 
   /** In a score's own reader: add the score, whole, to the end of a setlist. */
@@ -325,7 +332,8 @@ class Reader {
     this.editor.dismiss();
     const cache = cur.cache;
     openExcerptPicker({
-      question: `Which excerpt of “${this.items[this.k].title}” does “${setlist.title}” play?`,
+      question: `Which part of “${this.items[this.k].title}” does entry ${this.k + 1} play?`,
+      verb: 'This entry plays',
       state: cur.state,
       aspects: cur.aspects,
       span: entry,

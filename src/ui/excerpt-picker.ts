@@ -46,7 +46,8 @@ export class ExcerptStrip {
   private s = 1;
   private redrawTimer: ReturnType<typeof setTimeout> | undefined;
 
-  constructor(private src: ExcerptSource, span: Span, private onChange: () => void = () => {}) {
+  /** `verb` starts the hint: "Plays the whole score." */
+  constructor(private src: ExcerptSource, span: Span, private verb = 'Plays', private onChange: () => void = () => {}) {
     const { state, aspects } = src, cuts = state.score.cuts;
     this.n = cuts.length;
     ({ i0: this.i0, i1: this.i1 } = spanOf(cuts, span));
@@ -115,7 +116,7 @@ export class ExcerptStrip {
     const a = cuts[i0].page + 1, z = cuts[i1].page + 1;
     const what = this.whole ? 'the whole score' : `cuts ${i0 + 1}–${i1 + 1} of ${n}, from page ${a} to page ${z}`;
     this.hint.textContent = pending === null
-      ? `Plays ${what}. Tap the first cut to play, then the last.`
+      ? `${this.verb} ${what}. Tap the first cut to play, then the last.`
       : `Starts at cut ${pending + 1}. Now tap the last cut to play.`;
     this.onChange();
   }
@@ -241,13 +242,15 @@ export class ExcerptStrip {
 export interface ExcerptPicker extends ExcerptSource {
   question: string;
   span: Span;
+  /** Starts the hint, such as "This entry plays". */
+  verb?: string;
   done(span: Span): void;
 }
 
 /** A dialog for choosing which of a score's cuts to play. */
 export function openExcerptPicker(h: ExcerptPicker) {
   const d = showDialog(h.question, 'wide');
-  const strip = new ExcerptStrip(h, h.span);
+  const strip = new ExcerptStrip(h, h.span, h.verb);
   const whole = button('Whole score', () => strip.set({}));
   const done = button('Done', () => { closeOverlay(); h.done(strip.span); }, 'primary');
   d.append(strip.el, strip.hint, buttonRow(whole, el('span', 'grow'), button('Cancel', closeOverlay), done));

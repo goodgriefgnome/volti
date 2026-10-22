@@ -160,6 +160,27 @@ describe('followScore', () => {
     expect(out[0].entries[0].first).toBe(r.first);
     expect(out[1]).toBe(setlists[1]);
   });
+  it('moves each entry of a score that comes twice on its own music', () => {
+    // The Kyrie (page 1), another piece, then the Gloria (pages 3–4), all from one score.
+    const [p1, , p3] = s.score.cuts;
+    const kyrie = { ...newEntry('p'), last: p1.id }, gloria = { ...newEntry('p'), first: p3.id };
+    const mass = [list('m', kyrie, other, gloria)];
+    const r = split(s, p1.id, 0.5, aspects).state;
+    const out = followScore(mass, 'p', s.score.cuts, r.score.cuts)[0].entries;
+    expect(plays(r, out[0])).toEqual([[0, 0, 0.5], [0, 0.5, 1]]);
+    expect(out[1]).toBe(other);
+    expect(out[2]).toBe(gloria);
+    expect(plays(r, out[2])).toEqual([[2, 0, 1], [3, 0, 1]]);
+  });
+  it('grows only the entry being read when the score comes twice', () => {
+    const [, , p3] = s.score.cuts;
+    const kyrie = { ...newEntry('p'), last: p3.id }, gloria = { ...newEntry('p'), first: p3.id };
+    const mass = [list('m', kyrie, gloria)];
+    const r = insertPages(s, { id: p3.id, after: true }, 0, 0, false, aspects);
+    const out = followScore(mass, 'p', s.score.cuts, r.state.score.cuts, { setlist: 'm', entries: new Set([kyrie.id]) })[0].entries;
+    expect(out[0].last).toBe(r.first);
+    expect(out[1]).toBe(gloria);
+  });
 });
 
 describe('setlist edits', () => {

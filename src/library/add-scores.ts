@@ -1,5 +1,5 @@
-// The "Add scores" dialog: picking scores to add to the end of a setlist, each whole or as an
-// excerpt chosen in its preview. "New setlist" and a setlist's ⋯ › Add scores both open it.
+// The "Add scores" dialog: picking scores to add to the end of a setlist, each whole or as one or
+// more excerpts chosen in its preview. "New setlist" and a setlist's ⋯ › Add scores both open it.
 
 import type { Original } from '../originals/originals';
 import type { State } from '../scores/model';
@@ -19,31 +19,35 @@ export interface AddScoresHost {
   add(entries: Entry[], scores: State[]): void;
 }
 
-/** What is chosen of one score: the whole of it, or an excerpt chosen in its preview. */
+/** One entry to add: the whole score, or an excerpt chosen in its preview. */
 interface Choice { span: Span; label: string | null; state?: State }
 
 /**
  * Scores as checkboxes; the ticked ones go at the end, in library order. Preview shows a score's
- * pages, to choose an excerpt of it instead of the whole score.
+ * pages, to add excerpts of it instead of the whole score: several, for a setlist that comes back
+ * to the score (the Kyrie, another piece, then the Gloria).
  */
 export function openAddScores(h: AddScoresHost) {
   const s = h.setlist;
-  const chosen = new Map<string, Choice>();
+  /** By score, the entries to add, in the order chosen. */
+  const chosen = new Map<string, Choice[]>();
+  const count = () => [...chosen.values()].reduce((n, c) => n + c.length, 0);
   const d = showDialog(`Add scores to “${s.title}”`);
   const heading = d.querySelector('h2')!;
   const listView = el('div', 'view');
   const list = el('div', 'picklist');
   const add = button('Add', () => {
     closeOverlay();
-    const picked = h.originals.filter((o) => chosen.has(o.id)).map((o) => [o.id, chosen.get(o.id)!] as const);
+    const picked = h.originals.flatMap((o) => (chosen.get(o.id) ?? []).map((c) => [o.id, c] as const));
     h.add(
       picked.map(([scoreId, c]) => ({ id: newId(), scoreId, ...c.span })),
-      picked.flatMap(([, c]) => (c.state ? [c.state] : [])),
+      [...new Set(picked.flatMap(([, c]) => (c.state ? [c.state] : [])))],
     );
   }, 'primary');
   const sync = () => {
-    add.disabled = !chosen.size;
-    add.textContent = chosen.size ? `Add ${plural(chosen.size, 'score')}` : 'Add';
+    const n = count();
+    add.disabled = !n;
+    add.textContent = n ? `Add ${plural(n, 'score')}` : 'Add';
   };
   sync();
 
@@ -59,20 +63,32 @@ export function openAddScores(h: AddScoresHost) {
     const label = el('label', 'check');
     const box = el('input');
     box.type = 'checkbox';
-    box.checked = chosen.has(sc.id);
+    const mine = chosen.get(sc.id) ?? [];
+    box.checked = mine.length > 0;
     box.addEventListener('change', () => {
-      if (box.checked) chosen.set(sc.id, { span: {}, label: null }); else chosen.delete(sc.id);
-      sync();
-      r.replaceWith(row(sc));
+      if (box.checked) chosen.set(sc.id, [{ span: {}, label: null }]); else chosen.delete(sc.id);
+      redraw();
     });
-    const c = chosen.get(sc.id);
-    const has = s.entries.some((e) => e.scoreId === sc.id);
-    label.append(box, el('span', '', sc.title));
-    if (c?.label) label.append(el('span', 'pill', c.label));
-    label.append(el('span', 'meta', has ? 'already in this setlist' : sc.folder));
+    const redraw = () => { sync(); r.replaceWith(row(sc)); };
+    const has = s.entries.filter((e) => e.scoreId === sc.id).length;
+    label.append(box, el('span', '', sc.title), el('span', 'meta', has ? `in this setlist${has > 1 ? ` ${has}×` : ''}` : sc.folder));
     const preview = button('Preview', () => void showPreview(sc), 'quiet');
     preview.setAttribute('aria-label', `Preview ${sc.title}`);
     r.append(label, preview);
+    // Excerpts chosen, each with a button to take it out again.
+    if (mine.some((c) => c.label)) {
+      const pills = el('div', 'chosen');
+      mine.forEach((c, i) => {
+        const pill = button(`${c.label ?? 'Whole score'} ×`, () => {
+          const left = mine.filter((_, k) => k !== i);
+          if (left.length) chosen.set(sc.id, left); else chosen.delete(sc.id);
+          redraw();
+        }, 'pill');
+        pill.setAttribute('aria-label', `Don't add ${c.label ?? 'the whole score'}`);
+        pills.append(pill);
+      });
+      r.append(pills);
+    }
     return r;
   };
 
@@ -94,10 +110,12 @@ export function openAddScores(h: AddScoresHost) {
     if (!sc || !d.isConnected) { sc?.close(); return; }
     closePreview();
     open = sc;
-    const strip = new ExcerptStrip(sc, chosen.get(o.id)?.span ?? {});
-    const use = button('Use this excerpt', () => {
-      const span = strip.span, cuts = sc.state.score.cuts;
-      chosen.set(o.id, { span, label: spanLabel(cuts, span), state: sc.state });
+    const strip = new ExcerptStrip(sc, {}, 'Adds');
+    const use = button('Add this excerpt', () => {
+      const span = strip.span, label = spanLabel(sc.state.score.cuts, span);
+      // An excerpt takes the place of the whole score ticked on its own; the same one twice is once.
+      const was = (chosen.get(o.id) ?? []).filter((c) => c.label && (c.span.first !== span.first || c.span.last !== span.last));
+      chosen.set(o.id, [...was, { span, label, state: sc.state }]);
       sync();
       back();
     }, 'primary');
@@ -116,7 +134,7 @@ export function openAddScores(h: AddScoresHost) {
   find.addEventListener('input', () => fill(find.value));
   fill('');
   listView.append(
-    el('p', 'hint', 'They go at the end, in the order shown. Preview a score to play only part of it.'),
+    el('p', 'hint', 'They go at the end, in the order shown. Preview a score to add only part of it, or several parts.'),
     find, list, buttonRow(button('Cancel', closeOverlay), add),
   );
   d.append(listView, previewView);
