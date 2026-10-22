@@ -646,7 +646,7 @@ function renderHome() {
 
 /* A setlist: tap to play it; the arrow slides its pieces open; ⋯ for the rest. */
 function setlistRow(s) {
-  const open = lib.open.has(s.id), frozen = s.archived;
+  const open = lib.open.has(s.id);
   const li = h('li', { class: 'set' + (open ? ' open' : '') });
   const body = h('div', { class: 'set-body', id: 'set-' + s.id, inert: !open });
   const expand = h('button', {
@@ -663,15 +663,14 @@ function setlistRow(s) {
     h('span', { class: 'item-title setlist-title', text: titleOf(s) }),
     h('span', { class: 'meta', text: plural(s.entries.length, 'piece') }),
   ], () => (s.entries.length ? openReader({ kind: 'setlist', setlistId: s.id }) : say('This setlist has no pieces yet.')), 'open');
-  const more = btn('⋯', () => menuAt(more, titleOf(s), frozen ? [
-    { label: 'Unarchive', run: () => { s.archived = false; save(); render(); say(`Unarchived “${titleOf(s)}”.`); } },
-    { label: 'Duplicate', run: () => duplicate(s) },
-    { label: 'Delete…', run: () => confirmDelete(s) },
-  ] : [
+  // Archiving only moves a setlist out of the main list, where it can also be deleted.
+  const more = btn('⋯', () => menuAt(more, titleOf(s), [
     { label: 'Add pieces…', run: () => addPieces(s) },
     { label: 'Rename…', run: () => askName('Rename setlist', s.title, 'Rename', (name) => { s.title = name; save(); render(); }) },
     { label: 'Duplicate', run: () => duplicate(s) },
-    { label: 'Archive', run: () => { s.archived = true; save(); render(); say(`Archived “${titleOf(s)}”.`); } },
+    s.archived ? { label: 'Unarchive', run: () => { s.archived = false; save(); render(); say(`Unarchived “${titleOf(s)}”.`); } }
+      : { label: 'Archive', run: () => { s.archived = true; save(); render(); say(`Archived “${titleOf(s)}”.`); } },
+    s.archived && { label: 'Delete…', run: () => confirmDelete(s) },
   ]), 'quiet more', { 'aria-label': `More for ${titleOf(s)}`, 'aria-haspopup': 'menu' });
   const entries = h('ol', { class: 'entries', 'aria-label': `Pieces in ${titleOf(s)}` });
   s.entries.forEach((e, i) => entries.append(entryRow(s, e, i, entries)));
@@ -682,17 +681,17 @@ function setlistRow(s) {
 }
 
 function entryRow(s, e, i, list) {
-  const p = D.pieces[e.pieceId], frozen = s.archived, part = spanLabel(e);
+  const p = D.pieces[e.pieceId], part = spanLabel(e);
   const li = h('li', { class: 'entry' });
-  const handle = frozen ? h('span', { class: 'handle' }) : h('button', { type: 'button', class: 'handle', 'aria-label': `Move ${p.title}` }, '⋮⋮');
-  if (!frozen) dragToReorder(handle, li, list, s, i);
+  const handle = h('button', { type: 'button', class: 'handle', 'aria-label': `Move ${p.title}` }, '⋮⋮');
+  dragToReorder(handle, li, list, s, i);
   const open = btn([
     h('span', { class: 'item-title', text: p.title }),
     h('span', { class: 'meta', text: p.key }),
     part ? h('span', { class: 'pill own', text: part }) : null,
   ], () => openReader({ kind: 'setlist', setlistId: s.id }, e.id), 'open');
   li.append(handle, h('span', { class: 'num', text: String(i + 1) }), open);
-  if (!frozen) {
+  {
     const more = btn('⋯', () => menuAt(more, p.title, [
       i > 0 && { label: 'Move up', run: () => move(s, i, i - 1) },
       i < s.entries.length - 1 && { label: 'Move down', run: () => move(s, i, i + 1) },
@@ -734,7 +733,8 @@ function togglePick(id, on) {
 function pickBar() {
   const n = lib.picking.size;
   const add = btn('Add to setlist', () => menuAt(add, `Add ${plural(n, 'piece')} to`, [
-    ...D.setlists.filter((s) => !s.archived).map((s) => ({ label: titleOf(s), run: () => addPicked(s) })),
+    ...[...D.setlists.filter((s) => !s.archived), ...D.setlists.filter((s) => s.archived)]
+      .map((s) => ({ label: titleOf(s) + (s.archived ? ' (archived)' : ''), run: () => addPicked(s) })),
     { label: 'New setlist…', run: () => askName('New setlist', '', 'Make setlist', (name) => {
       const s = { id: uid(), title: name, archived: false, entries: [] };
       D.setlists.unshift(s);
@@ -925,7 +925,7 @@ function renderReader() {
     h('div', { class: 'group' }, btn('‹ Library', closeReader), h('span', { class: 'title', id: 'reader-title' })),
     h('div', { class: 'group' }, tool('pen', 'Pen'), tool('eraser', 'Erase'), btn('Undo', undo, '', { disabled: !R.undo.length })),
     h('div', { class: 'group' }, piecesBtn,
-      isSet && !sl.archived ? btn('Part', () => openPartPicker(firstOnScreen().it)) : null,
+      isSet ? btn('Part', () => openPartPicker(firstOnScreen().it)) : null,
       btn('Edit cuts', () => { R.editing = !R.editing; R.tool = 'none'; renderReader(); }, '', pressed(R.editing)),
       h('span', { class: 'info', id: 'reader-info' })),
   );

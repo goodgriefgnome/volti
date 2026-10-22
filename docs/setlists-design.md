@@ -43,7 +43,9 @@ cuts changed. The user walked it back: it was more than setlists need. Nothing o
 | Where setlists live | **A Setlists section above the scores** on the library page. There is no separate setlist screen. |
 | Tapping a setlist or a score | **Always opens the reader.** A setlist's pieces show by **expanding its row** (they slide open) with an arrow button; its **⋯ button** has the rest. |
 | Adding pieces | **Press and hold scores** to pick several, then add them to a setlist. Also **Add pieces…** in a setlist's ⋯ menu, which adds at the end. |
-| Deleting | **Only archived setlists can be deleted.** |
+| Archiving and deleting | **Archiving only hides a setlist from the main list and allows deleting it.** An archived setlist otherwise behaves like any other, including being changed. **Only archived setlists can be deleted.** |
+| Editing cuts in a setlist | **Edit cuts shows only the setlist's part of the piece**, and pages can be inserted at the part's edges, which grows the part. |
+| A score whose file is missing | **Its entries stay, marked Missing.** Removing scores from within the app is not handled by this work, so that no setlist or piece data can be lost through it. |
 | Dates | **None.** A setlist has a name only. |
 
 ---
@@ -138,7 +140,6 @@ there are few.
 - **Done** saves and shows the first screen of the piece's new part.
 - The part is chosen by cut, not by frame, because frames move when cuts change. Choosing a frame
   boundary inside a cut means cutting the piece there first (Edit cuts › Cut in two here).
-- Not on an archived setlist.
 
 ---
 
@@ -165,17 +166,15 @@ Everything about setlists happens on the library page. From the top:
   whole piece (when it plays a part), Remove from setlist.
 - **Remove from setlist** removes at once, with a toast "Removed “Blue Bossa” from “Spring
   recital”." and an **Undo** button for about six seconds.
-- **The setlist's ⋯ menu:**
-  - Active setlist: **Add pieces…**, **Rename…**, **Duplicate**, **Archive**.
-  - Archived setlist: **Unarchive**, **Duplicate**, **Delete…**. Delete asks first: "Delete
-    “Summer wedding”? The pieces, with their cuts and markings, stay in the library."
+- **The setlist's ⋯ menu:** **Add pieces…**, **Rename…**, **Duplicate**, and **Archive** or,
+  on an archived setlist, **Unarchive** and **Delete…**. Delete asks first: "Delete “Summer
+  wedding”? The pieces, with their cuts and markings, stay in the library."
 - **Add pieces…** opens a dialog: a search field, the scores as checkboxes (one already in the
   setlist says so), and **Add n pieces**. They go at the end, each played whole.
 - **Rename…** and **New setlist** ask for the name in a small dialog. After naming a new setlist,
   the Add pieces dialog opens.
 - **Duplicate** copies the entries, with their parts, under new entry ids, names the copy
   "Spring recital (copy)" and puts it at the top, open.
-- An archived setlist's pieces show without handles or menus.
 
 ### 6.3 Picking scores
 
@@ -209,26 +208,32 @@ Everything about setlists happens on the library page. From the top:
 - **Pen, Erase, Undo and Edit cuts work exactly as in the piece's own reader**, on the piece.
   While Edit cuts is on, a brown pill under the toolbar says "Cuts changed here change the piece,
   in every setlist".
-- Edit cuts shows only the part's cuts. The cuts outside it are edited from the piece itself.
+- **Edit cuts shows only the part's cuts.** The cuts outside it are edited from the piece itself.
+  Inserting pages works as in the piece's reader, including before the part's first cut and after
+  its last (from those cuts' menus, or the blank space above or below them), and the part grows
+  to include them (section 4).
 - **Reading position** is stored per setlist, as entry id and cut id.
-- **Not prototyped:** a missing score (file moved or removed) should show a blank frame that says
-  "Can't find “Blue Bossa”" and carry on with the next piece. Its row in the library says
-  "Missing".
+- **A missing score** (its file moved, renamed or deleted outside the app) shows a blank frame
+  that says "Can't find “Blue Bossa”", and reading carries on with the next piece. Its row in the
+  library says "Missing". The entry is kept unchanged, so it plays again if the file comes back.
+  Not prototyped.
 
 ### 6.5 Archived setlists
 
-Archiving puts a setlist away: it moves under Archived (n), its order and parts can't be changed,
-and it can be deleted. Its pieces are still the pieces as they are now, with today's cuts and
-markings, since a setlist has no copies. Reading it works as for any setlist, including marking
-the pieces.
+Archiving only moves a setlist under Archived (n), out of the main list, and makes **Delete…**
+available. Everything else works as for any setlist: it can be read, reordered, renamed, have
+pieces added or removed and parts changed, and **Add to setlist** after picking scores offers it
+too, after the active setlists. Its pieces are the pieces as they are now, since a setlist has no
+copies.
 
 ---
 
 ## 7. Open questions
 
-- **A piece deleted from the library** (an imported PDF removed). Proposal: its entries stay,
-  marked Missing, so the setlist recovers if the file comes back. That needs scores to be matched
-  again, by file name for instance.
+- **Removing a score from within the app is out of scope** for now (user's decision, so that no
+  data can be lost through it). Volti already has **Remove** for added PDFs; for this work it
+  leaves the setlist entries in place, shown as Missing, like any missing file. Matching a re-added
+  file back to its piece is not designed.
 - **Frames per screen** come from the toolbar's Auto / 1 page / 2 pages setting, as in the piece
   reader. The prototype uses the screen's shape only.
 - **Data export** (`TODO.md`) should include setlists.
