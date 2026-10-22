@@ -2,9 +2,10 @@
 // more excerpts chosen in its preview. "New setlist" and a setlist's ⋯ › Add scores both open it.
 
 import type { Original } from '../originals/originals';
-import { newId, spanLabel, type Entry, type Setlist, type Span } from '../setlists/model';
+import { newId, type Entry, type Setlist, type Span } from '../setlists/model';
+import { excerptName } from '../setlists/names';
 import { button, el, plural } from '../ui/dom';
-import { ExcerptStrip, type ExcerptSource } from '../ui/excerpt-picker';
+import { ExcerptStrip, namedExcerptMenu, type ExcerptSource } from '../ui/excerpt-picker';
 import { buttonRow, closeOverlay, showDialog, whenOverlayCloses } from '../ui/overlay';
 import type { LibraryScore } from './open-score';
 
@@ -111,7 +112,7 @@ export function openAddScores(h: AddScoresHost) {
     open = sc;
     const strip = new ExcerptStrip(sc, {}, 'Adds');
     const use = button('Add this excerpt', () => {
-      const span = strip.span, label = spanLabel(sc.state.score.cuts, span, sc.aspects);
+      const span = strip.span, label = excerptName(sc.state.score, span, sc.aspects);
       // An excerpt takes the place of the whole score ticked on its own; the same one twice is once.
       const was = (chosen.get(o.id) ?? []).filter((c) => c.label && (c.span.first !== span.first || c.span.last !== span.last));
       chosen.set(o.id, [...was, { span, label, src: sc }]);
@@ -119,7 +120,8 @@ export function openAddScores(h: AddScoresHost) {
       back();
     }, 'primary');
     heading.textContent = o.title;
-    previewView.replaceChildren(strip.el, strip.hint, buttonRow(button('Whole score', () => strip.set({})), el('span', 'grow'), button('Back', back), use));
+    const menu = namedExcerptMenu(strip, sc.state.score);
+    previewView.replaceChildren(...(menu ? [menu] : []), strip.el, strip.hint, buttonRow(button('Whole score', () => strip.set({})), el('span', 'grow'), button('Back', back), use));
     listView.hidden = true;
     previewView.hidden = false;
     strip.reveal();

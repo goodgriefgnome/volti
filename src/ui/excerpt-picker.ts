@@ -5,8 +5,9 @@
 import { drawFrame, drawFrameInk } from '../reader/frames';
 import { scrollForPinch, type Pt } from '../reader/zoom';
 import { pack, placeLabel, places, type Frame, type Place } from '../scores/frames';
-import { frameHeight, type Aspects, type State } from '../scores/model';
+import { frameHeight, type Aspects, type Score, type State } from '../scores/model';
 import { spanFor, spanLabel, spanOf, type Span } from '../setlists/model';
+import { nameOf, sortedNames } from '../setlists/names';
 import { button, el } from './dom';
 import { buttonRow, closeOverlay, showDialog } from './overlay';
 
@@ -48,8 +49,11 @@ export class ExcerptStrip {
   private s = 1;
   private redrawTimer: ReturnType<typeof setTimeout> | undefined;
 
+  /** Called whenever the span chosen changes, or a tap starts choosing a new one. */
+  onChange: () => void = () => {};
+
   /** `verb` starts the hint: "Plays the whole score." */
-  constructor(private src: ExcerptSource, span: Span, private verb = 'Plays', private onChange: () => void = () => {}) {
+  constructor(private src: ExcerptSource, span: Span, private verb = 'Plays') {
     const { state, aspects } = src, cuts = state.score.cuts;
     this.n = cuts.length;
     ({ i0: this.i0, i1: this.i1 } = spanOf(cuts, span));
@@ -100,6 +104,9 @@ export class ExcerptStrip {
     this.sync();
   }
 
+  /** Whether a tap has started a new span, which a second tap will finish. */
+  get choosing() { return this.pending !== null; }
+
   /** Bring the chosen cuts into view, once the strip is on the screen. */
   reveal() {
     this.bands[this.i0]?.scrollIntoView({ inline: 'center', block: 'nearest' });
@@ -117,8 +124,9 @@ export class ExcerptStrip {
       b.classList.toggle('pending', k === pending);
       b.setAttribute('aria-pressed', String(k >= i0 && k <= i1));
     });
-    const label = spanLabel(state.score.cuts, this.span, aspects);
-    const what = label ? label[0].toLowerCase() + label.slice(1) : 'the whole score';
+    const label = spanLabel(state.score.cuts, this.span, aspects), name = nameOf(state.score, this.span)?.name;
+    const pages = label ? label[0].toLowerCase() + label.slice(1) : 'the whole score';
+    const what = name ? `“${name}”, ${pages}` : pages;
     this.hint.textContent = pending === null
       ? `${this.verb} ${what}. Tap the first cut to play, then the last.`
       : `Starts at page ${placeLabel(this.places[pending])}. Now tap the last cut to play.`;
@@ -243,6 +251,32 @@ export class ExcerptStrip {
   }
 }
 
+/**
+ * A dropdown of the score's named excerpts, with Whole score and Custom: choosing one selects its
+ * cuts in the strip, and tapping cuts shows the name of the span they make, if it has one. Null
+ * for a score with no named excerpts.
+ */
+export function namedExcerptMenu(strip: ExcerptStrip, score: Score): HTMLSelectElement | null {
+  const names = sortedNames(score);
+  if (!names.length) return null;
+  const menu = el('select', 'excerpt-menu');
+  menu.setAttribute('aria-label', 'Named excerpt');
+  const option = (value: string, label: string) => Object.assign(el('option'), { value, textContent: label });
+  menu.append(option('whole', 'Whole score'), ...names.map((n, i) => option(String(i), n.name)), option('custom', 'Custom'));
+  const follow = () => {
+    const n = nameOf(score, strip.span);
+    menu.value = strip.choosing ? 'custom' : strip.whole ? 'whole' : n ? String(names.indexOf(n)) : 'custom';
+  };
+  menu.addEventListener('change', () => {
+    if (menu.value === 'whole') strip.set({});
+    else if (menu.value !== 'custom') { strip.set(names[+menu.value]); strip.reveal(); }
+  });
+  const before = strip.onChange;
+  strip.onChange = () => { before(); follow(); };
+  follow();
+  return menu;
+}
+
 export interface ExcerptPicker extends ExcerptSource {
   question: string;
   span: Span;
@@ -250,6 +284,8 @@ export interface ExcerptPicker extends ExcerptSource {
   verb?: string;
   /** Ask for a name too, starting with this one. */
   name?: string;
+  /** Offer the score's named excerpts in a dropdown. */
+  named?: boolean;
   /** Why the span (and name) can't be taken as they are, said in the dialog; null when they can. */
   problem?(span: Span, name: string): string | null;
   okLabel?: string;
@@ -278,7 +314,8 @@ export function openExcerptPicker(h: ExcerptPicker) {
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok(); });
   const whole = button('Whole score', () => strip.set({}));
   const done = button(h.okLabel ?? 'Done', ok, 'primary');
-  d.append(input, strip.el, strip.hint, error, buttonRow(whole, el('span', 'grow'), button('Cancel', closeOverlay), done));
+  const menu = h.named ? namedExcerptMenu(strip, h.state.score) : null;
+  d.append(...(menu ? [menu] : []), input, strip.el, strip.hint, error, buttonRow(whole, el('span', 'grow'), button('Cancel', closeOverlay), done));
   strip.reveal();
   (input.hidden ? done : input).focus();
 }

@@ -593,6 +593,7 @@ export class Library {
       ...sc,
       question: `Which part of “${o.title}” does entry ${s.entries.indexOf(e) + 1} play?`,
       verb: 'This entry plays',
+      named: true,
       span: e,
       done: (span) => {
         const now = this.get(s.id);

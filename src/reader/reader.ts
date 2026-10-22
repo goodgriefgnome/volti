@@ -335,6 +335,7 @@ class Reader {
     openExcerptPicker({
       question: `Which part of “${this.items[this.k].title}” does entry ${this.k + 1} play?`,
       verb: 'This entry plays',
+      named: true,
       state: cur.state,
       aspects: cur.aspects,
       span: entry,

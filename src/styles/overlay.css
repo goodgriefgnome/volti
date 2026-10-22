@@ -25,6 +25,7 @@
 .dialog .check .meta { margin-left: auto; }
 .dialog.wide { width: min(760px, calc(100vw - 32px)); }
 .dialog .buttons .grow { flex: 1; }
+.dialog select { font: inherit; min-height: 44px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); justify-self: start; max-width: 100%; }
 .dialog input.name { font: inherit; min-height: 44px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
 /* Behind a dialog, or invisibly behind a menu: a tap on it closes them. */
 .catcher, .scrim { position: fixed; inset: 0; z-index: 19; }
