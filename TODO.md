@@ -16,15 +16,18 @@ from systems; it was dropped as more complicated than it was worth.)
   are stacked in order; a part goes on the current frame if it fits, otherwise it starts the next.
   A split whose halves end up on the same frame is joined again.
 - **Editing happens in the frame view**, never on the raw page:
-  - "Insert pages" adds a page or a range of pages before or after the current frame.
-  - Every seam between parts has a tab on the left above it (the end of the music above) and a tab
-    on the right below it (the start of the music below). Dragging a tab moves that edge; the music
-    being cut stays visible, hatched, until you let go, and then the score reflows. Dragging an edge
-    across the whole part removes it.
+  - "Insert pages" shows thumbnails of the piece's pages; tap one page, or two for a range, and
+    insert before or after the current frame.
+  - Every part has a faint tab at its top left (its start) and its bottom right (its end).
+    Dragging a tab moves that edge; the music being cut stays visible, hatched, until you let go,
+    and then the score reflows. Dragging an edge across the whole part removes it.
+  - A tab in the middle of each frame's top edge adds white space above the music (stored on the
+    part, used only when that part starts a frame).
   - "Add a cut" arms one drag over the music to cut out.
-  - A "show room left" toggle: when the frame before is more than half empty, a faint band shows
-    how much would fit there. Tapping its bottom edge splits the page at the nearest gap between
-    systems above it and moves the top part onto the frame before, which is then shown.
+  - A "show room left" toggle: when the frame before is more than half empty, a faint band and a
+    dashed ✂ line show how much would fit there. Tapping the line splits the page at the nearest
+    gap between systems above it and moves the top part onto the frame before, which is then
+    shown. No cue when the frame already continues the page from the frame before.
 - **Ink** belongs to one part of the played order (not to the source page), so a marking on the
   2nd time through a repeat doesn't appear on the 1st. Hiding a 1st ending is an annotation (a
   whiteout tool), not a cut.
