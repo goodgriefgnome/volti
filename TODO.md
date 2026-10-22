@@ -10,30 +10,32 @@ from systems; it was dropped as more complicated than it was worth.)
 - A **piece** has a title, a key and an orientation (portrait or landscape); tags come later, for
   search. Its played order is a list of **pages**, and a page can appear more than once (a repeat
   lists the page again). A new file becomes one piece, every page once, in order.
-- The played order is a flat list of **parts**: horizontal bands of source pages. A gap between two
-  parts of the same page is a **cut**; parts that touch are a **split**.
+- The played order is a flat list of **cuts** (cuttings): horizontal bands of source pages. Music
+  between two cuts of the same page has been cut out; two cuts that touch are a **split**.
 - **Reflow**: frames have the page's own shape and scale (landscape shows two side by side). Parts
   are stacked in order; a part goes on the current frame if it fits, otherwise it starts the next.
   A split whose halves end up on the same frame is joined again.
 - **Editing happens in the frame view**, never on the raw page:
-  - "Insert pages" shows thumbnails of the piece's pages; tap one page, or two for a range, and
-    insert before or after the current frame.
+  - Tapping the music of a cut opens its menu: insert pages before or after this cut (a picker
+    with thumbnails of the piece's pages; tap one page, or two for a range), or remove the cut.
   - Every part has a faint tab at its top left (its start) and its bottom right (its end). Tabs
     sit flush against the frame's side, square where they meet the seam and the edge.
     Dragging a tab moves that edge; the music being cut stays visible, hatched, until you let go,
-    and then the score reflows. Dragging an edge across the whole part removes it.
+    and then the score reflows. Bringing music back always grows the cut downwards: dragging the
+    top tab up keeps the cut's top where it is and pushes the music below it down, just as
+    dragging the bottom tab down does. Dragging an edge across the whole cut removes it.
   - A grey tab at the top right of each frame adds white space above the music (stored on the
     part, used only when that part starts a frame).
-  - "Add a cut" arms one drag over the music to cut out.
+  - "Cut out music" arms one drag over the music to cut out.
   - A "show room left" toggle: when the frame before is more than a fifth empty, a faint band and a
     dashed ✂ line show how much would fit there. Tapping the line splits the page at the nearest
     gap between systems above it and moves the top part onto the frame before, which is then
     shown. No cue when the frame already continues the page from the frame before, or when the
     line would fall at the end of the frame's first part.
-  - Tapping a tab (or right-clicking it) opens its menu: delete the cut above/below (joins the two
-    parts), undo a split, restore a trimmed page top/bottom, remove the part; the white-space tab
+  - Tapping a tab (or right-clicking it) opens its menu: restore the music cut out above/below
+    (joins the two cuts), join a split, restore a trimmed page top/bottom, remove the cut; the white-space tab
     offers "remove the white space". Not covered yet: bringing back a part that was removed.
-- **Ink** belongs to one part of the played order (not to the source page), so a marking on the
+- **Ink** belongs to one cut of the played order (not to the source page), so a marking on the
   2nd time through a repeat doesn't appear on the 1st. Hiding a 1st ending is an annotation (a
   whiteout tool), not a cut.
 - A **setlist** is a list of pieces with its own copy of each piece's played order, normally with
