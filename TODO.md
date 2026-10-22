@@ -6,14 +6,8 @@ Pieces, cuts and frames are built for PDFs (`src/pieces/`, `src/viewer/edit.ts`)
 
 - **Setlists:** designed in [docs/setlists-design.md](docs/setlists-design.md), with a working
   prototype in [docs/prototypes/volti-setlists.html](docs/prototypes/volti-setlists.html). A list
-  of pieces, each with its own copy of the piece's played order, read as one continuous score.
-  When a piece's cuts change, setlists that never changed them are offered the update. Archived
-  setlists are frozen.
-  - Copy-on-write: a setlist keeps the piece's cut ids until a cut changes. Its ink is a layer
-    per entry, `layer:<entryId>` by cut id, read before the piece's; the first draw or erase on
-    a cut in a setlist copies that cut's strokes into the layer. A cut whose shape changes in a
-    setlist gets a new id that remembers the one it came from, so it reads the piece's ink until
-    its own is first edited. Piece edits that rewrite a cut's ink copy it down first.
+  of pieces read as one continuous score, each played whole or as a span of its cuts. Cuts and
+  markings always belong to the piece; edits to a piece keep the spans on the same music.
 - **Whiteout** tool, for hiding a 1st ending on the 2nd time through (an annotation, not a cut).
 - **Images as a source:** a set of images ordered by file name, scaled to a common width.
 - **A piece's page range:** a PDF may hold several pieces; the insert picker should show the

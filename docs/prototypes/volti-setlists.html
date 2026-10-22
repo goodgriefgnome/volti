@@ -185,7 +185,16 @@ details.archived-sets > summary { cursor: pointer; color: var(--muted); padding:
 .check { display: flex; gap: 10px; align-items: center; min-height: 44px; cursor: pointer; }
 .check input { width: 20px; height: 20px; accent-color: var(--accent); flex: none; }
 .check .meta { margin-left: auto; }
-.kept { display: flex; gap: 10px; align-items: baseline; min-height: 36px; color: var(--muted); }
+.dialog.wide { width: min(760px, calc(100% - 32px)); }
+.thumbs { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 10px; align-items: flex-start; }
+.thumb-frame { position: relative; flex: none; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); }
+.thumb-frame canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* One band per cut, over the frame's music: shaded when the part leaves it out. */
+.band { position: absolute; left: 0; right: 0; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; border-top: 1px dashed rgba(138, 90, 18, 0.7); }
+.band::before { content: attr(data-n); position: absolute; left: 3px; top: 3px; font: 600 11px/1 var(--font-ui); color: #fff; background: rgba(40, 42, 48, 0.7); border-radius: 3px; padding: 2px 4px; }
+.band.out { background: rgba(40, 42, 48, 0.55); }
+.band.pending { box-shadow: inset 0 0 0 3px var(--select); }
+.band:focus-visible { outline: 3px solid var(--select); outline-offset: -3px; }
 .picklist { display: grid; max-height: 46cqh; overflow: auto; border-block: 1px solid var(--line); }
 /* A toast with an action (Undo) can be tapped. */
 .toast.act { pointer-events: auto; display: flex; gap: 14px; align-items: center; padding-block: 6px; }
@@ -216,7 +225,7 @@ details.archived-sets > summary { cursor: pointer; color: var(--muted); padding:
 <div class="wrap">
   <div class="intro">
     <h1>Volti setlists</h1>
-    <p>Prototype. Tap a setlist to read it as one score; its arrow shows its pieces. Press and hold scores to pick them for a setlist. Open a piece, change its cuts and go back to see which setlists it offers to update. In a score, tap the middle for the toolbar and the sides to turn. Changes are kept in this browser.</p>
+    <p>Prototype. Tap a setlist to read it as one score; its arrow shows its pieces. Press and hold scores to pick them for a setlist. In a setlist, Part chooses which cuts of a piece it plays; cuts and markings always change the piece itself. In a score, tap the middle for the toolbar and the sides to turn. Changes are kept in this browser.</p>
     <div class="row">
       <button type="button" id="fill">Fill the window</button>
       <button type="button" id="reset" class="quiet">Start the example again</button>
@@ -250,7 +259,7 @@ const clone = (x) => JSON.parse(JSON.stringify(x));
 const short = (id) => id.slice(0, 4);
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 const A4 = 297 / 210;
-const STORE = 'volti-setlists-proto-v3';
+const STORE = 'volti-setlists-proto-v4';
 const device = $('#device');
 
 /* ================= example scores ================= */
@@ -398,17 +407,17 @@ function drawPage(sc, page, W) {
 
 /* ================= data ================= */
 /*
- * D.pieces[id]        { id, title, key, aspects, cuts }          cut = { id, page, y0, y1 }
- * D.pieceInk[id]      strokes by cut id
- * D.setlists[]        { id, title, archived, entries: [{ id, pieceId, cuts, edited }] }
- *                     `edited`: the setlist changed this piece's cuts itself
- *                     a setlist's cut may carry `from`: the piece cut it was made from
- * D.layers[entryId]   { [cutId]: { strokes, own } }: a setlist's own ink, read before the piece's
+ * D.pieces[id]     { id, title, key, aspects, cuts }          cut = { id, page, y0, y1 }
+ * D.pieceInk[id]   strokes by cut id
+ * D.setlists[]     { id, title, archived, entries: [{ id, pieceId, first?, last? }] }
+ *                  first and last: the cut ids where the setlist's part of the piece starts and
+ *                  ends. Missing means the piece's own start or end.
+ * The piece is the only copy of its cuts and markings: a setlist only chooses which part of it to play.
  */
 let D;
 
 function seed() {
-  const d = { pieces: {}, pieceInk: {}, setlists: [], layers: {}, pos: {} };
+  const d = { pieces: {}, pieceInk: {}, setlists: [], pos: {} };
   for (const s of SCORES) {
     d.pieces[s.id] = {
       id: s.id, title: s.title, key: s.key, aspects: Array(s.pages).fill(A4),
@@ -435,20 +444,15 @@ function seed() {
   const au = d.pieces.autumn;
   d.pieceInk.autumn[au.cuts[0].id] = [ring(0.3, 0.33, 0.06, 0.03, '#1a1a1a'), tick(0.82, 0.58, '#1a1a1a')];
 
-  const entry = (pieceId) => ({ id: uid(), pieceId, cuts: clone(d.pieces[pieceId].cuts) });
-  const spring = { id: uid(), title: 'Spring recital', archived: false, entries: [entry('sarabande'), entry('gymno'), entry('autumn')] };
-  // In the recital, the Gymnopédie's title is cut away, so that cut is the setlist's own.
-  const gy = spring.entries[1], g0 = gy.cuts[0];
-  gy.cuts[0] = { id: uid(), from: g0.id, page: 0, y0: 0.15, y1: 1 };
-  gy.edited = true;
-  // ...and a breath mark was added to Autumn Leaves for the recital only.
-  const au0 = spring.entries[2].cuts[0];
-  d.layers[spring.entries[2].id] = { [au0.id]: { own: true, strokes: [...clone(d.pieceInk.autumn[au0.id]), tick(0.55, 0.45, '#c0392b')] } };
-  const cafe = { id: uid(), title: 'Café Lumen, Friday', archived: false, entries: [entry('autumn'), entry('bossa'), entry('gymno')] };
-  const wedding = { id: uid(), title: 'Summer wedding', archived: false, entries: [entry('avemaria'), entry('sarabande')] };
-  d.setlists.push(spring, cafe, wedding);
-  D = d;
-  archive(wedding);
+  const entry = (pieceId, first, last) => ({ id: uid(), pieceId, ...(first ? { first } : {}), ...(last ? { last } : {}) });
+  const gy = d.pieces.gymno.cuts, av = d.pieces.avemaria.cuts;
+  d.setlists.push(
+    // The recital plays the Gymnopédie's first two pages only.
+    { id: uid(), title: 'Spring recital', archived: false, entries: [entry('sarabande'), entry('gymno', null, gy[1].id), entry('autumn')] },
+    // The café plays one verse of the Ave Maria: its first two pages.
+    { id: uid(), title: 'Café Lumen, Friday', archived: false, entries: [entry('autumn'), entry('bossa'), entry('avemaria', null, av[1].id)] },
+    { id: uid(), title: 'Summer wedding', archived: true, entries: [entry('avemaria'), entry('sarabande')] },
+  );
   return d;
 }
 
@@ -462,140 +466,67 @@ function save() {
 }
 
 const setlistOf = (id) => D.setlists.find((s) => s.id === id);
-const rootOf = (c) => c.from ?? c.id;
-const sameCuts = (a, b) => a.length === b.length && a.every((c, i) => c.id === b[i].id && c.page === b[i].page && c.y0 === b[i].y0 && c.y1 === b[i].y1);
-/** The setlist changed this piece's cuts itself. */
-const ownCuts = (e) => !!e.edited;
-/** The setlist never changed them, but the piece has changed since they were copied. */
-const olderCuts = (e) => !e.edited && !sameCuts(e.cuts, D.pieces[e.pieceId].cuts);
 const setlistsWith = (pieceId) => D.setlists.filter((s) => s.entries.some((e) => e.pieceId === pieceId));
+
+/** Which of the piece's cuts an entry plays: indexes i0..i1, and whether that is all of them. */
+function spanOf(e) {
+  const cuts = D.pieces[e.pieceId].cuts, n = cuts.length;
+  let i0 = e.first ? cuts.findIndex((c) => c.id === e.first) : 0;
+  let i1 = e.last ? cuts.findIndex((c) => c.id === e.last) : n - 1;
+  if (i0 < 0) i0 = 0;
+  if (i1 < 0) i1 = n - 1;
+  if (i0 > i1) [i0, i1] = [0, n - 1];
+  return { cuts: cuts.slice(i0, i1 + 1), i0, i1, whole: i0 === 0 && i1 === n - 1 };
+}
+/** "Pages 1–2" for the part of the piece an entry plays, or null for all of it. */
+function spanLabel(e) {
+  const sp = spanOf(e);
+  if (sp.whole) return null;
+  const a = sp.cuts[0].page + 1, b = sp.cuts[sp.cuts.length - 1].page + 1;
+  return a === b ? `Page ${a}` : `Pages ${a}–${b}`;
+}
 
 const midY = (s) => { const ys = s.pts.map((p) => p[1]).sort((a, b) => a - b); return ys[ys.length >> 1]; };
 const shows = (s, c) => { const y = midY(s); return y >= c.y0 && y <= c.y1; };
 const splitStrokes = (strokes, y) => [strokes.filter((s) => midY(s) < y), strokes.filter((s) => midY(s) >= y)];
+const inkOf = (pieceId) => D.pieceInk[pieceId];
 
-/** The strokes a cut shows: the setlist's layer for that cut if it has one, otherwise the piece's. */
-function strokesFor(it, c) {
-  if (!it.entry) return D.pieceInk[it.piece.id][c.id] ?? [];
-  const l = D.layers[it.entry.id]?.[c.id];
-  return l ? l.strokes : D.pieceInk[it.piece.id][rootOf(c)] ?? [];
-}
-/** The strokes a draw or erase changes. The first on a setlist cut copies the piece's into the layer. */
-function writableStrokes(it, c) {
-  if (!it.entry) return (D.pieceInk[it.piece.id][c.id] ??= []);
-  const L = (D.layers[it.entry.id] ??= {});
-  L[c.id] ??= { strokes: clone(D.pieceInk[it.piece.id][rootOf(c)] ?? []), own: true };
-  L[c.id].own = true;
-  return L[c.id].strokes;
-}
-
-/**
- * The piece is about to change or drop the ink of one of its cuts. Setlists still reading
- * that ink through get a copy first, so they keep what they showed.
- */
-function copyDown(pieceId, cutId) {
-  const strokes = D.pieceInk[pieceId][cutId];
-  if (!strokes?.length) return;
-  for (const s of D.setlists) {
-    if (s.archived) continue;
-    for (const e of s.entries) {
-      if (e.pieceId !== pieceId) continue;
-      for (const c of e.cuts) {
-        if (rootOf(c) !== cutId) continue;
-        const L = (D.layers[e.id] ??= {});
-        L[c.id] ??= { strokes: clone(strokes), own: false };
-      }
-    }
-  }
-}
-
-/** Archiving freezes a setlist: every cut gets its own copy of the ink it shows. */
-function archive(s) {
-  for (const e of s.entries) {
-    const L = (D.layers[e.id] ??= {});
-    for (const c of e.cuts) {
-      const ink = D.pieceInk[e.pieceId][rootOf(c)];
-      if (!L[c.id] && ink?.length) L[c.id] = { strokes: clone(ink), own: false };
-    }
-  }
-  s.archived = true;
-}
-
-/**
- * Give a setlist entry the piece's cuts. Layers that were only copies are dropped, so the
- * piece's ink shows through again. Markings the setlist made itself stay: on the same cut if
- * it is still there, otherwise on the first new cut of that page that shows them.
- */
-function takePieceCuts(e) {
-  const piece = D.pieces[e.pieceId], old = D.layers[e.id] ?? {}, oldCuts = e.cuts;
-  e.cuts = clone(piece.cuts);
-  e.edited = false;
-  const L = {};
-  for (const [id, l] of Object.entries(old)) {
-    if (!l.own) continue;
-    if (e.cuts.some((c) => c.id === id)) { L[id] = l; continue; }
-    const page = oldCuts.find((c) => c.id === id)?.page;
-    const pieceIds = new Set(Object.values(D.pieceInk[e.pieceId]).flat().map((s) => s.id));
-    for (const s of l.strokes) {
-      if (pieceIds.has(s.id)) continue;
-      const to = e.cuts.find((c) => c.page === page && shows(s, c));
-      if (!to) continue;
-      L[to.id] ??= { strokes: clone(D.pieceInk[e.pieceId][to.id] ?? []), own: true };
-      L[to.id].strokes.push(s);
-    }
-  }
-  D.layers[e.id] = L;
-}
-
-/* ---------- cut edits ---------- */
+/* ---------- cut edits, always to the piece ---------- */
 /*
- * In a piece, edits work as they do in the app now: a split keeps the upper half's id.
- * In a setlist, a cut whose shape changes gets a new id that remembers the cut it came from.
+ * Edits work as they do in the app now: a split keeps the upper half's id. Afterwards every
+ * setlist's part of the piece is moved so that it still starts and ends on the same music.
  */
-function editCut(it, id, op, y) {
-  const cuts = it.entry ? it.entry.cuts : it.piece.cuts;
+function editCut(piece, id, op, y) {
+  const cuts = piece.cuts, ink = inkOf(piece.id);
   const i = cuts.findIndex((c) => c.id === id), c = cuts[i];
-  const range = op === 'split' ? null : op === 'above' ? [y, c.y1] : op === 'below' ? [c.y0, y] : op === 'restore' ? [0, 1] : null;
-  let next;
-  if (!it.entry) {
-    const ink = D.pieceInk[it.piece.id];
-    if (op === 'split' || op === 'remove') copyDown(it.piece.id, c.id);
-    if (op === 'split') {
-      const lower = { id: uid(), page: c.page, y0: y, y1: c.y1 };
-      const [up, down] = splitStrokes(ink[c.id] ?? [], y);
-      if (up.length) ink[c.id] = up; else delete ink[c.id];
-      if (down.length) ink[lower.id] = down;
-      next = [...cuts.slice(0, i), { ...c, y1: y }, lower, ...cuts.slice(i + 1)];
-    } else if (op === 'remove') {
-      delete ink[c.id];
-      next = cuts.filter((x) => x !== c);
-    } else {
-      next = cuts.map((x) => (x === c ? { ...c, y0: range[0], y1: range[1] } : x));
-    }
-    it.piece.cuts = next;
+  if (op === 'split') {
+    const lower = { id: uid(), page: c.page, y0: y, y1: c.y1 };
+    const [up, down] = splitStrokes(ink[c.id] ?? [], y);
+    if (up.length) ink[c.id] = up; else delete ink[c.id];
+    if (down.length) ink[lower.id] = down;
+    piece.cuts = [...cuts.slice(0, i), { ...c, y1: y }, lower, ...cuts.slice(i + 1)];
+    // A part that ended on this cut now ends on its lower half.
+    forEntries(piece.id, (e) => { if (e.last === c.id) e.last = lower.id; });
+  } else if (op === 'remove') {
+    delete ink[c.id];
+    piece.cuts = cuts.filter((x) => x !== c);
+    // A part that started or ended on it moves inwards; if nothing is left, it plays the whole piece.
+    forEntries(piece.id, (e) => {
+      if (e.first === c.id && e.last === c.id) { delete e.first; delete e.last; return; }
+      if (e.first === c.id) e.first = cuts[i + 1]?.id;
+      if (e.last === c.id) e.last = cuts[i - 1]?.id;
+    });
   } else {
-    const L = (D.layers[it.entry.id] ??= {}), root = rootOf(c);
-    const fresh = (y0, y1) => ({ id: uid(), from: root, page: c.page, y0, y1 });
-    if (op === 'split') {
-      const a = fresh(c.y0, y), b = fresh(y, c.y1);
-      if (L[c.id]) {
-        const [up, down] = splitStrokes(L[c.id].strokes, y);
-        L[a.id] = { strokes: up, own: L[c.id].own };
-        L[b.id] = { strokes: down, own: L[c.id].own };
-        delete L[c.id];
-      }
-      next = [...cuts.slice(0, i), a, b, ...cuts.slice(i + 1)];
-    } else if (op === 'remove') {
-      delete L[c.id];
-      next = cuts.filter((x) => x !== c);
-    } else {
-      const n = fresh(range[0], range[1]);
-      if (L[c.id]) { L[n.id] = L[c.id]; delete L[c.id]; }
-      next = cuts.map((x) => (x === c ? n : x));
-    }
-    it.entry.cuts = next;
-    it.entry.edited = true;
+    const [y0, y1] = op === 'above' ? [y, c.y1] : op === 'below' ? [c.y0, y] : [0, 1];
+    piece.cuts = cuts.map((x) => (x === c ? { ...c, y0, y1 } : x));
   }
+  forEntries(piece.id, (e) => {
+    if (e.first === piece.cuts[0]?.id) delete e.first;
+    if (e.last === piece.cuts[piece.cuts.length - 1]?.id) delete e.last;
+  });
+}
+function forEntries(pieceId, f) {
+  for (const s of D.setlists) for (const e of s.entries) if (e.pieceId === pieceId) f(e);
 }
 
 /* ================= screens ================= */
@@ -733,14 +664,14 @@ function setlistRow(s) {
     h('span', { class: 'meta', text: plural(s.entries.length, 'piece') }),
   ], () => (s.entries.length ? openReader({ kind: 'setlist', setlistId: s.id }) : say('This setlist has no pieces yet.')), 'open');
   const more = btn('⋯', () => menuAt(more, titleOf(s), frozen ? [
-    { label: 'Unarchive', run: () => { s.archived = false; save(); render(); say(`Unarchived “${titleOf(s)}”. It keeps the markings it had.`); } },
+    { label: 'Unarchive', run: () => { s.archived = false; save(); render(); say(`Unarchived “${titleOf(s)}”.`); } },
     { label: 'Duplicate', run: () => duplicate(s) },
     { label: 'Delete…', run: () => confirmDelete(s) },
   ] : [
     { label: 'Add pieces…', run: () => addPieces(s) },
     { label: 'Rename…', run: () => askName('Rename setlist', s.title, 'Rename', (name) => { s.title = name; save(); render(); }) },
     { label: 'Duplicate', run: () => duplicate(s) },
-    { label: 'Archive', run: () => { archive(s); save(); render(); say(`Archived “${titleOf(s)}”. Changes to its pieces no longer reach it.`); } },
+    { label: 'Archive', run: () => { s.archived = true; save(); render(); say(`Archived “${titleOf(s)}”.`); } },
   ]), 'quiet more', { 'aria-label': `More for ${titleOf(s)}`, 'aria-haspopup': 'menu' });
   const entries = h('ol', { class: 'entries', 'aria-label': `Pieces in ${titleOf(s)}` });
   s.entries.forEach((e, i) => entries.append(entryRow(s, e, i, entries)));
@@ -751,23 +682,22 @@ function setlistRow(s) {
 }
 
 function entryRow(s, e, i, list) {
-  const p = D.pieces[e.pieceId], frozen = s.archived, own = ownCuts(e), older = olderCuts(e);
+  const p = D.pieces[e.pieceId], frozen = s.archived, part = spanLabel(e);
   const li = h('li', { class: 'entry' });
   const handle = frozen ? h('span', { class: 'handle' }) : h('button', { type: 'button', class: 'handle', 'aria-label': `Move ${p.title}` }, '⋮⋮');
   if (!frozen) dragToReorder(handle, li, list, s, i);
-  const status = frozen ? null
-    : own ? h('span', { class: 'pill own', text: 'Own cuts' })
-    : older ? h('span', { class: 'pill frozen', text: 'Piece’s older cuts' }) : null;
   const open = btn([
     h('span', { class: 'item-title', text: p.title }),
-    h('span', { class: 'meta', text: p.key }), status,
+    h('span', { class: 'meta', text: p.key }),
+    part ? h('span', { class: 'pill own', text: part }) : null,
   ], () => openReader({ kind: 'setlist', setlistId: s.id }, e.id), 'open');
   li.append(handle, h('span', { class: 'num', text: String(i + 1) }), open);
   if (!frozen) {
     const more = btn('⋯', () => menuAt(more, p.title, [
       i > 0 && { label: 'Move up', run: () => move(s, i, i - 1) },
       i < s.entries.length - 1 && { label: 'Move down', run: () => move(s, i, i + 1) },
-      (own || older) && { label: 'Use the piece’s cuts…', run: () => confirmTakeCuts(s, e) },
+      { label: 'Choose the part to play…', run: () => openReader({ kind: 'setlist', setlistId: s.id }, e.id, true) },
+      part && { label: 'Play the whole piece', run: () => { delete e.first; delete e.last; save(); render(); } },
       { label: 'Remove from setlist', run: () => removeEntry(s, e) },
     ]), 'quiet more', { 'aria-label': `More for ${p.title}`, 'aria-haspopup': 'menu' });
     li.append(more);
@@ -818,7 +748,7 @@ function pickBar() {
 /* Picked scores go at the end, in library order. */
 function addPicked(s) {
   const ids = SCORES.map((x) => x.id).filter((id) => lib.picking.has(id));
-  for (const id of ids) s.entries.push({ id: uid(), pieceId: id, cuts: clone(D.pieces[id].cuts), edited: false });
+  for (const id of ids) s.entries.push({ id: uid(), pieceId: id });
   lib.picking = null;
   lib.open.add(s.id);
   save();
@@ -866,13 +796,10 @@ function dragToReorder(handle, li, list, s, i) {
 function removeEntry(s, e) {
   const at = s.entries.indexOf(e);
   s.entries.splice(at, 1);
-  const layer = D.layers[e.id];
-  delete D.layers[e.id];
   save();
   render();
   say(`Removed “${D.pieces[e.pieceId].title}” from “${titleOf(s)}”.`, 'Undo', () => {
     s.entries.splice(at, 0, e);
-    if (layer) D.layers[e.id] = layer;
     save();
     render();
   });
@@ -880,9 +807,7 @@ function removeEntry(s, e) {
 function duplicate(s) {
   const c = { id: uid(), title: `${titleOf(s)} (copy)`, archived: false, entries: [] };
   for (const e of s.entries) {
-    const n = { id: uid(), pieceId: e.pieceId, cuts: clone(e.cuts), edited: e.edited };
-    if (D.layers[e.id]) D.layers[n.id] = clone(D.layers[e.id]);
-    c.entries.push(n);
+    c.entries.push({ ...clone(e), id: uid() });
   }
   D.setlists.unshift(c);
   lib.open.add(c.id);
@@ -894,9 +819,8 @@ function duplicate(s) {
 function confirmDelete(s) {
   showDialog(
     h('h2', { text: `Delete “${titleOf(s)}”?` }),
-    h('p', { text: 'Its own cuts and markings are deleted too. The pieces stay in the library.' }),
+    h('p', { text: 'The pieces, with their cuts and markings, stay in the library.' }),
     h('div', { class: 'buttons' }, btn('Cancel', closeOverlay), btn('Delete', () => {
-      for (const e of s.entries) delete D.layers[e.id];
       D.setlists = D.setlists.filter((x) => x !== s);
       save();
       render();
@@ -904,20 +828,11 @@ function confirmDelete(s) {
     }, 'danger')),
   );
 }
-function confirmTakeCuts(s, e) {
-  const p = D.pieces[e.pieceId];
-  showDialog(
-    h('h2', { text: `Use the piece’s cuts for “${p.title}”?` }),
-    h('p', { text: ownCuts(e) ? `The cuts “${titleOf(s)}” made itself are replaced by the piece’s, as they are now. Markings made in this setlist stay where the music they mark is still played.`
-      : 'The piece’s cuts have changed since this setlist copied them. Markings made in this setlist stay where the music they mark is still played.' }),
-    h('div', { class: 'buttons' }, btn('Cancel', closeOverlay), btn('Use the piece’s cuts', () => { takePieceCuts(e); save(); render(); say('This setlist now uses the piece’s cuts.'); }, 'primary')),
-  );
-}
 function addPieces(s) {
   const chosen = new Set();
   const list = h('div', { class: 'picklist' });
   const add = btn('Add', () => {
-    for (const id of SCORES.map((x) => x.id).filter((id) => chosen.has(id))) s.entries.push({ id: uid(), pieceId: id, cuts: clone(D.pieces[id].cuts), edited: false });
+    for (const id of SCORES.map((x) => x.id).filter((id) => chosen.has(id))) s.entries.push({ id: uid(), pieceId: id });
     lib.open.add(s.id);
     save();
     render();
@@ -939,7 +854,7 @@ function addPieces(s) {
   const find = h('input', { type: 'search', id: 'pick-find', placeholder: 'Find a score', 'aria-label': 'Find a score' });
   find.addEventListener('input', () => fill(find.value));
   fill('');
-  showDialog(h('h2', { text: `Add pieces to “${titleOf(s)}”` }), h('p', { class: 'hint', text: 'They go at the end, in the order shown, each with a copy of the piece’s cuts as they are now.' }),
+  showDialog(h('h2', { text: `Add pieces to “${titleOf(s)}”` }), h('p', { class: 'hint', text: 'They go at the end, in the order shown, each played whole.' }),
     find, list, h('div', { class: 'buttons' }, btn('Cancel', closeOverlay), add));
 }
 
@@ -950,19 +865,17 @@ function itemsFor(src) {
   if (src.kind === 'piece') return [{ key: src.pieceId, piece: D.pieces[src.pieceId], entry: null }];
   return setlistOf(src.setlistId).entries.map((e) => ({ key: e.id, piece: D.pieces[e.pieceId], entry: e }));
 }
-const cutsOf = (it) => (it.entry ? it.entry.cuts : it.piece.cuts);
+const cutsOf = (it) => (it.entry ? spanOf(it.entry).cuts : it.piece.cuts);
 const posKey = (src) => (src.kind === 'piece' ? 'piece:' + src.pieceId : 'set:' + src.setlistId);
 
-function openReader(src, startEntry) {
-  R = {
-    src, frames: [], screen: 0, per: 2, tool: 'none', editing: false, chrome: true, undo: [],
-    before: src.kind === 'piece' ? clone(D.pieces[src.pieceId].cuts) : null, lastPiece: null,
-  };
+function openReader(src, startEntry, choosePart) {
+  R = { src, frames: [], screen: 0, per: 2, tool: 'none', editing: false, chrome: true, undo: [], lastPiece: null };
   go({ screen: 'reader' });
   build();
   const pos = startEntry ? { key: startEntry } : D.pos[posKey(src)];
   R.screen = pos ? screenOf(pos.key, pos.cut) : 0;
   show();
+  if (choosePart) openPartPicker(firstOnScreen().it);
 }
 
 function pack(cuts, aspects) {
@@ -1003,8 +916,7 @@ function renderReader() {
   const stage = h('div', { class: 'stage' });
   const bar = h('div', { class: 'bar' });
   const pressed = (on) => ({ 'aria-pressed': String(on) });
-  const frozen = !!sl?.archived;
-  const tool = (t, label) => btn(label, () => { R.tool = R.tool === t ? 'none' : t; renderReader(); }, '', { ...pressed(R.tool === t), disabled: frozen });
+  const tool = (t, label) => btn(label, () => { R.tool = R.tool === t ? 'none' : t; renderReader(); }, '', pressed(R.tool === t));
   const piecesBtn = isSet ? btn('Pieces', () => menuAt(piecesBtn, sl.title, R.items.map((it, k) => ({
     label: `${k + 1}. ${it.piece.title}`, checked: firstOnScreen()?.k === k,
     run: () => { R.screen = screenOf(it.key); show(); },
@@ -1013,11 +925,12 @@ function renderReader() {
     h('div', { class: 'group' }, btn('‹ Library', closeReader), h('span', { class: 'title', id: 'reader-title' })),
     h('div', { class: 'group' }, tool('pen', 'Pen'), tool('eraser', 'Erase'), btn('Undo', undo, '', { disabled: !R.undo.length })),
     h('div', { class: 'group' }, piecesBtn,
-      btn('Edit cuts', () => { R.editing = !R.editing; R.tool = 'none'; renderReader(); }, '', { ...pressed(R.editing), disabled: frozen }),
+      isSet && !sl.archived ? btn('Part', () => openPartPicker(firstOnScreen().it)) : null,
+      btn('Edit cuts', () => { R.editing = !R.editing; R.tool = 'none'; renderReader(); }, '', pressed(R.editing)),
       h('span', { class: 'info', id: 'reader-info' })),
   );
   root.append(stage, bar);
-  if (R.editing && isSet) root.append(h('div', { class: 'scope', text: `Cuts changed here apply to “${sl.title || 'this setlist'}” only` }));
+  if (R.editing && isSet) root.append(h('div', { class: 'scope', text: 'Cuts changed here change the piece, in every setlist' }));
   device.querySelector('.reader')?.remove();
   device.append(root);
   root.style.setProperty('--bar-h', bar.offsetHeight + 'px');
@@ -1073,34 +986,36 @@ function show() {
   save();
 }
 
-function drawSlot({ fr, cv, fw }) {
-  const dpr = window.devicePixelRatio || 1;
-  const it = fr.it, sc = scoreOf(it.piece.id), aspects = it.piece.aspects;
-  const Wd = Math.round(fw * dpr), Hd = Math.round(fw * aspects[0] * dpr);
-  cv.width = Wd; cv.height = Hd;
-  const c = cv.getContext('2d');
-  c.fillStyle = '#fff'; c.fillRect(0, 0, Wd, Hd);
-  for (const p of fr.f.items) {
+/** A frame's music and markings, drawn Wd device pixels wide. */
+function paintFrame(c, Wd, piece, f) {
+  const sc = scoreOf(piece.id), aspects = piece.aspects, ink = inkOf(piece.id);
+  c.fillStyle = '#fff'; c.fillRect(0, 0, Wd, Math.round(Wd * aspects[0]));
+  for (const p of f.items) {
     const src = pageCanvas(sc, p.cut.page);
     const y0 = Math.round(p.top * Wd), y1 = Math.round((p.top + p.h) * Wd);
     c.drawImage(src, 0, p.cut.y0 * src.height, src.width, (p.cut.y1 - p.cut.y0) * src.height, 0, y0, Wd, y1 - y0);
   }
-  for (const p of fr.f.items) {
+  for (const p of f.items) {
     const a = aspects[p.cut.page];
-    for (const s of strokesFor(it, p.cut)) {
-      if (!shows(s, p.cut)) continue;
-      drawStroke(c, s.pts.map(([x, y]) => [x * Wd, (p.top + (y - p.cut.y0) * a) * Wd]), s, Wd);
+    for (const s of ink[p.cut.id] ?? []) {
+      if (shows(s, p.cut)) drawStroke(c, s.pts.map(([x, y]) => [x * Wd, (p.top + (y - p.cut.y0) * a) * Wd]), s, Wd);
     }
   }
+}
+function drawSlot({ fr, cv, fw }) {
+  const dpr = window.devicePixelRatio || 1;
+  const Wd = Math.round(fw * dpr);
+  cv.width = Wd; cv.height = Math.round(fw * fr.it.piece.aspects[0] * dpr);
+  const c = cv.getContext('2d');
+  paintFrame(c, Wd, fr.it.piece, fr.f);
   if (R.editing) {
     c.font = `${12 * dpr}px system-ui, sans-serif`;
     fr.f.items.forEach((p, i) => {
       const y = Math.round(p.top * Wd);
       if (i) { c.save(); c.setLineDash([6 * dpr, 5 * dpr]); c.strokeStyle = 'rgba(138,90,18,.8)'; c.lineWidth = 1.5 * dpr; c.beginPath(); c.moveTo(0, y); c.lineTo(Wd, y); c.stroke(); c.restore(); }
-      const own = it.entry && p.cut.from;
-      const label = `page ${p.cut.page + 1}${own ? ' · this setlist’s cut' : ''}`;
+      const label = `page ${p.cut.page + 1}`;
       const w = c.measureText(label).width + 12 * dpr;
-      c.fillStyle = own ? 'rgba(138,90,18,.9)' : 'rgba(40,42,48,.55)';
+      c.fillStyle = 'rgba(40,42,48,.55)';
       c.fillRect(Wd - w - 4 * dpr, y + 4 * dpr, w, 18 * dpr);
       c.fillStyle = '#fff';
       c.fillText(label, Wd - w + 2 * dpr, y + 17 * dpr);
@@ -1213,7 +1128,7 @@ function commitStroke(slot, pts) {
   if (!p) return;
   const a = it.piece.aspects[p.cut.page];
   remember();
-  writableStrokes(it, p.cut).push({ id: uid(), color: '#1a1a1a', w: 0.003, pts: pts.map(([x, y]) => [x, p.cut.y0 + (y - p.top) / a]) });
+  (inkOf(it.piece.id)[p.cut.id] ??= []).push({ id: uid(), color: '#1a1a1a', w: 0.003, pts: pts.map(([x, y]) => [x, p.cut.y0 + (y - p.top) / a]) });
   save();
   renderReader();
 }
@@ -1221,11 +1136,10 @@ function erase(hit) {
   const fr = hit.s.fr, it = fr.it, R2 = 14 / hit.r.width;
   for (const p of fr.f.items) {
     const a = it.piece.aspects[p.cut.page];
-    const victim = strokesFor(it, p.cut).find((s) => shows(s, p.cut) && s.pts.some(([x, y]) => Math.hypot(x - hit.x, p.top + (y - p.cut.y0) * a - hit.y) < R2));
+    const list = inkOf(it.piece.id)[p.cut.id] ?? [];
+    const victim = list.find((s) => shows(s, p.cut) && s.pts.some(([x, y]) => Math.hypot(x - hit.x, p.top + (y - p.cut.y0) * a - hit.y) < R2));
     if (!victim) continue;
-    const list = writableStrokes(it, p.cut);
-    const i = list.findIndex((s) => s.id === victim.id);
-    if (i >= 0) list.splice(i, 1);
+    list.splice(list.indexOf(victim), 1);
     R.drag.changed = true;
     drawSlot(hit.s);
     renderInspector();
@@ -1236,13 +1150,13 @@ function erase(hit) {
 function cutMenu(e, hit) {
   const at = cutAt(hit);
   if (!at) return;
-  const { p, pageY } = at, c = p.cut, it = hit.s.fr.it, cuts = cutsOf(it);
+  const { p, pageY } = at, c = p.cut, it = hit.s.fr.it, cuts = it.piece.cuts;
   const y = Math.min(c.y1, Math.max(c.y0, pageY));
   const room = y - c.y0 > 0.02 && c.y1 - y > 0.02;
   const act = (op) => () => {
     remember();
     const shownKey = it.key;
-    editCut(it, c.id, op, y);
+    editCut(it.piece, c.id, op, y);
     save();
     renderReader();
     build();
@@ -1250,7 +1164,7 @@ function cutMenu(e, hit) {
     R.screen = screenOf(shownKey, keep?.id);
     show();
   };
-  showMenu(e.clientX, e.clientY, `Cut from page ${c.page + 1}${it.entry ? (c.from ? ' · this setlist’s own' : ' · same as the piece') : ''}`, [
+  showMenu(e.clientX, e.clientY, `Cut from page ${c.page + 1}`, [
     room && { label: 'Cut in two here', run: act('split') },
     room && { label: 'Cut away the music above here', run: act('above') },
     room && { label: 'Cut away the music below here', run: act('below') },
@@ -1262,54 +1176,72 @@ function cutMenu(e, hit) {
   overlay.push(mark);
 }
 
-/* ---------- leaving the reader ---------- */
-function closeReader() {
-  const src = R.src, before = R.before;
-  R = null;
-  if (src.kind === 'setlist') { lib.open.add(src.setlistId); return go({ screen: 'home' }); }
-  go({ screen: 'home' });
-  const piece = D.pieces[src.pieceId];
-  if (sameCuts(before, piece.cuts)) return;
-  offerUpdates(piece);
+/* ---------- choosing the part a setlist plays ---------- */
+/*
+ * The piece's frames as thumbnails, with each cut a band on them. Tap the first cut to play,
+ * then the last, as when choosing pages to insert. Cuts outside the part are shaded.
+ */
+function openPartPicker(it) {
+  const piece = it.piece, e = it.entry, cuts = piece.cuts, n = cuts.length, sp = spanOf(e);
+  let i0 = sp.i0, i1 = sp.i1, pending = null;
+  const TW = 112, dpr = window.devicePixelRatio || 1;
+  const strip = h('div', { class: 'thumbs' }), bands = [];
+  const hint = h('p', { class: 'hint', 'aria-live': 'polite' });
+  const pick = (k) => {
+    if (pending === null) { pending = k; i0 = i1 = k; } else { i0 = Math.min(pending, k); i1 = Math.max(pending, k); pending = null; }
+    sync();
+  };
+  for (const f of pack(cuts, piece.aspects)) {
+    const box = h('div', { class: 'thumb-frame', style: `width:${TW}px;height:${Math.round(TW * piece.aspects[0])}px` });
+    const cv = h('canvas');
+    cv.width = Math.round(TW * dpr); cv.height = Math.round(TW * piece.aspects[0] * dpr);
+    paintFrame(cv.getContext('2d'), cv.width, piece, f);
+    box.append(cv);
+    for (const p of f.items) {
+      const b = h('button', { type: 'button', class: 'band', 'data-n': String(p.index + 1), style: `top:${p.top * TW}px;height:${p.h * TW}px`, 'aria-label': `Cut ${p.index + 1}, from page ${p.cut.page + 1}`, onclick: () => pick(p.index) });
+      bands[p.index] = b;
+      box.append(b);
+    }
+    strip.append(box);
+  }
+  const sync = () => {
+    bands.forEach((b, k) => {
+      b.classList.toggle('out', k < i0 || k > i1);
+      b.classList.toggle('pending', k === pending);
+      b.setAttribute('aria-pressed', String(k >= i0 && k <= i1));
+    });
+    const a = cuts[i0].page + 1, z = cuts[i1].page + 1;
+    const what = i0 === 0 && i1 === n - 1 ? 'the whole piece' : `cuts ${i0 + 1}–${i1 + 1} of ${n}, from page ${a} to page ${z}`;
+    hint.textContent = pending === null ? `Plays ${what}. Tap the first cut to play, then the last.` : `Starts at cut ${pending + 1}. Now tap the last cut to play.`;
+  };
+  sync();
+  const sl = setlistOf(R.src.setlistId);
+  showDialog(
+    h('h2', { text: `Which part of “${piece.title}” does “${titleOf(sl)}” play?` }),
+    strip, hint,
+    h('div', { class: 'buttons' },
+      btn('Whole piece', () => { i0 = 0; i1 = n - 1; pending = null; sync(); }),
+      h('span', { style: 'flex:1' }),
+      btn('Cancel', closeOverlay),
+      btn('Done', () => {
+        if (i0 === 0) delete e.first; else e.first = cuts[i0].id;
+        if (i1 === n - 1) delete e.last; else e.last = cuts[i1].id;
+        closeOverlay();
+        save();
+        build();
+        R.screen = screenOf(e.id);
+        show();
+      }, 'primary')),
+  ).classList.add('wide');
+  bands[i0]?.scrollIntoView({ block: 'nearest', inline: 'center' });
 }
 
-/**
- * The piece's cuts changed. Setlists that still had the piece's old cuts can take the new
- * ones; setlists with their own cuts keep them. Archived setlists are left alone.
- */
-function offerUpdates(piece) {
-  const open = D.setlists.filter((s) => !s.archived);
-  const untouched = [], kept = [];
-  for (const s of open) for (const e of s.entries) {
-    if (e.pieceId !== piece.id) continue;
-    (ownCuts(e) ? kept : untouched).push({ s, e });
-  }
-  if (!untouched.length) {
-    if (kept.length) say(`${[...new Set(kept.map((k) => k.s.title))].join(', ')} ${kept.length === 1 ? 'keeps its' : 'keep their'} own cuts of this piece.`);
-    return;
-  }
-  const boxes = untouched.map(({ s, e }, i) => {
-    const box = h('input', { type: 'checkbox', id: 'upd-' + i, checked: true });
-    const repeat = s.entries.filter((x) => x.pieceId === piece.id).length > 1 ? ` (piece ${s.entries.indexOf(e) + 1})` : '';
-    return { box, s, e, row: h('label', { class: 'check', for: 'upd-' + i }, box, h('span', { text: titleOf(s) + repeat })) };
-  });
-  showDialog(
-    h('h2', { text: `Update setlists with the new cuts of “${piece.title}”?` }),
-    h('p', { class: 'hint', text: 'These setlists have never changed this piece’s cuts. Markings made in a setlist stay where the music they mark is still played.' }),
-    h('div', {}, boxes.map((b) => b.row)),
-    kept.length ? h('h3', { text: 'Keeping their own cuts' }) : null,
-    kept.map(({ s }) => h('div', { class: 'kept' }, h('span', { text: s.title || 'Untitled setlist' }), h('span', { class: 'pill own', text: 'Own cuts' }))),
-    h('div', { class: 'buttons' },
-      btn('Leave them as they are', closeOverlay),
-      btn('Update', () => {
-        const ticked = boxes.filter((b) => b.box.checked);
-        ticked.forEach((b) => takePieceCuts(b.e));
-        save();
-        closeOverlay();
-        render();
-        say(ticked.length ? `Updated ${plural(ticked.length, 'setlist')}.` : 'No setlists were changed.');
-      }, 'primary')),
-  );
+/* ---------- leaving the reader ---------- */
+function closeReader() {
+  const src = R.src;
+  R = null;
+  if (src.kind === 'setlist') lib.open.add(src.setlistId);
+  go({ screen: 'home' });
 }
 
 /* ================= inspector ================= */
@@ -1319,23 +1251,24 @@ function renderInspector() {
   const range = (c) => `p${c.page + 1} ${c.y0.toFixed(2)}–${c.y1.toFixed(2)}`;
   const kids = [
     h('h2', { text: 'What Volti stores' }),
-    h('p', { class: 'hint', text: 'Cut ids are shortened. ✎ counts strokes. A setlist cut in brown was made from the piece cut after the arrow. Shaded chips are the setlist’s own ink layer; dashed ones are copies it was given so it keeps what it showed.' }),
+    h('p', { class: 'hint', text: 'Pieces hold all the cuts and markings; cut ids are shortened and ✎ counts strokes. A setlist stores only which cut its part of each piece starts and ends on.' }),
   ];
   const pieces = h('div', { class: 'insp-block' }, h('h3', { text: 'Pieces' }));
   for (const sc of SCORES) {
-    const p = D.pieces[sc.id], ink = D.pieceInk[sc.id];
+    const p = D.pieces[sc.id], ink = inkOf(sc.id);
     pieces.append(h('div', { class: 'insp-entry' }, h('div', { text: p.title }),
-      h('div', { class: 'chips' }, p.cuts.map((c) => h('span', { class: 'chip', text: `#${short(c.id)} ${range(c)}${counts(ink[c.id]?.length)}` })))));
+      h('div', { class: 'chips' }, p.cuts.map((c, i) => h('span', { class: 'chip', text: `${i + 1} #${short(c.id)} ${range(c)}${counts(ink[c.id]?.length)}` })))));
   }
   kids.push(pieces);
   for (const s of D.setlists) {
-    const b = h('div', { class: 'insp-block' }, h('h3', {}, h('span', { text: s.title || 'Untitled setlist' }), s.archived ? h('span', { class: 'pill frozen', text: 'Archived' }) : null));
+    const b = h('div', { class: 'insp-block' }, h('h3', {}, h('span', { text: titleOf(s) }), s.archived ? h('span', { class: 'pill frozen', text: 'Archived' }) : null));
     for (const e of s.entries) {
-      const L = D.layers[e.id] ?? {};
+      const sp = spanOf(e);
       b.append(h('div', { class: 'insp-entry' },
-        h('div', {}, D.pieces[e.pieceId].title + ' ', h('span', { class: 'meta', text: ownCuts(e) ? '· own cuts' : olderCuts(e) ? '· the piece’s older cuts' : '· same cuts as the piece' })),
-        h('div', { class: 'chips' }, e.cuts.map((c) => h('span', { class: 'chip' + (c.from ? ' derived' : ''), text: `#${short(c.id)}${c.from ? '←' + short(c.from) : ''} ${range(c)}` }))),
-        Object.keys(L).length ? h('div', { class: 'chips' }, Object.entries(L).map(([id, l]) => h('span', { class: 'chip layer' + (l.own ? '' : ' copied'), text: `ink #${short(id)}${counts(l.strokes.length) || ' ✎0'} ${l.own ? 'own' : 'copy'}` }))) : null));
+        h('div', {}, D.pieces[e.pieceId].title + ' ', h('span', { class: 'meta', text: sp.whole ? '· whole piece' : `· cuts ${sp.i0 + 1}–${sp.i1 + 1}` })),
+        h('div', { class: 'chips' },
+          h('span', { class: 'chip' + (e.first ? ' derived' : ''), text: `first ${e.first ? '#' + short(e.first) : '(start)'}` }),
+          h('span', { class: 'chip' + (e.last ? ' derived' : ''), text: `last ${e.last ? '#' + short(e.last) : '(end)'}` }))));
     }
     if (!s.entries.length) b.append(h('p', { class: 'hint', text: 'No pieces.' }));
     kids.push(b);

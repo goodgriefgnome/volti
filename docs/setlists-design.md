@@ -1,26 +1,32 @@
 # Setlists: design
 
 Status: **designed and prototyped, not built into the app.** This document is the hand-off for
-whoever builds it. The user chose the four main directions in section 2. The rest is proposed and
-shown in the prototype. Anything marked **Open question** is not settled, so ask the user rather
-than guessing.
+whoever builds it. The user made the decisions in section 2. The rest is proposed and shown in the
+prototype. Anything marked **Open question** is not settled, so ask the user rather than guessing.
 
 The working prototype is [`prototypes/volti-setlists.html`](prototypes/volti-setlists.html): one
 self-contained page with no dependencies. It draws five made-up scores, shows a tablet-shaped app
-(library with setlists, reader) and, beside it, the data Volti would store. Section 10 maps its
-code to this document.
+(the library with setlists, and the reader) and, beside it, the data Volti would store. Section 9
+maps its code to this document.
 
 ---
 
 ## 1. What problem this solves
 
-A performer plays a piece differently from one concert to the next. One evening needs the repeat,
-another doesn't; markings for the recital ("breathe here", "watch the singer") don't belong in
-the café gig. And at a concert the pieces should follow each other without going back to the
-library between them.
+At a concert, pieces should follow each other without going back to the library between them.
+And a concert doesn't always play all of a piece: one verse of a song, or the first two pages.
 
-So a **setlist** is an ordered list of pieces, where **each piece has its own copy of the played
-order and its own markings**, which start out the same as the piece's.
+So a **setlist** is an ordered list of pieces, read as one continuous score, where each piece
+plays either whole or **one part of it: a span of its cuts**.
+
+**The piece is the only copy of its cuts and markings.** A setlist never has its own. Cutting,
+marking or erasing while reading a setlist changes the piece, everywhere it is played.
+
+### A design that was dropped (don't reintroduce it)
+
+An earlier version of this design gave each setlist its own copy of every piece's cuts, a
+copy-on-write ink layer per setlist, and a dialog that offered to update setlists when a piece's
+cuts changed. The user walked it back: it was more than setlists need. Nothing of it remains here.
 
 ---
 
@@ -28,53 +34,30 @@ order and its own markings**, which start out the same as the piece's.
 
 | Question | Decision |
 |---|---|
-| How to move between pieces while reading a setlist | **One continuous score.** Turning past the end of a piece goes into the next. Each piece starts on a fresh screen. A list in the toolbar jumps to any piece. |
-| What happens to setlists when a piece's cuts change | **Only setlists that never changed that piece's cuts are offered the update**, one checkbox each. Setlists with their own cuts keep them and are only listed. |
+| What a setlist owns | **Only an order of pieces, and which part of each to play.** Cuts and markings always belong to the piece. |
+| Which part of a piece a setlist plays | **A span of the piece's cuts**, from a first cut to a last, in the piece's order. **No reordering**, skipping or repeating within a piece. |
+| Where the part is chosen | **In the reader**: a strip of the piece's frames, with its cuts on them. |
+| Moving between pieces while reading | **One continuous score.** Turning past the end of a piece goes into the next. Each piece starts on a fresh screen. A list in the toolbar jumps to any piece. |
 | Where setlists live | **A Setlists section above the scores** on the library page. There is no separate setlist screen. |
 | Tapping a setlist or a score | **Always opens the reader.** A setlist's pieces show by **expanding its row** (they slide open) with an arrow button; its **⋯ button** has the rest. |
 | Adding pieces | **Press and hold scores** to pick several, then add them to a setlist. Also **Add pieces…** in a setlist's ⋯ menu, which adds at the end. |
 | Deleting | **Only archived setlists can be deleted.** |
 | Dates | **None.** A setlist has a name only. |
-| Markings made while reading a setlist | **Stay in the setlist.** To mark the piece itself, open the piece. |
-
-Already decided earlier (in `TODO.md`): archived setlists are frozen, and setlist ink is a
-copy-on-write layer over the piece's, by cut id.
 
 ---
 
-## 3. Vocabulary
+## 3. Data model
 
-| Term | Meaning |
-|---|---|
-| **Setlist** | A named list of pieces in concert order. |
-| **Entry** | One piece in a setlist. It has its own copy of the piece's cuts. The same piece can be in a setlist more than once, as separate entries. |
-| **Own cuts** | The setlist changed this entry's cuts itself. Shown as an "Own cuts" pill. |
-| **The piece's older cuts** | The setlist never changed this entry's cuts, but the piece's cuts have changed since they were copied (the user said no to the update). Shown as a grey pill. |
-| **Layer** | An entry's own ink: strokes by cut id, read before the piece's ink. |
-| **Archived** | Frozen as it was played: no longer updated from its pieces, read-only. |
-
----
-
-## 4. Data model
-
-A proposal, in TypeScript, matching `src/pieces/model.ts`.
+A proposal, in TypeScript, next to `src/pieces/model.ts`.
 
 ```ts
-interface Cut {
-  // ...as now: id, page, y0, y1, pad?, ownInk?
-  /** In a setlist only: the piece cut this one was made from. Its ink is read until it has its own. */
-  from?: string;
-}
-
 interface Entry {
   id: string;
   pieceId: string;
-  /** This setlist's played order for the piece. Starts as a copy of the piece's cuts, same ids. */
-  cuts: Cut[];
-  /** Removed cuts that had ink of their own, as Piece.archived. */
-  archived: Cut[];
-  /** The setlist has changed these cuts itself. Cleared when it takes the piece's cuts again. */
-  edited: boolean;
+  /** The cut the part starts on. Missing: the piece's first cut, whatever it is now. */
+  first?: string;
+  /** The cut the part ends on. Missing: the piece's last cut, whatever it is now. */
+  last?: string;
 }
 
 interface Setlist {
@@ -83,110 +66,83 @@ interface Setlist {
   archived: boolean;
   entries: Entry[];
 }
-
-/** An entry's own ink. `own` is false for strokes it was only given a copy of (section 5.3). */
-type Layer = Record<string, { strokes: Stroke[]; own: boolean }>;
 ```
 
 Storage, in `kv` like pieces:
 
 ```
-setlists           string[]   setlist ids, newest first
-setlist:<id>       Setlist
-layer:<entryId>    Layer
-pos:set:<id>       { entry: string; cut: string }   the first cut on the screen you were reading
+setlists        string[]   setlist ids, newest first
+setlist:<id>    Setlist
+pos:set:<id>    { entry: string; cut: string }   the first cut on the screen you were reading
 ```
 
-**Change from `TODO.md`:** the layer is **per entry** (`layer:<entryId>`), not per setlist
-(`ink:<setlistId>`). If a piece is in a setlist twice, both entries start with the same cut ids,
-so one layer per setlist would mix their markings.
+- **An entry plays `piece.cuts[i0..i1]`**, where `i0` is the index of `first` (0 when missing)
+  and `i1` the index of `last` (the end when missing). `spanOf()` in the prototype.
+- **Missing means "the end, wherever it is"**, so pages inserted before the start or after the end
+  of a piece played whole are included. A part is stored with ids only where it doesn't reach the
+  piece's start or end: choosing all of it clears both.
+- **If an id can't be found** (it shouldn't happen, given section 4), that end falls back to the
+  piece's start or end. If the start ends up after the end, the entry plays the whole piece.
+- **The same piece can be in a setlist more than once**, as separate entries, with different
+  parts.
+- **Cuts and markings are stored only in the piece**, as now: `piece:<id>` and `ink:<id>`.
 
 ---
 
-## 5. Ink
+## 4. Keeping parts in step when the piece changes
 
-### 5.1 Reading
+A part names cuts by id, and the piece's edits change ids, so every edit to a piece's cuts also
+updates the parts that name them. Do it in the same commit, so undo restores both.
 
-For a cut `c` of an entry `e`:
+| Piece edit (`src/pieces/model.ts`) | Parts that name the cut |
+|---|---|
+| `split(X)`: X keeps the upper half, the lower half gets a new id | A part that **ends** on X now ends on the lower half, so it plays the same music. A part that starts on X is unchanged. |
+| `joinNext(a, b)`: a takes b's music, b's id goes | A part that starts or ends on **b** now does on **a**. |
+| `remove(X)` (deleted or archived) | A part that **starts** on X starts on the next cut; one that **ends** on X ends on the one before. A part that was only X plays the whole piece. |
+| `setEdge`, `restoreEdge`, `setPad` | Nothing: ids don't change. |
+| `insertPages` / `insertArchived` | Nothing: new cuts inside a part are played; new cuts outside it aren't. |
 
-```
-strokes(e, c) = layer(e)[c.id]?.strokes ?? pieceInk[c.from ?? c.id] ?? []
-```
+After any of these, a `first` that is now the piece's first cut, or a `last` that is now its last,
+is cleared, so the part keeps following the piece's start or end.
 
-then filtered by `visible()` against `c`'s own `y0..y1`, as now. So the piece's markings show
-through until the setlist changes something on that cut, and a setlist cut made from part of a
-piece cut shows the piece's markings for just that part.
+**Open question:** when pages are inserted right after a part's last cut, from that setlist's
+reader, should the part grow to include them? The prototype doesn't insert pages at all. Probably
+yes, since that is the music you were looking at.
 
-### 5.2 Changes made in a setlist
-
-- **The first draw or erase on a cut** copies what it shows (`pieceInk[c.from ?? c.id]`) into
-  `layer[c.id]`, marked `own: true`, then applies the change there. Later draws and erases change
-  the layer only.
-- **A cut whose shape changes** (a tab dragged, its top or bottom restored) **gets a new id** with
-  `from` set to the piece cut it came from (`c.from ?? c.id`). Its layer, if any, moves to the new
-  id.
-- **Cutting a cut in two** gives both halves new ids with the same `from`. A layer, if any, is
-  split between them with `splitStrokes()`, as the piece does.
-- **Joining** gives the joined cut a new id with `from` of the upper cut. Layers are combined.
-- **Inserting pages** in a setlist adds cuts with fresh ids and no `from`. Each gets a layer that
-  is a copy of the page's first-pass markings, as `insertPages(..., copyInk)` does for the piece.
-- **Removing a cut** archives it in `entry.archived` if its layer has `own` strokes, as the piece
-  does with `ownInk`; otherwise its layer is dropped.
-- Any of these sets `entry.edited = true`.
-
-### 5.3 When the piece changes: copying ink down
-
-**This is needed and not mentioned in `TODO.md`.** The piece's own edits rewrite its ink record.
-For example, `split()` moves the lower half's strokes from `ink[X]` to the new lower cut, and
-`joinNext()` deletes `ink[b]`. A setlist that still has cut `X` and reads the piece's ink would
-lose markings it was showing.
-
-Rule: **on any commit that changes the piece's cuts or archived cuts**, for each cut id `X` whose
-ink entry changed or disappeared, every entry of every **non-archived** setlist that has a cut
-reading `X` (`(c.from ?? c.id) === X`) and no layer for that cut gets
-`layer[c.id] = { strokes: copy of the old ink[X], own: false }`.
-
-Plain drawing and erasing on the piece don't copy anything down. Those changes are meant to show
-through to setlists that haven't marked that cut themselves.
-
-### 5.4 Archiving
-
-Archiving a setlist gives every cut without a layer a copy of the piece's ink it shows
-(`own: false`). After that, nothing the piece does reaches the setlist, and copying down skips it.
+The piece reader needs the setlists that hold the piece to do this. Load them when a piece opens:
+there are few.
 
 ---
 
-## 6. Updating setlists when a piece's cuts change
+## 5. Choosing the part (the reader's Part button)
 
-- **When:** on leaving a piece opened from the library (the reader's Library button or Back), if
-  its cuts differ from when it was opened (`sameLayout` in `viewer.ts`).
-- **Which:** entries of that piece in **non-archived** setlists. Those with `edited === false` get
-  a checkbox, **ticked by default**. A setlist with the piece twice shows "(piece 2)" and the like.
-  Those with `edited === true` are listed under "Keeping their own cuts", with no checkbox.
-- **The dialog:** "Update setlists with the new cuts of “Sarabande in D minor”?", the checkboxes,
-  the kept list, then **Leave them as they are** and **Update**.
-- **No dialog** when no setlist has the piece. When every setlist with it has its own cuts, a
-  toast says "Spring recital keeps its own cuts of this piece."
-- **Updating an entry** (`takePieceCuts` in the prototype):
-  1. `entry.cuts` becomes a copy of the piece's cuts, same ids. `edited` becomes false.
-  2. Layer entries with `own: false` are dropped, so the piece's ink shows through again.
-  3. Layer entries with `own: true` stay if their cut id is still there. If the cut is gone, each
-     stroke the setlist added itself (one whose stroke isn't in the piece's ink) moves to the
-     first new cut of the same page that shows it, which gets a layer copied from the piece's ink
-     plus that stroke. Strokes no cut shows are archived with the old cut.
-- **Leave them as they are:** those entries keep the piece's older cuts and stay `edited: false`.
-  They are offered the update again the next time the piece's cuts change.
-- **"Use the piece's cuts…"** is in each piece's ⋯ menu under its setlist when it has own cuts
-  or the piece's older cuts. It confirms first, then does the same update. This is how a setlist
-  with its own cuts gets back in step.
-- **Open question:** should an entry offered the update and declined be offered again next time?
-  The prototype offers it again.
+- In a setlist's reader, the toolbar has **Part**, for the piece on the screen. Each piece's ⋯
+  menu in the library also has **Choose the part to play…**, which opens the reader at that piece
+  with the picker open.
+- **The picker** is a dialog over the frames, like the insert picker:
+  - Title: "Which part of “Sarabande in D minor” does “Spring recital” play?"
+  - A horizontal strip of **the piece's frames, laid out as the piece is read**, as thumbnails
+    112 px wide, drawn with their markings.
+  - **Each cut is a band over its frame**, numbered at its top left, with a dashed brown line
+    where one cut meets the next. Cuts outside the part are **shaded dark**.
+  - **Tap the first cut, then the last**, as in the insert picker. The first tap selects just
+    that cut and outlines it in blue; the second sets the range, in the piece's order whichever is
+    tapped first. Tapping the same cut twice gives that cut alone.
+  - A live line under the strip: "Plays cuts 2–3 of 5, from page 2 to page 3. Tap the first cut
+    to play, then the last." or "Plays the whole piece." While waiting for the second tap: "Starts
+    at cut 2. Now tap the last cut to play."
+  - **Whole piece** (on the left), **Cancel** and **Done**.
+- The strip scrolls to the part's first cut when it opens.
+- **Done** saves and shows the first screen of the piece's new part.
+- The part is chosen by cut, not by frame, because frames move when cuts change. Choosing a frame
+  boundary inside a cut means cutting the piece there first (Edit cuts › Cut in two here).
+- Not on an archived setlist.
 
 ---
 
-## 7. Screens
+## 6. Screens
 
-### 7.1 Library
+### 6.1 Library
 
 Everything about setlists happens on the library page. From the top:
 
@@ -194,33 +150,32 @@ Everything about setlists happens on the library page. From the top:
 - **Archived (n)**, folded, with archived setlists in the same kind of rows.
 - **Scores**, as now, with "in 2 setlists" after the folder when a piece is in any.
 
-### 7.2 Setlist rows
+### 6.2 Setlist rows
 
 - **Tapping the row** (its name, in the brand serif, and "3 pieces") **plays the setlist** from
   where it was left. A setlist with no pieces says "This setlist has no pieces yet."
 - **The arrow at the left** expands the row: its pieces **slide open** beneath it, indented and
   numbered, and the arrow turns down. Tapping it again slides them shut. Which rows are open is
   remembered while the app runs, and a setlist you come back to from the reader is open.
-- **Each piece row** has a **drag handle** for reordering, the number, the title and key, and an
-  "Own cuts" or "Piece's older cuts" pill (section 3). Tapping it **plays the setlist from that
-  piece**. Its **⋯ menu** has: Move up, Move down, Use the piece's cuts… (when it has own or
-  older cuts), Remove from setlist.
+- **Each piece row** has a **drag handle** for reordering, the number, the title and key, and a
+  pill such as "Pages 1–2" when it plays only part of the piece. Tapping it **plays the setlist
+  from that piece**. Its **⋯ menu** has: Move up, Move down, Choose the part to play…, Play the
+  whole piece (when it plays a part), Remove from setlist.
 - **Remove from setlist** removes at once, with a toast "Removed “Blue Bossa” from “Spring
   recital”." and an **Undo** button for about six seconds.
 - **The setlist's ⋯ menu:**
   - Active setlist: **Add pieces…**, **Rename…**, **Duplicate**, **Archive**.
   - Archived setlist: **Unarchive**, **Duplicate**, **Delete…**. Delete asks first: "Delete
-    “Summer wedding”? Its own cuts and markings are deleted too. The pieces stay in the library."
+    “Summer wedding”? The pieces, with their cuts and markings, stay in the library."
 - **Add pieces…** opens a dialog: a search field, the scores as checkboxes (one already in the
-  setlist says so), and **Add n pieces**. They go at the end, each with a copy of the piece's
-  cuts as they are now.
+  setlist says so), and **Add n pieces**. They go at the end, each played whole.
 - **Rename…** and **New setlist** ask for the name in a small dialog. After naming a new setlist,
   the Add pieces dialog opens.
-- **Duplicate** copies entries and layers with new entry ids, keeps `edited`, names the copy
+- **Duplicate** copies the entries, with their parts, under new entry ids, names the copy
   "Spring recital (copy)" and puts it at the top, open.
 - An archived setlist's pieces show without handles or menus.
 
-### 7.3 Picking scores
+### 6.3 Picking scores
 
 - **Press and hold a score** (500 ms without moving more than 8 px), or right-click it, to start
   picking. The score is picked, every score row shows a checkbox, and a dark bar sticks to the top
@@ -233,9 +188,10 @@ Everything about setlists happens on the library page. From the top:
 - Android's own long-press menu on the button has to be suppressed
   (`-webkit-touch-callout: none` and `preventDefault` on `contextmenu`). Check on a tablet.
 
-### 7.4 Reading a setlist
+### 6.4 Reading a setlist
 
-- **One continuous run of frames.** Each entry is packed with `pack()` as a piece is now.
+- **One continuous run of frames.** Each entry's part is packed with `pack()` on its own, so a
+  part that starts partway through a piece starts at the top of a fresh frame.
 - **Each piece starts on a fresh screen.** On a two-frame screen where a piece ends on the left
   frame, the right one is a dashed outline that says **Next** and the next title, or **End of the
   setlist** after the last.
@@ -246,54 +202,53 @@ Everything about setlists happens on the library page. From the top:
   - The title reads "2/3 Gymnopédie No. 1".
   - **Pieces** opens a menu of the numbered pieces with the current one ticked. Choosing one jumps
     to its first screen.
-  - The position shows screens within the current piece: "1 of 2".
-- **Pen, Erase, Undo** work as now and write to the entry's layer (section 5.2).
-- **Edit cuts** works as now, on the entry's cuts. While it is on, a brown pill under the toolbar
-  says "Cuts changed here apply to “Spring recital” only".
+  - **Part** (section 5).
+  - The position shows screens within the current piece's part: "1 of 2".
+- **Pen, Erase, Undo and Edit cuts work exactly as in the piece's own reader**, on the piece.
+  While Edit cuts is on, a brown pill under the toolbar says "Cuts changed here change the piece,
+  in every setlist".
+- Edit cuts shows only the part's cuts. The cuts outside it are edited from the piece itself.
 - **Reading position** is stored per setlist, as entry id and cut id.
-- An **archived** setlist opens read-only: Pen, Erase and Edit cuts are disabled.
 - **Not prototyped:** a missing score (file moved or removed) should show a blank frame that says
   "Can't find “Blue Bossa”" and carry on with the next piece. Its row in the library says
   "Missing".
 
----
+### 6.5 Archived setlists
 
-## 8. Open questions
-
-- **Unarchiving:** the prototype keeps the copies made on archiving, so the piece's later
-  markings don't show through. Alternatively, unarchiving could drop copies that still match the
-  piece. Ask.
-- **Declined updates** being offered again (section 6).
-- **A piece deleted from the library** (an imported PDF removed): the prototype doesn't cover it.
-  Proposal: setlist entries stay, marked Missing, so their cuts and layers survive re-importing
-  the file. That needs scores to be matched again, by file name for instance.
-- **Frames per screen** come from the toolbar's Auto / 1 page / 2 pages setting, as in the
-  piece reader. The prototype uses the screen's shape only.
-- **Data export** (`TODO.md`) should include setlists and layers.
+Archiving puts a setlist away: it moves under Archived (n), its order and parts can't be changed,
+and it can be deleted. Its pieces are still the pieces as they are now, with today's cuts and
+markings, since a setlist has no copies. Reading it works as for any setlist, including marking
+the pieces.
 
 ---
 
-## 9. Building it into Volti: suggested plan
+## 7. Open questions
 
-1. **A pure model module, with unit tests first:** `src/setlists/model.ts`, with:
-   - entry creation from a piece
-   - the setlist versions of split, join, setEdge/release, restore, insert and remove (new ids
-     with `from`, layer moves)
-   - `strokesFor`, copy-on-first-write, `copyDown`, `archive` and `takePieceCuts`
-   Reuse `src/pieces/model.ts` where the logic is the same. Most of the cut maths is identical;
-   only ids and ink differ.
-2. **Storage:** `src/setlists/store.ts` with the keys in section 4, and a saver like
-   `pieceSaver`.
-3. **Copying down from the piece:** in the piece reader's commit, when the cuts or archived cuts
-   changed, call `copyDown` for the cut ids whose ink changed. This needs the setlists that hold
-   the piece. Load them at open: there are few.
+- **Inserting pages at a part's end** (section 4).
+- **A piece deleted from the library** (an imported PDF removed). Proposal: its entries stay,
+  marked Missing, so the setlist recovers if the file comes back. That needs scores to be matched
+  again, by file name for instance.
+- **Frames per screen** come from the toolbar's Auto / 1 page / 2 pages setting, as in the piece
+  reader. The prototype uses the screen's shape only.
+- **Data export** (`TODO.md`) should include setlists.
+
+---
+
+## 8. Building it into Volti: suggested plan
+
+1. **A pure model module, with unit tests first:** `src/setlists/model.ts`, with `spanOf`, entry
+   creation, and the part fix-ups of section 4. Test each piece edit with parts that start, end
+   on, or are only the edited cut.
+2. **Piece edits update parts:** the functions in `src/pieces/model.ts` that change ids (`split`,
+   `joinNext`, `remove`) report what changed, or the commit compares ids before and after, so the
+   viewer can fix the setlists' parts in the same commit and undo.
+3. **Storage:** `src/setlists/store.ts` with the keys in section 3.
 4. **The reader over several pieces.** `Viewer` holds one `State` now. Generalise it to a list of
-   items, each with a piece, its source PDF, its cuts and how its ink is read and written. A plain
-   piece is a list of one. Frames carry their item. `CutEditor` works on one item at a time: the
-   one whose frame was touched. Undo entries record which item they belong to. Each item needs
-   its own `PageCache` (one PDF per piece); open them lazily, a piece or two ahead.
-5. **The update dialog** on leaving a piece, then **the setlist rows** and **picking scores** in
-   `src/ui/home.ts`.
+   items, each with a piece, its source PDF and the cuts it plays. A plain piece is a list of one.
+   Frames carry their item; edits, ink and undo go to that item's piece. Each item needs its own
+   `PageCache` (one PDF per piece); open them lazily, a piece or two ahead.
+5. **The Part picker**, built on the insert picker in `src/viewer/edit.ts`.
+6. **The library**: setlist rows and picking scores in `src/ui/home.ts`.
 
 Rules for this repo:
 
@@ -303,32 +258,31 @@ Rules for this repo:
 
 ---
 
-## 10. Prototype map
+## 9. Prototype map
 
 | Concern | Where in `prototypes/volti-setlists.html` |
 |---|---|
 | Example scores and page drawing | `SCORES`, `pageLayout()`, `drawPage()` |
 | Data shape and example data | the comment above `let D`, `seed()` |
-| Reading ink, copy on first write | `strokesFor()`, `writableStrokes()` |
-| Copying ink down from the piece | `copyDown()`, called from `editCut()` |
-| Archiving | `archive()` |
-| Taking the piece's cuts | `takePieceCuts()`, `confirmTakeCuts()` |
-| Cut edits, piece vs setlist | `editCut()` |
+| A part of a piece | `spanOf()`, `spanLabel()` |
+| Piece edits keeping parts in step | `editCut()`, `forEntries()` |
 | Library | `renderHome()`, `lib` (open rows, picked scores) |
 | Setlist rows and their menus | `setlistRow()`, `entryRow()`, `dragToReorder()`, `addPieces()`, `askName()`, `confirmDelete()` |
 | Picking scores | `scoreRow()`, `togglePick()`, `pickBar()`, `addPicked()` |
-| Reader layout and turning | `build()`, `show()`, `drawSlot()`, `turn()` |
-| The update dialog | `closeReader()`, `offerUpdates()` |
+| Reader layout and turning | `build()`, `show()`, `paintFrame()`, `drawSlot()`, `turn()` |
+| The Part picker | `openPartPicker()` |
 | Data view | `renderInspector()` |
 
 **The example:**
 
-- **Spring recital:** Sarabande (with a repeat), Gymnopédie No. 1 (with its own cuts: the title
-  is cut away) and Autumn Leaves (with a red mark added in the setlist only).
-- **Café Lumen, Friday:** Autumn Leaves, Blue Bossa, Gymnopédie No. 1, all as the pieces.
+- **Spring recital:** Sarabande (with a repeat, played whole), Gymnopédie No. 1 (pages 1–2 only)
+  and Autumn Leaves.
+- **Café Lumen, Friday:** Autumn Leaves, Blue Bossa, and the Ave Maria's first two pages.
 - **Summer wedding** (archived): Ave Maria and Sarabande.
 
-To see the update dialog, open the Gymnopédie from the scores, change a cut, and go back.
+To see a part follow the piece: in Spring recital, choose cuts 2–3 of the Sarabande, then with
+Edit cuts cut page 2 in two. The part still starts and ends on the same music, and the data view
+shows its new end.
 
 **Known prototype shortcuts:**
 
@@ -336,5 +290,5 @@ To see the update dialog, open the Gymnopédie from the scores, change a cut, an
   instead of the app's tabs. Joining, inserting pages and padding are left out.
 - One pen colour, no highlighter, and undo keeps whole copies of the data.
 - Whether a cut shows a stroke uses the stroke's middle point, not `share()`.
-- Removed setlist cuts are dropped, not archived.
+- Removed cuts are dropped, not archived.
 - Frames per screen follow the screen's shape. Missing scores aren't handled.
