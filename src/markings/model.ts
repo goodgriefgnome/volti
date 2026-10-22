@@ -1,4 +1,4 @@
-// What all kinds of marking share. A marking is something drawn or placed on the music; a piece's
+// What all kinds of marking share. A marking is something drawn or placed on the music; a score's
 // ink is its markings, kept per cut. This file has the Marking type, the KindBehaviour each kind
 // gives, and the functions the rest of the app uses on any marking, so cut edits, the eraser and
 // drawing work for every kind. Code for one kind goes in that kind's file (stroke.ts). To add a

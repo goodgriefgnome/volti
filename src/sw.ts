@@ -4,7 +4,7 @@
 /// <reference lib="webworker" />
 import { precacheAndRoute, createHandlerBoundToURL } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
-import { putInbox } from './sources/inbox';
+import { putInbox } from './originals/inbox';
 
 declare const self: ServiceWorkerGlobalScope;
 

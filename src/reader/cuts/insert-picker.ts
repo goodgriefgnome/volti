@@ -1,6 +1,6 @@
 // The dialog for inserting pages, a range of pages or an archived cut into the played order.
 
-import { insertArchived, insertPages, type InsertAt } from '../../pieces/edits';
+import { insertArchived, insertPages, type InsertAt } from '../../scores/edits';
 import { el } from '../../ui/dom';
 import { closeOverlay, showDialog } from '../../ui/overlay';
 import { openArchive } from './archive';
@@ -45,10 +45,10 @@ export function openPicker(host: EditorHost, at: InsertAt, title: string, page: 
   d.append(strip);
 
   const archivedButtons: [string, HTMLButtonElement][] = [];
-  if (s.piece.archived.length) {
+  if (s.score.archived.length) {
     d.append(el('h3', '', 'Archived cuts'));
     const row = el('div', 'thumbs');
-    for (const c of s.piece.archived) {
+    for (const c of s.score.archived) {
       const b = el('button', 'thumb');
       b.type = 'button';
       b.setAttribute('aria-label', `Archived cut from page ${c.page + 1}`);
@@ -83,7 +83,7 @@ export function openPicker(host: EditorHost, at: InsertAt, title: string, page: 
     host.say(pick.a === pick.b ? `Inserted page ${pick.a + 1}.` : `Inserted pages ${pick.a + 1}–${pick.b + 1}.`);
   });
   const buttons = el('div', 'buttons');
-  if (s.piece.archived.length) {
+  if (s.score.archived.length) {
     const manage = el('button', 'quiet', 'Delete archived cuts…');
     manage.type = 'button';
     manage.addEventListener('click', () => openArchive(host));

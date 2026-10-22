@@ -4,7 +4,7 @@
 
 import { anchorOf, mapMarking, shareOf, type Marking, type Point } from '../markings/model';
 import type { Frame } from './frames';
-import type { Cut, PieceInk } from './model';
+import type { Cut, ScoreInk } from './model';
 
 /** A cut shows a marking, unclipped, when most of the marking lies within the cut. */
 export const visible = (m: Marking, c: Cut, aspect: number) => shareOf(m, c.y0, c.y1, aspect) > 0.5;
@@ -20,7 +20,7 @@ export function splitMarkings(list: readonly Marking[], y: number, aspect: numbe
  * The markings from the first time each part of a page is played: walk the page's cuts in
  * played order and take each marking that lies mostly in that cut and not in one walked before.
  */
-export function claimFirstPass(cuts: readonly Cut[], ink: PieceInk, aspect: number): Marking[] {
+export function claimFirstPass(cuts: readonly Cut[], ink: ScoreInk, aspect: number): Marking[] {
   const out: Marking[] = [], walked: [number, number][] = [];
   for (const c of cuts) {
     for (const m of ink[c.id] ?? []) {

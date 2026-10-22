@@ -1,8 +1,8 @@
 // What the cut editor needs from the reader (EditorHost), and small helpers the cut editor's files
 // share.
 
-import type { Frame } from '../../pieces/frames';
-import type { Aspects, Cut, State } from '../../pieces/model';
+import type { Frame } from '../../scores/frames';
+import type { Aspects, Cut, State } from '../../scores/model';
 import type { Hatches } from '../frames';
 import type { FrameSlot } from '../spread';
 
@@ -10,7 +10,7 @@ import type { FrameSlot } from '../spread';
 export interface EditorHost {
   /** Menus are kept inside the stage. */
   stage: HTMLElement;
-  /** The current piece's: read each time, as the reader turns from piece to piece. */
+  /** The current score's: read each time, as the reader turns from score to score. */
   readonly aspects: Aspects;
   state(): State;
   frames(): Frame[];

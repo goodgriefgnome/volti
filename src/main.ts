@@ -3,7 +3,7 @@
 
 import { registerSW } from 'virtual:pwa-register';
 import { Library } from './library/library';
-import { importShared } from './sources/scores';
+import { importShared } from './originals/originals';
 import { loadPrefs } from './storage/prefs';
 // In this order: later files build on the earlier ones.
 import './styles/base.css';

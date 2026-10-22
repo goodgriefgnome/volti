@@ -1,7 +1,7 @@
-// The dialog for choosing which of a piece's cuts a setlist entry plays.
+// The dialog for choosing which of a score's cuts a setlist entry plays.
 
-import { pack } from '../pieces/frames';
-import { frameHeight, type Aspects, type State } from '../pieces/model';
+import { pack } from '../scores/frames';
+import { frameHeight, type Aspects, type State } from '../scores/model';
 import { spanFor, spanOf, type Span } from '../setlists/model';
 import { button, el } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog } from '../ui/overlay';
@@ -20,11 +20,11 @@ export interface ExcerptHost {
 }
 
 /**
- * The piece's frames as thumbnails, with each cut a band over them. Tap the first cut to play,
+ * The score's frames as thumbnails, with each cut a band over them. Tap the first cut to play,
  * then the last, as when choosing pages to insert. Cuts outside the excerpt are shaded.
  */
 export function openExcerptPicker(h: ExcerptHost) {
-  const { state, aspects } = h, cuts = state.piece.cuts, n = cuts.length;
+  const { state, aspects } = h, cuts = state.score.cuts, n = cuts.length;
   let { i0, i1 } = spanOf(cuts, h.span);
   let pending: number | null = null;
 
@@ -87,14 +87,14 @@ export function openExcerptPicker(h: ExcerptHost) {
       b.setAttribute('aria-pressed', String(k >= i0 && k <= i1));
     });
     const a = cuts[i0].page + 1, z = cuts[i1].page + 1;
-    const what = i0 === 0 && i1 === n - 1 ? 'the whole piece' : `cuts ${i0 + 1}–${i1 + 1} of ${n}, from page ${a} to page ${z}`;
+    const what = i0 === 0 && i1 === n - 1 ? 'the whole score' : `cuts ${i0 + 1}–${i1 + 1} of ${n}, from page ${a} to page ${z}`;
     hint.textContent = pending === null
       ? `Plays ${what}. Tap the first cut to play, then the last.`
       : `Starts at cut ${pending + 1}. Now tap the last cut to play.`;
   };
   sync();
 
-  const whole = button('Whole piece', () => { i0 = 0; i1 = n - 1; pending = null; sync(); });
+  const whole = button('Whole score', () => { i0 = 0; i1 = n - 1; pending = null; sync(); });
   const done = button('Done', () => { closeOverlay(); h.done(spanFor(cuts, i0, i1)); }, 'primary');
   d.append(strip, hint, buttonRow(whole, el('span', 'grow'), button('Cancel', closeOverlay), done));
   bands[i0]?.scrollIntoView({ inline: 'center', block: 'nearest' });

@@ -2,9 +2,9 @@
 // shown while a cut is dragged. Canvas drawing only; where frames sit on the screen is spread.ts.
 
 import { drawMarkings, type DrawTarget, type Marking } from '../markings/model';
-import type { Frame, Placed } from '../pieces/frames';
-import type { Aspects, PieceInk } from '../pieces/model';
-import { visible } from '../pieces/ownership';
+import type { Frame, Placed } from '../scores/frames';
+import type { Aspects, ScoreInk } from '../scores/model';
+import { visible } from '../scores/ownership';
 
 /** Music being cut away during a drag, by cut id: page fractions y0..y1 drawn hatched. */
 export type Hatches = Map<string, [number, number][]>;
@@ -62,7 +62,7 @@ export function cutTarget(ctx: CanvasRenderingContext2D, p: Placed, W: number, a
 export const frameTarget = (ctx: CanvasRenderingContext2D, W: number, ox = 0, oy = 0): DrawTarget => ({ ctx, w: W, h: W, ox, oy });
 
 /** The markings each cut on the frame shows: whole, when most of the marking lies within the cut. */
-export function drawFrameInk(ctx: CanvasRenderingContext2D, frame: Frame, ink: PieceInk, aspects: Aspects, W: number, ox = 0, oy = 0, extra?: Marking) {
+export function drawFrameInk(ctx: CanvasRenderingContext2D, frame: Frame, ink: ScoreInk, aspects: Aspects, W: number, ox = 0, oy = 0, extra?: Marking) {
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   for (const p of frame.items) {
     const shown = (ink[p.cut.id] ?? []).filter((m) => visible(m, p.cut, aspects[p.cut.page]));

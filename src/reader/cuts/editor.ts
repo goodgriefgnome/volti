@@ -1,10 +1,10 @@
 // Editing the played order on the frames: the tabs over each frame, dragging them, and long
 // presses. Menus are in menus.ts and each dialog in its own file; the edits themselves are
-// pieces/edits.ts.
+// scores/edits.ts.
 
-import { edgeRange, release, setEdge, setPad, tidy } from '../../pieces/edits';
-import { freeze, roomBefore, type Frame } from '../../pieces/frames';
-import type { Cut, State } from '../../pieces/model';
+import { edgeRange, release, setEdge, setPad, tidy } from '../../scores/edits';
+import { freeze, roomBefore, type Frame } from '../../scores/frames';
+import type { Cut, State } from '../../scores/model';
 import { el } from '../../ui/dom';
 import { closeOverlay, overlayOpen } from '../../ui/overlay';
 import type { Hatches } from '../frames';
@@ -57,7 +57,7 @@ export class CutEditor {
     for (const s of slots) { s.ui?.remove(); s.ui = undefined; }
     if (!this.enabled) return;
     const d = this.drag;
-    const cuts = (d?.current ?? this.host.state()).piece.cuts;
+    const cuts = (d?.current ?? this.host.state()).score.cuts;
     const now = new Map(cuts.map((c) => [c.id, c]));
     const { aspects } = this.host;
     for (const slot of slots) {
@@ -121,13 +121,13 @@ export class CutEditor {
     const slot = this.host.slots().find((s) => s.box.contains(target));
     if (tab && slot) {
       const id = tab.dataset.cut!, kind = tab.dataset.edge as Edge | 'pad';
-      const s = this.host.state(), i = s.piece.cuts.findIndex((c) => c.id === id);
-      const c = s.piece.cuts[i];
+      const s = this.host.state(), i = s.score.cuts.findIndex((c) => c.id === id);
+      const c = s.score.cuts[i];
       const rect = slot.box.getBoundingClientRect();
       const base = { pointer: e.pointerId, id, y0: e.clientY, before: s, frames: this.host.frames(), moved: false, current: s, tab };
       this.drag = kind === 'pad'
         ? { ...base, kind: 'pad', orig: c.pad ?? 0, perUnit: rect.width }
-        : { ...base, kind: 'edge', edge: kind, orig: c, range: edgeRange(s.piece.cuts, i, kind), perUnit: rect.width * this.host.aspects[c.page] };
+        : { ...base, kind: 'edge', edge: kind, orig: c, range: edgeRange(s.score.cuts, i, kind), perUnit: rect.width * this.host.aspects[c.page] };
       this.startPress(e, () => {
         this.drag = null;
         const r = tab.getBoundingClientRect();
@@ -156,15 +156,15 @@ export class CutEditor {
     const { aspects } = this.host;
     if (d.kind === 'pad') {
       d.current = setPad(d.before, d.id, d.orig + dy / d.perUnit, aspects);
-      this.host.preview(d.current, freeze(d.frames, d.current.piece.cuts, aspects));
+      this.host.preview(d.current, freeze(d.frames, d.current.score.cuts, aspects));
       return true;
     }
     const v = (d.edge === 'top' ? d.orig.y0 : d.orig.y1) + dy / d.perUnit;
     d.current = setEdge(d.before, d.id, d.edge, v, d.range);
     // Show the cut with all the music it had or has now: what is being cut away stays, hatched.
-    const now = d.current.piece.cuts.find((c) => c.id === d.id)!;
+    const now = d.current.score.cuts.find((c) => c.id === d.id)!;
     const shown: Cut = { ...now, y0: Math.min(now.y0, d.orig.y0), y1: Math.max(now.y1, d.orig.y1) };
-    const cuts = d.current.piece.cuts.map((c) => (c.id === d.id ? shown : c));
+    const cuts = d.current.score.cuts.map((c) => (c.id === d.id ? shown : c));
     const hatches: Hatches = new Map([[d.id, [[d.orig.y0, now.y0], [now.y1, d.orig.y1]].filter(([a, b]) => b > a) as [number, number][]]]);
     this.host.preview(d.current, freeze(d.frames, cuts, aspects), hatches);
     return true;
@@ -180,7 +180,7 @@ export class CutEditor {
     if (d.kind === 'pad') { this.host.commit(tidy(d.current), d.id); return true; }
     const after = release(d.current, d.before, d.id);
     this.host.commit(after, d.id);
-    if (after.piece.archived.length > d.before.piece.archived.length) sayArchived(this.host);
+    if (after.score.archived.length > d.before.score.archived.length) sayArchived(this.host);
     return true;
   }
 

@@ -5,7 +5,8 @@ let dbPromise: Promise<IDBDatabase> | undefined;
 
 function open(): Promise<IDBDatabase> {
   dbPromise ??= new Promise((resolve, reject) => {
-    const req = indexedDB.open('volti', 1);
+    // Data from before scores, in the database 'volti', is left as it was.
+    const req = indexedDB.open('volti-scores', 1);
     req.onupgradeneeded = () => req.result.createObjectStore('kv');
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);

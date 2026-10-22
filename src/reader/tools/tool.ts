@@ -2,14 +2,14 @@
 // A tool acts on the frames with a pointer; each tool has its own file here.
 
 import type { Marking, Point } from '../../markings/model';
-import type { Aspects, State } from '../../pieces/model';
+import type { Aspects, State } from '../../scores/model';
 import type { FrameSlot } from '../spread';
 
 export type ToolName = 'pen' | 'highlighter' | 'eraser';
 
 /** What a tool needs from the reader. */
 export interface ToolHost {
-  /** The current piece's: read each time, as the reader turns from piece to piece. */
+  /** The current score's: read each time, as the reader turns from score to score. */
   readonly aspects: Aspects;
   state(): State;
   penColor(): string;

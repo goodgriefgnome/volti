@@ -33,13 +33,13 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   - When the page before has room left, a faint shading shows how much of this page would fit
     there. Cut inside the shading to move the top of this page up onto it.
 
-- **Setlists**, above the scores in the library, play several pieces as one continuous score:
-  turning past the end of a piece goes into the next, and each piece starts on a fresh screen.
+- **Setlists**, above the scores in the library, play several scores as one continuous score:
+  turning past the end of a score goes into the next, and each score starts on a fresh screen.
   - Tick scores and use **Add to setlist**, or **Add to setlist** in a score's toolbar. The arrow
-    beside a setlist shows its pieces, to reorder or remove; its **⋯** button has the rest.
-  - A setlist can play part of a piece: **Excerpt** in its toolbar (or **Choose the excerpt to
+    beside a setlist shows its scores, to reorder or remove; its **⋯** button has the rest.
+  - A setlist can play an excerpt of a score: **Excerpt** in its toolbar (or **Choose the excerpt to
     play…** in the library) picks the first and last cut to play.
-  - Cuts and markings always belong to the piece: changing them in a setlist changes the piece,
+  - Cuts and markings always belong to the score: changing them in a setlist changes the score,
     and every setlist's excerpts follow the change.
   - **Archive** hides a setlist behind **Show archived**; only archived setlists can be deleted.
 
@@ -59,25 +59,29 @@ Every push to `main` is tested, built and published to GitHub Pages by
 `.github/workflows/deploy.yml`. Unit tests sit next to the modules they test, as `*.test.ts`. Each module starts with a comment saying what kind of code belongs in it; give a new
 module one too.
 
+A **score** is what is shown of its **original** (a PDF), as cuts in played order; a score's id is
+its original's id. A **setlist** is a list of excerpts of scores: each the whole score, or a span of
+its cuts kept only in that setlist.
+
 | Path | What it does |
 | --- | --- |
 | `src/storage/` | IndexedDB key-value store, with every key listed in `keys.ts`; preferences |
-| `src/sources/` | Where scores come from (linked folder, imported copies, shared-file inbox); opening PDFs with pdf.js |
-| `src/pieces/` | Cuts and the played order (`model`), editing it (`edits`), laying it out on frames (`frames`), which cut owns a marking (`ownership`), loading and saving (`store`) |
-| `src/setlists/` | Setlists, the excerpt of each piece they play, and keeping excerpts in step with cut edits |
+| `src/originals/` | Scores' originals: the PDFs in the linked folder or imported, the shared-file inbox, and reading PDFs with pdf.js |
+| `src/scores/` | A score: its cuts in played order (`model`), editing it (`edits`), laying it out on frames (`frames`), which cut owns a marking (`ownership`), loading and saving (`store`) |
+| `src/setlists/` | Setlists, the excerpt of each score they play, and keeping excerpts in step with cut edits |
 | `src/markings/` | What can be drawn or placed on the music: each kind's data, geometry and drawing (`stroke` for pen and highlighter) |
 | `src/library/` | The Library screen: setlists and scores |
-| `src/reader/reader.ts` | The score screen, for a piece or a setlist: turning pages and pieces, applying edits, opening and closing |
-| `src/reader/docs.ts` | The pieces being read, each PDF open only while near the one being read |
-| `src/reader/saver.ts` | Saving pieces and setlists together |
+| `src/reader/reader.ts` | The score screen, for a score or a setlist: turning pages and scores, applying edits, opening and closing |
+| `src/reader/open-scores.ts` | The scores being read, each original open only while near the one being read |
+| `src/reader/saver.ts` | Saving scores and setlists together |
 | `src/reader/input.ts` | Pointers and keys: palm rejection, pinch and pan, handing a pointer to the selected tool, taps and swipes |
 | `src/reader/tools/` | The toolbar's tools that act on the frames: pen and highlighter, eraser; `index.ts` lists them |
 | `src/reader/toolbar.ts` | The toolbar |
 | `src/reader/spread.ts` | Placing frames on the screen and drawing them |
 | `src/reader/detail.ts` | The sharp close-up drawn while zoomed in |
 | `src/reader/history.ts` | Undo and redo |
-| `src/reader/setlist.ts` | How the reader shows where it is in a setlist: title, piece card, the box after a piece |
-| `src/reader/excerpt-picker.ts` | Choosing the excerpt of a piece a setlist plays |
+| `src/reader/setlist.ts` | How the reader shows where it is in a setlist: title, score card, the box after a score |
+| `src/reader/excerpt-picker.ts` | Choosing the excerpt of a score a setlist plays |
 | `src/reader/cuts/` | Editing cuts on the frames: tabs and drags (`editor`), menus, the insert-pages picker, archived cuts |
 | `src/reader/frames.ts` | Drawing a frame's music and ink |
 | `src/reader/gestures.ts` | How taps, swipes and keys turn pages |
@@ -87,7 +91,7 @@ module one too.
 | `src/styles/` | Styles, one file per part of the app, imported in order by `main.ts` |
 | `src/sw.ts` | Offline copy and the share target |
 
-A piece's **ink** is all its markings, kept per cut; a **marking** is one thing drawn or placed on
+A score's **ink** is all its markings, kept per cut; a **marking** is one thing drawn or placed on
 the music, so far only pen and highlighter strokes. A new kind of marking (a post-it, text) goes in
 `src/markings/`, as described at the top of `markings/model.ts`, with a tool to make it in
 `src/reader/tools/`.

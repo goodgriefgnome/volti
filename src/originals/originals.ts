@@ -1,19 +1,19 @@
-// Where scores come from: the linked folder (File System Access) and copies imported into the app
-// (the origin private file system), listed together as Scores. Only finding, reading and removing
-// files; what the app keeps about a score is in pieces/.
+// Scores' originals: the PDFs in the linked folder (File System Access) and the copies imported into
+// the app (the origin private file system), listed together. Only finding, reading and removing
+// files; the score made from an original is in scores/.
 
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
 import { takeInbox } from './inbox';
 
-/** A PDF the app can open: either in the linked folder or imported into the app. */
-export interface Score {
-  /** Stable key for annotations and reading position. */
+/** A score's original: a PDF in the linked folder or imported into the app. */
+export interface Original {
+  /** Also the id of the score made from it. */
   id: string;
   title: string;
   /** Subfolder within the linked folder, for display. */
   folder: string;
-  source: 'folder' | 'imported';
+  location: 'folder' | 'imported';
   getFile(): Promise<File>;
 }
 
@@ -25,7 +25,7 @@ export type FolderState =
 const MAX_DEPTH = 4;
 const titleOf = (name: string) => name.replace(/\.pdf$/i, '');
 
-/** A score's title from its id alone, for a score whose file can't be found. */
+/** A score's title from its id alone, for a score whose original can't be found. */
 export const titleFromId = (id: string) => titleOf(id.slice(id.lastIndexOf('/') + 1).replace(/^(folder|imported):/, ''));
 
 /* ---------- linked folder ---------- */
@@ -83,34 +83,34 @@ async function fileAt(path: string): Promise<File> {
   return (await d.getFileHandle(parts.at(-1)!)).getFile();
 }
 
-function folderScore(path: string): Score {
+function folderOriginal(path: string): Original {
   const slash = path.lastIndexOf('/');
   return {
     id: 'folder:' + path,
     title: titleOf(path.slice(slash + 1)),
     folder: slash < 0 ? '' : path.slice(0, slash),
-    source: 'folder',
+    location: 'folder',
     getFile: () => fileAt(path),
   };
 }
 
 /**
- * Scores in the linked folder. Reads the folder when access is granted;
+ * Originals in the linked folder. Reads the folder when access is granted;
  * otherwise returns the list remembered from last time.
  */
-async function folderScores(state: FolderState): Promise<Score[]> {
+async function folderOriginals(state: FolderState): Promise<Original[]> {
   if (state.kind === 'none') return [];
   if (state.kind === 'locked') {
     const remembered = (await kv.get<ListingEntry[]>(keys.folderListing)) ?? [];
-    return remembered.map((e) => folderScore(e.path));
+    return remembered.map((e) => folderOriginal(e.path));
   }
   const found: ListingEntry[] = [];
   await walk(dir!, '', 0, found);
   await kv.set(keys.folderListing, found);
-  return found.map((f) => folderScore(f.path));
+  return found.map((f) => folderOriginal(f.path));
 }
 
-/* ---------- imported scores (origin private file system) ---------- */
+/* ---------- imported originals (origin private file system) ---------- */
 
 const importsDir = async () => (await navigator.storage.getDirectory()).getDirectoryHandle('imported', { create: true });
 
@@ -133,28 +133,28 @@ export async function importShared(): Promise<number> {
   return files.length ? importFiles(files) : 0;
 }
 
-export async function removeImported(score: Score): Promise<void> {
+export async function removeImported(o: Original): Promise<void> {
   const d = await importsDir();
-  await d.removeEntry(score.id.slice('imported:'.length));
+  await d.removeEntry(o.id.slice('imported:'.length));
 }
 
-async function importedScores(): Promise<Score[]> {
+async function importedOriginals(): Promise<Original[]> {
   const d = await importsDir();
-  const out: Score[] = [];
+  const out: Original[] = [];
   for await (const [name, h] of d.entries()) {
     if (h.kind !== 'file') continue;
     out.push({
       id: 'imported:' + name,
       title: titleOf(name),
       folder: '',
-      source: 'imported',
+      location: 'imported',
       getFile: () => (h as FileSystemFileHandle).getFile(),
     });
   }
   return out;
 }
 
-export async function allScores(state: FolderState): Promise<Score[]> {
-  const [a, b] = await Promise.all([folderScores(state), importedScores()]);
+export async function allOriginals(state: FolderState): Promise<Original[]> {
+  const [a, b] = await Promise.all([folderOriginals(state), importedOriginals()]);
   return [...a, ...b].sort((x, y) => x.title.localeCompare(y.title, undefined, { numeric: true, sensitivity: 'base' }));
 }

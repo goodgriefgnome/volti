@@ -41,7 +41,7 @@
 .pill.missing { color: var(--warn); }
 .more { flex: none; width: 48px; padding: 0; }
 
-/* A setlist: the arrow slides its pieces open beneath it. */
+/* A setlist: the arrow slides its scores open beneath it. */
 .list > li.set { display: block; }
 .set-head { display: flex; align-items: center; gap: 4px; }
 .setlist-title { font: italic 1.15rem var(--font-brand); }

@@ -4,10 +4,10 @@ import { A4, aspects, cut, sarabande } from './testing';
 
 describe('pack', () => {
   it('puts each whole page on its own frame', () => {
-    expect(pack(sarabande().piece.cuts, aspects).map((f) => f.items.map((p) => p.index))).toEqual([[0], [1], [2, 3], [4]]);
+    expect(pack(sarabande().score.cuts, aspects).map((f) => f.items.map((p) => p.index))).toEqual([[0], [1], [2, 3], [4]]);
   });
   it('places a cut below the ones before it on its frame', () => {
-    const [, , f] = pack(sarabande().piece.cuts, aspects);
+    const [, , f] = pack(sarabande().score.cuts, aspects);
     expect(f.items[1].top).toBeCloseTo(A4 / 3);
     expect(f.fill).toBeCloseTo((2 * A4) / 3);
   });
@@ -26,7 +26,7 @@ describe('pack', () => {
 
 describe('roomBefore', () => {
   it('is the room left on the frame before, when that is more than a fifth of a frame', () => {
-    const frames = pack(sarabande().piece.cuts, aspects);
+    const frames = pack(sarabande().score.cuts, aspects);
     expect(roomBefore(frames, 3, aspects)).toBeCloseTo(A4 / 3);
     expect(roomBefore(frames, 1, aspects)).toBeNull();
     expect(roomBefore(frames, 0, aspects)).toBeNull();

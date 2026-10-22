@@ -27,10 +27,10 @@ export function askSetlistName(heading: string, value: string, okLabel: string, 
 
 /**
  * A menu of setlists to add to: the active ones, then the archived ones, then New setlist….
- * With `pieceId`, setlists that already have that piece say so.
+ * With `scoreId`, setlists that already have that score say so.
  */
-export function chooseSetlist(anchor: Element, title: string, setlists: readonly Setlist[], choose: (s: Setlist, isNew: boolean) => void, pieceId?: string) {
-  const has = (s: Setlist) => !!pieceId && s.entries.some((e) => e.pieceId === pieceId);
+export function chooseSetlist(anchor: Element, title: string, setlists: readonly Setlist[], choose: (s: Setlist, isNew: boolean) => void, scoreId?: string) {
+  const has = (s: Setlist) => !!scoreId && s.entries.some((e) => e.scoreId === scoreId);
   const ordered = [...setlists.filter((s) => !s.archived), ...setlists.filter((s) => s.archived)];
   showMenu(anchor, title, [
     ...ordered.map((s) => ({

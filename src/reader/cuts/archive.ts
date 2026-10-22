@@ -1,6 +1,6 @@
-// The dialog listing a piece's archived cuts, to delete them for good.
+// The dialog listing a score's archived cuts, to delete them for good.
 
-import { deleteArchived } from '../../pieces/edits';
+import { deleteArchived } from '../../scores/edits';
 import { el } from '../../ui/dom';
 import { closeOverlay, showDialog } from '../../ui/overlay';
 import type { EditorHost } from './host';
@@ -13,8 +13,8 @@ export function openArchive(host: EditorHost) {
   const fill = () => {
     const s = host.state();
     list.replaceChildren();
-    if (!s.piece.archived.length) list.append(el('li', 'empty', 'No archived cuts.'));
-    for (const c of s.piece.archived) {
+    if (!s.score.archived.length) list.append(el('li', 'empty', 'No archived cuts.'));
+    for (const c of s.score.archived) {
       const li = el('li');
       const n = s.ink[c.id]?.length ?? 0;
       const del = el('button', '', 'Delete for good');

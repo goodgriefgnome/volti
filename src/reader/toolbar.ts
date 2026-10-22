@@ -17,10 +17,10 @@ export const nextLayout = (p: PagesPerScreen) => LAYOUT_NEXT[String(p)];
 
 export interface ToolbarActions {
   close(): void;
-  /** In a setlist: the menu of its pieces, and choosing the excerpt of this one. */
-  pieces(): void;
+  /** In a setlist: the menu of its scores, and choosing the excerpt of this one. */
+  scores(): void;
   excerpt(): void;
-  /** In a piece's own reader: add it to a setlist. */
+  /** In a score's own reader: add it to a setlist. */
   addToSetlist(): void;
   /** Tapping the active tool again puts it away. */
   tool(t: ToolName): void;
@@ -35,7 +35,7 @@ export interface ToolbarActions {
 
 /** What the toolbar shows. */
 export interface ToolbarView {
-  /** The piece is open; a piece that can't be opened can't be written on or edited. */
+  /** The score is open; a score that can't be opened can't be written on or edited. */
   open: boolean;
   tool: ToolChoice;
   penColor: string;
@@ -79,10 +79,10 @@ export class Toolbar {
     const right = el('div', 'group');
     if (inSetlist) {
       right.append(
-        this.button('pieces', 'Pieces', act.pieces),
+        this.button('scores', 'Scores', act.scores),
         this.button('excerpt', 'Excerpt', act.excerpt),
       );
-      this.buttons.pieces.setAttribute('aria-haspopup', 'menu');
+      this.buttons.scores.setAttribute('aria-haspopup', 'menu');
     } else {
       right.append(this.button('addTo', 'Add to setlist', act.addToSetlist));
       this.buttons.addTo.setAttribute('aria-haspopup', 'menu');
@@ -106,7 +106,7 @@ export class Toolbar {
   }
 
   /** A toolbar button, for a menu to open below it. */
-  anchor(key: 'pieces' | 'addTo'): HTMLElement { return this.buttons[key]; }
+  anchor(key: 'scores' | 'addTo'): HTMLElement { return this.buttons[key]; }
 
   sync(v: ToolbarView) {
     const pressed = (k: string, on: boolean) => this.buttons[k].setAttribute('aria-pressed', String(on));

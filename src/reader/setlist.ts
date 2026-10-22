@@ -1,13 +1,13 @@
-// How the reader shows where it is in a setlist: the title, the card naming a piece, and the box
-// after a piece's last frame. Display only; moving between pieces is in reader.ts.
+// How the reader shows where it is in a setlist: the title, the card naming a score, and the box
+// after a score's last frame. Display only; moving between scores is in reader.ts.
 
 import { el } from '../ui/dom';
 
-const PIECE_CARD_MS = 2200;
+const SCORE_CARD_MS = 2200;
 
 /**
- * What fills the rest of a piece's last screen: the next piece's title, or the end of the
- * setlist. With `missing`, the title of a piece that can't be opened.
+ * What fills the rest of a score's last screen: the next score's title, or the end of the
+ * setlist. With `missing`, the title of a score that can't be opened.
  */
 export function blankBox(next: string | undefined, missing?: string): HTMLElement {
   const box = el('div', 'page blank');
@@ -17,16 +17,16 @@ export function blankBox(next: string | undefined, missing?: string): HTMLElemen
   return box;
 }
 
-/** "2/3 Gymnopédie No. 1": piece k of n. */
+/** "2/3 Gymnopédie No. 1": score k of n. */
 export function showSetlistTitle(target: HTMLElement, k: number, n: number, title: string) {
   target.replaceChildren(el('b', '', `${k + 1}/${n} `), title);
 }
 
-/** Names the piece for a moment when the reader turns into it. */
-export class PieceCard {
+/** Names the score for a moment when the reader turns into it. */
+export class ScoreCard {
   private card: HTMLElement | null = null;
   private timer: ReturnType<typeof setTimeout> | undefined;
-  /** The piece named last. */
+  /** The score named last. */
   private shown = -1;
 
   constructor(private root: HTMLElement) {}
@@ -36,11 +36,11 @@ export class PieceCard {
     this.shown = k;
     this.card?.remove();
     clearTimeout(this.timer);
-    const card = el('p', 'piece-card');
+    const card = el('p', 'score-card');
     card.append(el('b', '', `${k + 1} OF ${n}`), title);
     this.root.append(card);
     this.card = card;
-    this.timer = setTimeout(() => card.classList.add('gone'), PIECE_CARD_MS);
+    this.timer = setTimeout(() => card.classList.add('gone'), SCORE_CARD_MS);
   }
 
   stop() {

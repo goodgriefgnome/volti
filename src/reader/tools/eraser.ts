@@ -1,8 +1,8 @@
 // The eraser: taking away the markings it touches, the whole sweep as one undo step.
 
 import { hits, type Point } from '../../markings/model';
-import { setInk } from '../../pieces/edits';
-import { visible } from '../../pieces/ownership';
+import { setInk } from '../../scores/edits';
+import { visible } from '../../scores/ownership';
 import type { FrameSlot } from '../spread';
 import type { Tool, ToolHost } from './tool';
 

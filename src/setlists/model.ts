@@ -1,19 +1,27 @@
-// Setlists, their entries, and the span of a piece's cuts an entry plays: making them, reading
-// spans, and keeping spans on the same music when a piece's cuts change. Pure: no DOM, no storage.
+// Setlists, their entries, and the excerpt of a score each entry plays: making them, reading
+// spans, and keeping spans on the same music when a score's cuts change. Pure: no DOM, no storage.
 
-import type { Cut } from '../pieces/model';
+import type { Cut } from '../scores/model';
 
 /**
- * Which of a piece's cuts are played: from `first` to `last`, in the piece's order. A missing
- * end means the piece's start or end, wherever that is now.
+ * Which of a score's cuts are played: from `first` to `last`, in the score's order. A missing
+ * end means the score's start or end, wherever that is now.
  */
 export interface Span { first?: string; last?: string }
 
+/**
+ * One excerpt of a score, in a setlist. It plays either
+ * - the whole score: no span, so `first` and `last` are both missing; or
+ * - a custom excerpt: a span kept only in this setlist.
+ * Named excerpts, kept on the score and shared between setlists, are not designed yet; an entry
+ * that plays one will refer to it here instead of holding a span.
+ */
 export interface Entry extends Span {
   id: string;
-  pieceId: string;
+  scoreId: string;
 }
 
+/** A list of excerpts, read as one continuous score. */
 export interface Setlist {
   id: string;
   title: string;
@@ -23,11 +31,11 @@ export interface Setlist {
 
 export const newId = () => crypto.randomUUID();
 
-export const newEntry = (pieceId: string): Entry => ({ id: newId(), pieceId });
+export const newEntry = (scoreId: string): Entry => ({ id: newId(), scoreId });
 
 export const newSetlist = (title: string): Setlist => ({ id: newId(), title, archived: false, entries: [] });
 
-/** The indexes i0..i1 of the cuts a span plays. An end that can't be found falls back to the piece's start or end. */
+/** The indexes i0..i1 of the cuts a span plays. An end that can't be found falls back to the score's start or end. */
 export function spanOf(cuts: readonly { id: string }[], span: Span): { i0: number; i1: number; whole: boolean } {
   const n = cuts.length;
   let i0 = span.first ? cuts.findIndex((c) => c.id === span.first) : 0;
@@ -43,7 +51,7 @@ export function spanCuts<C extends { id: string }>(cuts: readonly C[], span: Spa
   return cuts.slice(i0, i1 + 1);
 }
 
-/** "Pages 1–2" for an excerpt, or null when the whole piece is played. */
+/** "Pages 1–2" for an excerpt, or null when the whole score is played. */
 export function spanLabel(cuts: readonly Cut[], span: Span): string | null {
   const { i0, i1, whole } = spanOf(cuts, span);
   if (whole || !cuts.length) return null;
@@ -51,7 +59,7 @@ export function spanLabel(cuts: readonly Cut[], span: Span): string | null {
   return a === b ? `Page ${a}` : `Pages ${a}–${b}`;
 }
 
-/** The span for cuts i0..i1, with ids only where it doesn't reach the piece's start or end. */
+/** The span for cuts i0..i1, with ids only where it doesn't reach the score's start or end. */
 export function spanFor(cuts: readonly { id: string }[], i0: number, i1: number): Span {
   const span: Span = {};
   if (i0 > 0) span.first = cuts[i0].id;
@@ -59,7 +67,7 @@ export function spanFor(cuts: readonly { id: string }[], i0: number, i1: number)
   return span;
 }
 
-/** Keep the same span with its ends cleared where they are now the piece's start or end. */
+/** Keep the same span with its ends cleared where they are now the score's start or end. */
 function tidySpan<S extends Span>(span: S, cuts: readonly { id: string }[]): S {
   const { first, last, ...rest } = span;
   const out = rest as S;
@@ -69,7 +77,7 @@ function tidySpan<S extends Span>(span: S, cuts: readonly { id: string }[]): S {
 }
 
 /**
- * Move a span after an edit to the piece's cuts, so it plays the same music:
+ * Move a span after an edit to the score's cuts, so it plays the same music:
  * - a split cut keeps its upper half's id, so a span ending on it now ends on the lower half;
  * - a cut joined into the one before it hands its place to that one;
  * - a removed cut hands the start to the next cut and the end to the one before;
@@ -141,13 +149,13 @@ function isLowerHalf(after: readonly Cut[], i: number, before: readonly Cut[]): 
   return !!old && old.y1 === c.y1 && up.y1 !== old.y1;
 }
 
-/** Apply an edit of a piece's cuts to every entry that plays the piece. Unchanged setlists stay the same objects. */
-export function followPiece(setlists: readonly Setlist[], pieceId: string, before: readonly Cut[], after: readonly Cut[], grow?: { setlist: string; entries: ReadonlySet<string> }): Setlist[] {
+/** Apply an edit of a score's cuts to every entry that plays the score. Unchanged setlists stay the same objects. */
+export function followScore(setlists: readonly Setlist[], scoreId: string, before: readonly Cut[], after: readonly Cut[], grow?: { setlist: string; entries: ReadonlySet<string> }): Setlist[] {
   if (before === after) return setlists as Setlist[];
   return setlists.map((s) => {
     let changed = false;
     const entries = s.entries.map((e) => {
-      if (e.pieceId !== pieceId) return e;
+      if (e.scoreId !== scoreId) return e;
       const f = followEdit(e, before, after, grow?.setlist === s.id && grow.entries.has(e.id));
       if (f !== e) changed = true;
       return f;
@@ -156,7 +164,7 @@ export function followPiece(setlists: readonly Setlist[], pieceId: string, befor
   });
 }
 
-export const setlistsWith = (setlists: readonly Setlist[], pieceId: string) => setlists.filter((s) => s.entries.some((e) => e.pieceId === pieceId));
+export const setlistsWith = (setlists: readonly Setlist[], scoreId: string) => setlists.filter((s) => s.entries.some((e) => e.scoreId === scoreId));
 
 /** Move entry `from` to position `to`. */
 export function moveEntry(s: Setlist, from: number, to: number): Setlist {

@@ -1,17 +1,17 @@
 // The Library screen: setlists, the scores folder, imported scores, and opening the reader. Code
 // only this screen uses; what the reader also needs goes in ui/.
 
-import type { Piece } from '../pieces/model';
-import { loadSavedPiece } from '../pieces/store';
-import { openReader, type Source } from '../reader/reader';
+import type { Score } from '../scores/model';
+import { loadSavedScore } from '../scores/store';
+import { openReader, type ToRead } from '../reader/reader';
 import {
   duplicate, moveEntry, newEntry, newSetlist, setlistsWith, spanLabel, type Entry, type Setlist,
 } from '../setlists/model';
 import { deleteSetlist, loadSetlists, saveChanged } from '../setlists/store';
 import {
-  allScores, canLinkFolder, folderState, importFiles, linkFolder, removeImported, titleFromId, unlinkFolder, unlockFolder,
-  type FolderState, type Score,
-} from '../sources/scores';
+  allOriginals, canLinkFolder, folderState, importFiles, linkFolder, removeImported, titleFromId, unlinkFolder, unlockFolder,
+  type FolderState, type Original,
+} from '../originals/originals';
 import type { Prefs } from '../storage/prefs';
 import { button, el, plural } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog, showMenu } from '../ui/overlay';
@@ -21,10 +21,10 @@ import { Toast } from '../ui/toast';
 /** The Library screen: setlists, the scores folder, imported scores, and the list to open them from. */
 export class Library {
   private folder: FolderState = { kind: 'none' };
-  private scores: Score[] = [];
+  private originals: Original[] = [];
   private setlists: Setlist[] = [];
-  /** Pieces in setlists as last saved, for the excerpt each entry plays. */
-  private pieces = new Map<string, Piece>();
+  /** Scores in setlists as last saved, for the excerpt each entry plays. */
+  private saved = new Map<string, Score>();
   private query = '';
   /** What the library shows that isn't data, kept while the app runs. */
   private openRows = new Set<string>();
@@ -92,12 +92,12 @@ export class Library {
     this.folder = await folderState();
     this.renderFolder();
     try {
-      this.scores = await allScores(this.folder);
+      this.originals = await allOriginals(this.folder);
     } catch (e) {
       // The folder may have been moved or deleted since it was linked.
       console.error(e);
       this.say('Could not read the scores folder. Link it again if it has moved.');
-      this.scores = [];
+      this.originals = [];
     }
     await this.loadSetlists();
     this.renderList();
@@ -105,9 +105,9 @@ export class Library {
 
   private async loadSetlists() {
     this.setlists = await loadSetlists();
-    const ids = [...new Set(this.setlists.flatMap((s) => s.entries.map((e) => e.pieceId)))];
-    const pieces = await Promise.all(ids.map((id) => loadSavedPiece(id)));
-    this.pieces = new Map(pieces.filter((p): p is Piece => !!p).map((p) => [p.id, p]));
+    const ids = [...new Set(this.setlists.flatMap((s) => s.entries.map((e) => e.scoreId)))];
+    const saved = await Promise.all(ids.map((id) => loadSavedScore(id)));
+    this.saved = new Map(saved.filter((x): x is Score => !!x).map((x) => [x.id, x]));
     this.renderSetlists();
   }
 
@@ -153,8 +153,8 @@ export class Library {
 
   /* ---------- setlists ---------- */
 
-  private scoreOf(id: string) { return this.scores.find((s) => s.id === id); }
-  private titleOf(pieceId: string) { return this.scoreOf(pieceId)?.title ?? this.pieces.get(pieceId)?.title ?? titleFromId(pieceId); }
+  private originalOf(id: string) { return this.originals.find((s) => s.id === id); }
+  private titleOf(scoreId: string) { return this.originalOf(scoreId)?.title ?? this.saved.get(scoreId)?.title ?? titleFromId(scoreId); }
 
   /** Change the setlists, save the ones that changed, and show them. */
   private async change(next: Setlist[]) {
@@ -184,7 +184,7 @@ export class Library {
       const s = newSetlist(name);
       this.openRows.add(s.id);
       void this.change([s, ...this.setlists]);
-      this.addPieces(s.id);
+      this.addScores(s.id);
     })));
 
     const list = this.setlistList;
@@ -195,7 +195,7 @@ export class Library {
     if (this.showArchived) for (const s of archived) list.append(this.setlistRow(s));
   }
 
-  /** A setlist: tap to play it; the arrow slides its pieces open; ⋯ for the rest. */
+  /** A setlist: tap to play it; the arrow slides its scores open; ⋯ for the rest. */
   private setlistRow(s: Setlist): HTMLLIElement {
     const open = this.openRows.has(s.id);
     const li = el('li', 'set' + (open ? ' open' : '') + (s.archived ? ' archived' : ''));
@@ -212,16 +212,16 @@ export class Library {
     expand.append(el('span', 'chev'));
     expand.setAttribute('aria-expanded', String(open));
     expand.setAttribute('aria-controls', body.id);
-    expand.setAttribute('aria-label', `Pieces in ${s.title}`);
+    expand.setAttribute('aria-label', `Scores in ${s.title}`);
 
     const play = button('', () => {
       if (s.entries.length) void this.play(s);
-      else this.toast.say('This setlist has no pieces yet.');
+      else this.toast.say('This setlist has no scores yet.');
     }, 'open');
-    play.append(el('span', 'item-title setlist-title', s.title), el('span', 'meta', (s.archived ? 'Archived · ' : '') + plural(s.entries.length, 'piece')));
+    play.append(el('span', 'item-title setlist-title', s.title), el('span', 'meta', (s.archived ? 'Archived · ' : '') + plural(s.entries.length, 'score')));
 
     const more = button('⋯', () => showMenu(more, s.title, [
-      { label: 'Add pieces…', run: () => this.addPieces(s.id) },
+      { label: 'Add scores…', run: () => this.addScores(s.id) },
       { label: 'Rename…', run: () => askSetlistName('Rename setlist', s.title, 'Rename', (title) => void this.update({ ...this.get(s.id)!, title })) },
       { label: 'Duplicate', run: () => this.duplicate(s) },
       s.archived
@@ -233,9 +233,9 @@ export class Library {
     more.setAttribute('aria-haspopup', 'menu');
 
     const entries = el('ol', 'entries');
-    entries.setAttribute('aria-label', `Pieces in ${s.title}`);
+    entries.setAttribute('aria-label', `Scores in ${s.title}`);
     s.entries.forEach((e, i) => entries.append(this.entryRow(s, e, i, entries)));
-    if (!s.entries.length) entries.append(el('li', 'empty', 'No pieces yet. Use ⋯ › Add pieces, or tick scores below.'));
+    if (!s.entries.length) entries.append(el('li', 'empty', 'No scores yet. Use ⋯ › Add scores, or tick scores below.'));
     const inner = el('div', 'set-inner');
     inner.append(entries);
     body.append(inner);
@@ -248,22 +248,22 @@ export class Library {
   private get(id: string) { return this.setlists.find((s) => s.id === id); }
 
   private entryRow(s: Setlist, e: Entry, i: number, list: HTMLElement): HTMLLIElement {
-    const title = this.titleOf(e.pieceId), piece = this.pieces.get(e.pieceId), missing = !this.scoreOf(e.pieceId);
-    const excerpt = piece ? spanLabel(piece.cuts, e) : null;
+    const title = this.titleOf(e.scoreId), score = this.saved.get(e.scoreId), missing = !this.originalOf(e.scoreId);
+    const excerpt = score ? spanLabel(score.cuts, e) : null;
     const li = el('li', 'entry');
     const handle = button('⋮⋮', () => {}, 'handle');
     handle.setAttribute('aria-label', `Move ${title}`);
     this.dragToReorder(handle, li, list, s, i);
     const open = button('', () => void this.play(s, e.id), 'open');
     open.append(el('span', 'item-title', title));
-    if (piece?.key) open.append(el('span', 'meta', piece.key));
+    if (score?.key) open.append(el('span', 'meta', score.key));
     if (excerpt) open.append(el('span', 'pill', excerpt));
     if (missing) open.append(el('span', 'pill missing', 'Missing'));
     const more = button('⋯', () => showMenu(more, title, [
       i > 0 && { label: 'Move up', run: () => void this.update(moveEntry(s, i, i - 1)) },
       i < s.entries.length - 1 && { label: 'Move down', run: () => void this.update(moveEntry(s, i, i + 1)) },
       !missing && { label: 'Choose the excerpt to play…', run: () => void this.play(s, e.id, true) },
-      !!excerpt && { label: 'Play the whole piece', run: () => void this.update({ ...s, entries: s.entries.map((x) => (x === e ? { id: e.id, pieceId: e.pieceId } : x)) }) },
+      !!excerpt && { label: 'Play the whole score', run: () => void this.update({ ...s, entries: s.entries.map((x) => (x === e ? { id: e.id, scoreId: e.scoreId } : x)) }) },
       { label: 'Remove from setlist', run: () => this.removeEntry(s, e) },
     ]), 'quiet more');
     more.setAttribute('aria-label', `More for ${title}`);
@@ -299,7 +299,7 @@ export class Library {
   private removeEntry(s: Setlist, e: Entry) {
     const at = s.entries.indexOf(e);
     void this.update({ ...s, entries: s.entries.filter((x) => x !== e) });
-    this.toast.say(`Removed “${this.titleOf(e.pieceId)}” from “${s.title}”.`, ['Undo', () => {
+    this.toast.say(`Removed “${this.titleOf(e.scoreId)}” from “${s.title}”.`, ['Undo', () => {
       const now = this.get(s.id);
       if (!now) return;
       const entries = [...now.entries];
@@ -319,7 +319,7 @@ export class Library {
   private confirmDelete(s: Setlist) {
     const d = showDialog(`Delete “${s.title}”?`);
     d.append(
-      el('p', '', 'The pieces, with their cuts and markings, stay in the library.'),
+      el('p', '', 'The scores, with their cuts and markings, stay in the library.'),
       buttonRow(button('Cancel', closeOverlay), button('Delete', async () => {
         closeOverlay();
         await deleteSetlist(this.setlists, s.id);
@@ -332,26 +332,26 @@ export class Library {
   }
 
   /** Scores as checkboxes; the ticked ones go at the end, in library order, each played whole. */
-  private addPieces(id: string) {
+  private addScores(id: string) {
     const s = this.get(id);
     if (!s) return;
     const chosen = new Set<string>();
-    const d = showDialog(`Add pieces to “${s.title}”`);
+    const d = showDialog(`Add scores to “${s.title}”`);
     const list = el('div', 'picklist');
     const add = button('Add', () => {
       const now = this.get(id);
       if (!now) return;
       closeOverlay();
-      const ids = this.scores.map((x) => x.id).filter((x) => chosen.has(x));
+      const ids = this.originals.map((x) => x.id).filter((x) => chosen.has(x));
       this.openRows.add(id);
       void this.update({ ...now, entries: [...now.entries, ...ids.map(newEntry)] });
-      this.toast.say(`Added ${plural(ids.length, 'piece')} to “${now.title}”.`);
+      this.toast.say(`Added ${plural(ids.length, 'score')} to “${now.title}”.`);
     }, 'primary');
     add.disabled = true;
     const fill = (q: string) => {
       list.replaceChildren();
-      const shown = this.scores.filter((x) => `${x.title} ${x.folder}`.toLowerCase().includes(q.trim().toLowerCase()));
-      if (!shown.length) list.append(el('p', 'empty', this.scores.length ? `Nothing matches “${q}”.` : 'No scores yet.'));
+      const shown = this.originals.filter((x) => `${x.title} ${x.folder}`.toLowerCase().includes(q.trim().toLowerCase()));
+      if (!shown.length) list.append(el('p', 'empty', this.originals.length ? `Nothing matches “${q}”.` : 'No scores yet.'));
       for (const sc of shown) {
         const label = el('label', 'check');
         const box = el('input');
@@ -360,9 +360,9 @@ export class Library {
         box.addEventListener('change', () => {
           if (box.checked) chosen.add(sc.id); else chosen.delete(sc.id);
           add.disabled = !chosen.size;
-          add.textContent = chosen.size ? `Add ${plural(chosen.size, 'piece')}` : 'Add';
+          add.textContent = chosen.size ? `Add ${plural(chosen.size, 'score')}` : 'Add';
         });
-        const has = s.entries.some((e) => e.pieceId === sc.id);
+        const has = s.entries.some((e) => e.scoreId === sc.id);
         label.append(box, el('span', '', sc.title), el('span', 'meta', has ? 'already in this setlist' : sc.folder));
         list.append(label);
       }
@@ -383,7 +383,7 @@ export class Library {
     const n = this.picked.size;
     this.pickBar.hidden = !n;
     if (!n) return;
-    const add = button('Add to setlist', () => chooseSetlist(add, `Add ${plural(n, 'piece')} to`, this.setlists, (s, isNew) => this.addPicked(s, isNew)), 'primary');
+    const add = button('Add to setlist', () => chooseSetlist(add, `Add ${plural(n, 'score')} to`, this.setlists, (s, isNew) => this.addPicked(s, isNew)), 'primary');
     add.setAttribute('aria-haspopup', 'menu');
     this.pickBar.replaceChildren(
       button('Clear', () => { this.picked.clear(); this.renderList(); }, 'quiet'),
@@ -394,21 +394,21 @@ export class Library {
 
   /** The ticked scores go at the end, whole, in library order. */
   private addPicked(s: Setlist, isNew: boolean) {
-    const ids = this.scores.map((x) => x.id).filter((id) => this.picked.has(id));
+    const ids = this.originals.map((x) => x.id).filter((id) => this.picked.has(id));
     const added = { ...s, entries: [...s.entries, ...ids.map(newEntry)] };
     this.picked.clear();
     this.openRows.add(s.id);
     void this.change(isNew ? [added, ...this.setlists] : this.setlists.map((x) => (x.id === s.id ? added : x)));
-    this.toast.say(`Added ${plural(ids.length, 'piece')} to “${s.title}”.`);
+    this.toast.say(`Added ${plural(ids.length, 'score')} to “${s.title}”.`);
     this.setlistList.querySelector(`#set-${CSS.escape(s.id)}`)?.closest('li')?.scrollIntoView({ block: 'nearest' });
   }
 
   private renderList() {
     this.renderPickBar();
     const q = this.query.trim().toLowerCase();
-    const shown = q ? this.scores.filter((s) => `${s.title} ${s.folder}`.toLowerCase().includes(q)) : this.scores;
+    const shown = q ? this.originals.filter((s) => `${s.title} ${s.folder}`.toLowerCase().includes(q)) : this.originals;
     this.list.replaceChildren();
-    if (!this.scores.length) {
+    if (!this.originals.length) {
       this.list.append(el('li', 'empty', this.folder.kind === 'none'
         ? 'No scores yet. Link your scores folder, add PDFs, or share a PDF to Volti from another app.'
         : 'No PDFs found in this folder or its subfolders.'));
@@ -438,10 +438,10 @@ export class Library {
       const n = setlistsWith(this.setlists, s.id).length;
       const meta = [s.folder, n ? `in ${plural(n, 'setlist')}` : ''].filter(Boolean).join(' · ');
       if (meta) open.append(el('span', 'score-folder', meta));
-      if (s.source === 'imported') open.append(el('span', 'badge', 'Added'));
+      if (s.location === 'imported') open.append(el('span', 'badge', 'Added'));
       open.addEventListener('click', () => void this.open(s));
       li.append(pick, open);
-      if (s.source === 'imported') {
+      if (s.location === 'imported') {
         li.append(button('Remove', async () => {
           await removeImported(s);
           this.say(`Removed “${s.title}”.`);
@@ -454,20 +454,20 @@ export class Library {
 
   /* ---------- opening the reader ---------- */
 
-  private open(s: Score) {
-    return this.read({ kind: 'piece', score: s }, [s], `Could not open “${s.title}”. It may have been moved or renamed.`);
+  private open(s: Original) {
+    return this.read({ kind: 'score', original: s }, [s], `Could not open “${s.title}”. It may have been moved or renamed.`);
   }
 
   /** Play a setlist from where it was left, or from one of its entries. */
   private play(s: Setlist, startEntry?: string, chooseExcerpt = false) {
-    const scores = s.entries.map((e) => this.scoreOf(e.pieceId)).filter((x): x is Score => !!x);
+    const originals = s.entries.map((e) => this.originalOf(e.scoreId)).filter((x): x is Original => !!x);
     this.openRows.add(s.id);
-    return this.read({ kind: 'setlist', setlistId: s.id, scores: this.scores, startEntry, chooseExcerpt }, scores, `Could not open “${s.title}”.`);
+    return this.read({ kind: 'setlist', setlistId: s.id, originals: this.originals, startEntry, chooseExcerpt }, originals, `Could not open “${s.title}”.`);
   }
 
-  private async read(source: Source, scores: Score[], failed: string) {
+  private async read(what: ToRead, originals: Original[], failed: string) {
     // Opening is a tap, so it can also grant folder access for this session.
-    if (scores.some((s) => s.source === 'folder') && this.folder.kind === 'locked' && !(await this.unlock())) return;
+    if (originals.some((s) => s.location === 'folder') && this.folder.kind === 'locked' && !(await this.unlock())) return;
     this.say('');
     closeOverlay();
     this.toast.hide();
@@ -478,7 +478,7 @@ export class Library {
       void this.loadSetlists().then(() => this.renderList());
     };
     try {
-      await openReader(source, this.prefs, back);
+      await openReader(what, this.prefs, back);
     } catch (e) {
       console.error(e);
       this.root.hidden = false;

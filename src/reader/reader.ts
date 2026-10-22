@@ -1,16 +1,16 @@
-// The centre of the score screen: the pieces being read and the frames on the screen, turning pages
-// and pieces, taking edits (commit, undo, redo), and opening and closing. It joins the other reader
+// The centre of the score screen: the scores being read and the frames on the screen, turning pages
+// and scores, taking edits (commit, undo, redo), and opening and closing. It joins the other reader
 // files together; code that can stand on its own goes in one of them.
 
 import type { Marking } from '../markings/model';
 import { PEN_COLORS } from '../markings/stroke';
-import { frameOf, pack, type Frame } from '../pieces/frames';
-import type { Aspects, Cut, State } from '../pieces/model';
-import { loadPiece, savePosition } from '../pieces/store';
-import { followPiece, newEntry, spanCuts, type Entry, type Setlist, type Span } from '../setlists/model';
+import { frameOf, pack, type Frame } from '../scores/frames';
+import type { Aspects, Cut, State } from '../scores/model';
+import { loadScore, savePosition } from '../scores/store';
+import { followScore, newEntry, spanCuts, type Entry, type Setlist, type Span } from '../setlists/model';
 import { loadPosition, loadSetlists, savePosition as saveSetlistPosition } from '../setlists/store';
-import { openPdf, type PageCache } from '../sources/pdf';
-import { titleFromId, type Score } from '../sources/scores';
+import { openPdf, type PageCache } from '../originals/pdf';
+import { titleFromId, type Original } from '../originals/originals';
 import { savePrefs, type Prefs } from '../storage/prefs';
 import { el } from '../ui/dom';
 import { closeOverlay, showMenu } from '../ui/overlay';
@@ -18,7 +18,7 @@ import { chooseSetlist } from '../ui/setlists';
 import { Toast } from '../ui/toast';
 import { CutEditor } from './cuts/editor';
 import { Detail } from './detail';
-import { Docs, type Doc, type Item } from './docs';
+import { OpenScores, type Item, type OpenScore } from './open-scores';
 import { openExcerptPicker } from './excerpt-picker';
 import type { Hatches } from './frames';
 import type { Gesture } from './gestures';
@@ -26,23 +26,24 @@ import { History } from './history';
 import { Input } from './input';
 import { pagesPerScreen } from './layout';
 import { Saver } from './saver';
-import { blankBox, PieceCard, showSetlistTitle } from './setlist';
+import { blankBox, ScoreCard, showSetlistTitle } from './setlist';
 import { frameSize, paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './spread';
 import { nextLayout, Toolbar, type ToolChoice } from './toolbar';
 import type { ToolName } from './tools/tool';
 import { isZoomed, NO_ZOOM, type Zoom } from './zoom';
 
 /**
- * Undo keeps whole states: each entry is a piece's state before an edit, the setlists (whose
+ * Undo keeps whole states: each entry is a score's state before an edit, the setlists (whose
  * excerpts follow the edit), the item it was made in, and the cut to show.
  */
-interface Undo { doc: Doc; state: State; setlists: readonly Setlist[]; k: number; focus?: string }
+interface Undo { open: OpenScore; state: State; setlists: readonly Setlist[]; k: number; focus?: string }
 
-export type Source =
-  | { kind: 'piece'; score: Score }
-  | { kind: 'setlist'; setlistId: string; scores: readonly Score[]; startEntry?: string; chooseExcerpt?: boolean };
+/** What the reader opens: a score on its own, or a setlist. */
+export type ToRead =
+  | { kind: 'score'; original: Original }
+  | { kind: 'setlist'; setlistId: string; originals: readonly Original[]; startEntry?: string; chooseExcerpt?: boolean };
 
-/** Frames take the first page's shape; a piece that can't be opened is shown this shape. */
+/** Frames take the first page's shape; a score that can't be opened is shown this shape. */
 const A4 = 297 / 210;
 
 const dpr = () => window.devicePixelRatio || 1;
@@ -51,41 +52,41 @@ const dpr = () => window.devicePixelRatio || 1;
 const sameLayout = (a: readonly Cut[], b: readonly Cut[]) =>
   a.length === b.length && a.every((c, i) => c.id === b[i].id && c.page === b[i].page && c.y0 === b[i].y0 && c.y1 === b[i].y1 && c.pad === b[i].pad);
 
-const playedCuts = (it: Item, doc: Doc, entry: Entry | undefined) => (it.entryId && entry ? spanCuts(doc.state.piece.cuts, entry) : doc.state.piece.cuts);
+const playedCuts = (it: Item, cur: OpenScore, entry: Entry | undefined) => (it.entryId && entry ? spanCuts(cur.state.score.cuts, entry) : cur.state.score.cuts);
 
-/** Open a piece, or a setlist as one continuous score. A piece that can't be opened throws; a setlist carries on past it. */
-export async function openReader(source: Source, prefs: Prefs, onClose: () => void): Promise<void> {
+/** Open a score, or a setlist as one continuous score. A score that can't be opened throws; a setlist carries on past it. */
+export async function openReader(what: ToRead, prefs: Prefs, onClose: () => void): Promise<void> {
   const setlists = await loadSetlists();
-  if (source.kind === 'piece') {
-    const { score } = source;
-    const cache = await openPdf(await score.getFile());
+  if (what.kind === 'score') {
+    const { original } = what;
+    const cache = await openPdf(await original.getFile());
     const aspects = await cache.allAspects();
-    const { state, position } = await loadPiece(score.id, score.title, aspects);
-    const doc: Doc = { id: score.id, score, aspects, state, cache };
-    new Reader([{ pieceId: score.id, title: score.title, score }], null, setlists, doc, 0, position, false, prefs, onClose);
+    const { state, position } = await loadScore(original.id, original.title, aspects);
+    const first: OpenScore = { id: original.id, original, aspects, state, cache };
+    new Reader([{ scoreId: original.id, title: original.title, original }], null, setlists, first, 0, position, false, prefs, onClose);
     return;
   }
-  const setlist = setlists.find((s) => s.id === source.setlistId);
-  if (!setlist?.entries.length) throw new Error('No such setlist, or no pieces in it');
-  const scores = new Map(source.scores.map((s) => [s.id, s]));
+  const setlist = setlists.find((s) => s.id === what.setlistId);
+  if (!setlist?.entries.length) throw new Error('No such setlist, or no scores in it');
+  const originals = new Map(what.originals.map((o) => [o.id, o]));
   const items: Item[] = setlist.entries.map((e) => {
-    const score = scores.get(e.pieceId);
-    return { pieceId: e.pieceId, entryId: e.id, score, title: score?.title ?? titleFromId(e.pieceId), missing: !score };
+    const original = originals.get(e.scoreId);
+    return { scoreId: e.scoreId, entryId: e.id, original, title: original?.title ?? titleFromId(e.scoreId), missing: !original };
   });
-  const pos = source.startEntry ? { entry: source.startEntry } : await loadPosition(setlist.id);
+  const pos = what.startEntry ? { entry: what.startEntry } : await loadPosition(setlist.id);
   const k = Math.max(0, items.findIndex((it) => it.entryId === pos?.entry));
-  new Reader(items, setlist.id, setlists, null, k, pos?.cut, !!source.chooseExcerpt, prefs, onClose);
+  new Reader(items, setlist.id, setlists, null, k, pos?.cut, !!what.chooseExcerpt, prefs, onClose);
 }
 
 /**
- * The score screen, for a piece or a setlist. It holds the pieces being read and the frames on
+ * The score screen, for a score or a setlist. It holds the scores being read and the frames on
  * the screen, and joins up the toolbar, pointer input, the cut editor and the zoomed close-up.
  */
 class Reader {
   private root = el('div', 'reader');
   private stage = el('div', 'stage');
   private spreadEl = el('div', 'spread');
-  private scope = el('p', 'scope', 'Cuts changed here change the piece, in every setlist');
+  private scope = el('p', 'scope', 'Cuts changed here change the score, in every setlist');
   private toast = new Toast();
   private toolbar: Toolbar;
 
@@ -96,10 +97,10 @@ class Reader {
   private frame = 0;
   /** The current item's frames. */
   private frames: Frame[] = [];
-  private docs: Docs;
+  private scores: OpenScores;
   private goSeq = 0;
   private loading = false;
-  private card = new PieceCard(this.root);
+  private card = new ScoreCard(this.root);
   private seq = 0;
   private slots: FrameSlot[] = [];
   /** Page canvases drawn at the frame's width, by 0-based page, for the frames on screen. */
@@ -124,17 +125,17 @@ class Reader {
 
   constructor(
     private items: Item[],
-    /** The setlist being read, or null for a piece on its own. */
+    /** The setlist being read, or null for a score on its own. */
     private setlistId: string | null,
     private setlists: readonly Setlist[],
-    doc: Doc | null,
+    first: OpenScore | null,
     k: number,
     position: string | undefined,
     chooseExcerpt: boolean,
     private prefs: Prefs,
     private onClose: () => void,
   ) {
-    this.docs = new Docs(items, doc);
+    this.scores = new OpenScores(items, first);
     this.saver = new Saver(() => this.setlists, setlists);
     const reader = this;
     this.editor = new CutEditor({
@@ -161,7 +162,7 @@ class Reader {
     });
     this.toolbar = new Toolbar(!!setlistId, {
       close: () => history.back(),
-      pieces: () => this.piecesMenu(),
+      scores: () => this.scoresMenu(),
       excerpt: () => this.chooseExcerpt(),
       addToSetlist: () => this.addToSetlist(),
       tool: (t) => this.setTool(t),
@@ -213,22 +214,22 @@ class Reader {
     this.observer.observe(this.stage);
   }
 
-  /* ---------- the pieces read ---------- */
+  /* ---------- the scores read ---------- */
 
   private get setlist() { return this.setlists.find((s) => s.id === this.setlistId); }
   private entry(k = this.k): Entry | undefined {
     const id = this.items[k]?.entryId;
     return id ? this.setlist?.entries.find((e) => e.id === id) : undefined;
   }
-  /** The current item's piece, once open; undefined while it opens or when it can't be. */
-  private get doc(): Doc | undefined { return this.docs.get(this.items[this.k].pieceId); }
-  private get state(): State { return this.doc!.state; }
-  private get aspects(): Aspects { return this.doc!.aspects; }
-  private get cache(): PageCache { return this.doc!.cache!; }
+  /** The current item's score, once open; undefined while it opens or when it can't be. */
+  private get current(): OpenScore | undefined { return this.scores.get(this.items[this.k].scoreId); }
+  private get state(): State { return this.current!.state; }
+  private get aspects(): Aspects { return this.current!.aspects; }
+  private get cache(): PageCache { return this.current!.cache!; }
 
   private framesFor(k: number): Frame[] {
-    const doc = this.docs.get(this.items[k].pieceId);
-    return doc ? pack(playedCuts(this.items[k], doc, this.entry(k)), doc.aspects) : [];
+    const cur = this.scores.get(this.items[k].scoreId);
+    return cur ? pack(playedCuts(this.items[k], cur, this.entry(k)), cur.aspects) : [];
   }
 
   /** Go to item k: its first or last screen, or the screen holding a cut. */
@@ -236,8 +237,8 @@ class Reader {
     const seq = ++this.goSeq;
     this.loading = true;
     if (k !== this.k) { this.editor.dismiss(); this.toolbar.info.textContent = 'Opening…'; }
-    await this.docs.ensure(k);
-    if (seq !== this.goSeq || this.docs.closed) return;
+    await this.scores.ensure(k);
+    if (seq !== this.goSeq || this.scores.closed) return;
     this.loading = false;
     this.k = k;
     this.frames = this.framesFor(k);
@@ -245,7 +246,7 @@ class Reader {
     this.frame = Math.max(0, f);
     this.syncBar();
     await this.show();
-    this.docs.keepNear(this.k);
+    this.scores.keepNear(this.k);
   }
 
   /* ---------- toolbar ---------- */
@@ -257,13 +258,13 @@ class Reader {
   }
 
   private syncBar() {
-    const doc = this.doc;
+    const cur = this.current;
     this.toolbar.sync({
-      open: !!doc,
+      open: !!cur,
       tool: this.tool,
       penColor: this.penColor,
       editing: this.editor.enabled,
-      archived: doc?.state.piece.archived.length ?? 0,
+      archived: cur?.state.score.archived.length ?? 0,
       layout: this.prefs.pagesPerScreen,
       zoomed: isZoomed(this.zoom),
       canUndo: this.undos.canUndo,
@@ -299,37 +300,37 @@ class Reader {
 
   /* ---------- toolbar menus ---------- */
 
-  private piecesMenu() {
-    showMenu(this.toolbar.anchor('pieces'), this.setlist?.title ?? 'Pieces', this.items.map((it, k) => ({
+  private scoresMenu() {
+    showMenu(this.toolbar.anchor('scores'), this.setlist?.title ?? 'Scores', this.items.map((it, k) => ({
       label: `${k + 1}. ${it.title}`,
       checked: k === this.k,
       run: () => void this.goTo(k, 'first'),
     })));
   }
 
-  /** In a piece's own reader: add the piece, whole, to the end of a setlist. */
+  /** In a score's own reader: add the score, whole, to the end of a setlist. */
   private addToSetlist() {
     const it = this.items[0];
     chooseSetlist(this.toolbar.anchor('addTo'), `Add “${it.title}” to`, this.setlists, (s, isNew) => {
-      const added = { ...s, entries: [...s.entries, newEntry(it.pieceId)] };
+      const added = { ...s, entries: [...s.entries, newEntry(it.scoreId)] };
       this.setlists = isNew ? [added, ...this.setlists] : this.setlists.map((x) => (x.id === s.id ? added : x));
       this.saver.soon();
       this.say(`Added to the end of “${s.title}”.`);
-    }, it.pieceId);
+    }, it.scoreId);
   }
 
-  /** In a setlist: choose which of the piece's cuts it plays. */
+  /** In a setlist: choose which of the score's cuts it plays. */
   private chooseExcerpt() {
-    const doc = this.doc, entry = this.entry(), setlist = this.setlist;
-    if (!doc?.cache || !entry || !setlist) return;
+    const cur = this.current, entry = this.entry(), setlist = this.setlist;
+    if (!cur?.cache || !entry || !setlist) return;
     this.editor.dismiss();
-    const cache = doc.cache;
+    const cache = cur.cache;
     openExcerptPicker({
       question: `Which excerpt of “${this.items[this.k].title}” does “${setlist.title}” play?`,
-      state: doc.state,
-      aspects: doc.aspects,
+      state: cur.state,
+      aspects: cur.aspects,
       span: entry,
-      page: (p, w) => cache.render(p + 1, w, Math.round(w * doc.aspects[p]), dpr()),
+      page: (p, w) => cache.render(p + 1, w, Math.round(w * cur.aspects[p]), dpr()),
       done: (span) => this.setExcerpt(entry.id, span),
     });
   }
@@ -337,7 +338,7 @@ class Reader {
   private setExcerpt(entryId: string, span: Span) {
     this.setlists = this.setlists.map((s) => (s.id !== this.setlistId ? s : {
       ...s,
-      entries: s.entries.map((e) => (e.id === entryId ? { id: e.id, pieceId: e.pieceId, ...span } : e)),
+      entries: s.entries.map((e) => (e.id === entryId ? { id: e.id, scoreId: e.scoreId, ...span } : e)),
     }));
     this.saver.soon();
     this.frames = this.framesFor(this.k);
@@ -352,7 +353,7 @@ class Reader {
 
   private pageSize(page: number, w: number) { return { w, h: Math.round(w * this.aspects[page]) }; }
 
-  /** In a setlist, what fills the rest of a piece's last screen. */
+  /** In a setlist, what fills the rest of a score's last screen. */
   private blank(missing?: string): HTMLElement {
     return blankBox(this.items[this.k + 1]?.title, missing);
   }
@@ -365,8 +366,8 @@ class Reader {
     this.perScreen = pagesPerScreen(this.prefs.pagesPerScreen, W, H);
     this.showTitle();
     const it = this.items[this.k];
-    if (!this.doc?.cache) {
-      // A piece that can't be opened: say so, and carry on with the next one.
+    if (!this.current?.cache) {
+      // A score that can't be opened: say so, and carry on with the next one.
       this.slots = [];
       const boxes = [this.blank(it.title), ...(this.perScreen === 2 ? [this.blank()] : [])];
       placeBoxes(boxes, frameSize(W, H, this.perScreen, [A4]), W, H, dpr());
@@ -393,7 +394,7 @@ class Reader {
     if (seq !== this.seq) return;
     this.pages = new Map(pageNums.map((p, i) => [p, canvases[i]]));
 
-    // In a setlist each piece starts on a fresh screen, so a piece's last screen may have room left.
+    // In a setlist each score starts on a fresh screen, so a score's last screen may have room left.
     const extra = this.setlistId && on.length < this.perScreen ? [this.blank()] : [];
     this.slots = placeSlots(on, this.frame, W, H, size, scale, extra);
     for (const s of this.slots) this.paint(s, this.state);
@@ -416,7 +417,7 @@ class Reader {
   private saveSpot(cut: string | undefined) {
     const it = this.items[this.k];
     if (this.setlistId && it.entryId) void saveSetlistPosition(this.setlistId, { entry: it.entryId, cut });
-    else if (cut) void savePosition(it.pieceId, cut);
+    else if (cut) void savePosition(it.scoreId, cut);
   }
 
   /** Draw a frame's music and ink at its current layout. */
@@ -454,19 +455,19 @@ class Reader {
       if (seq !== this.seq) return;
       await this.cache.render(p + 1, w, this.pageSize(p, w).h, scale).catch(() => {});
     }
-    // On a piece's last screen in a setlist, draw the next piece's first screen too.
+    // On a score's last screen in a setlist, draw the next score's first screen too.
     if (!this.setlistId || this.frame + this.perScreen < this.frames.length || this.k + 1 >= this.items.length) return;
-    const doc = await this.docs.ensure(this.k + 1);
+    const cur = await this.scores.ensure(this.k + 1);
     const first = this.framesFor(this.k + 1).slice(0, this.perScreen);
-    if (seq !== this.seq || !doc?.cache) return;
-    const nw = frameSize(this.stage.clientWidth, this.stage.clientHeight, this.perScreen, doc.aspects).w;
+    if (seq !== this.seq || !cur?.cache) return;
+    const nw = frameSize(this.stage.clientWidth, this.stage.clientHeight, this.perScreen, cur.aspects).w;
     for (const p of new Set(first.flatMap((f) => f.items.map((x) => x.cut.page)))) {
-      if (seq !== this.seq || !doc.cache) return;
-      await doc.cache.render(p + 1, nw, Math.round(nw * doc.aspects[p]), scale).catch(() => {});
+      if (seq !== this.seq || !cur.cache) return;
+      await cur.cache.render(p + 1, nw, Math.round(nw * cur.aspects[p]), scale).catch(() => {});
     }
   }
 
-  /** Turn a screen; in a setlist, past a piece's end into the next one, or back into the one before. */
+  /** Turn a screen; in a setlist, past a score's end into the next one, or back into the one before. */
   private turn(dir: 1 | -1) {
     if (this.loading) return;
     const next = this.frame + dir * this.perScreen;
@@ -497,20 +498,20 @@ class Reader {
    * frame holding `focus` (or stay where you are, if that cut is gone). Undo shows it too.
    */
   private commit(s: State, focus?: string) {
-    const doc = this.doc!, entry = this.entry();
-    this.undos.record({ doc, state: doc.state, setlists: this.setlists, k: this.k, focus });
-    // Every setlist's excerpts of the piece follow the edit. Pages inserted at the edges of the
+    const cur = this.current!, entry = this.entry();
+    this.undos.record({ open: cur, state: cur.state, setlists: this.setlists, k: this.k, focus });
+    // Every setlist's excerpts of the score follow the edit. Pages inserted at the edges of the
     // excerpt being read join it.
     const grow = this.setlistId && entry ? { setlist: this.setlistId, entries: new Set([entry.id]) } : undefined;
-    this.setState(s, followPiece(this.setlists, doc.id, doc.state.piece.cuts, s.piece.cuts, grow), focus);
+    this.setState(s, followScore(this.setlists, cur.id, cur.state.score.cuts, s.score.cuts, grow), focus);
   }
 
   private setState(s: State, setlists: readonly Setlist[], focus?: string) {
-    const doc = this.doc!;
+    const cur = this.current!;
     const shown = this.frames.flatMap((f) => f.items.map((p) => p.cut));
-    doc.state = s;
+    cur.state = s;
     this.setlists = setlists;
-    this.saver.soon(doc);
+    this.saver.soon(cur);
     this.syncBar();
     this.frames = this.framesFor(this.k);
     const moved = !sameLayout(this.frames.flatMap((f) => f.items.map((p) => p.cut)), shown);
@@ -530,35 +531,35 @@ class Reader {
 
   /** The eraser took strokes away: show and save them gone, but leave the undo step until it lifts. */
   private erased(s: State, slot: FrameSlot) {
-    this.doc!.state = s;
-    this.saver.soon(this.doc);
+    this.current!.state = s;
+    this.saver.soon(this.current);
     this.paintInk(slot, s);
   }
 
   /** One undo step for the whole sweep of the eraser. */
   private eraseEnded(before: State, slot: FrameSlot) {
-    this.undos.record({ doc: this.doc!, state: before, setlists: this.setlists, k: this.k, focus: slot.frame.items[0]?.cut.id });
+    this.undos.record({ open: this.current!, state: before, setlists: this.setlists, k: this.k, focus: slot.frame.items[0]?.cut.id });
     this.frames = this.framesFor(this.k);
     slot.frame = this.frames[slot.index];
     this.syncBar();
   }
 
   private undo() {
-    const e = this.undos.undo((e) => ({ ...e, state: e.doc.state, setlists: this.setlists }));
+    const e = this.undos.undo((e) => ({ ...e, state: e.open.state, setlists: this.setlists }));
     if (e) this.restore(e);
   }
 
   private redo() {
-    const e = this.undos.redo((e) => ({ ...e, state: e.doc.state, setlists: this.setlists }));
+    const e = this.undos.redo((e) => ({ ...e, state: e.open.state, setlists: this.setlists }));
     if (e) this.restore(e);
   }
 
-  /** Put back a piece and the setlists as they were, showing the piece where the edit was made. */
+  /** Put back a score and the setlists as they were, showing the score where the edit was made. */
   private restore(e: Undo) {
-    if (e.k === this.k && this.doc === e.doc) { this.setState(e.state, e.setlists, e.focus); return; }
-    e.doc.state = e.state;
+    if (e.k === this.k && this.current === e.open) { this.setState(e.state, e.setlists, e.focus); return; }
+    e.open.state = e.state;
     this.setlists = e.setlists;
-    this.saver.soon(e.doc);
+    this.saver.soon(e.open);
     void this.goTo(e.k, e.focus);
   }
 
@@ -585,7 +586,7 @@ class Reader {
   private onPop = () => void this.close();
 
   private async close() {
-    this.docs.closed = true;
+    this.scores.closed = true;
     closeOverlay();
     window.removeEventListener('popstate', this.onPop);
     this.input.detach();
@@ -598,7 +599,7 @@ class Reader {
     await this.saver.flush();
     void this.wake?.release().catch(() => {});
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
-    this.docs.destroy();
+    this.scores.destroy();
     this.root.remove();
     document.body.classList.remove('reading');
     this.onClose();

@@ -1,7 +1,7 @@
 // The sharp close-up drawn over the frames while zoomed in.
 
-import type { Aspects, PieceInk } from '../pieces/model';
-import type { PageCache } from '../sources/pdf';
+import type { Aspects, ScoreInk } from '../scores/model';
+import type { PageCache } from '../originals/pdf';
 import { el } from '../ui/dom';
 import { drawFrameInk, regionBands } from './frames';
 import type { FrameSlot } from './spread';
@@ -14,12 +14,12 @@ const dpr = () => window.devicePixelRatio || 1;
 
 export interface DetailHost {
   stage: HTMLElement;
-  /** The current piece's: read each time, as the reader turns from piece to piece. */
+  /** The current score's: read each time, as the reader turns from score to score. */
   readonly cache: PageCache;
   readonly aspects: Aspects;
   slots(): FrameSlot[];
   zoom(): Zoom;
-  ink(): PieceInk;
+  ink(): ScoreInk;
 }
 
 /**

@@ -1,9 +1,9 @@
 // The cut editor's menus, on a right-click or a long press: on a tab, on the music, or above or
 // below it.
 
-import { cutAt, edgeKind, joinNext, remove, restoreEdge, setPad, tidy } from '../../pieces/edits';
-import type { Placed } from '../../pieces/frames';
-import type { Cut, State } from '../../pieces/model';
+import { cutAt, edgeKind, joinNext, remove, restoreEdge, setPad, tidy } from '../../scores/edits';
+import type { Placed } from '../../scores/frames';
+import type { Cut, State } from '../../scores/model';
 import { el } from '../../ui/dom';
 import { closeWithOverlay, showMenu, type MenuItem } from '../../ui/overlay';
 import type { FrameSlot } from '../spread';
@@ -39,17 +39,17 @@ export function openContext(host: EditorHost, x: number, y: number) {
 function apply(host: EditorHost, s: State, focus?: string) {
   const before = host.state();
   host.commit(tidy(s), focus);
-  if (host.state().piece.archived.length > before.piece.archived.length) sayArchived(host);
+  if (host.state().score.archived.length > before.score.archived.length) sayArchived(host);
 }
 
 function removeItem(host: EditorHost, c: Cut): MenuItem[] {
   const s = host.state();
-  if (s.piece.cuts.length <= 1) return [];
+  if (s.score.cuts.length <= 1) return [];
   return [{ label: 'Remove this cut', run: () => apply(host, remove(s, c.id), c.id) }];
 }
 
 export function tabMenu(host: EditorHost, id: string, kind: Edge | 'pad', x: number, y: number) {
-  const s = host.state(), cuts = s.piece.cuts, i = cuts.findIndex((c) => c.id === id);
+  const s = host.state(), cuts = s.score.cuts, i = cuts.findIndex((c) => c.id === id);
   const c = cuts[i];
   if (!c) return;
   if (kind === 'pad') {

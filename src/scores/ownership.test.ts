@@ -29,7 +29,7 @@ describe('ink shares', () => {
 
 describe('claimMarking', () => {
   it('gives a stroke across a seam to the cut with most of it, in that cut\'s page coordinates', () => {
-    const [, , f] = pack(sarabande().piece.cuts, aspects);
+    const [, , f] = pack(sarabande().score.cuts, aspects);
     const seam = A4 / 3;
     const s: Stroke = { ...line(0, 0), points: [[0.5, seam - 0.05, 0.5], [0.5, seam + 0.2, 0.5]] };
     const r = claimMarking(f, s, aspects)!;
@@ -38,7 +38,7 @@ describe('claimMarking', () => {
     expect(r.marking.points[1][1]).toBeCloseTo(2 / 3 + 0.2 / A4);
   });
   it('gives a stroke in blank space to the nearest cut', () => {
-    const [, , f] = pack(sarabande().piece.cuts, aspects);
+    const [, , f] = pack(sarabande().score.cuts, aspects);
     const s: Stroke = { ...line(0, 0), points: [[0.5, A4 - 0.05, 0.5]] };
     expect(claimMarking(f, s, aspects)!.cut.page).toBe(1);
   });
