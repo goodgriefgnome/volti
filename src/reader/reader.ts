@@ -41,7 +41,7 @@ interface Undo { open: OpenScore; state: State; setlists: readonly Setlist[]; k:
 /** What the reader opens: a score on its own, or a setlist. */
 export type ToRead =
   | { kind: 'score'; original: Original }
-  | { kind: 'setlist'; setlistId: string; originals: readonly Original[]; startEntry?: string; chooseExcerpt?: boolean };
+  | { kind: 'setlist'; setlistId: string; originals: readonly Original[]; startEntry?: string };
 
 /** Frames take the first page's shape; a score that can't be opened is shown this shape. */
 const A4 = 297 / 210;
@@ -63,7 +63,7 @@ export async function openReader(what: ToRead, prefs: Prefs, onClose: () => void
     const aspects = await cache.allAspects();
     const { state, position } = await loadScore(original.id, original.title, aspects);
     const first: OpenScore = { id: original.id, original, aspects, state, cache };
-    new Reader([{ scoreId: original.id, title: original.title, original }], null, setlists, first, 0, position, false, prefs, onClose);
+    new Reader([{ scoreId: original.id, title: original.title, original }], null, setlists, first, 0, position, prefs, onClose);
     return;
   }
   const setlist = setlists.find((s) => s.id === what.setlistId);
@@ -75,7 +75,7 @@ export async function openReader(what: ToRead, prefs: Prefs, onClose: () => void
   });
   const pos = what.startEntry ? { entry: what.startEntry } : await loadPosition(setlist.id);
   const k = Math.max(0, items.findIndex((it) => it.entryId === pos?.entry));
-  new Reader(items, setlist.id, setlists, null, k, pos?.cut, !!what.chooseExcerpt, prefs, onClose);
+  new Reader(items, setlist.id, setlists, null, k, pos?.cut, prefs, onClose);
 }
 
 /**
@@ -131,7 +131,6 @@ class Reader {
     first: OpenScore | null,
     k: number,
     position: string | undefined,
-    chooseExcerpt: boolean,
     private prefs: Prefs,
     private onClose: () => void,
   ) {
@@ -210,7 +209,7 @@ class Reader {
 
     void document.documentElement.requestFullscreen?.().catch(() => {});
     void this.requestWake();
-    void this.goTo(k, position).then(() => { if (chooseExcerpt) this.chooseExcerpt(); });
+    void this.goTo(k, position);
     this.observer.observe(this.stage);
   }
 
@@ -340,7 +339,8 @@ class Reader {
       ...s,
       entries: s.entries.map((e) => (e.id === entryId ? { id: e.id, scoreId: e.scoreId, ...span } : e)),
     }));
-    this.saver.soon();
+    // The score too: one opened for the first time isn't saved yet, and the span names its cuts.
+    this.saver.soon(this.current);
     this.frames = this.framesFor(this.k);
     this.frame = 0;
     void this.show();

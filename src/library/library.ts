@@ -2,7 +2,7 @@
 // only this screen uses; what the reader also needs goes in ui/.
 
 import type { Score } from '../scores/model';
-import { loadSavedScore } from '../scores/store';
+import { loadSavedScore, scoreEntries } from '../scores/store';
 import { openReader, type ToRead } from '../reader/reader';
 import {
   duplicate, moveEntry, newSetlist, setlistsWith, spanLabel, type Entry, type Setlist,
@@ -14,10 +14,12 @@ import {
 } from '../originals/originals';
 import type { Prefs } from '../storage/prefs';
 import { button, el, plural } from '../ui/dom';
-import { buttonRow, closeOverlay, showDialog, showMenu } from '../ui/overlay';
+import { openExcerptPicker } from '../ui/excerpt-picker';
+import { buttonRow, closeOverlay, showDialog, showMenu, whenOverlayCloses } from '../ui/overlay';
 import { askSetlistName } from '../ui/setlists';
 import { Toast } from '../ui/toast';
 import { openAddScores } from './add-scores';
+import { openScore, type LibraryScore } from './open-score';
 
 /** The Library screen: setlists, the scores folder, imported scores, and the list to open them from. */
 export class Library {
@@ -152,13 +154,13 @@ export class Library {
   private originalOf(id: string) { return this.originals.find((s) => s.id === id); }
   private titleOf(scoreId: string) { return this.originalOf(scoreId)?.title ?? this.saved.get(scoreId)?.title ?? titleFromId(scoreId); }
 
-  /** Change the setlists, save the ones that changed, and show them. */
-  private async change(next: Setlist[]) {
+  /** Change the setlists, save the ones that changed (with `also`, other records that go with them), and show them. */
+  private async change(next: Setlist[], also: [string, unknown][] = []) {
     const before = this.setlists;
     this.setlists = next;
     this.renderSetlists();
     this.renderList();
-    await saveChanged(next, before);
+    await saveChanged(next, before, also);
   }
 
   private update(s: Setlist) {
@@ -258,7 +260,7 @@ export class Library {
     const more = button('⋯', () => showMenu(more, title, [
       i > 0 && { label: 'Move up', run: () => void this.update(moveEntry(s, i, i - 1)) },
       i < s.entries.length - 1 && { label: 'Move down', run: () => void this.update(moveEntry(s, i, i + 1)) },
-      !missing && { label: 'Choose the excerpt to play…', run: () => void this.play(s, e.id, true) },
+      !missing && { label: 'Choose the excerpt to play…', run: () => void this.chooseExcerpt(s, e) },
       !!excerpt && { label: 'Play the whole score', run: () => void this.update({ ...s, entries: s.entries.map((x) => (x === e ? { id: e.id, scoreId: e.scoreId } : x)) }) },
       { label: 'Remove from setlist', run: () => this.removeEntry(s, e) },
     ]), 'quiet more');
@@ -387,10 +389,48 @@ export class Library {
   }
 
   /** Play a setlist from where it was left, or from one of its entries. */
-  private play(s: Setlist, startEntry?: string, chooseExcerpt = false) {
+  private play(s: Setlist, startEntry?: string) {
     const originals = s.entries.map((e) => this.originalOf(e.scoreId)).filter((x): x is Original => !!x);
     this.openRows.add(s.id);
-    return this.read({ kind: 'setlist', setlistId: s.id, originals: this.originals, startEntry, chooseExcerpt }, originals, `Could not open “${s.title}”.`);
+    return this.read({ kind: 'setlist', setlistId: s.id, originals: this.originals, startEntry }, originals, `Could not open “${s.title}”.`);
+  }
+
+  /** Open a score's original for a dialog over the library; null, having said why, when it can't be. */
+  private async openForDialog(o: Original): Promise<LibraryScore | null> {
+    // Opening is a tap, so it can also grant folder access for this session.
+    if (o.location === 'folder' && this.folder.kind === 'locked' && !(await this.unlock())) return null;
+    this.toast.say(`Opening “${o.title}”…`);
+    try {
+      const sc = await openScore(o);
+      this.toast.hide();
+      return sc;
+    } catch (e) {
+      console.error(e);
+      this.toast.say(`Could not open “${o.title}”. It may have been moved or renamed.`);
+      return null;
+    }
+  }
+
+  /** Choose the cuts an entry plays, over the library. */
+  private async chooseExcerpt(s: Setlist, e: Entry) {
+    const o = this.originalOf(e.scoreId);
+    if (!o) return;
+    const sc = await this.openForDialog(o);
+    if (!sc) return;
+    openExcerptPicker({
+      ...sc,
+      question: `Which excerpt of “${o.title}” does “${s.title}” play?`,
+      span: e,
+      done: (span) => {
+        const now = this.get(s.id);
+        if (!now) return;
+        this.saved.set(sc.state.score.id, sc.state.score);
+        const entries = now.entries.map((x) => (x.id === e.id ? { id: x.id, scoreId: x.scoreId, ...span } : x));
+        // The score too: one never opened isn't saved yet, and the span names its cuts.
+        void this.change(this.setlists.map((x) => (x.id === s.id ? { ...now, entries } : x)), scoreEntries(sc.state));
+      },
+    });
+    whenOverlayCloses(sc.close);
   }
 
   private async read(what: ToRead, originals: Original[], failed: string) {

@@ -6,12 +6,16 @@ import { button, el } from './dom';
 export interface MenuItem { label: string; run: () => void; checked?: boolean }
 
 let open: HTMLElement[] = [];
+let onClose: (() => void)[] = [];
 
 /** Close the open menu or dialog; true if there was one. */
 export function closeOverlay(): boolean {
   const had = open.length > 0;
   for (const e of open) e.remove();
   open = [];
+  const run = onClose;
+  onClose = [];
+  for (const f of run) f();
   return had;
 }
 
@@ -20,6 +24,11 @@ export const overlayOpen = () => open.length > 0;
 /** Remove `e` when the menu or dialog open now closes, such as a mark showing what a menu item would do. */
 export function closeWithOverlay(e: HTMLElement) {
   open.push(e);
+}
+
+/** Run `f` when the menu or dialog open now closes, however it is closed. */
+export function whenOverlayCloses(f: () => void) {
+  onClose.push(f);
 }
 
 /**

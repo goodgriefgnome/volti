@@ -22,7 +22,9 @@ export function changedEntries(all: readonly Setlist[], before: readonly Setlist
   return [orderEntry(all), ...all.filter((s) => was.get(s.id) !== s).map(setlistEntry)];
 }
 
-export const saveChanged = (all: readonly Setlist[], before: readonly Setlist[] = []) => kv.setMany(changedEntries(all, before));
+/** Save the setlists that changed since `before`, with any other records that must agree with them. */
+export const saveChanged = (all: readonly Setlist[], before: readonly Setlist[] = [], also: [string, unknown][] = []) =>
+  kv.setMany([...also, ...changedEntries(all, before)]);
 
 export async function deleteSetlist(all: readonly Setlist[], id: string): Promise<void> {
   await kv.setMany([orderEntry(all.filter((s) => s.id !== id))]);
