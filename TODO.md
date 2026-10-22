@@ -11,7 +11,9 @@ Decisions so far; a working sketch is the "Volti reflow" prototype.
 - A **piece** has a title and a key (tags come later, for search) and a played order: a list of
   spans, each "play from system X to system Y" in page order. A repeat is another span, e.g.
   1a→1c, 1b→1c, 1d→2d. Reordering single systems should almost never be needed, so the UI works
-  in spans: select a system and choose "play from here" or "play to here".
+  in passes built on the page itself: tap the system where a pass starts, then where it ends
+  (possibly on a later page). Each pass shows as a numbered bar beside the systems it plays, and
+  unplayed systems are greyed out. Editing system outlines is a separate mode.
 - A piece comes from **one PDF**, or from a set of images whose page widths are meant to match.
 - The reader **reflows** the played systems onto the screen: stacked down a column, as many as
   fit, then the next column, then the next screen. Forward always means "next screenful",
