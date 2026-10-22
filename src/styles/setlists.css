@@ -44,3 +44,7 @@
 .picklist { display: grid; max-height: 50vh; overflow: auto; border-block: 1px solid var(--line); }
 /* The picker's strip scrolls both ways once zoomed; its own gestures pan and pinch it. */
 .thumbs.excerpt { --u: 1px; gap: calc(var(--u) * 8); max-height: min(60vh, 640px); overflow: auto; touch-action: none; overscroll-behavior: contain; }
+/* Add scores: a score to tick, and its Preview. */
+.dialog .view { display: grid; gap: 10px; }
+.pick-row { display: flex; align-items: center; gap: 4px; }
+.pick-row .check { flex: 1; min-width: 0; flex-wrap: wrap; }

@@ -336,11 +336,14 @@ export class Library {
     openAddScores({
       setlist: s,
       originals: this.originals,
-      add: (entries) => {
+      open: (o) => this.openForDialog(o),
+      add: (entries, scores) => {
         const now = this.get(id);
         if (!now) return;
         this.openRows.add(id);
-        void this.update({ ...now, entries: [...now.entries, ...entries] });
+        for (const x of scores) this.saved.set(x.score.id, x.score);
+        // The scores excerpts were chosen from too: one never opened isn't saved yet, and the spans name its cuts.
+        void this.change(this.setlists.map((x) => (x.id === id ? { ...now, entries: [...now.entries, ...entries] } : x)), scores.flatMap(scoreEntries));
         this.toast.say(`Added ${plural(entries.length, 'score')} to “${now.title}”.`);
       },
     });
