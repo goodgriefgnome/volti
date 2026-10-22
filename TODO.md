@@ -30,7 +30,9 @@ from systems; it was dropped as more complicated than it was worth.)
     gap between systems above it and moves the top part onto the frame before, which is then
     shown. No cue when the frame already continues the page from the frame before, or when the
     line would fall at the end of the frame's first part.
-  - Deleting a cut: not designed yet (dragging its tabs back works, but is fiddly).
+  - Tapping a tab (or right-clicking it) opens its menu: delete the cut above/below (joins the two
+    parts), undo a split, restore a trimmed page top/bottom, remove the part; the white-space tab
+    offers "remove the white space". Not covered yet: bringing back a part that was removed.
 - **Ink** belongs to one part of the played order (not to the source page), so a marking on the
   2nd time through a repeat doesn't appear on the 1st. Hiding a 1st ending is an annotation (a
   whiteout tool), not a cut.
