@@ -5,16 +5,16 @@
 import type { Marking } from '../markings/model';
 import { PEN_COLORS } from '../markings/stroke';
 import { frameOf, pack, type Frame } from '../scores/frames';
-import type { Aspects, Cut, State } from '../scores/model';
+import type { Aspects, Cut, ExcerptName, State } from '../scores/model';
 import { loadScore, savePosition } from '../scores/store';
-import { followScore, newEntry, spanCuts, type Entry, type Setlist, type Span } from '../setlists/model';
-import { excerptName, followNames } from '../setlists/names';
+import { followEdit, followScore, newEntry, spanCuts, type Entry, type Setlist, type Span } from '../setlists/model';
+import { ends, excerptName, followNames, moveExcerpt, nameOf, nameProblem, sameSpan } from '../setlists/names';
 import { loadPosition, loadSetlists, savePosition as saveSetlistPosition } from '../setlists/store';
 import { openPdf, type PageCache } from '../originals/pdf';
 import { knownTitles, type Original } from '../originals/originals';
 import { savePrefs, type Prefs } from '../storage/prefs';
-import { el } from '../ui/dom';
-import { openExcerptPicker } from '../ui/excerpt-picker';
+import { el, plural } from '../ui/dom';
+import { openExcerptPicker, type ExcerptPicker } from '../ui/excerpt-picker';
 import { closeOverlay, showMenu } from '../ui/overlay';
 import { chooseSetlist } from '../ui/setlists';
 import { Toast } from '../ui/toast';
@@ -37,12 +37,19 @@ import { isZoomed, NO_ZOOM, type Zoom } from './zoom';
  * Undo keeps whole states: each entry is a score's state before an edit, the setlists (whose
  * excerpts follow the edit), the item it was made in, and the cut to show.
  */
-interface Undo { open: OpenScore; state: State; setlists: readonly Setlist[]; k: number; focus?: string }
+interface Undo { open: OpenScore; state: State; setlists: readonly Setlist[]; k: number; focus?: string; reading: Reading }
 
-/** What the reader opens: a score on its own, or a setlist. */
+/** What the reader opens: a score on its own, a named excerpt of one, or a setlist. */
 export type ToRead =
   | { kind: 'score'; original: Original; at?: string }
+  | { kind: 'excerpt'; original: Original; excerpt: ExcerptName }
   | { kind: 'setlist'; setlistId: string; originals: readonly Original[]; startEntry?: string };
+
+/**
+ * What is being read: a score; a named excerpt of it, read as a setlist entry playing it would be
+ * (its span follows edits, as entries' spans do); or a setlist.
+ */
+type Reading = { kind: 'score' } | { kind: 'excerpt'; span: Span } | { kind: 'setlist'; id: string };
 
 /** Frames take the first page's shape; a score that can't be opened is shown this shape. */
 const A4 = 297 / 210;
@@ -53,18 +60,20 @@ const dpr = () => window.devicePixelRatio || 1;
 const sameLayout = (a: readonly Cut[], b: readonly Cut[]) =>
   a.length === b.length && a.every((c, i) => c.id === b[i].id && c.page === b[i].page && c.y0 === b[i].y0 && c.y1 === b[i].y1 && c.pad === b[i].pad);
 
-const playedCuts = (it: Item, cur: OpenScore, entry: Entry | undefined) => (it.entryId && entry ? spanCuts(cur.state.score.cuts, entry) : cur.state.score.cuts);
 
 /** Open a score, or a setlist as one continuous score. A score that can't be opened throws; a setlist carries on past it. */
 export async function openReader(what: ToRead, prefs: Prefs, onClose: () => void): Promise<void> {
   const setlists = await loadSetlists();
-  if (what.kind === 'score') {
+  if (what.kind !== 'setlist') {
     const { original } = what;
     const cache = await openPdf(await original.getFile());
     const aspects = await cache.allAspects();
     const { state, position } = await loadScore(original.id, original.title, aspects);
     const first: OpenScore = { id: original.id, original, aspects, state, cache };
-    new Reader([{ scoreId: original.id, title: original.title, original }], null, setlists, first, 0, what.at ?? position, prefs, onClose);
+    const item = { scoreId: original.id, title: original.title, original };
+    // An excerpt starts at its start each time: its place isn't kept.
+    if (what.kind === 'excerpt') new Reader([item], { kind: 'excerpt', span: ends(what.excerpt) }, setlists, first, 0, undefined, prefs, onClose);
+    else new Reader([item], { kind: 'score' }, setlists, first, 0, what.at ?? position, prefs, onClose);
     return;
   }
   const setlist = setlists.find((s) => s.id === what.setlistId);
@@ -77,7 +86,7 @@ export async function openReader(what: ToRead, prefs: Prefs, onClose: () => void
   });
   const pos = what.startEntry ? { entry: what.startEntry } : await loadPosition(setlist.id);
   const k = Math.max(0, items.findIndex((it) => it.entryId === pos?.entry));
-  new Reader(items, setlist.id, setlists, null, k, pos?.cut, prefs, onClose);
+  new Reader(items, { kind: 'setlist', id: setlist.id }, setlists, null, k, pos?.cut, prefs, onClose);
 }
 
 /**
@@ -127,8 +136,7 @@ class Reader {
 
   constructor(
     private items: Item[],
-    /** The setlist being read, or null for a score on its own. */
-    private setlistId: string | null,
+    private reading: Reading,
     private setlists: readonly Setlist[],
     first: OpenScore | null,
     k: number,
@@ -161,7 +169,7 @@ class Reader {
       zoom: () => this.zoom,
       ink: () => this.state.ink,
     });
-    this.toolbar = new Toolbar(!!setlistId, {
+    this.toolbar = new Toolbar(reading.kind, {
       close: () => history.back(),
       scores: () => this.scoresMenu(),
       excerpt: () => this.chooseExcerpt(),
@@ -217,10 +225,24 @@ class Reader {
 
   /* ---------- the scores read ---------- */
 
+  private get setlistId() { return this.reading.kind === 'setlist' ? this.reading.id : null; }
   private get setlist() { return this.setlists.find((s) => s.id === this.setlistId); }
-  private entry(k = this.k): Entry | undefined {
+
+  /** In a setlist, the entry item k is. */
+  private setlistEntry(k = this.k): Entry | undefined {
     const id = this.items[k]?.entryId;
     return id ? this.setlist?.entries.find((e) => e.id === id) : undefined;
+  }
+
+  /** The span item k plays: its entry's, or the excerpt's; none for the whole score. */
+  private entry(k = this.k): Span | undefined {
+    return this.reading.kind === 'excerpt' ? this.reading.span : this.setlistEntry(k);
+  }
+
+  /** The cuts item k plays. */
+  private playedCuts(k: number, cur: OpenScore) {
+    const span = this.entry(k);
+    return span ? spanCuts(cur.state.score.cuts, span) : cur.state.score.cuts;
   }
   /** The current item's score, once open; undefined while it opens or when it can't be. */
   private get current(): OpenScore | undefined { return this.scores.get(this.items[this.k].scoreId); }
@@ -230,7 +252,7 @@ class Reader {
 
   private framesFor(k: number): Frame[] {
     const cur = this.scores.get(this.items[k].scoreId);
-    return cur ? pack(playedCuts(this.items[k], cur, this.entry(k)), cur.aspects) : [];
+    return cur ? pack(this.playedCuts(k, cur), cur.aspects) : [];
   }
 
   /** Go to item k: its first or last screen, or the screen holding a cut. */
@@ -271,7 +293,7 @@ class Reader {
       canUndo: this.undos.canUndo,
       canRedo: this.undos.canRedo,
     });
-    this.scope.hidden = !this.setlistId || !this.editor.enabled;
+    this.scope.hidden = this.reading.kind === 'score' || !this.editor.enabled;
     this.root.classList.toggle('writing', this.tool !== 'none');
     this.root.classList.toggle('editing', this.editor.enabled);
     this.root.style.setProperty('--bar-h', this.toolbar.el.offsetHeight + 'px');
@@ -290,8 +312,9 @@ class Reader {
   }
 
   private showTitle() {
-    const it = this.items[this.k];
-    if (!this.setlistId) this.toolbar.title.textContent = it.title;
+    const it = this.items[this.k], cur = this.current;
+    if (this.reading.kind === 'excerpt' && cur) this.toolbar.title.textContent = `${excerptName(cur.state.score, this.reading.span, cur.aspects)} · ${it.title}`;
+    else if (!this.setlistId) this.toolbar.title.textContent = it.title;
     else showSetlistTitle(this.toolbar.title, this.k, this.items.length, it.title);
   }
 
@@ -316,32 +339,68 @@ class Reader {
     return label ? ` · ${label}` : '';
   }
 
-  /** In a score's own reader: add the score, whole, to the end of a setlist. */
+  /** In a score's own reader: add the score, whole, to the end of a setlist; in an excerpt's, the excerpt. */
   private addToSetlist() {
-    const it = this.items[0];
-    chooseSetlist(this.toolbar.anchor('addTo'), `Add “${it.title}” to`, this.setlists, (s, isNew) => {
-      const added = { ...s, entries: [...s.entries, newEntry(it.scoreId)] };
+    const it = this.items[0], span = this.entry(0), cur = this.current;
+    const what = span && cur ? excerptName(cur.state.score, span, cur.aspects) ?? it.title : it.title;
+    chooseSetlist(this.toolbar.anchor('addTo'), `Add “${what}” to`, this.setlists, (s, isNew) => {
+      const added = { ...s, entries: [...s.entries, { ...newEntry(it.scoreId), ...(span ? ends(span) : {}) }] };
       this.setlists = isNew ? [added, ...this.setlists] : this.setlists.map((x) => (x.id === s.id ? added : x));
       this.saver.soon();
       this.say(`Added to the end of “${s.title}”.`);
     }, it.scoreId);
   }
 
-  /** In a setlist: choose which of the score's cuts it plays. */
+  /** In a setlist: choose which of the score's cuts this entry plays. In an excerpt: change the excerpt's cuts. */
   private chooseExcerpt() {
-    const cur = this.current, entry = this.entry(), setlist = this.setlist;
-    if (!cur?.cache || !entry || !setlist) return;
+    const cur = this.current;
+    if (!cur?.cache) return;
     this.editor.dismiss();
     const cache = cur.cache;
+    const pages = { state: cur.state, aspects: cur.aspects, page: (p: number, w: number) => cache.render(p + 1, w, Math.round(w * cur.aspects[p]), dpr()) };
+    if (this.reading.kind === 'excerpt') {
+      this.changeExcerpt(cur, this.reading.span, pages);
+      return;
+    }
+    const entry = this.setlistEntry();
+    if (!entry) return;
     openExcerptPicker({
+      ...pages,
       question: `Which part of “${this.items[this.k].title}” does entry ${this.k + 1} play?`,
       verb: 'This entry plays',
       named: true,
-      state: cur.state,
-      aspects: cur.aspects,
       span: entry,
-      page: (p, w) => cache.render(p + 1, w, Math.round(w * cur.aspects[p]), dpr()),
       done: (span) => this.setExcerpt(entry.id, span),
+    });
+  }
+
+  /**
+   * Give the named excerpt being read other cuts; every setlist entry that plays it moves with it.
+   * An excerpt that lost its name to an edit (it came to be the whole score) just plays other cuts.
+   */
+  private changeExcerpt(cur: OpenScore, span: Span, pages: Pick<ExcerptPicker, 'state' | 'aspects' | 'page'>) {
+    const score = cur.state.score, name = nameOf(score, span);
+    const using = name ? this.setlists.filter((s) => s.entries.some((e) => e.scoreId === score.id && sameSpan(score.cuts, e, span))) : [];
+    openExcerptPicker({
+      ...pages,
+      question: name ? `Which cuts are “${name.name}”?` : `Which part of “${this.items[0].title}” to read?`,
+      verb: 'It plays',
+      span,
+      problem: (to) => (!name || sameSpan(score.cuts, to, span) ? null : nameProblem(score, to, name.name, name)),
+      okLabel: using.length ? `Change in ${plural(using.length, 'setlist')}` : 'Done',
+      done: (to) => {
+        if (sameSpan(score.cuts, to, span)) return;
+        if (name) {
+          const r = moveExcerpt(score, this.setlists, name, to);
+          cur.state = { ...cur.state, score: r.score };
+          this.setlists = r.setlists;
+        }
+        this.reading = { kind: 'excerpt', span: ends(to) };
+        this.saver.soon(cur);
+        this.frames = this.framesFor(this.k);
+        this.frame = 0;
+        void this.show();
+      },
     });
   }
 
@@ -420,9 +479,10 @@ class Reader {
     void this.predraw(seq, size.w, scale);
   }
 
-  /** Remember the first cut on the screen, to come back to. */
+  /** Remember the first cut on the screen, to come back to; an excerpt always starts at its start. */
   private saveSpot(cut: string | undefined) {
     const it = this.items[this.k];
+    if (this.reading.kind === 'excerpt') return;
     if (this.setlistId && it.entryId) void saveSetlistPosition(this.setlistId, { entry: it.entryId, cut });
     else if (cut) void savePosition(it.scoreId, cut);
   }
@@ -506,12 +566,13 @@ class Reader {
    */
   private commit(s: State, focus?: string) {
     const cur = this.current!, entry = this.entry();
-    this.undos.record({ open: cur, state: cur.state, setlists: this.setlists, k: this.k, focus });
+    this.undos.record({ open: cur, state: cur.state, setlists: this.setlists, k: this.k, focus, reading: this.reading });
     // Every setlist's excerpts of the score, and its named excerpts, follow the edit. Pages
     // inserted at the edges of the excerpt being read join it, wherever it is played.
-    const before = cur.state.score.cuts, after = s.score.cuts, grow = this.setlistId ? entry : undefined;
+    const before = cur.state.score.cuts, after = s.score.cuts, grow = this.reading.kind === 'score' ? undefined : entry;
     const names = followNames(s.score.names, before, after, grow);
     if (names !== s.score.names) s = { ...s, score: { ...s.score, names } };
+    if (this.reading.kind === 'excerpt') this.reading = { kind: 'excerpt', span: followEdit(this.reading.span, before, after, true) };
     this.setState(s, followScore(this.setlists, cur.id, before, after, grow), focus);
   }
 
@@ -547,24 +608,25 @@ class Reader {
 
   /** One undo step for the whole sweep of the eraser. */
   private eraseEnded(before: State, slot: FrameSlot) {
-    this.undos.record({ open: this.current!, state: before, setlists: this.setlists, k: this.k, focus: slot.frame.items[0]?.cut.id });
+    this.undos.record({ open: this.current!, state: before, setlists: this.setlists, k: this.k, focus: slot.frame.items[0]?.cut.id, reading: this.reading });
     this.frames = this.framesFor(this.k);
     slot.frame = this.frames[slot.index];
     this.syncBar();
   }
 
   private undo() {
-    const e = this.undos.undo((e) => ({ ...e, state: e.open.state, setlists: this.setlists }));
+    const e = this.undos.undo((e) => ({ ...e, state: e.open.state, setlists: this.setlists, reading: this.reading }));
     if (e) this.restore(e);
   }
 
   private redo() {
-    const e = this.undos.redo((e) => ({ ...e, state: e.open.state, setlists: this.setlists }));
+    const e = this.undos.redo((e) => ({ ...e, state: e.open.state, setlists: this.setlists, reading: this.reading }));
     if (e) this.restore(e);
   }
 
   /** Put back a score and the setlists as they were, showing the score where the edit was made. */
   private restore(e: Undo) {
+    this.reading = e.reading;
     if (e.k === this.k && this.current === e.open) { this.setState(e.state, e.setlists, e.focus); return; }
     e.open.state = e.state;
     this.setlists = e.setlists;

@@ -17,10 +17,11 @@ export const nextLayout = (p: PagesPerScreen) => LAYOUT_NEXT[String(p)];
 
 export interface ToolbarActions {
   close(): void;
-  /** In a setlist: the menu of its scores, and choosing the excerpt of this one. */
+  /** In a setlist: the menu of its scores. */
   scores(): void;
+  /** In a setlist: choosing the excerpt of this score; in a named excerpt: changing its cuts. */
   excerpt(): void;
-  /** In a score's own reader: add it to a setlist. */
+  /** In a score's or an excerpt's own reader: add it to a setlist. */
   addToSetlist(): void;
   /** Tapping the active tool again puts it away. */
   tool(t: ToolName): void;
@@ -53,7 +54,8 @@ export class Toolbar {
   readonly info = el('span', 'page-info');
   private buttons: Record<string, HTMLButtonElement> = {};
 
-  constructor(inSetlist: boolean, act: ToolbarActions) {
+  /** `reading` is what the reader reads, which decides the buttons on the right. */
+  constructor(reading: 'score' | 'excerpt' | 'setlist', act: ToolbarActions) {
     const left = el('div', 'group');
     left.append(this.button('close', 'Library', act.close), this.title);
 
@@ -77,16 +79,14 @@ export class Toolbar {
     );
 
     const right = el('div', 'group');
-    if (inSetlist) {
-      right.append(
-        this.button('scores', 'Scores', act.scores),
-        this.button('excerpt', 'Excerpt', act.excerpt),
-      );
+    if (reading === 'setlist') {
+      right.append(this.button('scores', 'Scores', act.scores));
       this.buttons.scores.setAttribute('aria-haspopup', 'menu');
     } else {
       right.append(this.button('addTo', 'Add to setlist', act.addToSetlist));
       this.buttons.addTo.setAttribute('aria-haspopup', 'menu');
     }
+    if (reading !== 'score') right.append(this.button('excerpt', 'Excerpt', act.excerpt));
     right.append(
       this.button('edit', 'Edit cuts', act.toggleEditing),
       this.button('archived', 'Archived', act.openArchive),

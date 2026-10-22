@@ -5,7 +5,7 @@ import type { Aspects, ExcerptName, Score } from '../scores/model';
 import { loadAspects, loadSavedScore, scoreEntries, scoreEntry } from '../scores/store';
 import { openReader, type ToRead } from '../reader/reader';
 import {
-  duplicate, moveEntry, newSetlist, setlistsWith, spanLabel, spanOf, type Entry, type Setlist, type Span,
+  duplicate, moveEntry, newSetlist, setlistsWith, spanLabel, type Entry, type Setlist, type Span,
 } from '../setlists/model';
 import { excerptName, moveExcerpt, nameProblem, removeName, sameSpan, setName, sortedNames } from '../setlists/names';
 import { deleteSetlist, loadSetlists, saveChanged } from '../setlists/store';
@@ -389,8 +389,7 @@ export class Library {
   /** A named excerpt found by searching: its name, with its score's, as names are only unique within a score. */
   private excerptHit(o: Original, score: Score, x: ExcerptName): HTMLLIElement {
     const li = el('li', 'score hit');
-    const first = score.cuts[spanOf(score.cuts, x).i0]?.id;
-    const open = button('', () => void this.open(o, first), 'open');
+    const open = button('', () => void this.readExcerpt(o, x), 'open');
     const pages = spanLabel(score.cuts, x, this.shapes.get(score.id));
     open.append(el('span', 'score-title', `${x.name} · ${o.title}`));
     open.append(el('span', 'score-folder', [pages, o.folder].filter(Boolean).join(' · ')));
@@ -457,12 +456,11 @@ export class Library {
     return li;
   }
 
-  /** A named excerpt of a score: tap to read the score from its start; ⋯ to rename, change or delete it. */
+  /** A named excerpt of a score: tap to read it; ⋯ to rename, change or delete it. */
   private excerptRow(o: Original, score: Score, x: ExcerptName): HTMLLIElement {
     const li = el('li', 'excerpt');
     const pages = spanLabel(score.cuts, x, this.shapes.get(score.id));
-    const first = score.cuts[spanOf(score.cuts, x).i0]?.id;
-    const open = button('', () => void this.open(o, first), 'open');
+    const open = button('', () => void this.readExcerpt(o, x), 'open');
     open.append(el('span', 'item-title', x.name));
     if (pages) open.append(el('span', 'meta', pages));
     const more = button('⋯', () => showMenu(more, x.name, [
@@ -615,9 +613,14 @@ export class Library {
 
   /* ---------- opening the reader ---------- */
 
-  /** Read a score, from where it was left or from cut `at`. */
-  private open(s: Original, at?: string) {
-    return this.read({ kind: 'score', original: s, at }, [s], `Could not open “${s.title}”. It may have been moved or renamed.`);
+  /** Read a score from where it was left. */
+  private open(s: Original) {
+    return this.read({ kind: 'score', original: s }, [s], `Could not open “${s.title}”. It may have been moved or renamed.`);
+  }
+
+  /** Read a named excerpt, as a setlist entry playing it is read: only its cuts, always from its start. */
+  private readExcerpt(o: Original, excerpt: ExcerptName) {
+    return this.read({ kind: 'excerpt', original: o, excerpt }, [o], `Could not open “${o.title}”. It may have been moved or renamed.`);
   }
 
   /** Play a setlist from where it was left, or from one of its entries. */

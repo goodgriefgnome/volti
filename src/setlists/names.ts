@@ -30,7 +30,7 @@ export function sortedNames(score: Score): ExcerptName[] {
 }
 
 /** Only the span's ends, without a name or anything else an object carries. */
-const ends = ({ first, last }: Span): Span => ({ ...(first ? { first } : {}), ...(last ? { last } : {}) });
+export const ends = ({ first, last }: Span): Span => ({ ...(first ? { first } : {}), ...(last ? { last } : {}) });
 
 /** Why a name can't go on a span, or null if it can. `except` is a name being changed, which doesn't count. */
 export function nameProblem(score: Score, span: Span, name: string, except?: ExcerptName): string | null {

@@ -56,6 +56,8 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
     zoom in, and drag to move along them.
   - **Named excerpts**: **Add excerpt…** in a score's **⋯** menu names part of it ("Kyrie"). The
     arrow beside the score lists them; each one's **⋯** renames it, changes its cuts or deletes it.
+    Tapping one reads only its cuts, as a setlist entry playing it does, always from its start;
+    there **Excerpt** changes its cuts and **Add to setlist** adds it.
     A setlist entry that plays the same cuts plays the named excerpt and shows its name, so
     changing its cuts changes every setlist that plays it. Deleting one only takes the name away.
     Searching the library finds excerpts by name too, shown with their score's name.
