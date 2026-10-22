@@ -1,12 +1,18 @@
-import type { Score } from '../lib/library';
+import { kv } from '../lib/idb';
+import { titleFromId, type Score } from '../lib/library';
 import { savePrefs, type PagesPerScreen, type Prefs } from '../lib/prefs';
 import { drawPenSegment } from '../ink/draw';
 import { compact, HIGHLIGHT_COLOR, HIGHLIGHT_SIZE, PEN_COLORS, PEN_SIZE, touches, type InkTool, type Point, type Stroke } from '../ink/model';
 import { claimStroke, visible } from '../pieces/ink';
 import { frameHeight, frameOf, pack, setInk, type Aspects, type Cut, type Frame, type State } from '../pieces/model';
-import { loadPiece, pieceSaver, savePosition } from '../pieces/store';
+import { loadPiece, pieceEntries, savePosition } from '../pieces/store';
+import { followPiece, newEntry, spanCuts, type Entry, type Setlist, type Span } from '../setlists/model';
+import { changedEntries, loadPosition, loadSetlists, savePosition as saveSetlistPosition } from '../setlists/store';
+import { chooseSetlist } from '../ui/add-to';
+import { closeOverlay, overlayOpen, showMenu, Toast } from '../ui/overlay';
 import { el } from './dom';
 import { CutEditor, type FrameSlot } from './edit';
+import { openExcerptPicker } from './excerpt';
 import { drawFrame, drawFrameInk, frameTarget, regionBands, type Hatches } from './frames';
 import { fitPages, pagesPerScreen } from './layout';
 import { openPdf, type PageCache } from './renderer';
@@ -15,8 +21,35 @@ import { isZoomed, NO_ZOOM, pan, pinch, visiblePart, type Pt, type Zoom } from '
 
 type Tool = 'none' | InkTool | 'eraser';
 
-/** Undo keeps whole states: each entry is the state before an edit, and the cut to show. */
-interface Undo { state: State; focus?: string }
+/** A piece open in the reader. Every entry of a setlist that plays the piece shares it. */
+interface Doc {
+  id: string;
+  score: Score;
+  aspects: Aspects;
+  state: State;
+  /** Closed while the piece is far from the one being read, and opened again when needed. */
+  cache?: PageCache;
+}
+
+/** A piece in the order read: the piece itself, or one entry of a setlist. */
+interface Item {
+  pieceId: string;
+  title: string;
+  /** Not in the library, or its file can't be read. */
+  score?: Score;
+  entryId?: string;
+  missing?: boolean;
+}
+
+/**
+ * Undo keeps whole states: each entry is a piece's state before an edit, the setlists (whose
+ * excerpts follow the edit), the item it was made in, and the cut to show.
+ */
+interface Undo { doc: Doc; state: State; setlists: readonly Setlist[]; k: number; focus?: string }
+
+export type Source =
+  | { kind: 'piece'; score: Score }
+  | { kind: 'setlist'; setlistId: string; scores: readonly Score[]; startEntry?: string; chooseExcerpt?: boolean };
 
 const GAP = 6;
 const ERASER_RADIUS = 0.012;
@@ -26,6 +59,9 @@ const PALM_GUARD_MS = 600;
 const DETAIL_DELAY_MS = 150;
 const LAYOUT_LABEL: Record<string, string> = { auto: 'Auto', 1: '1 page', 2: '2 pages' };
 const LAYOUT_NEXT: Record<string, PagesPerScreen> = { auto: 1, 1: 2, 2: 'auto' };
+const PIECE_CARD_MS = 2200;
+/** Frames take the first page's shape; a piece that can't be opened is shown this shape. */
+const A4 = 297 / 210;
 
 const dpr = () => window.devicePixelRatio || 1;
 
@@ -33,11 +69,30 @@ const dpr = () => window.devicePixelRatio || 1;
 const sameLayout = (a: readonly Cut[], b: readonly Cut[]) =>
   a.length === b.length && a.every((c, i) => c.id === b[i].id && c.page === b[i].page && c.y0 === b[i].y0 && c.y1 === b[i].y1 && c.pad === b[i].pad);
 
-export async function openViewer(score: Score, prefs: Prefs, onClose: () => void): Promise<void> {
-  const cache = await openPdf(await score.getFile());
-  const aspects = await cache.allAspects();
-  const { state, position } = await loadPiece(score.id, score.title, aspects);
-  new Viewer(score, cache, aspects, state, position, prefs, onClose);
+const playedCuts = (it: Item, doc: Doc, entry: Entry | undefined) => (it.entryId && entry ? spanCuts(doc.state.piece.cuts, entry) : doc.state.piece.cuts);
+
+/** Open a piece, or a setlist as one continuous score. A piece that can't be opened throws; a setlist carries on past it. */
+export async function openViewer(source: Source, prefs: Prefs, onClose: () => void): Promise<void> {
+  const setlists = await loadSetlists();
+  if (source.kind === 'piece') {
+    const { score } = source;
+    const cache = await openPdf(await score.getFile());
+    const aspects = await cache.allAspects();
+    const { state, position } = await loadPiece(score.id, score.title, aspects);
+    const doc: Doc = { id: score.id, score, aspects, state, cache };
+    new Viewer([{ pieceId: score.id, title: score.title, score }], null, setlists, doc, 0, position, false, prefs, onClose);
+    return;
+  }
+  const setlist = setlists.find((s) => s.id === source.setlistId);
+  if (!setlist?.entries.length) throw new Error('No such setlist, or no pieces in it');
+  const scores = new Map(source.scores.map((s) => [s.id, s]));
+  const items: Item[] = setlist.entries.map((e) => {
+    const score = scores.get(e.pieceId);
+    return { pieceId: e.pieceId, entryId: e.id, score, title: score?.title ?? titleFromId(e.pieceId), missing: !score };
+  });
+  const pos = source.startEntry ? { entry: source.startEntry } : await loadPosition(setlist.id);
+  const k = Math.max(0, items.findIndex((it) => it.entryId === pos?.entry));
+  new Viewer(items, setlist.id, setlists, null, k, pos?.cut, !!source.chooseExcerpt, prefs, onClose);
 }
 
 class Viewer {
@@ -46,13 +101,26 @@ class Viewer {
   private spreadEl = el('div', 'spread');
   private bar = el('div', 'bar');
   private info = el('span', 'page-info');
-  private toast = el('p', 'toast');
+  private titleEl = el('span', 'title');
+  private scope = el('p', 'scope', 'Cuts changed here change the piece, in every setlist');
+  private toast = new Toast();
   private buttons: Record<string, HTMLButtonElement> = {};
 
   private perScreen: 1 | 2 = 1;
-  /** The first frame on the screen. */
+  /** The item being read. */
+  private k = 0;
+  /** The first frame on the screen, among the current item's. */
   private frame = 0;
+  /** The current item's frames. */
   private frames: Frame[] = [];
+  private docs = new Map<string, Doc>();
+  private opening = new Map<string, Promise<Doc | null>>();
+  private goSeq = 0;
+  private loading = false;
+  /** The item shown last, to name the piece when the reader turns into another one. */
+  private shownItem = -1;
+  private card: HTMLElement | null = null;
+  private cardTimer: ReturnType<typeof setTimeout> | undefined;
   private seq = 0;
   private slots: FrameSlot[] = [];
   /** Page canvases drawn at the frame's width, by 0-based page, for the frames on screen. */
@@ -66,9 +134,12 @@ class Viewer {
   private penColor: string = PEN_COLORS[0];
   private undoStack: Undo[] = [];
   private redoStack: Undo[] = [];
-  private saver;
   private editor: CutEditor;
-  private toastTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Pieces with changes not yet written, and the setlists as last written. */
+  private dirty = new Set<Doc>();
+  private saved: readonly Setlist[];
+  private saveTimer: ReturnType<typeof setTimeout> | undefined;
+  private closed = false;
 
   /** Fingers currently on the screen, by pointer id. */
   private fingers = new Map<number, Pt>();
@@ -88,28 +159,30 @@ class Viewer {
   });
 
   constructor(
-    private score: Score,
-    private cache: PageCache,
-    private aspects: Aspects,
-    private state: State,
+    private items: Item[],
+    /** The setlist being read, or null for a piece on its own. */
+    private setlistId: string | null,
+    private setlists: readonly Setlist[],
+    doc: Doc | null,
+    k: number,
     position: string | undefined,
+    chooseExcerpt: boolean,
     private prefs: Prefs,
     private onClose: () => void,
   ) {
-    this.saver = pieceSaver(score.id, () => this.state);
-    this.frames = pack(state.piece.cuts, aspects);
-    this.frame = Math.max(0, position ? frameOf(this.frames, position) : 0);
-    this.toast.setAttribute('role', 'status');
+    this.saved = setlists;
+    if (doc) this.docs.set(doc.id, doc);
+    const viewer = this;
     this.editor = new CutEditor({
       root: this.root,
       stage: this.stage,
-      aspects,
+      get aspects() { return viewer.aspects; },
       state: () => this.state,
       frames: () => this.frames,
       slots: () => this.slots,
       commit: (s, focus) => this.commit(s, focus),
       preview: (s, frames, hatches) => this.preview(s, frames, hatches),
-      thumb: (page, w) => this.cache.render(page + 1, w, Math.round(w * aspects[page]), dpr()),
+      thumb: (page, w) => this.cache.render(page + 1, w, Math.round(w * this.aspects[page]), dpr()),
       inking: () => this.tool !== 'none',
       cancelGesture: () => { this.gesture = null; },
       say: (t) => this.say(t),
@@ -117,7 +190,8 @@ class Viewer {
     });
     this.buildBar();
     this.stage.append(this.spreadEl);
-    this.root.append(this.stage, this.bar, this.toast);
+    this.scope.hidden = true;
+    this.root.append(this.stage, this.bar, this.scope, this.toast.el);
     document.body.append(this.root);
     document.body.classList.add('viewing');
 
@@ -133,7 +207,84 @@ class Viewer {
 
     void document.documentElement.requestFullscreen?.().catch(() => {});
     void this.requestWake();
+    void this.goTo(k, position).then(() => { if (chooseExcerpt) this.chooseExcerpt(); });
     this.observer.observe(this.stage);
+  }
+
+  /* ---------- the pieces read ---------- */
+
+  private get setlist() { return this.setlists.find((s) => s.id === this.setlistId); }
+  private entry(k = this.k): Entry | undefined {
+    const id = this.items[k]?.entryId;
+    return id ? this.setlist?.entries.find((e) => e.id === id) : undefined;
+  }
+  /** The current item's piece, once open; undefined while it opens or when it can't be. */
+  private get doc(): Doc | undefined { return this.docs.get(this.items[this.k].pieceId); }
+  private get state(): State { return this.doc!.state; }
+  private get aspects(): Aspects { return this.doc!.aspects; }
+  private get cache(): PageCache { return this.doc!.cache!; }
+
+  private framesFor(k: number): Frame[] {
+    const doc = this.docs.get(this.items[k].pieceId);
+    return doc ? pack(playedCuts(this.items[k], doc, this.entry(k)), doc.aspects) : [];
+  }
+
+  /** Open item k's piece, or find that it can't be. */
+  private ensure(k: number): Promise<Doc | null> {
+    const it = this.items[k];
+    if (!it || it.missing || !it.score) return Promise.resolve(null);
+    const have = this.docs.get(it.pieceId);
+    if (have?.cache) return Promise.resolve(have);
+    let p = this.opening.get(it.pieceId);
+    if (!p) {
+      p = this.open(it, it.score).catch((e) => {
+        console.error(e);
+        for (const x of this.items) if (x.pieceId === it.pieceId) x.missing = true;
+        return null;
+      }).finally(() => this.opening.delete(it.pieceId));
+      this.opening.set(it.pieceId, p);
+    }
+    return p;
+  }
+
+  private async open(it: Item, score: Score): Promise<Doc> {
+    const cache = await openPdf(await score.getFile());
+    if (this.closed) { cache.destroy(); throw new Error('Closed'); }
+    const have = this.docs.get(it.pieceId);
+    if (have) { have.cache = cache; return have; }
+    const aspects = await cache.allAspects();
+    const { state } = await loadPiece(it.pieceId, it.title, aspects);
+    const doc: Doc = { id: it.pieceId, score, aspects, state, cache };
+    this.docs.set(doc.id, doc);
+    return doc;
+  }
+
+  /** Go to item k: its first or last screen, or the screen holding a cut. */
+  private async goTo(k: number, at?: string | 'first' | 'last') {
+    const seq = ++this.goSeq;
+    this.loading = true;
+    if (k !== this.k) { this.editor.dismiss(); this.info.textContent = 'Opening…'; }
+    await this.ensure(k);
+    if (seq !== this.goSeq || this.closed) return;
+    this.loading = false;
+    this.k = k;
+    this.frames = this.framesFor(k);
+    const f = at === 'last' ? this.frames.length - 1 : at && at !== 'first' ? frameOf(this.frames, at) : 0;
+    this.frame = Math.max(0, f);
+    this.syncBar();
+    await this.show();
+    this.keepNear();
+  }
+
+  /** Open the next piece ahead of time, and close the PDFs of pieces further away. */
+  private keepNear() {
+    const near = new Set([this.k - 1, this.k, this.k + 1].map((k) => this.items[k]?.pieceId));
+    for (const d of this.docs.values()) {
+      if (near.has(d.id) || !d.cache) continue;
+      d.cache.destroy();
+      d.cache = undefined;
+    }
+    if (this.k + 1 < this.items.length) void this.ensure(this.k + 1);
   }
 
   /* ---------- toolbar ---------- */
@@ -147,9 +298,8 @@ class Viewer {
   }
 
   private buildBar() {
-    const title = el('span', 'title', this.score.title);
     const left = el('div', 'group');
-    left.append(this.button('close', 'Library', () => history.back()), title);
+    left.append(this.button('close', 'Library', () => history.back()), this.titleEl);
 
     const tools = el('div', 'group');
     tools.append(
@@ -171,6 +321,16 @@ class Viewer {
     );
 
     const right = el('div', 'group');
+    if (this.setlistId) {
+      right.append(
+        this.button('pieces', 'Pieces', () => this.piecesMenu()),
+        this.button('excerpt', 'Excerpt', () => this.chooseExcerpt()),
+      );
+      this.buttons.pieces.setAttribute('aria-haspopup', 'menu');
+    } else {
+      right.append(this.button('addTo', 'Add to setlist', () => this.addToSetlist()));
+      this.buttons.addTo.setAttribute('aria-haspopup', 'menu');
+    }
     right.append(
       this.button('edit', 'Edit cuts', () => { this.editor.setEnabled(!this.editor.enabled); this.syncBar(); this.decorate(); }),
       this.button('archived', 'Archived', () => this.editor.openArchive()),
@@ -195,18 +355,21 @@ class Viewer {
 
   private syncBar() {
     const pressed = (k: string, on: boolean) => this.buttons[k].setAttribute('aria-pressed', String(on));
+    const doc = this.doc;
     pressed('pen', this.tool === 'pen');
     pressed('highlighter', this.tool === 'highlighter');
     pressed('eraser', this.tool === 'eraser');
     pressed('edit', this.editor.enabled);
     for (const c of PEN_COLORS) pressed('color' + c, this.tool === 'pen' && this.penColor === c);
-    const archived = this.state.piece.archived.length;
+    for (const k of ['pen', 'highlighter', 'eraser', 'edit', 'excerpt']) if (this.buttons[k]) this.buttons[k].disabled = !doc;
+    const archived = doc?.state.piece.archived.length ?? 0;
     this.buttons.archived.hidden = !this.editor.enabled || !archived;
     this.buttons.archived.textContent = `Archived (${archived})`;
     this.buttons.layout.textContent = LAYOUT_LABEL[String(this.prefs.pagesPerScreen)];
     this.buttons.fit.hidden = !isZoomed(this.zoom);
     this.buttons.undo.disabled = !this.undoStack.length;
     this.buttons.redo.disabled = !this.redoStack.length;
+    this.scope.hidden = !this.setlistId || !this.editor.enabled;
     this.root.classList.toggle('writing', this.tool !== 'none');
     this.root.classList.toggle('editing', this.editor.enabled);
     this.root.style.setProperty('--bar-h', this.bar.offsetHeight + 'px');
@@ -221,10 +384,75 @@ class Viewer {
   }
 
   private say(text: string) {
-    this.toast.textContent = text;
-    this.toast.hidden = false;
-    clearTimeout(this.toastTimer);
-    this.toastTimer = setTimeout(() => { this.toast.hidden = true; }, 3500);
+    this.toast.say(text);
+  }
+
+  /** "2/3 Gymnopédie No. 1" in a setlist. */
+  private showTitle() {
+    const it = this.items[this.k];
+    if (!this.setlistId) { this.titleEl.textContent = it.title; return; }
+    this.titleEl.replaceChildren(el('b', '', `${this.k + 1}/${this.items.length} `), it.title);
+  }
+
+  /** Names the piece for a moment when the reader turns into it. */
+  private showCard() {
+    if (!this.setlistId || this.shownItem === this.k) return;
+    this.shownItem = this.k;
+    this.card?.remove();
+    clearTimeout(this.cardTimer);
+    const card = el('p', 'piece-card');
+    card.append(el('b', '', `${this.k + 1} OF ${this.items.length}`), this.items[this.k].title);
+    this.root.append(card);
+    this.card = card;
+    this.cardTimer = setTimeout(() => card.classList.add('gone'), PIECE_CARD_MS);
+  }
+
+  /* ---------- toolbar menus ---------- */
+
+  private piecesMenu() {
+    showMenu(this.buttons.pieces, this.setlist?.title ?? 'Pieces', this.items.map((it, k) => ({
+      label: `${k + 1}. ${it.title}`,
+      checked: k === this.k,
+      run: () => void this.goTo(k, 'first'),
+    })));
+  }
+
+  /** In a piece's own reader: add the piece, whole, to the end of a setlist. */
+  private addToSetlist() {
+    const it = this.items[0];
+    chooseSetlist(this.buttons.addTo, `Add “${it.title}” to`, this.setlists, (s, isNew) => {
+      const added = { ...s, entries: [...s.entries, newEntry(it.pieceId)] };
+      this.setlists = isNew ? [added, ...this.setlists] : this.setlists.map((x) => (x.id === s.id ? added : x));
+      this.soon();
+      this.say(`Added to the end of “${s.title}”.`);
+    }, it.pieceId);
+  }
+
+  /** In a setlist: choose which of the piece's cuts it plays. */
+  private chooseExcerpt() {
+    const doc = this.doc, entry = this.entry(), setlist = this.setlist;
+    if (!doc?.cache || !entry || !setlist) return;
+    this.editor.dismiss();
+    const cache = doc.cache;
+    openExcerptPicker({
+      question: `Which excerpt of “${this.items[this.k].title}” does “${setlist.title}” play?`,
+      state: doc.state,
+      aspects: doc.aspects,
+      span: entry,
+      page: (p, w) => cache.render(p + 1, w, Math.round(w * doc.aspects[p]), dpr()),
+      done: (span) => this.setExcerpt(entry.id, span),
+    });
+  }
+
+  private setExcerpt(entryId: string, span: Span) {
+    this.setlists = this.setlists.map((s) => (s.id !== this.setlistId ? s : {
+      ...s,
+      entries: s.entries.map((e) => (e.id === entryId ? { id: e.id, pieceId: e.pieceId, ...span } : e)),
+    }));
+    this.soon();
+    this.frames = this.framesFor(this.k);
+    this.frame = 0;
+    void this.show();
   }
 
   /* ---------- frames ---------- */
@@ -232,19 +460,58 @@ class Viewer {
   /** The first frame of the screen that holds frame `f`. */
   private screenOf(f: number) { return Math.floor(f / this.perScreen) * this.perScreen; }
 
-  private frameSize(W: number, H: number) {
-    const sizes = fitPages(W, H, Array(this.perScreen).fill(frameHeight(this.aspects)), GAP);
+  private frameSize(W: number, H: number, aspect = frameHeight(this.aspects)) {
+    const sizes = fitPages(W, H, Array(this.perScreen).fill(aspect), GAP);
     return sizes[0];
   }
 
   private pageSize(page: number, w: number) { return { w, h: Math.round(w * this.aspects[page]) }; }
 
+  /** Lay out boxes the size of a frame across the screen, on whole screen pixels. */
+  private place(boxes: HTMLElement[], size: { w: number; h: number }, W: number, H: number) {
+    const scale = dpr();
+    const devW = Math.round(W * scale), devH = Math.round(H * scale), devGap = Math.round(GAP * scale);
+    const fw = Math.round(size.w * scale), fh = Math.round(size.h * scale);
+    const total = fw * boxes.length + devGap * (boxes.length - 1);
+    let x = Math.floor((devW - total) / 2);
+    return boxes.map((box) => {
+      const r = { x: x / scale, y: Math.floor((devH - fh) / 2) / scale, w: fw / scale, h: fh / scale, fw, fh };
+      Object.assign(box.style, { left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px' });
+      x += fw + devGap;
+      return r;
+    });
+  }
+
+  /** In a setlist, what fills the rest of a piece's last screen: the next piece's title, or the end. */
+  private blank(missing?: string): HTMLElement {
+    const box = el('div', 'page blank');
+    const next = this.items[this.k + 1];
+    if (missing) box.append(el('span', 'label', 'Can’t find'), el('span', 't', `“${missing}”`));
+    else if (next) box.append(el('span', 'label', 'Next'), el('span', 't', next.title));
+    else box.append(el('span', 'label', 'End of the setlist'));
+    return box;
+  }
+
   private async show() {
     const seq = ++this.seq; // a newer show() (turn, resize, edit) supersedes this one
     const W = this.stage.clientWidth;
     const H = this.stage.clientHeight;
-    if (!W || !H) return;
+    if (!W || !H || this.loading) return;
     this.perScreen = pagesPerScreen(this.prefs.pagesPerScreen, W, H);
+    this.showTitle();
+    const it = this.items[this.k];
+    if (!this.doc?.cache) {
+      // A piece that can't be opened: say so, and carry on with the next one.
+      this.slots = [];
+      const boxes = [this.blank(it.title), ...(this.perScreen === 2 ? [this.blank()] : [])];
+      this.place(boxes, this.frameSize(W, H, A4), W, H);
+      this.spreadEl.replaceChildren(...boxes);
+      this.setZoom(NO_ZOOM);
+      this.info.textContent = 'Missing';
+      this.showCard();
+      this.saveSpot(undefined);
+      return;
+    }
     this.frame = this.screenOf(Math.min(this.frame, this.frames.length - 1));
     const size = this.frameSize(W, H);
     const scale = dpr();
@@ -262,36 +529,44 @@ class Viewer {
     this.pages = new Map(pageNums.map((p, i) => [p, canvases[i]]));
 
     // Place frames on whole screen pixels so they are shown exactly as drawn, without resampling.
-    const devW = Math.round(W * scale), devH = Math.round(H * scale), devGap = Math.round(GAP * scale);
-    const fw = Math.round(size.w * scale), fh = Math.round(size.h * scale);
-    const total = fw * on.length + devGap * (on.length - 1);
-    let x = Math.floor((devW - total) / 2);
+    // In a setlist each piece starts on a fresh screen, so a piece's last screen may have room left.
+    const boxes = on.map(() => el('div', 'page'));
+    const extra = this.setlistId && on.length < this.perScreen ? [this.blank()] : [];
+    const rects = this.place([...boxes, ...extra], size, W, H);
     this.slots = on.map((frame, i) => {
+      const r = rects[i];
       const slot: FrameSlot = {
         index: this.frame + i,
         frame,
-        box: el('div', 'page'),
-        x: x / scale,
-        y: Math.floor((devH - fh) / 2) / scale,
-        w: fw / scale,
-        h: fh / scale,
-        canvas: Object.assign(el('canvas'), { width: fw, height: fh }),
-        ink: Object.assign(el('canvas', 'ink'), { width: fw, height: fh }),
+        box: boxes[i],
+        x: r.x, y: r.y, w: r.w, h: r.h,
+        canvas: Object.assign(el('canvas'), { width: r.fw, height: r.fh }),
+        ink: Object.assign(el('canvas', 'ink'), { width: r.fw, height: r.fh }),
       };
-      x += fw + devGap;
-      Object.assign(slot.box.style, { left: slot.x + 'px', top: slot.y + 'px', width: slot.w + 'px', height: slot.h + 'px' });
       slot.box.append(slot.canvas, slot.ink);
       return slot;
     });
     for (const s of this.slots) this.paint(s, this.state);
-    this.spreadEl.replaceChildren(...this.slots.map((s) => s.box));
+    this.spreadEl.replaceChildren(...boxes, ...extra);
     this.setZoom(NO_ZOOM);
     this.decorate();
-    const last = this.frame + on.length;
-    this.info.textContent = on.length > 1 ? `${this.frame + 1}–${last} of ${this.frames.length}` : `${last} of ${this.frames.length}`;
-    const first = on[0]?.items[0];
-    if (first) void savePosition(this.score.id, first.cut.id);
+    if (this.setlistId) {
+      const screens = Math.ceil(this.frames.length / this.perScreen);
+      this.info.textContent = `${this.frame / this.perScreen + 1} of ${screens}`;
+    } else {
+      const last = this.frame + on.length;
+      this.info.textContent = on.length > 1 ? `${this.frame + 1}–${last} of ${this.frames.length}` : `${last} of ${this.frames.length}`;
+    }
+    this.showCard();
+    this.saveSpot(on[0]?.items[0]?.cut.id);
     void this.predraw(seq, size.w, scale);
+  }
+
+  /** Remember the first cut on the screen, to come back to. */
+  private saveSpot(cut: string | undefined) {
+    const it = this.items[this.k];
+    if (this.setlistId && it.entryId) void saveSetlistPosition(this.setlistId, { entry: it.entryId, cut });
+    else if (cut) void savePosition(it.pieceId, cut);
   }
 
   /** Draw a frame's music and ink at its current layout. */
@@ -333,16 +608,34 @@ class Viewer {
       if (seq !== this.seq) return;
       await this.cache.render(p + 1, w, this.pageSize(p, w).h, scale).catch(() => {});
     }
+    // On a piece's last screen in a setlist, draw the next piece's first screen too.
+    if (!this.setlistId || this.frame + this.perScreen < this.frames.length || this.k + 1 >= this.items.length) return;
+    const doc = await this.ensure(this.k + 1);
+    const first = this.framesFor(this.k + 1).slice(0, this.perScreen);
+    if (seq !== this.seq || !doc?.cache) return;
+    const nw = this.frameSize(this.stage.clientWidth, this.stage.clientHeight, frameHeight(doc.aspects)).w;
+    for (const p of new Set(first.flatMap((f) => f.items.map((x) => x.cut.page)))) {
+      if (seq !== this.seq || !doc.cache) return;
+      await doc.cache.render(p + 1, nw, Math.round(nw * doc.aspects[p]), scale).catch(() => {});
+    }
   }
 
+  /** Turn a screen; in a setlist, past a piece's end into the next one, or back into the one before. */
   private turn(dir: 1 | -1) {
+    if (this.loading) return;
     const next = this.frame + dir * this.perScreen;
-    if (next < 0 || next >= this.frames.length) return;
-    this.frame = next;
     // Put the tool away so taps turn pages again. The toolbar stays until you dismiss it.
     this.tool = 'none';
+    if (next >= 0 && next < this.frames.length) {
+      this.frame = next;
+      this.syncBar();
+      void this.show();
+      return;
+    }
+    const k = this.k + dir;
+    if (k < 0 || k >= this.items.length) return;
     this.syncBar();
-    void this.show();
+    void this.goTo(k, dir > 0 ? 'first' : 'last');
   }
 
   private act(g: Gesture) {
@@ -358,17 +651,24 @@ class Viewer {
    * frame holding `focus` (or stay where you are, if that cut is gone). Undo shows it too.
    */
   private commit(s: State, focus?: string) {
-    this.undoStack.push({ state: this.state, focus });
+    const doc = this.doc!, entry = this.entry();
+    this.undoStack.push({ doc, state: doc.state, setlists: this.setlists, k: this.k, focus });
     this.redoStack = [];
-    this.setState(s, focus);
+    // Every setlist's excerpts of the piece follow the edit. Pages inserted at the edges of the
+    // excerpt being read join it.
+    const grow = this.setlistId && entry ? { setlist: this.setlistId, entries: new Set([entry.id]) } : undefined;
+    this.setState(s, followPiece(this.setlists, doc.id, doc.state.piece.cuts, s.piece.cuts, grow), focus);
   }
 
-  private setState(s: State, focus?: string) {
-    const moved = !sameLayout(s.piece.cuts, this.state.piece.cuts);
-    this.state = s;
-    this.saver.soon();
+  private setState(s: State, setlists: readonly Setlist[], focus?: string) {
+    const doc = this.doc!;
+    const shown = this.frames.flatMap((f) => f.items.map((p) => p.cut));
+    doc.state = s;
+    this.setlists = setlists;
+    this.soon(doc);
     this.syncBar();
-    this.frames = pack(s.piece.cuts, this.aspects);
+    this.frames = this.framesFor(this.k);
+    const moved = !sameLayout(this.frames.flatMap((f) => f.items.map((p) => p.cut)), shown);
     const f = focus ? frameOf(this.frames, focus) : -1;
     const target = f >= 0 ? this.screenOf(f) : this.frame;
     if (!moved && target === this.frame) {
@@ -608,9 +908,9 @@ class Viewer {
     if (a.erasing) {
       // One undo step for the whole sweep of the eraser.
       if (this.state !== a.before) {
-        this.undoStack.push({ state: a.before, focus: a.slot.frame.items[0]?.cut.id });
+        this.undoStack.push({ doc: this.doc!, state: a.before, setlists: this.setlists, k: this.k, focus: a.slot.frame.items[0]?.cut.id });
         this.redoStack = [];
-        this.frames = pack(this.state.piece.cuts, this.aspects);
+        this.frames = this.framesFor(this.k);
         a.slot.frame = this.frames[a.slot.index];
         this.syncBar();
       }
@@ -635,14 +935,14 @@ class Viewer {
       if (keep.length !== list.length) s = setInk(s, cut.id, keep);
     }
     if (s === this.state) return;
-    this.state = s;
-    this.saver.soon();
+    this.doc!.state = s;
+    this.soon(this.doc);
     this.paintInk(slot, s);
   }
 
   private onKey = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') { if (!this.editor.dismiss()) history.back(); return; }
-    if ((e.target as Element | null)?.closest?.('.menu, .dialog')) return;
+    if (e.key === 'Escape') { if (!this.editor.dismiss() && !closeOverlay()) history.back(); return; }
+    if (overlayOpen() || (e.target as Element | null)?.closest?.('.menu, .dialog')) return;
     const g = gestureForKey(e.key);
     if (!g) return;
     e.preventDefault();
@@ -654,15 +954,45 @@ class Viewer {
   private undo() {
     const e = this.undoStack.pop();
     if (!e) return;
-    this.redoStack.push({ state: this.state, focus: e.focus });
-    this.setState(e.state, e.focus);
+    this.redoStack.push({ ...e, state: e.doc.state, setlists: this.setlists });
+    this.restore(e);
   }
 
   private redo() {
     const e = this.redoStack.pop();
     if (!e) return;
-    this.undoStack.push({ state: this.state, focus: e.focus });
-    this.setState(e.state, e.focus);
+    this.undoStack.push({ ...e, state: e.doc.state, setlists: this.setlists });
+    this.restore(e);
+  }
+
+  /** Put back a piece and the setlists as they were, showing the piece where the edit was made. */
+  private restore(e: Undo) {
+    if (e.k === this.k && this.doc === e.doc) { this.setState(e.state, e.setlists, e.focus); return; }
+    e.doc.state = e.state;
+    this.setlists = e.setlists;
+    this.soon(e.doc);
+    void this.goTo(e.k, e.focus);
+  }
+
+  /* ---------- saving ---------- */
+
+  /** Save within half a second: the pieces changed, and the setlists if they changed. */
+  private soon(doc?: Doc) {
+    if (doc) this.dirty.add(doc);
+    this.saveTimer ??= setTimeout(() => void this.flush(), 500);
+  }
+
+  /** Pieces and setlists are written together, so a piece's cuts and the excerpts naming them agree. */
+  private async flush() {
+    clearTimeout(this.saveTimer);
+    this.saveTimer = undefined;
+    const entries = [...this.dirty].flatMap((d) => pieceEntries(d.state));
+    this.dirty.clear();
+    if (this.setlists !== this.saved) {
+      entries.push(...changedEntries(this.setlists, this.saved));
+      this.saved = this.setlists;
+    }
+    if (entries.length) await kv.setMany(entries);
   }
 
   /* ---------- lifecycle ---------- */
@@ -673,12 +1003,14 @@ class Viewer {
 
   private onVisible = () => {
     if (document.visibilityState === 'visible') void this.requestWake();
-    else void this.saver.flush();
+    else void this.flush();
   };
 
   private onPop = () => void this.close();
 
   private async close() {
+    this.closed = true;
+    closeOverlay();
     window.removeEventListener('popstate', this.onPop);
     document.removeEventListener('keydown', this.onKey);
     document.removeEventListener('visibilitychange', this.onVisible);
@@ -687,10 +1019,11 @@ class Viewer {
     this.seq++;
     this.detailSeq++;
     this.editor.dismiss();
-    await this.saver.flush();
+    clearTimeout(this.cardTimer);
+    await this.flush();
     void this.wake?.release().catch(() => {});
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
-    this.cache.destroy();
+    for (const d of this.docs.values()) d.cache?.destroy();
     this.root.remove();
     document.body.classList.remove('viewing');
     this.onClose();

@@ -43,18 +43,10 @@ export async function loadPiece(id: string, title: string, aspects: Aspects): Pr
   return m;
 }
 
-/** Saves at most every half second while editing, and immediately on flush(). */
-export function pieceSaver(id: string, state: () => State) {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const save = () => {
-    timer = undefined;
-    const s = state();
-    return kv.setMany([['piece:' + id, s.piece], ['ink:' + id, s.ink]]);
-  };
-  return {
-    soon() { timer ??= setTimeout(save, 500); },
-    async flush() { if (timer) { clearTimeout(timer); await save(); } },
-  };
-}
+/** The records a piece and its ink are saved as, always together. */
+export const pieceEntries = (s: State): [string, unknown][] => [['piece:' + s.piece.id, s.piece], ['ink:' + s.piece.id, s.ink]];
+
+/** A piece as last saved, without opening its file: for showing what a setlist plays. */
+export const loadSavedPiece = (id: string) => kv.get<Piece>('piece:' + id);
 
 export const savePosition = (id: string, cutId: string) => kv.set('pos:' + id, cutId);

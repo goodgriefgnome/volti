@@ -33,7 +33,17 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   - When the page before has room left, a faint shading shows how much of this page would fit
     there. Cut inside the shading to move the top of this page up onto it.
 
-Markings, cuts and the place you were at are stored in the app, per score. They are not written into
+- **Setlists**, above the scores in the library, play several pieces as one continuous score:
+  turning past the end of a piece goes into the next, and each piece starts on a fresh screen.
+  - Tick scores and use **Add to setlist**, or **Add to setlist** in a score's toolbar. The arrow
+    beside a setlist shows its pieces, to reorder or remove; its **⋯** button has the rest.
+  - A setlist can play part of a piece: **Excerpt** in its toolbar (or **Choose the excerpt to
+    play…** in the library) picks the first and last cut to play.
+  - Cuts and markings always belong to the piece: changing them in a setlist changes the piece,
+    and every setlist's excerpts follow the change.
+  - **Archive** hides a setlist behind **Show archived**; only archived setlists can be deleted.
+
+Markings, cuts, setlists and the place you were at are stored in the app. They are not written into
 the PDFs.
 
 ## Development
@@ -51,7 +61,10 @@ Every push to `main` is tested, built and published to GitHub Pages by
 | Path | What it does |
 | --- | --- |
 | `src/lib/library.ts` | Linked folder, imported scores, shared-file inbox |
-| `src/viewer/viewer.ts` | The score screen: spreads, toolbar, pen input, undo |
+| `src/ui/home.ts` | The library: setlists and scores |
+| `src/setlists/` | Setlists, the excerpt of each piece they play, and keeping excerpts in step with cut edits |
+| `src/viewer/viewer.ts` | The score screen, for a piece or a setlist: spreads, toolbar, pen input, undo |
+| `src/viewer/excerpt.ts` | Choosing the excerpt of a piece a setlist plays |
 | `src/viewer/turns.ts` | How taps, swipes and keys turn pages |
 | `src/viewer/layout.ts` | Fitting pages to the screen; which pages a turn lands on |
 | `src/viewer/zoom.ts` | Pinch and pan maths; which part of a page is in view |

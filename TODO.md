@@ -4,10 +4,9 @@
 
 Pieces, cuts and frames are built for PDFs (`src/pieces/`, `src/viewer/edit.ts`). Still to do:
 
-- **Setlists:** designed in [docs/setlists-design.md](docs/setlists-design.md), with a working
-  prototype in [docs/prototypes/volti-setlists.html](docs/prototypes/volti-setlists.html). A list
-  of pieces read as one continuous score, each played whole or as a span of its cuts. Cuts and
-  markings always belong to the piece; edits to a piece keep the spans on the same music.
+- **Setlists** are built (`src/setlists/`), as designed in
+  [docs/setlists-design.md](docs/setlists-design.md). Still open: matching a re-added file back to
+  its piece, so a Missing entry plays again.
 - **Named excerpts on pieces** (later): spans defined and named on the piece, which setlists refer to
   instead of copying, so changing one changes every setlist that plays it. See section 8 of the
   setlists design.
