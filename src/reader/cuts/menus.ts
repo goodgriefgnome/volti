@@ -3,7 +3,7 @@ import type { Placed } from '../../pieces/frames';
 import type { Cut, State } from '../../pieces/model';
 import { el } from '../../ui/dom';
 import type { Action } from '../../ui/menu';
-import type { FrameSlot } from '../frames';
+import type { FrameSlot } from '../spread';
 import { pageLabel, sayArchived, type Edge, type Editing } from './host';
 import { openPicker } from './insert-picker';
 

@@ -55,7 +55,12 @@ Every push to `main` is tested, built and published to GitHub Pages by
 | `src/pieces/` | Cuts and the played order (`model`), editing it (`edits`), laying it out on frames (`frames`), which cut owns a stroke (`ink`), loading and saving (`store`) |
 | `src/ink/` | Stroke model and drawing |
 | `src/library/` | The Library screen |
-| `src/reader/reader.ts` | The score screen: spreads, toolbar, pen input, undo |
+| `src/reader/reader.ts` | The score screen: turning pages, applying edits, opening and closing |
+| `src/reader/input.ts` | Pointers and keys: palm rejection, pinch and pan, writing and erasing, taps and swipes |
+| `src/reader/toolbar.ts` | The toolbar |
+| `src/reader/spread.ts` | Placing frames on the screen and drawing them |
+| `src/reader/detail.ts` | The sharp close-up drawn while zoomed in |
+| `src/reader/history.ts` | Undo and redo |
 | `src/reader/cuts/` | Editing cuts on the frames: tabs and drags (`editor`), menus, the insert-pages picker, archived cuts |
 | `src/reader/frames.ts` | Drawing a frame's music and ink |
 | `src/reader/gestures.ts` | How taps, swipes and keys turn pages |
