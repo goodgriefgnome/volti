@@ -24,11 +24,13 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
 - **Pen**, **Highlight** and **Erase** work with the stylus or one finger; two fingers still zoom
   and pan. A palm resting on the screen is ignored while the stylus writes. The stylus eraser end
   or button erases too.
-- **Edit cuts** lets you change the order the pages are played in, on the pages themselves:
+- **Edit cuts** lets you change what is played and in what order, on the pages themselves. A
+  score's pages are made of cuts: bands of the PDF's pages (its *original pages*), stacked in the
+  order they are played.
   - Drag the faint tab at the top left or bottom right of a cut to cut music away or bring it
     back. The grey tab at the top right of a page adds white space above the music.
-  - Right-click or press and hold on the music for more: cut it in two there, insert pages (for
-    a repeat), or remove a cut. A cut with markings on it is archived rather than deleted. Press
+  - Right-click or press and hold on the music for more: cut it in two there, insert original
+    pages (for a repeat), or remove a cut. A cut with markings on it is archived rather than deleted. Press
     and hold on a tab to restore music you cut or join two cuts.
   - When the page before has room left, a faint shading shows how much of this page would fit
     there. Cut inside the shading to move the top of this page up onto it.

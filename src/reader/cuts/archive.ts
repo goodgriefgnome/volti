@@ -24,7 +24,7 @@ export function openArchive(host: EditorHost) {
         host.changed();
         fill();
       });
-      li.append(thumbCanvas(host, d, c.page, c.y0, c.y1), el('span', '', `Page ${c.page + 1}, ${n} marking${n === 1 ? '' : 's'}`), del);
+      li.append(thumbCanvas(host, d, c.page, c.y0, c.y1), el('span', '', `Original page ${c.page + 1}, ${n} marking${n === 1 ? '' : 's'}`), del);
       list.append(li);
     }
   };
@@ -34,6 +34,6 @@ export function openArchive(host: EditorHost) {
   close.addEventListener('click', () => closeOverlay());
   const buttons = el('div', 'buttons');
   buttons.append(close);
-  d.append(el('p', 'hint', 'Cuts removed with markings on them are kept here. Insert one again from "Insert pages…", or delete it and its markings for good.'), list, buttons);
+  d.append(el('p', 'hint', 'Cuts removed with markings on them are kept here. Insert one again from "Insert original pages…", or delete it and its markings for good.'), list, buttons);
   close.focus();
 }

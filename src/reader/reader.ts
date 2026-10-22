@@ -409,13 +409,9 @@ class Reader {
     this.spreadEl.replaceChildren(...this.slots.map((s) => s.box), ...extra);
     this.setZoom(NO_ZOOM);
     this.decorate();
-    if (this.setlistId) {
-      const screens = Math.ceil(this.frames.length / this.perScreen);
-      this.toolbar.info.textContent = `${this.frame / this.perScreen + 1} of ${screens}`;
-    } else {
-      const last = this.frame + on.length;
-      this.toolbar.info.textContent = on.length > 1 ? `${this.frame + 1}–${last} of ${this.frames.length}` : `${last} of ${this.frames.length}`;
-    }
+    // The score's pages are its frames; in a setlist, the excerpt's own.
+    const last = this.frame + on.length;
+    this.toolbar.info.textContent = on.length > 1 ? `Pages ${this.frame + 1}–${last} of ${this.frames.length}` : `Page ${last} of ${this.frames.length}`;
     this.showCard();
     this.saveSpot(on[0]?.items[0]?.cut.id);
     void this.predraw(seq, size.w, scale);

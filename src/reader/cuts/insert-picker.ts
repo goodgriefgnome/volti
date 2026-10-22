@@ -1,4 +1,5 @@
-// The dialog for inserting pages, a range of pages or an archived cut into the played order.
+// The dialog for inserting pages of the original, a range of them or an archived cut into the
+// played order.
 
 import { insertArchived, insertPages, type InsertAt } from '../../scores/edits';
 import { el } from '../../ui/dom';
@@ -7,7 +8,7 @@ import { openArchive } from './archive';
 import type { EditorHost } from './host';
 import { THUMB_W, thumbCanvas } from './thumbs';
 
-/** Pick pages, a range of them or an archived cut to insert at `at`; the strip opens at `page`. */
+/** Pick original pages, a range of them or an archived cut to insert at `at`; the strip opens at `page`. */
 export function openPicker(host: EditorHost, at: InsertAt, title: string, page: number) {
   const s = host.state();
   const d = showDialog(title);
@@ -21,7 +22,7 @@ export function openPicker(host: EditorHost, at: InsertAt, title: string, page: 
   for (let p = 0; p < n; p++) {
     const b = el('button', 'thumb');
     b.type = 'button';
-    b.setAttribute('aria-label', `Page ${p + 1}`);
+    b.setAttribute('aria-label', `Original page ${p + 1}`);
     const ph = el('div', 'thumb-space');
     ph.style.height = THUMB_W * host.aspects[p] + 'px';
     b.append(ph, el('span', '', String(p + 1)));
@@ -51,7 +52,7 @@ export function openPicker(host: EditorHost, at: InsertAt, title: string, page: 
     for (const c of s.score.archived) {
       const b = el('button', 'thumb');
       b.type = 'button';
-      b.setAttribute('aria-label', `Archived cut from page ${c.page + 1}`);
+      b.setAttribute('aria-label', `Archived cut from original page ${c.page + 1}`);
       b.append(thumbCanvas(host, d, c.page, c.y0, c.y1), el('span', '', `p. ${c.page + 1}`));
       b.addEventListener('click', () => { pick.archived = c.id; sync(); });
       archivedButtons.push([c.id, b]);
@@ -80,7 +81,7 @@ export function openPicker(host: EditorHost, at: InsertAt, title: string, page: 
     }
     const r = insertPages(now, at, pick.a, pick.b, copy.checked, host.aspects);
     host.commit(r.state, r.first);
-    host.say(pick.a === pick.b ? `Inserted page ${pick.a + 1}.` : `Inserted pages ${pick.a + 1}–${pick.b + 1}.`);
+    host.say(pick.a === pick.b ? `Inserted original page ${pick.a + 1}.` : `Inserted original pages ${pick.a + 1}–${pick.b + 1}.`);
   });
   const buttons = el('div', 'buttons');
   if (s.score.archived.length) {
@@ -99,8 +100,8 @@ export function openPicker(host: EditorHost, at: InsertAt, title: string, page: 
     copyLabel.hidden = !!pick.archived;
     hint.textContent = pick.archived
       ? 'The archived cut comes back with its markings.'
-      : (lo === hi ? `Page ${lo + 1}` : `Pages ${lo + 1}–${hi + 1}`)
-        + (pick.next === 'b' ? '. Tap another page to insert a range.' : '. Tap a page to start again.');
+      : (lo === hi ? `Original page ${lo + 1}` : `Original pages ${lo + 1}–${hi + 1}`)
+        + (pick.next === 'b' ? '. Tap another to insert a range.' : '. Tap one to start again.');
   };
   sync();
   pageButtons[page]?.scrollIntoView({ inline: 'center', block: 'nearest' });

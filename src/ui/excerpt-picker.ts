@@ -66,7 +66,7 @@ export class ExcerptStrip {
         b.type = 'button';
         b.dataset.n = String(p.index + 1);
         Object.assign(b.style, { top: u(p.top * THUMB_W), height: u(p.h * THUMB_W) });
-        b.setAttribute('aria-label', `Cut ${p.index + 1}, from page ${p.cut.page + 1}`);
+        b.setAttribute('aria-label', `Cut ${p.index + 1}, from original page ${p.cut.page + 1}`);
         b.addEventListener('click', () => this.tap(p.index));
         this.bands[p.index] = b;
         box.append(b);
@@ -114,7 +114,7 @@ export class ExcerptStrip {
       b.setAttribute('aria-pressed', String(k >= i0 && k <= i1));
     });
     const a = cuts[i0].page + 1, z = cuts[i1].page + 1;
-    const what = this.whole ? 'the whole score' : `cuts ${i0 + 1}–${i1 + 1} of ${n}, from page ${a} to page ${z}`;
+    const what = this.whole ? 'the whole score' : `cuts ${i0 + 1}–${i1 + 1} of ${n} (${a === z ? `original page ${a}` : `original pages ${a}–${z}`})`;
     this.hint.textContent = pending === null
       ? `${this.verb} ${what}. Tap the first cut to play, then the last.`
       : `Starts at cut ${pending + 1}. Now tap the last cut to play.`;

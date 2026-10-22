@@ -31,8 +31,9 @@ export interface EditorHost {
 
 export type Edge = 'top' | 'bottom';
 
-export const pageLabel = (c: Cut) => `page ${c.page + 1}`;
+/** The page of the original a cut is from. The score's own pages are its frames. */
+export const pageLabel = (c: Cut) => `original page ${c.page + 1}`;
 
 export function sayArchived(host: EditorHost) {
-  host.say('The cut had markings, so it was archived. Insert it again from "Insert pages…".');
+  host.say('The cut had markings, so it was archived. Insert it again from "Insert original pages…".');
 }

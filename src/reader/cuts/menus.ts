@@ -31,7 +31,7 @@ export function openContext(host: EditorHost, x: number, y: number) {
   const above = fy < f.items[0].top;
   const c = above ? f.items[0].cut : f.items.at(-1)!.cut;
   menuAt(host, x, y, above ? 'Above the music' : 'Below the music', [
-    { label: 'Insert pages here…', run: () => openPicker(host, { id: c.id, after: !above }, 'Insert pages here', c.page) },
+    { label: 'Insert original pages here…', run: () => openPicker(host, { id: c.id, after: !above }, 'Insert original pages here', c.page) },
   ]);
 }
 
@@ -67,7 +67,7 @@ export function tabMenu(host: EditorHost, id: string, kind: Edge | 'pad', x: num
       items.push({ label: top ? 'Join with the cut above' : 'Join with the cut below', run: () => apply(host, joinNext(s, first.id), first.id) });
       break;
     case 'trimmed':
-      items.push({ label: top ? 'Restore the top of the page' : 'Restore the bottom of the page', run: () => apply(host, restoreEdge(s, id, kind), id) });
+      items.push({ label: top ? 'Restore the top of the original page' : 'Restore the bottom of the original page', run: () => apply(host, restoreEdge(s, id, kind), id) });
       break;
   }
   items.push(...removeItem(host, c));
@@ -81,8 +81,8 @@ function cutMenu(host: EditorHost, slot: FrameSlot, p: Placed, fy: number, x: nu
   const cut = cutAt(s, c.id, at, host.aspects);
   menuAt(host, x, y, `Cut from ${pageLabel(c)}`, [
     ...(cut ? [{ label: 'Cut here', run: () => host.commit(cut, c.id) }] : []),
-    { label: 'Insert pages before this cut…', run: () => openPicker(host, { id: c.id, after: false }, `Insert pages before this cut (${pageLabel(c)})`, c.page) },
-    { label: 'Insert pages after this cut…', run: () => openPicker(host, { id: c.id, after: true }, `Insert pages after this cut (${pageLabel(c)})`, c.page) },
+    { label: 'Insert original pages before this cut…', run: () => openPicker(host, { id: c.id, after: false }, `Insert original pages before this cut (${pageLabel(c)})`, c.page) },
+    { label: 'Insert original pages after this cut…', run: () => openPicker(host, { id: c.id, after: true }, `Insert original pages after this cut (${pageLabel(c)})`, c.page) },
     ...removeItem(host, c),
   ]);
   // Show where "Cut here" would cut while the menu is open.
