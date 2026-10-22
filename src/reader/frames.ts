@@ -1,8 +1,7 @@
-import { drawStrokes, type InkTarget } from '../ink/draw';
-import type { Stroke } from '../ink/model';
+import { drawMarkings, type DrawTarget, type Marking } from '../markings/model';
 import type { Frame, Placed } from '../pieces/frames';
-import { visible } from '../pieces/ink';
 import type { Aspects, PieceInk } from '../pieces/model';
+import { visible } from '../pieces/ownership';
 
 /** Music being cut away during a drag, by cut id: page fractions y0..y1 drawn hatched. */
 export type Hatches = Map<string, [number, number][]>;
@@ -50,23 +49,23 @@ export function hatch(ctx: CanvasRenderingContext2D, W: number, y: number, h: nu
   ctx.restore();
 }
 
-/** Where a cut's strokes go on a frame drawn W pixels wide, offset by (ox, oy) for a close-up. */
-export function cutTarget(ctx: CanvasRenderingContext2D, p: Placed, W: number, aspects: Aspects, ox = 0, oy = 0): InkTarget {
+/** Where a cut's markings go on a frame drawn W pixels wide, offset by (ox, oy) for a close-up. */
+export function cutTarget(ctx: CanvasRenderingContext2D, p: Placed, W: number, aspects: Aspects, ox = 0, oy = 0): DrawTarget {
   const h = W * aspects[p.cut.page];
   return { ctx, w: W, h, ox, oy: oy + p.cut.y0 * h - p.top * W };
 }
 
-/** A target for a stroke still being drawn, whose points are in frame coordinates. */
-export const frameTarget = (ctx: CanvasRenderingContext2D, W: number, ox = 0, oy = 0): InkTarget => ({ ctx, w: W, h: W, ox, oy });
+/** A target for a marking still being made, whose points are in frame coordinates. */
+export const frameTarget = (ctx: CanvasRenderingContext2D, W: number, ox = 0, oy = 0): DrawTarget => ({ ctx, w: W, h: W, ox, oy });
 
-/** The strokes each cut on the frame shows: whole, when most of the stroke lies within the cut. */
-export function drawFrameInk(ctx: CanvasRenderingContext2D, frame: Frame, ink: PieceInk, aspects: Aspects, W: number, ox = 0, oy = 0, extra?: Stroke) {
+/** The markings each cut on the frame shows: whole, when most of the marking lies within the cut. */
+export function drawFrameInk(ctx: CanvasRenderingContext2D, frame: Frame, ink: PieceInk, aspects: Aspects, W: number, ox = 0, oy = 0, extra?: Marking) {
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   for (const p of frame.items) {
-    const strokes = (ink[p.cut.id] ?? []).filter((s) => visible(s, p.cut, aspects[p.cut.page]));
-    drawStrokes(cutTarget(ctx, p, W, aspects, ox, oy), strokes);
+    const shown = (ink[p.cut.id] ?? []).filter((m) => visible(m, p.cut, aspects[p.cut.page]));
+    drawMarkings(cutTarget(ctx, p, W, aspects, ox, oy), shown);
   }
-  if (extra) drawStrokes(frameTarget(ctx, W, ox, oy), [extra]);
+  if (extra) drawMarkings(frameTarget(ctx, W, ox, oy), [extra]);
 }
 
 /** The parts of the page each cut needs for a close-up of `region` (device pixels of a frame W wide). */

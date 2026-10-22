@@ -1,4 +1,4 @@
-import type { Stroke } from '../ink/model';
+import type { Marking } from '../markings/model';
 
 /** A horizontal band of one source page; y0 and y1 are fractions of the page height, 0 = top. */
 export interface Cut {
@@ -20,12 +20,12 @@ export interface Piece {
   orientation: 'portrait' | 'landscape';
   /** The played order. */
   cuts: Cut[];
-  /** Removed cuts that had their own ink; their strokes stay in the ink record. */
+  /** Removed cuts that had their own ink; their markings stay in the ink record. */
   archived: Cut[];
 }
 
-/** Strokes by cut id, in source-page coordinates. */
-export type PieceInk = Record<string, Stroke[]>;
+/** A piece's ink: its markings by cut id, in source-page coordinates. */
+export type PieceInk = Record<string, Marking[]>;
 
 /** A piece and its ink, which every edit to the cuts keeps in step. */
 export interface State { piece: Piece; ink: PieceInk }

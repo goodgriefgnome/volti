@@ -1,4 +1,4 @@
-import type { Point } from '../ink/model';
+import type { Point } from '../markings/model';
 import { closeOverlay, overlayOpen } from '../ui/overlay';
 import type { CutEditor } from './cuts/editor';
 import { gestureFor, gestureForKey, type Gesture } from './gestures';

@@ -1,5 +1,5 @@
 // Fixtures shared by the pieces tests.
-import type { Stroke } from '../ink/model';
+import type { Stroke } from '../markings/stroke';
 import type { Cut, State } from './model';
 
 export const A4 = 297 / 210;

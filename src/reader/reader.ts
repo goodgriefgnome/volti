@@ -1,4 +1,5 @@
-import { PEN_COLORS, type Stroke } from '../ink/model';
+import type { Marking } from '../markings/model';
+import { PEN_COLORS } from '../markings/stroke';
 import { frameOf, pack, type Frame } from '../pieces/frames';
 import type { Aspects, Cut, State } from '../pieces/model';
 import { loadPiece, savePosition } from '../pieces/store';
@@ -415,11 +416,11 @@ class Reader {
   }
 
   /** Draw a frame's music and ink at its current layout. */
-  private paint(slot: FrameSlot, s: State, hatches?: Hatches, extra?: Stroke) {
+  private paint(slot: FrameSlot, s: State, hatches?: Hatches, extra?: Marking) {
     paintSlot(slot, this.pages, this.aspects, s.ink, hatches, extra);
   }
 
-  private paintInk(slot: FrameSlot, s: State, extra?: Stroke) {
+  private paintInk(slot: FrameSlot, s: State, extra?: Marking) {
     paintSlotInk(slot, this.aspects, s.ink, extra);
   }
 

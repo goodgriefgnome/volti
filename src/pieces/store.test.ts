@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Stroke } from '../ink/model';
+import type { Stroke } from '../markings/stroke';
 import { forPages, migrate } from './store';
 
 const A4 = 297 / 210;

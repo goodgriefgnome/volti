@@ -1,4 +1,4 @@
-import type { Point, Stroke } from '../../ink/model';
+import type { Marking, Point } from '../../markings/model';
 import type { Aspects, State } from '../../pieces/model';
 import type { FrameSlot } from '../spread';
 
@@ -14,11 +14,11 @@ export interface ToolHost {
   penColor(): string;
   /** The zoom scale, so a tool can keep its size on the screen. */
   scale(): number;
-  /** Draw a frame's ink again; `extra` is a stroke still being drawn. */
-  paintInk(slot: FrameSlot, extra?: Stroke): void;
+  /** Draw a frame's ink again; `extra` is a marking still being made. */
+  paintInk(slot: FrameSlot, extra?: Marking): void;
   /** Take an edit: undo, save, reflow, and show the frame holding `focus`. */
   commit(s: State, focus?: string): void;
-  /** The eraser took strokes away from the frame in `slot`: show and save it, without an undo step yet. */
+  /** The eraser took markings away from the frame in `slot`: show and save it, without an undo step yet. */
   erased(s: State, slot: FrameSlot): void;
   /** The eraser lifted: one undo step, back to `before`, for its whole sweep. */
   eraseEnded(before: State, slot: FrameSlot): void;

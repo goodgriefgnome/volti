@@ -1,6 +1,6 @@
-import type { Stroke } from '../ink/model';
-import { claimFirstPass, splitStrokes } from './ink';
+import { copyMarking, type Marking } from '../markings/model';
 import { EPS, frameHeight, newCutId, type Aspects, type Cut, type State } from './model';
+import { claimFirstPass, splitMarkings } from './ownership';
 
 // Edits to the played order. Each takes a State and returns a new one, keeping the ink in step.
 
@@ -88,9 +88,9 @@ export function joinNext(s: State, id: string): State {
   if (!a || !b || !inOrder(a, b)) return s;
   const merged: Cut = { ...a, y1: b.y1, ...(a.ownInk || b.ownInk ? { ownInk: true } : {}) };
   const ink = { ...s.ink };
-  const strokes = [...(ink[a.id] ?? []), ...(ink[b.id] ?? [])];
+  const markings = [...(ink[a.id] ?? []), ...(ink[b.id] ?? [])];
   delete ink[b.id];
-  if (strokes.length) ink[a.id] = strokes;
+  if (markings.length) ink[a.id] = markings;
   return { piece: { ...s.piece, cuts: cuts.flatMap((c) => (c === a ? [merged] : c === b ? [] : [c])) }, ink };
 }
 
@@ -98,14 +98,14 @@ export function restoreEdge(s: State, id: string, edge: 'top' | 'bottom'): State
   return mapCut(s, id, (c) => (edge === 'top' ? { ...c, y0: 0 } : { ...c, y1: 1 }));
 }
 
-/** Split a cut at y (a fraction of the page height). Each stroke goes to the half that holds most of it. */
+/** Split a cut at y (a fraction of the page height). Each marking goes to the half that holds most of it. */
 export function split(s: State, id: string, y: number, aspects: Aspects): { state: State; lower: string } {
   const cuts = s.piece.cuts, i = cuts.findIndex((c) => c.id === id);
   const c = cuts[i];
   const upper: Cut = { ...c, y1: y };
   const { pad: _, ...rest } = c;
   const lower: Cut = { ...rest, id: newCutId(), y0: y };
-  const [up, down] = splitStrokes(s.ink[c.id] ?? [], y, aspects[c.page]);
+  const [up, down] = splitMarkings(s.ink[c.id] ?? [], y, aspects[c.page]);
   const ink = { ...s.ink };
   delete ink[c.id];
   if (up.length) ink[upper.id] = up;
@@ -150,8 +150,8 @@ export function insertPages(
   const ink = { ...s.ink };
   if (copyInk) {
     for (const c of add) {
-      const strokes = claimFirstPass(s.piece.cuts.filter((x) => x.page === c.page), s.ink, aspects[c.page]);
-      if (strokes.length) ink[c.id] = strokes.map((st) => ({ ...st, points: st.points.map((p) => [...p]) }));
+      const markings = claimFirstPass(s.piece.cuts.filter((x) => x.page === c.page), s.ink, aspects[c.page]);
+      if (markings.length) ink[c.id] = markings.map(copyMarking);
     }
   }
   return { state: tidy({ piece: { ...s.piece, cuts: place(s, at, add) }, ink }), first: add[0].id };
@@ -165,9 +165,9 @@ export function insertArchived(s: State, at: InsertAt, id: string): State {
   return tidy({ ...s, piece });
 }
 
-/** Record that a cut's ink was changed by hand, then set its strokes. */
-export function setInk(s: State, id: string, strokes: Stroke[]): State {
+/** Record that a cut's ink was changed by hand, then set its markings. */
+export function setInk(s: State, id: string, markings: Marking[]): State {
   const ink = { ...s.ink };
-  if (strokes.length) ink[id] = strokes; else delete ink[id];
+  if (markings.length) ink[id] = markings; else delete ink[id];
   return { ...mapCut(s, id, (c) => (c.ownInk ? c : { ...c, ownInk: true })), ink };
 }

@@ -1,7 +1,10 @@
-import type { ScoreInk } from '../ink/model';
+import type { Stroke } from '../markings/stroke';
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
 import { newPiece, type Aspects, type PieceInk, type Piece, type State } from './model';
+
+/** Ink from before pieces: strokes by page number. */
+export type ScoreInk = Record<number, Stroke[]>;
 
 /** A score from before pieces: one cut per page, carrying that page's ink and reading position. */
 export function migrate(id: string, title: string, aspects: Aspects, ink: ScoreInk | undefined, page: number | undefined): { state: State; position?: string } {

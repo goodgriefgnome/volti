@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Stroke } from '../ink/model';
+import type { Stroke } from '../markings/stroke';
 import { insertArchived, insertPages, joinNext, remove, setEdge, split } from '../pieces/edits';
 import type { State } from '../pieces/model';
 import { A4, cut, state } from '../pieces/testing';

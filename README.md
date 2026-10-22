@@ -62,9 +62,9 @@ Every push to `main` is tested, built and published to GitHub Pages by
 | --- | --- |
 | `src/storage/` | IndexedDB key-value store, with every key listed in `keys.ts`; preferences |
 | `src/sources/` | Where scores come from (linked folder, imported copies, shared-file inbox); opening PDFs with pdf.js |
-| `src/pieces/` | Cuts and the played order (`model`), editing it (`edits`), laying it out on frames (`frames`), which cut owns a stroke (`ink`), loading and saving (`store`) |
+| `src/pieces/` | Cuts and the played order (`model`), editing it (`edits`), laying it out on frames (`frames`), which cut owns a marking (`ownership`), loading and saving (`store`) |
 | `src/setlists/` | Setlists, the excerpt of each piece they play, and keeping excerpts in step with cut edits |
-| `src/ink/` | Stroke model and drawing |
+| `src/markings/` | What can be drawn or placed on the music: each kind's data, geometry and drawing (`stroke` for pen and highlighter) |
 | `src/library/` | The Library screen: setlists and scores |
 | `src/reader/reader.ts` | The score screen, for a piece or a setlist: turning pages and pieces, applying edits, opening and closing |
 | `src/reader/docs.ts` | The pieces being read, each PDF open only while near the one being read |
@@ -84,6 +84,11 @@ Every push to `main` is tested, built and published to GitHub Pages by
 | `src/reader/zoom.ts` | Pinch and pan maths; which part of a page is in view |
 | `src/ui/` | DOM helpers; menus, dialogs and toasts (`menu`, `overlay`); choosing a setlist to add to (`add-to`) |
 | `src/sw.ts` | Offline copy and the share target |
+
+A piece's **ink** is all its markings, kept per cut; a **marking** is one thing drawn or placed on
+the music, so far only pen and highlighter strokes. A new kind of marking (a post-it, text) goes in
+`src/markings/`, as described at the top of `markings/model.ts`, with a tool to make it in
+`src/reader/tools/`.
 
 pdf.js comes from its legacy build, which carries fallbacks for JavaScript features newer than some
 Android Chrome versions. Its fonts and image decoders are copied into `public/pdfjs/` before each

@@ -1,4 +1,4 @@
-import { PEN_COLORS } from '../ink/model';
+import { PEN_COLORS } from '../markings/stroke';
 import type { PagesPerScreen } from '../storage/prefs';
 import { el } from '../ui/dom';
 import type { ToolName } from './tools/tool';

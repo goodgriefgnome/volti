@@ -1,4 +1,4 @@
-import type { Stroke } from '../ink/model';
+import type { Marking } from '../markings/model';
 import type { Frame } from '../pieces/frames';
 import { frameHeight, type Aspects, type PieceInk } from '../pieces/model';
 import { el } from '../ui/dom';
@@ -69,14 +69,14 @@ export function placeSlots(frames: Frame[], first: number, W: number, H: number,
 }
 
 /** Draw a frame's music, from page canvases drawn at the frame's width, and its ink. */
-export function paintSlot(slot: FrameSlot, pages: Map<number, HTMLCanvasElement>, aspects: Aspects, ink: PieceInk, hatches?: Hatches, extra?: Stroke) {
+export function paintSlot(slot: FrameSlot, pages: Map<number, HTMLCanvasElement>, aspects: Aspects, ink: PieceInk, hatches?: Hatches, extra?: Marking) {
   const W = slot.canvas.width;
   drawFrame(slot.canvas.getContext('2d', { alpha: false })!, slot.frame, W, (p) => pages.get(p), aspects, hatches);
   paintSlotInk(slot, aspects, ink, extra);
 }
 
-/** Draw a frame's ink, and its close-up's; `extra` is a stroke still being drawn. */
-export function paintSlotInk(slot: FrameSlot, aspects: Aspects, ink: PieceInk, extra?: Stroke) {
+/** Draw a frame's ink, and its close-up's; `extra` is a marking still being made. */
+export function paintSlotInk(slot: FrameSlot, aspects: Aspects, ink: PieceInk, extra?: Marking) {
   drawFrameInk(slot.ink.getContext('2d')!, slot.frame, ink, aspects, slot.ink.width, 0, 0, extra);
   const d = slot.detail;
   if (d) drawFrameInk(d.ink.getContext('2d')!, slot.frame, ink, aspects, d.W, d.x, d.y, extra);

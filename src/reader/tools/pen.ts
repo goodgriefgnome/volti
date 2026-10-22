@@ -1,7 +1,7 @@
-import { drawPenSegment } from '../../ink/draw';
-import { compact, HIGHLIGHT_COLOR, HIGHLIGHT_SIZE, PEN_SIZE, type Point, type Stroke } from '../../ink/model';
+import type { Point } from '../../markings/model';
+import { compact, drawPenSegment, HIGHLIGHT_COLOR, HIGHLIGHT_SIZE, PEN_SIZE, type Stroke } from '../../markings/stroke';
 import { setInk } from '../../pieces/edits';
-import { claimStroke } from '../../pieces/ink';
+import { claimMarking } from '../../pieces/ownership';
 import { frameTarget } from '../frames';
 import type { FrameSlot } from '../spread';
 import type { Tool, ToolHost } from './tool';
@@ -36,10 +36,10 @@ export const penTool = (kind: 'pen' | 'highlighter'): Tool => ({
       },
       end(cancelled) {
         if (cancelled) { host.paintInk(slot); return; } // the system decided it was a palm
-        const claimed = claimStroke(slot.frame, { ...stroke, points: compact(stroke.points) }, host.aspects);
+        const claimed = claimMarking(slot.frame, { ...stroke, points: compact(stroke.points) }, host.aspects);
         if (!claimed) { host.paintInk(slot); return; }
-        const { cut, stroke: s } = claimed, state = host.state();
-        host.commit(setInk(state, cut.id, [...(state.ink[cut.id] ?? []), s]), cut.id);
+        const { cut, marking } = claimed, state = host.state();
+        host.commit(setInk(state, cut.id, [...(state.ink[cut.id] ?? []), marking]), cut.id);
       },
       drop() {
         host.paintInk(slot);

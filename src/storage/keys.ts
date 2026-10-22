@@ -16,7 +16,7 @@ export const keys = {
    */
   /** The Piece. */
   piece: (id: string) => 'piece:' + id,
-  /** PieceInk, strokes by cut id. Before pieces: ScoreInk, strokes by page number. */
+  /** PieceInk, markings by cut id. Before pieces: ScoreInk, strokes by page number. */
   ink: (id: string) => 'ink:' + id,
   /** The id of the first cut on the screen you were reading. */
   pos: (id: string) => 'pos:' + id,
