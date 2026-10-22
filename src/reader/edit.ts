@@ -1,7 +1,9 @@
 import {
-  cutAt, deleteArchived, edgeKind, edgeRange, freeze, insertArchived, insertPages, joinNext, release, remove,
-  restoreEdge, roomBefore, setEdge, setPad, tidy, type Aspects, type Cut, type Frame, type InsertAt, type Placed, type State,
-} from '../pieces/model';
+  cutAt, deleteArchived, edgeKind, edgeRange, insertArchived, insertPages, joinNext, release, remove,
+  restoreEdge, setEdge, setPad, tidy, type InsertAt,
+} from '../pieces/edits';
+import { freeze, roomBefore, type Frame, type Placed } from '../pieces/frames';
+import type { Aspects, Cut, State } from '../pieces/model';
 import { el } from '../ui/dom';
 import type { Hatches } from './frames';
 

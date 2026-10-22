@@ -52,7 +52,7 @@ Every push to `main` is tested, built and published to GitHub Pages by
 | --- | --- |
 | `src/storage/` | IndexedDB key-value store, with every key listed in `keys.ts`; preferences |
 | `src/sources/` | Where scores come from (linked folder, imported copies, shared-file inbox); opening PDFs with pdf.js |
-| `src/pieces/` | Cuts, the played order and frames: pure functions, plus loading and saving |
+| `src/pieces/` | Cuts and the played order (`model`), editing it (`edits`), laying it out on frames (`frames`), which cut owns a stroke (`ink`), loading and saving (`store`) |
 | `src/ink/` | Stroke model and drawing |
 | `src/library/` | The Library screen |
 | `src/reader/reader.ts` | The score screen: spreads, toolbar, pen input, undo |

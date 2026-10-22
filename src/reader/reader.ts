@@ -1,7 +1,9 @@
 import { drawPenSegment } from '../ink/draw';
 import { compact, HIGHLIGHT_COLOR, HIGHLIGHT_SIZE, PEN_COLORS, PEN_SIZE, touches, type InkTool, type Point, type Stroke } from '../ink/model';
+import { setInk } from '../pieces/edits';
+import { frameOf, pack, type Frame } from '../pieces/frames';
 import { claimStroke, visible } from '../pieces/ink';
-import { frameHeight, frameOf, pack, setInk, type Aspects, type Cut, type Frame, type State } from '../pieces/model';
+import { frameHeight, type Aspects, type Cut, type State } from '../pieces/model';
 import { loadPiece, pieceSaver, savePosition } from '../pieces/store';
 import { openPdf, type PageCache } from '../sources/pdf';
 import type { Score } from '../sources/scores';

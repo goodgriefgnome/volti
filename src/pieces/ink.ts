@@ -1,5 +1,6 @@
 import type { Point, Stroke } from '../ink/model';
-import type { Cut, Frame, PieceInk } from './model';
+import type { Frame } from './frames';
+import type { Cut, PieceInk } from './model';
 
 /**
  * How much of a path lies between lo and hi in y, as a fraction of its length. Lengths are in

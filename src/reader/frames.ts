@@ -1,7 +1,8 @@
 import { drawStrokes, type InkTarget } from '../ink/draw';
 import type { Stroke } from '../ink/model';
 import { visible } from '../pieces/ink';
-import type { Aspects, Frame, PieceInk, Placed } from '../pieces/model';
+import type { Frame, Placed } from '../pieces/frames';
+import type { Aspects, PieceInk } from '../pieces/model';
 
 /** Music being cut away during a drag, by cut id: page fractions y0..y1 drawn hatched. */
 export type Hatches = Map<string, [number, number][]>;

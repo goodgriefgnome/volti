@@ -1,21 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { Stroke } from '../ink/model';
+import { pack } from './frames';
 import { claimFirstPass, claimStroke, share, splitStrokes, visible } from './ink';
-import { pack, type Cut, type State } from './model';
-
-const A4 = 297 / 210;
-const aspects = [A4, A4, A4];
-
-let n = 0;
-const cut = (page: number, y0 = 0, y1 = 1, extra: Partial<Cut> = {}): Cut => ({ id: `c${n++}`, page, y0, y1, ...extra });
-const state = (cuts: Cut[], ink: State['ink'] = {}): State => ({
-  piece: { id: 'p', sourceId: 's', title: 't', key: '', orientation: 'landscape', cuts, archived: [] },
-  ink,
-});
-const line = (y0: number, y1: number): Stroke => ({ tool: 'pen', color: '#000', size: 0.002, points: [[0.5, y0, 0.5], [0.5, y1, 0.5]] });
-
-/** The design doc's example: page 1, page 2, page 3's first system, page 2's last system, page 3. */
-const sarabande = () => state([cut(0), cut(1), cut(2, 0, 1 / 3), cut(1, 2 / 3, 1), cut(2)]);
+import { A4, aspects, cut, line, sarabande } from './testing';
 
 describe('ink shares', () => {
   it('weights by path length, scaling vertical distance by the page aspect', () => {

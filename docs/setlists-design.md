@@ -100,7 +100,7 @@ pos:set:<id>    { entry: string; cut: string }   the first cut on the screen you
 An excerpt names cuts by id, and the piece's edits change ids, so every edit to a piece's cuts also
 updates the excerpts that name them. Do it in the same commit, so undo restores both.
 
-| Piece edit (`src/pieces/model.ts`) | Excerpts that name the cut |
+| Piece edit (`src/pieces/edits.ts`) | Excerpts that name the cut |
 |---|---|
 | `split(X)`: X keeps the upper half, the lower half gets a new id | An excerpt that **ends** on X now ends on the lower half, so it plays the same music. An excerpt that starts on X is unchanged. |
 | `joinNext(a, b)`: a takes b's music, b's id goes | An excerpt that starts or ends on **b** now does on **a**. |
@@ -273,7 +273,7 @@ setlist that plays it. Not part of this work, but build so it fits:
 1. **A pure model module, with unit tests first:** `src/setlists/model.ts`, with `spanOf`, entry
    creation, and the excerpt fix-ups of section 4. Test each piece edit with excerpts that start, end
    on, or are only the edited cut.
-2. **Piece edits update excerpts:** the functions in `src/pieces/model.ts` that change ids (`split`,
+2. **Piece edits update excerpts:** the functions in `src/pieces/edits.ts` that change ids (`split`,
    `joinNext`, `remove`) report what changed, or the commit compares ids before and after, so the
    reader can fix the setlists' excerpts in the same commit and undo.
 3. **Storage:** `src/setlists/store.ts`, with the keys in section 3 added to `src/storage/keys.ts`.
