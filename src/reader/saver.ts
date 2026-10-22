@@ -18,8 +18,8 @@ export class Saver {
   /** `saved` is the setlists as last written. */
   constructor(private setlists: () => readonly Setlist[], private saved: readonly Setlist[]) {}
 
-  soon(doc?: OpenScore) {
-    if (doc) this.dirty.add(doc);
+  soon(score?: OpenScore) {
+    if (score) this.dirty.add(score);
     this.timer ??= setTimeout(() => void this.flush(), 500);
   }
 
