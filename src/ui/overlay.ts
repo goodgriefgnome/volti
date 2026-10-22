@@ -32,13 +32,24 @@ export function whenOverlayCloses(f: () => void) {
 }
 
 /**
+ * A layer under a menu or dialog that closes it when tapped. It closes on the click rather than
+ * the pointerdown, so the layer is still there when the finger lifts and the click can't land on
+ * what is beneath it.
+ */
+function tapToClose(cls: string): HTMLElement {
+  const layer = el('div', cls);
+  layer.addEventListener('pointerdown', (e) => e.preventDefault());
+  layer.addEventListener('click', () => closeOverlay());
+  return layer;
+}
+
+/**
  * A menu below `at`, kept on the screen; or, when `at` is a point, at that point, kept inside
  * `bounds`. Falsy items are left out.
  */
 export function showMenu(at: Element | { x: number; y: number }, title: string, items: (MenuItem | false | null | undefined)[], bounds?: DOMRect) {
   closeOverlay();
-  const catcher = el('div', 'catcher');
-  catcher.addEventListener('pointerdown', (e) => { e.preventDefault(); closeOverlay(); });
+  const catcher = tapToClose('catcher');
   const menu = el('div', 'menu');
   menu.setAttribute('role', 'menu');
   menu.append(el('div', 'label', title));
@@ -70,8 +81,7 @@ export function showMenu(at: Element | { x: number; y: number }, title: string, 
 /** A dialog with a heading, over a scrim. The caller fills it; it is open while it is connected. */
 export function showDialog(title: string, cls = ''): HTMLElement {
   closeOverlay();
-  const scrim = el('div', 'scrim');
-  scrim.addEventListener('pointerdown', (e) => { e.preventDefault(); closeOverlay(); });
+  const scrim = tapToClose('scrim');
   const d = el('div', ('dialog ' + cls).trim());
   d.setAttribute('role', 'dialog');
   d.setAttribute('aria-modal', 'true');
