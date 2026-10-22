@@ -115,6 +115,12 @@ export async function unlockFolder(): Promise<boolean> {
   return (await dir.requestPermission({ mode: 'read' })) === 'granted';
 }
 
+/** Ask to change files in the linked folder as well as read them. Must be called from a tap. */
+export async function allowWriting(): Promise<boolean> {
+  if (!dir) return false;
+  return (await dir.requestPermission({ mode: 'readwrite' })) === 'granted';
+}
+
 export async function unlinkFolder(): Promise<void> {
   dir = undefined;
   await kv.del(keys.folder);
@@ -133,11 +139,17 @@ async function walk(d: FileSystemDirectoryHandle, prefix: string, depth: number,
 }
 
 async function fileAt(path: string): Promise<File> {
+  const [d, name] = await placeOf(path);
+  return (await d.getFileHandle(name)).getFile();
+}
+
+/** The folder a path in the linked folder is in, and the file's name. */
+async function placeOf(path: string): Promise<[FileSystemDirectoryHandle, string]> {
   if (!dir) throw new Error('No folder linked');
   const parts = path.split('/');
   let d = dir;
   for (const p of parts.slice(0, -1)) d = await d.getDirectoryHandle(p);
-  return (await d.getFileHandle(parts.at(-1)!)).getFile();
+  return [d, parts.at(-1)!];
 }
 
 function folderOriginal({ path, id }: ListingEntry): Original {
@@ -273,4 +285,44 @@ export async function allOriginals(state: FolderState, progress?: Progress): Pro
   await kv.update<Record<string, string>>(keys.titles, (old) => ({ ...old, ...Object.fromEntries(originals.map((o) => [o.id, o.title])) }));
   originals.sort((x, y) => x.title.localeCompare(y.title, undefined, { numeric: true, sensitivity: 'base' }));
   return { originals, removed: copies.length };
+}
+
+/* ---------- renaming ---------- */
+
+/** Why `title` can't be a file name, or null if it can. */
+export function fileNameProblem(title: string): string | null {
+  const t = title.trim();
+  if (!t) return 'Type a name.';
+  if (/[\\/:*?"<>|]/.test(t)) return 'A file name can\'t have any of \\ / : * ? " < > |';
+  if (t.startsWith('.')) return 'A file name can\'t start with a dot.';
+  return null;
+}
+
+/**
+ * Rename an original's file to `title` + ".pdf", in the same folder; its score stays, as its
+ * contents haven't changed. For the linked folder, write access must have been allowed. Says why
+ * when it can't (a file of that name is there already).
+ */
+export async function renameOriginal(o: Original, title: string): Promise<string | null> {
+  const name = title.trim() + '.pdf';
+  const [d, old] = o.location === 'folder' ? await placeOf(o.path) : [await importsDir(), o.path];
+  if (name === old) return null;
+  const h = await d.getFileHandle(old);
+  // Changing only the case finds the file itself where the file system ignores case.
+  const caseOnly = name.toLowerCase() === old.toLowerCase();
+  if (!caseOnly && (await d.getFileHandle(name).then(() => true, () => false))) return `There is already a file called “${name}” there.`;
+  if (caseOnly && !h.move) return 'This browser can only change the case of a name along with other letters.';
+  if (h.move) await h.move(name);
+  else {
+    // Older browsers: copy it under the new name, then delete the old one.
+    const w = await (await d.getFileHandle(name, { create: true })).createWritable();
+    await w.write(await h.getFile());
+    await w.close();
+    await d.removeEntry(old);
+  }
+  // The same contents, so the same id: no need to read it again.
+  const file = await (await d.getFileHandle(name)).getFile();
+  const where = (o.location === 'folder' ? 'folder/' + o.path.slice(0, o.path.length - old.length) : 'imported/') + name;
+  await kv.update<HashCache>(keys.hashes, (old) => ({ ...old, [where]: { size: file.size, modified: file.lastModified, id: o.id } }));
+  return null;
 }

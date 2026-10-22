@@ -10,7 +10,8 @@ import {
 import { excerptName, moveExcerpt, nameProblem, removeName, sameSpan, setName, sortedNames } from '../setlists/names';
 import { deleteSetlist, loadSetlists, saveChanged } from '../setlists/store';
 import {
-  allOriginals, canLinkFolder, folderState, importFiles, knownTitles, linkFolder, removeImported, unlinkFolder, unlockFolder,
+  allowWriting, allOriginals, canLinkFolder, fileNameProblem, folderState, importFiles, knownTitles, linkFolder, removeImported,
+  renameOriginal, unlinkFolder, unlockFolder,
   type FolderState, type Original,
 } from '../originals/originals';
 import type { Prefs } from '../storage/prefs';
@@ -431,6 +432,7 @@ export class Library {
 
     const more = button('⋯', () => showMenu(more, s.title, [
       { label: 'Add excerpt…', run: () => void this.addExcerpt(s) },
+      { label: 'Rename…', run: () => this.renameFile(s) },
       s.location === 'imported' && { label: 'Remove from Volti', run: async () => {
         await removeImported(s);
         this.say(`Removed “${s.title}”.`);
@@ -472,6 +474,42 @@ export class Library {
     more.setAttribute('aria-haspopup', 'menu');
     li.append(open, more);
     return li;
+  }
+
+  /** Rename a score's PDF. Its cuts, markings and setlists stay with it, as its contents don't change. */
+  private renameFile(o: Original) {
+    const d = showDialog(`Rename “${o.title}”`);
+    const input = el('input', 'name');
+    input.type = 'text';
+    input.value = o.title;
+    input.setAttribute('aria-label', 'File name');
+    const hint = el('p', 'hint', o.location === 'folder'
+      ? `Renames “${o.path.slice(o.path.lastIndexOf('/') + 1)}” in the scores folder.`
+      : 'Renames the copy kept in Volti.');
+    const error = el('p', 'hint error');
+    error.setAttribute('aria-live', 'polite');
+    const ok = async () => {
+      let why = fileNameProblem(input.value);
+      // Asked from this tap, which a request for access needs.
+      if (!why && o.location === 'folder' && !(await allowWriting())) why = 'Volti needs permission to change files in the scores folder to rename one.';
+      if (!why) {
+        try {
+          why = await renameOriginal(o, input.value);
+        } catch (e) {
+          console.error(e);
+          why = 'Could not rename it. It may have been moved or renamed already.';
+        }
+      }
+      error.textContent = why ?? '';
+      if (why) return;
+      closeOverlay();
+      this.toast.say(`Renamed to “${input.value.trim()}”.`);
+      await this.refresh();
+    };
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') void ok(); });
+    d.append(input, hint, error, buttonRow(button('Cancel', closeOverlay), button('Rename', () => void ok(), 'primary')));
+    input.focus();
+    input.select();
   }
 
   /* ---------- named excerpts ---------- */

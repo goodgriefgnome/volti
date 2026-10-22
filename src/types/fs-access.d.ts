@@ -8,6 +8,11 @@ interface FileSystemHandle {
   requestPermission(descriptor?: FileSystemHandlePermissionDescriptor): Promise<PermissionState>;
 }
 
+interface FileSystemFileHandle {
+  /** Renames the file in its folder. Missing in older browsers. */
+  move?(newName: string): Promise<void>;
+}
+
 interface FileSystemDirectoryHandle {
   entries(): AsyncIterableIterator<[string, FileSystemHandle]>;
 }
