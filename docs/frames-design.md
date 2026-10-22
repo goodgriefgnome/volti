@@ -73,6 +73,7 @@ interface Cut {
   y0: number;        // top, as a fraction of the page height
   y1: number;        // bottom, as a fraction of the page height; y1 > y0
   pad?: number;      // white space above, in page widths, used only when this cut starts a frame
+  ownInk?: boolean;  // someone has drawn or erased on this cut (section 6)
 }
 
 interface Piece {
@@ -82,6 +83,7 @@ interface Piece {
   key: string;
   orientation: 'portrait' | 'landscape';
   cuts: Cut[];       // the played order
+  archived: Cut[];   // removed cuts that had their own ink (section 6)
   // later: tags
 }
 ```
@@ -138,9 +140,12 @@ pack(cuts):                         // prototype: pack()
 ## 5. Editing: all done on the frames
 
 There is no separate editor. The user edits the frames they will read from. The prototype is
-always in edit mode. **Open question:** in the app, edit mode probably needs to be switched on
-from the toolbar, so that tabs don't show while performing and so that taps still turn pages.
-Confirm this with the user.
+always in edit mode. **Decided:** in the app, editing cuts is a **toggle button on the toolbar**
+that shows the UI below. Nothing in it gets in the way of the reader's normal functions: taps
+on the music still turn pages, and the ink tools still work. Only the tabs, the split cue's line
+and the menus take touches. A tab drag wins over a stroke when the pointer goes down on a tab.
+While an ink tool is selected, a long press on the music draws rather than opening a menu
+(right-click still opens it).
 
 ### 5.1 Tabs (drag handles)
 
@@ -262,24 +267,52 @@ frame.
 
 ---
 
-## 6. Ink (annotations): decided in principle, not prototyped
+## 6. Ink (annotations): decided, not prototyped
 
 - **Ink belongs to one cut of the played order, not to the source page.** A marking made on the
   second time through a repeat must not appear on the first. This was decided early, as the
   "frame layer" decision.
 - Hiding a first ending on the second time through is done with ink (a **whiteout** tool), not
-  with a cut. Cuts are horizontal bands only.
-- **Proposal:**
-  - Store strokes per cut id, in **source-page coordinates** (x as a fraction of page width, y
-    as a fraction of page height), as `src/ink/model.ts` already does per page. Then trimming a
-    cut never moves ink relative to the music, and ink in a trimmed-away band just isn't drawn,
-    clipped to `y0..y1`.
-  - On a **split**, give each stroke to the half that holds most of it, for example by the
-    centre of its bounding box.
-  - On a **join** or **"restore the music cut out"**, take the union of both cuts' strokes.
-  - On **remove**, ask the user or keep the strokes recoverable. **Open question.**
+  with a cut. Cuts are horizontal bands only. Whiteout comes later.
+- **The guiding rule is no information loss.** Nothing the user drew is ever thrown away by an
+  edit to the cuts.
+- **Storage:** `ink:<pieceId>` → `{ [cutId]: Stroke[] }`. A stroke is unchanged from
+  `src/ink/model.ts`: points in **source-page coordinates** (x as a fraction of page width, y as
+  a fraction of page height). Trimming, padding and reflow never rewrite strokes. Points may lie
+  outside the cut's `y0..y1`, or outside the page.
+- **Majority by path length.** Wherever a stroke has to be given to one cut, or tested against
+  a band, measure how much of its **path length** (in page widths, so vertical distance is
+  scaled by the page's aspect) lies in each band. A stroke of a single point counts as wholly
+  in the band that holds it.
+  - **Drawing:** while the pen is down, points are in frame coordinates. At pen-up the stroke
+    goes to the cut on the frame that holds most of its length (or the nearest cut, if none),
+    and every point is converted to that cut's page coordinates.
+  - **Showing:** a cut draws a stroke **whole, never clipped**, when most of its length lies
+    inside the cut's current `y0..y1`, and hides it otherwise. Trimming away the music under a
+    marking hides it; bringing the music back shows it again.
+  - **Split:** each stroke goes to the half that holds most of it.
+  - **Join** or **"restore the music cut out"**: the union of both cuts' strokes.
+- **A cut's own ink.** A cut is marked `ownInk` the first time anyone draws or erases on it.
+- **Remove:** a cut with `ownInk` is **archived**, not deleted: it moves to the piece's
+  `archived` list with its id, so its ink stays put. A cut without its own ink (none, or only an
+  untouched copy) is simply deleted; undo covers it.
+  - The insert picker shows archived cuts beside the page thumbnails. Inserting one brings back
+    the original cut, with its ink.
+  - A separate "Archived cuts" dialog deletes them permanently, ink and all.
+  - Cuts dragged to zero height follow the same rule.
+- **Insert copies ink**, by a "Copy markings" checkbox in the insert picker, **on by default**.
+  For each inserted page, the copied strokes are those from the first time each part of the
+  page is played: walk the page's cuts in played order and take each stroke whose majority lies
+  in that cut's band and not in a band already walked. Copies are independent, and the new cut
+  starts without `ownInk`.
+- **Setlists are copy-on-write.** A setlist's played order keeps the piece's cut ids until a
+  cut changes. Its ink is a layer, `ink:<setlistId>` → `{ [cutId]: Stroke[] }`, read before the
+  piece's. The first draw or erase on a cut in a setlist copies that cut's strokes from the
+  piece into the layer. A cut whose shape changes in a setlist gets a new id that remembers the
+  id it came from, so it keeps reading the piece's ink until its own ink is first edited.
 - **Migration:** today ink is `ink:<scoreId>` → `{ [pageNumber]: Stroke[] }`. A score with no
-  piece yet is equivalent to one cut per page, so that ink can move to those cuts one-to-one.
+  piece yet is equivalent to one cut per page, so that ink moves to those cuts one-to-one, and
+  those cuts get `ownInk`.
 
 ---
 
