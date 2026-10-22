@@ -1,8 +1,22 @@
 import { drawStrokes, type InkTarget } from '../ink/draw';
 import type { Stroke } from '../ink/model';
-import { visible } from '../pieces/ink';
 import type { Frame, Placed } from '../pieces/frames';
+import { visible } from '../pieces/ink';
 import type { Aspects, PieceInk } from '../pieces/model';
+
+/** A frame on the screen. Sizes are CSS pixels in the unzoomed spread. */
+export interface FrameSlot {
+  index: number;
+  frame: Frame;
+  box: HTMLElement;
+  x: number; y: number; w: number; h: number;
+  canvas: HTMLCanvasElement;
+  ink: HTMLCanvasElement;
+  /** A sharp close-up of the visible part while zoomed in: drawn as if the frame were W device pixels wide, from (x, y). */
+  detail?: { canvas: HTMLCanvasElement; ink: HTMLCanvasElement; W: number; x: number; y: number };
+  /** The editing tabs and shading over the frame. */
+  ui?: HTMLElement;
+}
 
 /** Music being cut away during a drag, by cut id: page fractions y0..y1 drawn hatched. */
 export type Hatches = Map<string, [number, number][]>;

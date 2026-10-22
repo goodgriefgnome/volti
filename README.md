@@ -56,12 +56,12 @@ Every push to `main` is tested, built and published to GitHub Pages by
 | `src/ink/` | Stroke model and drawing |
 | `src/library/` | The Library screen |
 | `src/reader/reader.ts` | The score screen: spreads, toolbar, pen input, undo |
-| `src/reader/edit.ts` | Editing cuts on the frames: tabs, menus, inserting pages |
+| `src/reader/cuts/` | Editing cuts on the frames: tabs and drags (`editor`), menus, the insert-pages picker, archived cuts |
 | `src/reader/frames.ts` | Drawing a frame's music and ink |
 | `src/reader/gestures.ts` | How taps, swipes and keys turn pages |
 | `src/reader/layout.ts` | Fitting frames to the screen |
 | `src/reader/zoom.ts` | Pinch and pan maths; which part of a page is in view |
-| `src/ui/` | DOM helpers shared by both screens |
+| `src/ui/` | DOM helpers, menus and dialogs, shared by both screens |
 | `src/sw.ts` | Offline copy and the share target |
 
 pdf.js comes from its legacy build, which carries fallbacks for JavaScript features newer than some

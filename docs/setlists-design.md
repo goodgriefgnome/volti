@@ -281,7 +281,7 @@ setlist that plays it. Not part of this work, but build so it fits:
    items, each with a piece, its source PDF and the cuts it plays. A plain piece is a list of one.
    Frames carry their item; edits, ink and undo go to that item's piece. Each item needs its own
    `PageCache` (one PDF per piece); open them lazily, a piece or two ahead.
-5. **The Excerpt picker**, built on the insert picker in `src/reader/edit.ts`.
+5. **The Excerpt picker**, built on the insert picker in `src/reader/cuts/insert-picker.ts`.
 6. **The library**: setlist rows and score checkboxes in `src/library/library.ts`, and **Add to setlist**
    in the reader's toolbar.
 
