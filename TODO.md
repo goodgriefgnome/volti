@@ -43,17 +43,65 @@ In this order: each step builds on the one before it.
 
 When it's all done, run `npm test` and `npm run build`, and check each step in the running app.
 
+## Named excerpts
+
+Next after the night session. Designed, not built.
+
+**What one is.** A named excerpt is a part of one score, such as "Kyrie" in Mass A. It has a name
+and a span of the score's cuts, stored like an entry's span (`first`/`last`, where a missing end
+means the start or end of the score). It is always one unbroken run of cuts. Alternative cuts
+such as a "short ending" come later, with jump markers.
+- It is stored on the `Score`, as `excerpts: { id, name, first?, last? }[]`, so it is saved, undone
+  and redone with the score's cuts. When the cuts are edited, `followEdit` keeps it on the same
+  music, as it does for entries' spans.
+- Names are unique within a score, but not across scores: many masses have a "Gloria".
+- No two named excerpts of a score have the same span. Saving one with an existing excerpt's span
+  says "This is already “Kyrie”." The whole score is never a named excerpt.
+- They are listed in order of their first cut, and then of their last cut when the first is the
+  same. Spans may overlap.
+
+**What a setlist entry plays.** One of:
+- the whole score;
+- a named excerpt, by its id. If the excerpt changes, every entry that plays it changes;
+- a one-off span, kept in the entry as now.
+
+The picker decides which one. If the chosen span is the same as a named excerpt's, the entry
+refers to that excerpt; otherwise it keeps a one-off span. Entries are matched to a named excerpt
+only at that moment. Naming an excerpt later doesn't change entries that already play the same
+span. (Open: should it?)
+
+**Where named excerpts are made and changed.** Only from the score, never from a setlist:
+- The Library: each score's ⋯ menu gets "Add excerpt…". That opens the excerpt picker on the
+  score with a name field.
+- Each score row in the Library opens and closes like a setlist row, listing its named excerpts in
+  order. Each excerpt row has ⋯ with "Rename…", "Change cuts…" (the picker) and "Delete…".
+  Tapping an excerpt row opens the score in the reader at the excerpt's first cut. The arrow is
+  shown only on scores that have excerpts.
+- Maybe the score's own reader later, as a list in the toolbar for jumping to an excerpt and
+  managing excerpts. Not in the first version.
+- Deleting a named excerpt copies its span into every entry that plays it, so those entries keep
+  playing the same music as one-off spans. The confirmation names the setlists affected.
+
+**Choosing in a setlist.** The excerpt picker for an entry, and the preview in "Add scores", get a
+dropdown: Whole score, each named excerpt in order, and Custom. Choosing a named excerpt selects
+its span in the thumbnails. Tapping cuts by hand changes the dropdown to the excerpt with that
+span, if there is one, or else to Custom. The picker can't rename a named excerpt or change its
+span.
+
+**Showing it.**
+- A setlist entry's pill shows the excerpt's name ("Kyrie"), and the page label ("Pages 3–5") for
+  a one-off span.
+- Search in the Library also matches excerpt names. When a match is on an excerpt name, the row
+  shows the score's name too ("Gloria · Mass A"), because names are only unique within a score.
+
+**Later:** creating named excerpts from the PDF's bookmarks (outline) the first time a score is
+opened.
+
 ## Scores and setlists
 
 A score is what is shown of its original (a PDF), as cuts; a setlist is a list of excerpts of
 scores. Still to do:
 
-- **Named excerpts** on a score ("Verse 1", "Short ending"), which setlists refer to instead of
-  holding their own span, so changing one changes every setlist that plays it. Not designed yet.
-  Known so far: an entry would refer to the excerpt in place of its `first` and `last`; edits to the
-  score's cuts must keep named excerpts on the same music, as they do for entries' spans
-  (`followEdit` in `src/setlists/model.ts`); and deleting one that setlists use should probably copy
-  its span into those entries, so they keep playing the same music.
 - **Missing entries:** match a re-added original back to its score, so a Missing entry plays again.
 - **Whiteout** tool, for hiding a 1st ending on the 2nd time through (an annotation, not a cut).
 - **Images as an original** (deferred): a set of images ordered by file name, scaled to a common
