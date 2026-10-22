@@ -1,8 +1,10 @@
+// Every edit to a piece's played order: cutting, joining, trimming, padding, removing and archiving
+// cuts, inserting pages, and setting a cut's ink. Each takes a State and returns a new one, keeping
+// the ink in step. Pure: no DOM, no storage.
+
 import { copyMarking, type Marking } from '../markings/model';
 import { EPS, frameHeight, newCutId, type Aspects, type Cut, type State } from './model';
 import { claimFirstPass, splitMarkings } from './ownership';
-
-// Edits to the played order. Each takes a State and returns a new one, keeping the ink in step.
 
 export const MIN_CUT = 0.004;
 export const MIN_SPLIT = 0.01;

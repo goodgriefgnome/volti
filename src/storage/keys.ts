@@ -1,4 +1,5 @@
-// Every key in the kv store, and what it holds. Renaming one loses what is stored under it.
+// Every key in the kv store, and what it holds: add a key here before storing anything new.
+// Renaming one loses what is stored under it.
 
 export const keys = {
   /** Prefs (storage/prefs.ts). */

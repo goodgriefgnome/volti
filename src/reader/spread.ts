@@ -1,11 +1,12 @@
+// The frames on the screen: their size, where they sit, and painting them. FrameSlot, the reader's
+// record of a frame on the screen, is defined here.
+
 import type { Marking } from '../markings/model';
 import type { Frame } from '../pieces/frames';
 import { frameHeight, type Aspects, type PieceInk } from '../pieces/model';
 import { el } from '../ui/dom';
 import { drawFrame, drawFrameInk, type Hatches } from './frames';
 import { fitPages, type Size } from './layout';
-
-// The frames on the screen: their size, where they sit, and drawing them.
 
 /** Space between frames side by side, in CSS pixels. */
 const GAP = 6;

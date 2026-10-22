@@ -1,3 +1,6 @@
+// Settings that apply across the app (such as pages per screen), with their defaults, loaded and
+// saved as one record.
+
 import { keys } from './keys';
 import { kv } from './kv';
 

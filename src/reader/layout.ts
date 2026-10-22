@@ -1,3 +1,5 @@
+// Fitting pages to the screen: how many side by side, and how large. Pure maths.
+
 import type { PagesPerScreen } from '../storage/prefs';
 
 export interface Size { w: number; h: number }

@@ -1,3 +1,5 @@
+// Page thumbnails for the cut editor's dialogs.
+
 import { el } from '../../ui/dom';
 import type { EditorHost } from './host';
 

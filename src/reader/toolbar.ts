@@ -1,3 +1,6 @@
+// The reader's toolbar: building its buttons and showing the reader's state on them. The buttons
+// call back into the reader; what they do is not here.
+
 import { PEN_COLORS } from '../markings/stroke';
 import type { PagesPerScreen } from '../storage/prefs';
 import { el } from '../ui/dom';

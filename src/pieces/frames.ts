@@ -1,6 +1,8 @@
-import { cutHeight, EPS, frameHeight, type Aspects, type Cut } from './model';
+// Laying the played order out on frames, cuts stacked down each frame in played order, and
+// questions about that layout (which frame holds a cut, the room left on one). Pure; drawing a
+// frame is reader/frames.ts.
 
-// Laying the played order out on frames: cuts stacked down each frame, in played order.
+import { cutHeight, EPS, frameHeight, type Aspects, type Cut } from './model';
 
 export interface Placed { cut: Cut; index: number; top: number; h: number }
 export interface Frame { items: Placed[]; fill: number }

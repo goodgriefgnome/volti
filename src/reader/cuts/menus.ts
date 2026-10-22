@@ -1,3 +1,6 @@
+// The cut editor's menus, on a right-click or a long press: on a tab, on the music, or above or
+// below it.
+
 import { cutAt, edgeKind, joinNext, remove, restoreEdge, setPad, tidy } from '../../pieces/edits';
 import type { Placed } from '../../pieces/frames';
 import type { Cut, State } from '../../pieces/model';
@@ -6,8 +9,6 @@ import { closeWithOverlay, showMenu, type MenuItem } from '../../ui/overlay';
 import type { FrameSlot } from '../spread';
 import { pageLabel, sayArchived, type Edge, type EditorHost } from './host';
 import { openPicker } from './insert-picker';
-
-// The menus on a right-click or a long press: on a tab, on the music, or above or below it.
 
 /** A menu at (x, y) on the screen, kept inside the stage. */
 const menuAt = (host: EditorHost, x: number, y: number, title: string, items: MenuItem[]) =>

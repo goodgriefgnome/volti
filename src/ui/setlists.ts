@@ -1,8 +1,9 @@
+// Setlist menus and dialogs that both the library and the reader use. Ones that a single screen
+// uses live with that screen.
+
 import { newSetlist, type Setlist } from '../setlists/model';
 import { button, el } from './dom';
 import { buttonRow, closeOverlay, showDialog, showMenu } from './overlay';
-
-// Setlist menus and dialogs that both the library and the reader use.
 
 /** Ask for a setlist's name. */
 export function askSetlistName(heading: string, value: string, okLabel: string, done: (name: string) => void) {

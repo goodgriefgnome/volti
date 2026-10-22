@@ -1,3 +1,6 @@
+// The pen and highlighter: making a stroke as the pointer moves, and giving it to a cut when the
+// pointer lifts.
+
 import type { Point } from '../../markings/model';
 import { compact, drawPenSegment, HIGHLIGHT_COLOR, HIGHLIGHT_SIZE, PEN_SIZE, type Stroke } from '../../markings/stroke';
 import { setInk } from '../../pieces/edits';

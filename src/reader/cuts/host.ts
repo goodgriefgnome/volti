@@ -1,3 +1,6 @@
+// What the cut editor needs from the reader (EditorHost), and small helpers the cut editor's files
+// share.
+
 import type { Frame } from '../../pieces/frames';
 import type { Aspects, Cut, State } from '../../pieces/model';
 import type { Hatches } from '../frames';

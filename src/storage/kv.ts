@@ -1,4 +1,5 @@
-// A tiny key-value store on IndexedDB. Works in the page and in the service worker.
+// The key-value store on IndexedDB: the only code that talks to IndexedDB. Works in the page and in
+// the service worker. Which key holds what belongs in keys.ts, not here.
 
 let dbPromise: Promise<IDBDatabase> | undefined;
 

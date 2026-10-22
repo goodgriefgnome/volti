@@ -1,3 +1,5 @@
+// Small helpers for building elements and text, used everywhere. No state.
+
 export function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
   if (cls) e.className = cls;

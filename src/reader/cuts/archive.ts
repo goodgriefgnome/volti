@@ -1,3 +1,5 @@
+// The dialog listing a piece's archived cuts, to delete them for good.
+
 import { deleteArchived } from '../../pieces/edits';
 import { el } from '../../ui/dom';
 import { closeOverlay, showDialog } from '../../ui/overlay';

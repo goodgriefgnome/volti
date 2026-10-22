@@ -1,3 +1,7 @@
+// Editing the played order on the frames: the tabs over each frame, dragging them, and long
+// presses. Menus are in menus.ts and each dialog in its own file; the edits themselves are
+// pieces/edits.ts.
+
 import { edgeRange, release, setEdge, setPad, tidy } from '../../pieces/edits';
 import { freeze, roomBefore, type Frame } from '../../pieces/frames';
 import type { Cut, State } from '../../pieces/model';

@@ -1,3 +1,7 @@
+// Where scores come from: the linked folder (File System Access) and copies imported into the app
+// (the origin private file system), listed together as Scores. Only finding, reading and removing
+// files; what the app keeps about a score is in pieces/.
+
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
 import { takeInbox } from './inbox';

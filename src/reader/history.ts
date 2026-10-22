@@ -1,3 +1,6 @@
+// Undo and redo stacks, for any kind of entry. Only the stacks; what an entry holds and how to go
+// back to it is the reader's.
+
 /** Undo and redo of whole states. An entry `U` holds what to go back to, as the reader needs it. */
 export class History<U> {
   private past: U[] = [];

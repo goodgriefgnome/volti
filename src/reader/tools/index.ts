@@ -1,3 +1,5 @@
+// The tools, by the name the toolbar selects them by. A new tool is added here.
+
 import { eraserTool } from './eraser';
 import { penTool } from './pen';
 import type { Tool, ToolName } from './tool';

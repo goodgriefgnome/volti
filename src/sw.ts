@@ -1,3 +1,6 @@
+// The service worker: the offline copy of the app, and receiving PDFs shared from other apps. It
+// runs apart from the page, so it imports only code that needs no DOM (storage, the inbox).
+
 /// <reference lib="webworker" />
 import { precacheAndRoute, createHandlerBoundToURL } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';

@@ -1,12 +1,11 @@
-import { strokes, type Stroke } from './stroke';
+// What all kinds of marking share. A marking is something drawn or placed on the music; a piece's
+// ink is its markings, kept per cut. This file has the Marking type, the KindBehaviour each kind
+// gives, and the functions the rest of the app uses on any marking, so cut edits, the eraser and
+// drawing work for every kind. Code for one kind goes in that kind's file (stroke.ts). To add a
+// kind, such as a post-it or text: add it to the Marking union, give its behaviour in a new file,
+// pick it out in behaviour(), and add a tool to make it in reader/tools/.
 
-/*
- * Markings: what is drawn or placed on the music, kept per cut in a piece's ink. Each kind of
- * marking has a file here that gives its KindBehaviour; the rest of the app reaches markings only
- * through the functions below, so cut edits, the eraser and drawing work for every kind.
- * A new kind (a post-it, text) joins the Marking union, gets its behaviour, and is picked out in
- * behaviour(); a tool to make it goes in reader/tools/.
- */
+import { strokes, type Stroke } from './stroke';
 
 /** x and y as fractions of the page width and height, so ink survives any zoom; then pen pressure 0..1. */
 export type Point = [x: number, y: number, pressure: number];

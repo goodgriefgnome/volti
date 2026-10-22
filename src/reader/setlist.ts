@@ -1,6 +1,7 @@
-import { el } from '../ui/dom';
+// How the reader shows where it is in a setlist: the title, the card naming a piece, and the box
+// after a piece's last frame. Display only; moving between pieces is in reader.ts.
 
-// How the reader shows where it is in a setlist.
+import { el } from '../ui/dom';
 
 const PIECE_CARD_MS = 2200;
 

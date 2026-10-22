@@ -1,3 +1,5 @@
+// Writing the reader's changes to storage: pieces and setlists, together, at most twice a second.
+
 import { pieceEntries } from '../pieces/store';
 import type { Setlist } from '../setlists/model';
 import { changedEntries } from '../setlists/store';

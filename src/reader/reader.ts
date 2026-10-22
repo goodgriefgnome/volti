@@ -1,3 +1,7 @@
+// The centre of the score screen: the pieces being read and the frames on the screen, turning pages
+// and pieces, taking edits (commit, undo, redo), and opening and closing. It joins the other reader
+// files together; code that can stand on its own goes in one of them.
+
 import type { Marking } from '../markings/model';
 import { PEN_COLORS } from '../markings/stroke';
 import { frameOf, pack, type Frame } from '../pieces/frames';

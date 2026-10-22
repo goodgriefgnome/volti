@@ -1,3 +1,5 @@
+// The dialog for inserting pages, a range of pages or an archived cut into the played order.
+
 import { insertArchived, insertPages, type InsertAt } from '../../pieces/edits';
 import { el } from '../../ui/dom';
 import { closeOverlay, showDialog } from '../../ui/overlay';

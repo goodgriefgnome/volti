@@ -1,3 +1,6 @@
+// Setlists, their entries, and the span of a piece's cuts an entry plays: making them, reading
+// spans, and keeping spans on the same music when a piece's cuts change. Pure: no DOM, no storage.
+
 import type { Cut } from '../pieces/model';
 
 /**

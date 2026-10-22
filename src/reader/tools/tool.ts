@@ -1,8 +1,9 @@
+// What every tool is: the Tool interface, what a tool may ask of the reader, and the tools' names.
+// A tool acts on the frames with a pointer; each tool has its own file here.
+
 import type { Marking, Point } from '../../markings/model';
 import type { Aspects, State } from '../../pieces/model';
 import type { FrameSlot } from '../spread';
-
-// The toolbar's tools that act on the frames. A new kind of marking adds a tool here.
 
 export type ToolName = 'pen' | 'highlighter' | 'eraser';
 

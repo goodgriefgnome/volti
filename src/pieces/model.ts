@@ -1,3 +1,7 @@
+// The data of a piece: its cuts in played order, its archived cuts and its ink, as types, plus
+// making a new piece and a few measurements. Pure: no DOM, no storage. Editing is edits.ts, layout
+// frames.ts, storage store.ts.
+
 import type { Marking } from '../markings/model';
 
 /** A horizontal band of one source page; y0 and y1 are fractions of the page height, 0 = top. */

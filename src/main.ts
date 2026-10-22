@@ -1,3 +1,6 @@
+// Start-up: registering the service worker, asking for lasting storage, importing shared files and
+// showing the library, plus importing the styles. Nothing that belongs to one screen goes here.
+
 import { registerSW } from 'virtual:pwa-register';
 import { Library } from './library/library';
 import { importShared } from './sources/scores';

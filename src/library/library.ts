@@ -1,3 +1,6 @@
+// The Library screen: setlists, the scores folder, imported scores, and opening the reader. Code
+// only this screen uses; what the reader also needs goes in ui/.
+
 import type { Piece } from '../pieces/model';
 import { loadSavedPiece } from '../pieces/store';
 import { openReader, type Source } from '../reader/reader';

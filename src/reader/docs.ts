@@ -1,3 +1,6 @@
+// Opening and closing the pieces being read: each piece's saved state and its PDF, opened when
+// first needed and closed when far from the piece being read.
+
 import type { Aspects, State } from '../pieces/model';
 import { loadPiece } from '../pieces/store';
 import { openPdf, type PageCache } from '../sources/pdf';

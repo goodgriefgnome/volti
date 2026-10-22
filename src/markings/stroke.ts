@@ -1,6 +1,7 @@
-import type { DrawTarget, KindBehaviour, Point } from './model';
+// Pen and highlighter strokes: their data, sizes and colours, geometry and drawing. Only what is
+// particular to strokes; what all markings share is in model.ts.
 
-// Pen and highlighter strokes.
+import type { DrawTarget, KindBehaviour, Point } from './model';
 
 export type InkTool = 'pen' | 'highlighter';
 

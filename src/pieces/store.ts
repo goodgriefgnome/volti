@@ -1,3 +1,6 @@
+// Loading and saving pieces, their ink and reading positions in the kv store, and migrating what
+// was saved before pieces existed. The only place pieces touch storage.
+
 import type { Stroke } from '../markings/stroke';
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';

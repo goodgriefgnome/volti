@@ -1,8 +1,10 @@
+// Which cut owns a marking: the one that holds most of it. Used when a marking is made, when a cut
+// is split, and when markings are copied to inserted pages. Works for every kind of marking,
+// through markings/model.ts. Pure.
+
 import { anchorOf, mapMarking, shareOf, type Marking, type Point } from '../markings/model';
 import type { Frame } from './frames';
 import type { Cut, PieceInk } from './model';
-
-// Which cut owns a marking: the one that holds most of it.
 
 /** A cut shows a marking, unclipped, when most of the marking lies within the cut. */
 export const visible = (m: Marking, c: Cut, aspect: number) => shareOf(m, c.y0, c.y1, aspect) > 0.5;

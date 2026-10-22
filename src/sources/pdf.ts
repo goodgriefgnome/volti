@@ -1,3 +1,7 @@
+// Reading PDFs with pdf.js: opening one, the shapes of its pages, and drawing pages to canvases,
+// keeping the pages around the current screen. All use of pdf.js is here; another kind of source
+// (images) would get a file beside it.
+
 // The legacy build carries fallbacks for JavaScript features newer than some Android Chrome versions.
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';

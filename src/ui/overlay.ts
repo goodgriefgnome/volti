@@ -1,7 +1,7 @@
-import { button, el } from './dom';
+// Menus and dialogs, one at a time over everything: a tap outside closes them, and nothing beneath
+// takes the tap. Every menu and dialog in the app opens through here.
 
-// One menu or dialog at a time, over everything. A tap outside closes it, and nothing beneath
-// it takes the tap.
+import { button, el } from './dom';
 
 export interface MenuItem { label: string; run: () => void; checked?: boolean }
 

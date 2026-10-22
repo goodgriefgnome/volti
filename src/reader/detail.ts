@@ -1,3 +1,5 @@
+// The sharp close-up drawn over the frames while zoomed in.
+
 import type { Aspects, PieceInk } from '../pieces/model';
 import type { PageCache } from '../sources/pdf';
 import { el } from '../ui/dom';

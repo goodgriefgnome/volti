@@ -1,3 +1,6 @@
+// Drawing one frame onto a canvas: its music, cut from page canvases, its ink, and the hatching
+// shown while a cut is dragged. Canvas drawing only; where frames sit on the screen is spread.ts.
+
 import { drawMarkings, type DrawTarget, type Marking } from '../markings/model';
 import type { Frame, Placed } from '../pieces/frames';
 import type { Aspects, PieceInk } from '../pieces/model';

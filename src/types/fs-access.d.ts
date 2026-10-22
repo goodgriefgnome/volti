@@ -1,4 +1,5 @@
-// File System Access API members missing from TypeScript's DOM types.
+// Type declarations only: File System Access API members missing from TypeScript's DOM types.
+// Remove one once TypeScript has it.
 
 interface FileSystemHandlePermissionDescriptor { mode?: 'read' | 'readwrite' }
 

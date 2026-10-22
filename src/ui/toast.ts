@@ -1,3 +1,5 @@
+// Toasts: short messages at the bottom of the screen, some with an action such as Undo.
+
 import { button, el } from './dom';
 
 /** A message at the bottom of the screen, with an optional action such as Undo. */

@@ -1,4 +1,5 @@
-// How taps, swipes and keys map to page turns. New turning strategies go here.
+// Which taps, swipes and keys turn the page, and which way. New ways of turning go here. Pure: no
+// DOM.
 
 export type Gesture = 'next' | 'prev' | 'toggleChrome';
 

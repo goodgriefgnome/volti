@@ -1,3 +1,7 @@
+// Pointer and keyboard input on the score: palm rejection, pinch and pan, handing a pointer to the
+// cut editor or the selected tool, and taps, swipes and keys that turn pages. What each tool does
+// is in tools/.
+
 import type { Point } from '../markings/model';
 import { closeOverlay, overlayOpen } from '../ui/overlay';
 import type { CutEditor } from './cuts/editor';

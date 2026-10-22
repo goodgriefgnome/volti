@@ -1,3 +1,6 @@
+// Loading, saving and deleting setlists, and setlist reading positions, in the kv store. The only
+// place setlists touch storage.
+
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
 import type { Setlist } from './model';

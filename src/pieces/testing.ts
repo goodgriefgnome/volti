@@ -1,4 +1,5 @@
-// Fixtures shared by the pieces tests.
+// Fixtures for tests that need cuts, pieces or strokes. Only tests import this.
+
 import type { Stroke } from '../markings/stroke';
 import type { Cut, State } from './model';
 

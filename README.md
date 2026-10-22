@@ -56,7 +56,8 @@ npm run build      # type check and production build into dist/
 ```
 
 Every push to `main` is tested, built and published to GitHub Pages by
-`.github/workflows/deploy.yml`. Unit tests sit next to the modules they test, as `*.test.ts`.
+`.github/workflows/deploy.yml`. Unit tests sit next to the modules they test, as `*.test.ts`. Each module starts with a comment saying what kind of code belongs in it; give a new
+module one too.
 
 | Path | What it does |
 | --- | --- |

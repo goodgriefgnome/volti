@@ -1,3 +1,5 @@
+// The dialog for choosing which of a piece's cuts a setlist entry plays.
+
 import { pack } from '../pieces/frames';
 import { frameHeight, type Aspects, type State } from '../pieces/model';
 import { spanFor, spanOf, type Span } from '../setlists/model';

@@ -1,5 +1,6 @@
-// Zooming the spread: a scale `s` about the stage's top-left corner, then a shift by (x, y),
-// as in the CSS transform `translate(x, y) scale(s)`.
+// Pinch and pan maths, and which part of a frame is in view. Pure: no DOM. A zoom is a scale `s`
+// about the stage's top-left corner, then a shift by (x, y), as in the CSS transform
+// `translate(x, y) scale(s)`.
 
 export interface Zoom { s: number; x: number; y: number }
 export interface Rect { x: number; y: number; w: number; h: number }
