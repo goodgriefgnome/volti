@@ -17,6 +17,15 @@ export async function openPdf(file: File): Promise<PageCache> {
   return new PageCache(task, await task.promise);
 }
 
+/** Largest canvas drawn while supersampling, in pixels; bigger ones risk running out of graphics memory. */
+const MAX_SUPERSAMPLE_PIXELS = 24e6;
+
+/** How much larger than the screen to draw a page before shrinking it: 2 where memory allows. */
+export function supersample(width: number, height: number): number {
+  const room = Math.sqrt(MAX_SUPERSAMPLE_PIXELS / (width * height));
+  return room >= 2 ? 2 : room >= 1.5 ? 1.5 : 1;
+}
+
 /**
  * Renders pages to canvases and keeps the ones around the current spread,
  * so turning to a neighbouring spread shows a page that is already drawn.
@@ -53,12 +62,31 @@ export class PageCache {
     p = this.queue.catch(() => {}).then(async () => {
       const page = await this.doc.getPage(num);
       const base = page.getViewport({ scale: 1 });
-      const viewport = page.getViewport({ scale: (cssW / base.width) * dpr });
+      // Size the result in whole screen pixels, so the browser never has to stretch it.
+      const width = Math.round(cssW * dpr);
+      const scale = width / base.width;
+      const height = Math.round(base.height * scale);
+      // Draw larger, then shrink with high-quality smoothing: this keeps staff lines even
+      // and stops scanned pages from looking jagged.
+      const ss = supersample(width, height);
+      const big = document.createElement('canvas');
+      const viewport = page.getViewport({ scale: scale * ss });
+      big.width = Math.round(viewport.width);
+      big.height = Math.round(viewport.height);
+      try {
+        await page.render({ canvas: big, viewport, background: '#ffffff' }).promise;
+      } finally {
+        page.cleanup();
+      }
+      if (ss === 1) return big;
       const canvas = document.createElement('canvas');
-      canvas.width = Math.round(viewport.width);
-      canvas.height = Math.round(viewport.height);
-      await page.render({ canvas, viewport, background: '#ffffff' }).promise;
-      page.cleanup();
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d', { alpha: false })!;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(big, 0, 0, width, height);
+      big.width = big.height = 0; // free its memory now rather than at garbage collection
       return canvas;
     });
     this.queue = p;

@@ -20,7 +20,7 @@ const PALM_GUARD_MS = 600;
 const LAYOUT_LABEL: Record<string, string> = { auto: 'Auto', 1: '1 page', 2: '2 pages' };
 const LAYOUT_NEXT: Record<string, PagesPerScreen> = { auto: 1, 1: 2, 2: 'auto' };
 
-const dpr = () => Math.min(window.devicePixelRatio || 1, 2.5);
+const dpr = () => window.devicePixelRatio || 1;
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -196,16 +196,22 @@ class Viewer {
     if (seq !== this.seq) return;
 
     this.slots = [];
+    // Place pages on whole screen pixels so they are shown exactly as drawn, without resampling.
+    const devW = Math.round(W * scale), devH = Math.round(H * scale), devGap = Math.round(GAP * scale);
+    const total = canvases.reduce((sum, c) => sum + c.width, 0) + devGap * (canvases.length - 1);
+    let x = Math.floor((devW - total) / 2);
     const boxes = canvases.map((pageCanvas, i) => {
-      const { w, h } = sizes[i];
       const box = el('div', 'page');
-      box.style.width = w + 'px';
-      box.style.height = h + 'px';
+      box.style.width = pageCanvas.width / scale + 'px';
+      box.style.height = pageCanvas.height / scale + 'px';
+      box.style.left = x / scale + 'px';
+      box.style.top = Math.floor((devH - pageCanvas.height) / 2) / scale + 'px';
+      x += pageCanvas.width + devGap;
       const ink = el('canvas', 'ink');
-      ink.width = Math.round(w * scale);
-      ink.height = Math.round(h * scale);
+      ink.width = pageCanvas.width;
+      ink.height = pageCanvas.height;
       box.append(pageCanvas, ink);
-      const slot: Slot = { num: nums[i], box, ink, ctx: ink.getContext('2d')!, aspect: h / w };
+      const slot: Slot = { num: nums[i], box, ink, ctx: ink.getContext('2d')!, aspect: pageCanvas.height / pageCanvas.width };
       drawAll(slot.ctx, this.ink[slot.num] ?? []);
       this.slots.push(slot);
       return box;
