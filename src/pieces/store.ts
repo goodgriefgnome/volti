@@ -1,14 +1,7 @@
-import { kv } from '../lib/idb';
 import type { ScoreInk } from '../ink/model';
+import { keys } from '../storage/keys';
+import { kv } from '../storage/kv';
 import { newPiece, type Aspects, type PieceInk, type Piece, type State } from './model';
-
-/*
- * Keys, one piece per score for now, so the piece id is the score id:
- *   piece:<id>  the Piece
- *   ink:<id>    PieceInk, strokes by cut id (before pieces: ScoreInk, strokes by page number)
- *   pos:<id>    the id of the first cut on the screen you were reading
- * The piece and its ink are always written together, so a piece record means the ink is by cut.
- */
 
 /** A score from before pieces: one cut per page, carrying that page's ink and reading position. */
 export function migrate(id: string, title: string, aspects: Aspects, ink: ScoreInk | undefined, page: number | undefined): { state: State; position?: string } {
@@ -32,14 +25,14 @@ export function forPages(s: State, aspects: Aspects): State {
 }
 
 export async function loadPiece(id: string, title: string, aspects: Aspects): Promise<{ state: State; position?: string }> {
-  const piece = await kv.get<Piece>('piece:' + id);
+  const piece = await kv.get<Piece>(keys.piece(id));
   if (piece) {
-    const [ink, position] = await Promise.all([kv.get<PieceInk>('ink:' + id), kv.get<string>('pos:' + id)]);
+    const [ink, position] = await Promise.all([kv.get<PieceInk>(keys.ink(id)), kv.get<string>(keys.pos(id))]);
     return { state: forPages({ piece: { ...piece, archived: piece.archived ?? [] }, ink: ink ?? {} }, aspects), position };
   }
-  const [ink, page] = await Promise.all([kv.get<ScoreInk>('ink:' + id), kv.get<number>('page:' + id)]);
+  const [ink, page] = await Promise.all([kv.get<ScoreInk>(keys.ink(id)), kv.get<number>(keys.oldPage(id))]);
   const m = migrate(id, title, aspects, ink, page);
-  await kv.setMany([['piece:' + id, m.state.piece], ['ink:' + id, m.state.ink], ['pos:' + id, m.position]]);
+  await kv.setMany([[keys.piece(id), m.state.piece], [keys.ink(id), m.state.ink], [keys.pos(id), m.position]]);
   return m;
 }
 
@@ -49,7 +42,7 @@ export function pieceSaver(id: string, state: () => State) {
   const save = () => {
     timer = undefined;
     const s = state();
-    return kv.setMany([['piece:' + id, s.piece], ['ink:' + id, s.ink]]);
+    return kv.setMany([[keys.piece(id), s.piece], [keys.ink(id), s.ink]]);
   };
   return {
     soon() { timer ??= setTimeout(save, 500); },
@@ -57,4 +50,4 @@ export function pieceSaver(id: string, state: () => State) {
   };
 }
 
-export const savePosition = (id: string, cutId: string) => kv.set('pos:' + id, cutId);
+export const savePosition = (id: string, cutId: string) => kv.set(keys.pos(id), cutId);

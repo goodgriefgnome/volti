@@ -2,7 +2,7 @@
 
 ## Pieces and setlists
 
-Pieces, cuts and frames are built for PDFs (`src/pieces/`, `src/viewer/edit.ts`). Still to do:
+Pieces, cuts and frames are built for PDFs (`src/pieces/`, `src/reader/edit.ts`). Still to do:
 
 - **Setlists:** designed in [docs/setlists-design.md](docs/setlists-design.md), with a working
   prototype in [docs/prototypes/volti-setlists.html](docs/prototypes/volti-setlists.html). A list

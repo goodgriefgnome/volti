@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fitPages, pagesPerScreen } from '../src/viewer/layout';
+import { fitPages, pagesPerScreen } from './layout';
 
 describe('pagesPerScreen', () => {
   it('shows two pages in landscape and one in portrait on auto', () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Stroke } from '../src/ink/model';
-import { forPages, migrate } from '../src/pieces/store';
+import type { Stroke } from '../ink/model';
+import { forPages, migrate } from './store';
 
 const A4 = 297 / 210;
 const dot: Stroke = { tool: 'pen', color: '#000', size: 0.002, points: [[0.5, 0.5, 0.5]] };

@@ -1,4 +1,4 @@
-import type { PagesPerScreen } from '../lib/prefs';
+import type { PagesPerScreen } from '../storage/prefs';
 
 export interface Size { w: number; h: number }
 

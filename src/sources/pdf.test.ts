@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { supersample } from '../src/viewer/renderer';
+import { supersample } from './pdf';
 
 describe('supersample', () => {
   it('draws at twice the size on a typical tablet page', () => {

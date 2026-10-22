@@ -2,7 +2,7 @@ import {
   cutAt, deleteArchived, edgeKind, edgeRange, freeze, insertArchived, insertPages, joinNext, release, remove,
   restoreEdge, roomBefore, setEdge, setPad, tidy, type Aspects, type Cut, type Frame, type InsertAt, type Placed, type State,
 } from '../pieces/model';
-import { el } from './dom';
+import { el } from '../ui/dom';
 import type { Hatches } from './frames';
 
 /** A frame on the screen. Sizes are CSS pixels in the unzoomed spread. */

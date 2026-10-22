@@ -9,9 +9,9 @@ const TAP_MAX_MOVE_PX = 12;
 const TAP_MAX_MS = 400;
 
 /** A finger (or pen, when not writing) going down and up on the score. */
-export interface Stroke2D { x0: number; y0: number; x1: number; y1: number; ms: number }
+export interface Motion { x0: number; y0: number; x1: number; y1: number; ms: number }
 
-export function gestureFor(s: Stroke2D, stageWidth: number): Gesture | null {
+export function gestureFor(s: Motion, stageWidth: number): Gesture | null {
   const dx = s.x1 - s.x0;
   const dy = s.y1 - s.y0;
   if (Math.abs(dx) >= SWIPE_MIN_PX && Math.abs(dx) > Math.abs(dy) * 1.5) return dx < 0 ? 'next' : 'prev';

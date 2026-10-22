@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compact, touches, widthPx, type Stroke } from '../src/ink/model';
+import { compact, touches, widthPx, type Stroke } from './model';
 
 const line: Stroke = { tool: 'pen', color: '#000', size: 0.002, points: [[0.1, 0.5, 0.5], [0.5, 0.5, 0.5]] };
 

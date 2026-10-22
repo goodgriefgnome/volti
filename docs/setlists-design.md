@@ -275,14 +275,14 @@ setlist that plays it. Not part of this work, but build so it fits:
    on, or are only the edited cut.
 2. **Piece edits update excerpts:** the functions in `src/pieces/model.ts` that change ids (`split`,
    `joinNext`, `remove`) report what changed, or the commit compares ids before and after, so the
-   viewer can fix the setlists' excerpts in the same commit and undo.
-3. **Storage:** `src/setlists/store.ts` with the keys in section 3.
+   reader can fix the setlists' excerpts in the same commit and undo.
+3. **Storage:** `src/setlists/store.ts`, with the keys in section 3 added to `src/storage/keys.ts`.
 4. **The reader over several pieces.** `Viewer` holds one `State` now. Generalise it to a list of
    items, each with a piece, its source PDF and the cuts it plays. A plain piece is a list of one.
    Frames carry their item; edits, ink and undo go to that item's piece. Each item needs its own
    `PageCache` (one PDF per piece); open them lazily, a piece or two ahead.
-5. **The Excerpt picker**, built on the insert picker in `src/viewer/edit.ts`.
-6. **The library**: setlist rows and score checkboxes in `src/ui/home.ts`, and **Add to setlist**
+5. **The Excerpt picker**, built on the insert picker in `src/reader/edit.ts`.
+6. **The library**: setlist rows and score checkboxes in `src/library/library.ts`, and **Add to setlist**
    in the reader's toolbar.
 
 Rules for this repo:

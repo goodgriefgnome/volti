@@ -1,25 +1,13 @@
+import { openReader } from '../reader/reader';
 import {
   allScores, canLinkFolder, folderState, importFiles, linkFolder, removeImported, unlinkFolder, unlockFolder,
   type FolderState, type Score,
-} from '../lib/library';
-import type { Prefs } from '../lib/prefs';
-import { openViewer } from '../viewer/viewer';
+} from '../sources/scores';
+import type { Prefs } from '../storage/prefs';
+import { button, el } from '../ui/dom';
 
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text) e.textContent = text;
-  return e;
-}
-
-function button(label: string, onClick: () => void, cls = ''): HTMLButtonElement {
-  const b = el('button', cls, label);
-  b.type = 'button';
-  b.addEventListener('click', onClick);
-  return b;
-}
-
-export class Home {
+/** The Library screen: the scores folder, imported scores, and the list to open them from. */
+export class Library {
   private folder: FolderState = { kind: 'none' };
   private scores: Score[] = [];
   private query = '';
@@ -161,7 +149,7 @@ export class Home {
     this.say('');
     this.root.hidden = true;
     try {
-      await openViewer(s, this.prefs, () => { this.root.hidden = false; this.search.blur(); });
+      await openReader(s, this.prefs, () => { this.root.hidden = false; this.search.blur(); });
     } catch (e) {
       console.error(e);
       this.root.hidden = false;

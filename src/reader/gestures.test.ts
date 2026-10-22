@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { gestureFor, gestureForKey } from '../src/viewer/turns';
+import { gestureFor, gestureForKey } from './gestures';
 
 const tap = (x: number) => ({ x0: x, y0: 400, x1: x, y1: 400, ms: 120 });
 

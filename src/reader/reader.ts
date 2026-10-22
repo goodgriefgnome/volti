@@ -1,16 +1,16 @@
-import type { Score } from '../lib/library';
-import { savePrefs, type PagesPerScreen, type Prefs } from '../lib/prefs';
 import { drawPenSegment } from '../ink/draw';
 import { compact, HIGHLIGHT_COLOR, HIGHLIGHT_SIZE, PEN_COLORS, PEN_SIZE, touches, type InkTool, type Point, type Stroke } from '../ink/model';
 import { claimStroke, visible } from '../pieces/ink';
 import { frameHeight, frameOf, pack, setInk, type Aspects, type Cut, type Frame, type State } from '../pieces/model';
 import { loadPiece, pieceSaver, savePosition } from '../pieces/store';
-import { el } from './dom';
+import { openPdf, type PageCache } from '../sources/pdf';
+import type { Score } from '../sources/scores';
+import { savePrefs, type PagesPerScreen, type Prefs } from '../storage/prefs';
+import { el } from '../ui/dom';
 import { CutEditor, type FrameSlot } from './edit';
 import { drawFrame, drawFrameInk, frameTarget, regionBands, type Hatches } from './frames';
+import { gestureFor, gestureForKey, type Gesture } from './gestures';
 import { fitPages, pagesPerScreen } from './layout';
-import { openPdf, type PageCache } from './renderer';
-import { gestureFor, gestureForKey, type Gesture } from './turns';
 import { isZoomed, NO_ZOOM, pan, pinch, visiblePart, type Pt, type Zoom } from './zoom';
 
 type Tool = 'none' | InkTool | 'eraser';
@@ -33,14 +33,14 @@ const dpr = () => window.devicePixelRatio || 1;
 const sameLayout = (a: readonly Cut[], b: readonly Cut[]) =>
   a.length === b.length && a.every((c, i) => c.id === b[i].id && c.page === b[i].page && c.y0 === b[i].y0 && c.y1 === b[i].y1 && c.pad === b[i].pad);
 
-export async function openViewer(score: Score, prefs: Prefs, onClose: () => void): Promise<void> {
+export async function openReader(score: Score, prefs: Prefs, onClose: () => void): Promise<void> {
   const cache = await openPdf(await score.getFile());
   const aspects = await cache.allAspects();
   const { state, position } = await loadPiece(score.id, score.title, aspects);
-  new Viewer(score, cache, aspects, state, position, prefs, onClose);
+  new Reader(score, cache, aspects, state, position, prefs, onClose);
 }
 
-class Viewer {
+class Reader {
   private root = el('div', 'viewer');
   private stage = el('div', 'stage');
   private spreadEl = el('div', 'spread');

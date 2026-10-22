@@ -1,4 +1,5 @@
-import { kv } from './idb';
+import { keys } from './keys';
+import { kv } from './kv';
 
 export type PagesPerScreen = 1 | 2 | 'auto';
 
@@ -9,9 +10,9 @@ export interface Prefs {
 const DEFAULTS: Prefs = { pagesPerScreen: 'auto' };
 
 export async function loadPrefs(): Promise<Prefs> {
-  return { ...DEFAULTS, ...((await kv.get<Partial<Prefs>>('prefs')) ?? {}) };
+  return { ...DEFAULTS, ...((await kv.get<Partial<Prefs>>(keys.prefs)) ?? {}) };
 }
 
 export function savePrefs(p: Prefs): Promise<void> {
-  return kv.set('prefs', p);
+  return kv.set(keys.prefs, p);
 }

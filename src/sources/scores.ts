@@ -1,4 +1,5 @@
-import { kv } from './idb';
+import { keys } from '../storage/keys';
+import { kv } from '../storage/kv';
 import { takeInbox } from './inbox';
 
 /** A PDF the app can open: either in the linked folder or imported into the app. */
@@ -27,7 +28,7 @@ let dir: FileSystemDirectoryHandle | undefined;
 export const canLinkFolder = () => 'showDirectoryPicker' in window;
 
 export async function folderState(): Promise<FolderState> {
-  dir ??= await kv.get<FileSystemDirectoryHandle>('folder');
+  dir ??= await kv.get<FileSystemDirectoryHandle>(keys.folder);
   if (!dir) return { kind: 'none' };
   const perm = await dir.queryPermission({ mode: 'read' });
   return perm === 'granted' ? { kind: 'ready', name: dir.name } : { kind: 'locked', name: dir.name };
@@ -41,7 +42,7 @@ export async function linkFolder(): Promise<boolean> {
     if ((e as DOMException).name === 'AbortError') return false;
     throw e;
   }
-  await kv.set('folder', dir);
+  await kv.set(keys.folder, dir);
   return true;
 }
 
@@ -53,8 +54,8 @@ export async function unlockFolder(): Promise<boolean> {
 
 export async function unlinkFolder(): Promise<void> {
   dir = undefined;
-  await kv.del('folder');
-  await kv.del('folder-listing');
+  await kv.del(keys.folder);
+  await kv.del(keys.folderListing);
 }
 
 interface ListingEntry { path: string }
@@ -93,12 +94,12 @@ function folderScore(path: string): Score {
 async function folderScores(state: FolderState): Promise<Score[]> {
   if (state.kind === 'none') return [];
   if (state.kind === 'locked') {
-    const remembered = (await kv.get<ListingEntry[]>('folder-listing')) ?? [];
+    const remembered = (await kv.get<ListingEntry[]>(keys.folderListing)) ?? [];
     return remembered.map((e) => folderScore(e.path));
   }
   const found: ListingEntry[] = [];
   await walk(dir!, '', 0, found);
-  await kv.set('folder-listing', found);
+  await kv.set(keys.folderListing, found);
   return found.map((f) => folderScore(f.path));
 }
 

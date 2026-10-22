@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clamp, MAX_ZOOM, NO_ZOOM, pan, pinch, visiblePart } from '../src/viewer/zoom';
+import { clamp, MAX_ZOOM, NO_ZOOM, pan, pinch, visiblePart } from './zoom';
 
 const W = 1000, H = 800;
 

@@ -46,17 +46,22 @@ npm run build      # type check and production build into dist/
 ```
 
 Every push to `main` is tested, built and published to GitHub Pages by
-`.github/workflows/deploy.yml`.
+`.github/workflows/deploy.yml`. Unit tests sit next to the modules they test, as `*.test.ts`.
 
 | Path | What it does |
 | --- | --- |
-| `src/lib/library.ts` | Linked folder, imported scores, shared-file inbox |
-| `src/viewer/viewer.ts` | The score screen: spreads, toolbar, pen input, undo |
-| `src/viewer/turns.ts` | How taps, swipes and keys turn pages |
-| `src/viewer/layout.ts` | Fitting pages to the screen; which pages a turn lands on |
-| `src/viewer/zoom.ts` | Pinch and pan maths; which part of a page is in view |
-| `src/viewer/renderer.ts` | pdf.js rendering, with neighbouring spreads drawn ahead of time |
-| `src/ink/` | Stroke model, drawing and storage |
+| `src/storage/` | IndexedDB key-value store, with every key listed in `keys.ts`; preferences |
+| `src/sources/` | Where scores come from (linked folder, imported copies, shared-file inbox); opening PDFs with pdf.js |
+| `src/pieces/` | Cuts, the played order and frames: pure functions, plus loading and saving |
+| `src/ink/` | Stroke model and drawing |
+| `src/library/` | The Library screen |
+| `src/reader/reader.ts` | The score screen: spreads, toolbar, pen input, undo |
+| `src/reader/edit.ts` | Editing cuts on the frames: tabs, menus, inserting pages |
+| `src/reader/frames.ts` | Drawing a frame's music and ink |
+| `src/reader/gestures.ts` | How taps, swipes and keys turn pages |
+| `src/reader/layout.ts` | Fitting frames to the screen |
+| `src/reader/zoom.ts` | Pinch and pan maths; which part of a page is in view |
+| `src/ui/` | DOM helpers shared by both screens |
 | `src/sw.ts` | Offline copy and the share target |
 
 pdf.js comes from its legacy build, which carries fallbacks for JavaScript features newer than some
