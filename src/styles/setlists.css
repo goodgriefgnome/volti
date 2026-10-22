@@ -41,9 +41,9 @@
 .band:focus-visible { outline: 3px solid var(--select); outline-offset: -3px; }
 
 @media (prefers-reduced-motion: reduce) { .bar, .score-card, .set-body, .chev { transition: none; } }
-.picklist { display: grid; max-height: 50vh; overflow: auto; border-block: 1px solid var(--line); }
+.picklist { display: grid; max-height: calc(var(--seen-height, 100vh) * 0.5); overflow: auto; border-block: 1px solid var(--line); }
 /* The picker's strip scrolls both ways once zoomed; its own gestures pan and pinch it. */
-.thumbs.excerpt { --u: 1px; gap: calc(var(--u) * 8); max-height: min(60vh, 640px); overflow: auto; touch-action: none; overscroll-behavior: contain; }
+.thumbs.excerpt { --u: 1px; gap: calc(var(--u) * 8); max-height: min(calc(var(--seen-height, 100vh) * 0.6), 640px); overflow: auto; touch-action: none; overscroll-behavior: contain; }
 /* Add scores: a score to tick, and its Preview. */
 .dialog .view { display: grid; gap: 10px; }
 .pick-row { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }

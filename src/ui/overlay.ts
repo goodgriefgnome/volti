@@ -78,6 +78,24 @@ export function showMenu(at: Element | { x: number; y: number }, title: string, 
   menu.querySelector('button')?.focus();
 }
 
+/**
+ * Keep dialogs in the part of the screen that can be seen: the on-screen keyboard covers the
+ * bottom of the page without making it any shorter, so a dialog centred on the page could be
+ * hidden under it. The visual viewport is what is left above the keyboard.
+ */
+function followVisibleArea() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const set = () => {
+    document.documentElement.style.setProperty('--seen-top', vv.offsetTop + 'px');
+    document.documentElement.style.setProperty('--seen-height', vv.height + 'px');
+  };
+  vv.addEventListener('resize', set);
+  vv.addEventListener('scroll', set);
+  set();
+}
+followVisibleArea();
+
 /** A dialog with a heading, over a scrim. The caller fills it; it is open while it is connected. */
 export function showDialog(title: string, cls = ''): HTMLElement {
   closeOverlay();
