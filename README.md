@@ -48,7 +48,8 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
     **Add to setlist** in a score's toolbar. The arrow
     beside a setlist shows its scores, to reorder or remove; its **⋯** button has the rest.
   - A setlist can play part of a score, and can come back to the same score (the Kyrie, another
-    piece, then the Gloria). **Preview** in **Add scores** adds parts of a score; **Excerpt** in the
+    piece, then the Gloria). **Add scores** lists each score's named excerpts under it, to add them as they are, and
+    **Preview** there adds other parts of a score; **Excerpt** in the
     reader's toolbar, or **Change excerpt…** on an entry in the library, changes the part an entry
     plays. Either way, tap the first and last cut to play. An excerpt is named by the score's
     pages it plays, with a letter for a cut that shares its page: **Page 2b – 4** starts at page 2's
@@ -105,7 +106,6 @@ its cuts kept only in that setlist.
 | `src/reader/detail.ts` | The sharp close-up drawn while zoomed in |
 | `src/reader/history.ts` | Undo and redo |
 | `src/reader/setlist.ts` | How the reader shows where it is in a setlist: title, score card, the box after a score |
-| `src/reader/excerpt-picker.ts` | Choosing the excerpt of a score a setlist plays |
 | `src/reader/cuts/` | Editing cuts on the frames: tabs and drags (`editor`), menus, the insert-pages picker, archived cuts |
 | `src/reader/frames.ts` | Drawing a frame's music and ink |
 | `src/reader/gestures.ts` | How taps, swipes and keys turn pages |

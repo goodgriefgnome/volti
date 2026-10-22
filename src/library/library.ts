@@ -351,6 +351,7 @@ export class Library {
     openAddScores({
       setlist: s,
       originals: this.originals,
+      saved: this.saved,
       open: (o) => this.openForDialog(o),
       add: (entries, scores) => {
         const now = this.get(id);

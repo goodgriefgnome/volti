@@ -41,7 +41,6 @@ scores. Still to do:
 
 - **Named excerpts, later:** create them from the PDF's bookmarks (outline) the first time a score
   is opened.
-- "Add scores" searches score titles only; the Library's search also finds excerpt names.
 - Excerpts of a score whose original hasn't been opened since page shapes were kept are named by
   original pages ("Original pages 2–3") until it is opened once.
 - Check pinching the excerpt picker's thumbnails on a real tablet.

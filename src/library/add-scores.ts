@@ -1,9 +1,11 @@
-// The "Add scores" dialog: picking scores to add to the end of a setlist, each whole or as one or
-// more excerpts chosen in its preview. "New setlist" and a setlist's ⋯ › Add scores both open it.
+// The "Add scores" dialog: picking scores to add to the end of a setlist, each whole, as its named
+// excerpts, or as excerpts chosen in its preview. "New setlist" and a setlist's ⋯ › Add scores
+// both open it.
 
 import type { Original } from '../originals/originals';
+import type { ExcerptName, Score } from '../scores/model';
 import { newId, type Entry, type Setlist, type Span } from '../setlists/model';
-import { excerptName } from '../setlists/names';
+import { ends, excerptName, sameSpan, sortedNames } from '../setlists/names';
 import { button, el, plural } from '../ui/dom';
 import { ExcerptStrip, namedExcerptMenu, type ExcerptSource } from '../ui/excerpt-picker';
 import { buttonRow, closeOverlay, showDialog, whenOverlayCloses } from '../ui/overlay';
@@ -13,19 +15,25 @@ export interface AddScoresHost {
   setlist: Setlist;
   /** The library's scores, in the order shown. */
   originals: readonly Original[];
+  /** Scores as last saved, for their named excerpts. */
+  saved: ReadonlyMap<string, Score>;
   /** Open a score to preview; null if it can't be (having said why). */
   open(o: Original): Promise<LibraryScore | null>;
   /** Add these entries to the end of the setlist; `scores` are the ones they choose excerpts of. */
   add(entries: Entry[], scores: ExcerptSource[]): void;
 }
 
-/** One entry to add: the whole score, or an excerpt chosen in its preview. */
-interface Choice { span: Span; label: string | null; src?: ExcerptSource }
+/**
+ * One entry to add: the whole score, a named excerpt ticked under it, or an excerpt chosen in its
+ * preview.
+ */
+interface Choice { span: Span; label: string | null; named?: boolean; src?: ExcerptSource }
 
 /**
- * Scores as checkboxes; the ticked ones go at the end, in library order. Preview shows a score's
- * pages, to add excerpts of it instead of the whole score: several, for a setlist that comes back
- * to the score (the Kyrie, another piece, then the Gloria).
+ * Scores as checkboxes, each with its named excerpts under it; the ticked ones go at the end, in
+ * library order. Preview shows a score's pages, to add other excerpts of it instead of the whole
+ * score: several, for a setlist that comes back to the score (the Kyrie, another piece, then the
+ * Gloria).
  */
 export function openAddScores(h: AddScoresHost) {
   const s = h.setlist;
@@ -51,42 +59,73 @@ export function openAddScores(h: AddScoresHost) {
   };
   sync();
 
-  const fill = (q: string) => {
-    list.replaceChildren();
-    const shown = h.originals.filter((x) => `${x.title} ${x.folder}`.toLowerCase().includes(q.trim().toLowerCase()));
-    if (!shown.length) list.append(el('p', 'empty', h.originals.length ? `Nothing matches “${q}”.` : 'No scores yet.'));
-    for (const sc of shown) list.append(row(sc));
+  /** The score's named excerpts to list: all of them, or when searching, those that match unless the score does. */
+  const namesShown = (sc: Original, q: string) => {
+    const score = h.saved.get(sc.id), names = score ? sortedNames(score) : [];
+    return !q || `${sc.title} ${sc.folder}`.toLowerCase().includes(q) ? names : names.filter((x) => x.name.toLowerCase().includes(q));
   };
 
-  const row = (sc: Original) => {
+  const fill = (search: string) => {
+    list.replaceChildren();
+    const q = search.trim().toLowerCase();
+    const shown = h.originals.filter((x) => `${x.title} ${x.folder}`.toLowerCase().includes(q) || namesShown(x, q).length);
+    if (!shown.length) list.append(el('p', 'empty', h.originals.length ? `Nothing matches “${search}”.` : 'No scores yet.'));
+    for (const sc of shown) list.append(row(sc, namesShown(sc, q)));
+  };
+
+  /** Tick or untick one choice of a score. */
+  const toggle = (scoreId: string, c: Choice, on: boolean, same: (x: Choice) => boolean) => {
+    const rest = (chosen.get(scoreId) ?? []).filter((x) => !same(x));
+    const next = on ? [...rest, c] : rest;
+    if (next.length) chosen.set(scoreId, next); else chosen.delete(scoreId);
+  };
+
+  const row = (sc: Original, names: ExcerptName[]): HTMLElement => {
     const r = el('div', 'pick-row');
     const label = el('label', 'check');
     const box = el('input');
     box.type = 'checkbox';
     const mine = chosen.get(sc.id) ?? [];
-    box.checked = mine.length > 0;
+    box.checked = mine.some((c) => !c.named);
     box.addEventListener('change', () => {
-      if (box.checked) chosen.set(sc.id, [{ span: {}, label: null }]); else chosen.delete(sc.id);
+      // Ticked alone, the whole score; unticked, it and the excerpts chosen in its preview.
+      if (box.checked) toggle(sc.id, { span: {}, label: null }, true, (c) => !c.label);
+      else toggle(sc.id, { span: {}, label: null }, false, (c) => !c.named);
       redraw();
     });
-    const redraw = () => { sync(); r.replaceWith(row(sc)); };
+    const redraw = () => { sync(); r.replaceWith(row(sc, names)); };
     const has = s.entries.filter((e) => e.scoreId === sc.id).length;
     label.append(box, el('span', '', sc.title), el('span', 'meta', has ? `in this setlist${has > 1 ? ` ${has}×` : ''}` : sc.folder));
     const preview = button('Preview', () => void showPreview(sc), 'quiet');
     preview.setAttribute('aria-label', `Preview ${sc.title}`);
     r.append(label, preview);
-    // Excerpts chosen, each with a button to take it out again.
-    if (mine.some((c) => c.label)) {
+    // Named excerpts, indented under their score.
+    const score = h.saved.get(sc.id);
+    for (const x of score ? names : []) {
+      const named = el('label', 'check excerpt');
+      const b = el('input');
+      b.type = 'checkbox';
+      const isIt = (c: Choice) => !!c.named && sameSpan(score!.cuts, c.span, x);
+      b.checked = mine.some(isIt);
+      b.addEventListener('change', () => {
+        toggle(sc.id, { span: ends(x), label: x.name, named: true }, b.checked, isIt);
+        redraw();
+      });
+      named.append(b, el('span', '', x.name));
+      r.append(named);
+    }
+    // Excerpts chosen in the preview, each with a button to take it out again.
+    const previewed = mine.filter((c) => c.label && !c.named);
+    if (previewed.length) {
       const pills = el('div', 'chosen');
-      mine.forEach((c, i) => {
-        const pill = button(`${c.label ?? 'Whole score'} ×`, () => {
-          const left = mine.filter((_, k) => k !== i);
-          if (left.length) chosen.set(sc.id, left); else chosen.delete(sc.id);
+      for (const c of previewed) {
+        const pill = button(`${c.label} ×`, () => {
+          toggle(sc.id, c, false, (x) => x === c);
           redraw();
         }, 'pill');
-        pill.setAttribute('aria-label', `Don't add ${c.label ?? 'the whole score'}`);
+        pill.setAttribute('aria-label', `Don't add ${c.label}`);
         pills.append(pill);
-      });
+      }
       r.append(pills);
     }
     return r;
@@ -114,7 +153,7 @@ export function openAddScores(h: AddScoresHost) {
     const use = button('Add this excerpt', () => {
       const span = strip.span, label = excerptName(sc.state.score, span, sc.aspects);
       // An excerpt takes the place of the whole score ticked on its own; the same one twice is once.
-      const was = (chosen.get(o.id) ?? []).filter((c) => c.label && (c.span.first !== span.first || c.span.last !== span.last));
+      const was = (chosen.get(o.id) ?? []).filter((c) => c.label && !sameSpan(sc.state.score.cuts, c.span, span));
       chosen.set(o.id, [...was, { span, label, src: sc }]);
       sync();
       back();
@@ -129,12 +168,12 @@ export function openAddScores(h: AddScoresHost) {
 
   const find = el('input', 'search');
   find.type = 'search';
-  find.placeholder = 'Find a score';
-  find.setAttribute('aria-label', 'Find a score');
+  find.placeholder = 'Find a score or excerpt';
+  find.setAttribute('aria-label', 'Find a score or excerpt');
   find.addEventListener('input', () => fill(find.value));
   fill('');
   listView.append(
-    el('p', 'hint', 'They go at the end, in the order shown. Preview a score to add only part of it, or several parts.'),
+    el('p', 'hint', 'They go at the end, in the order shown. Tick a score or its named excerpts, or preview a score to add other parts of it.'),
     find, list, buttonRow(button('Cancel', closeOverlay), add),
   );
   d.append(listView, previewView);
