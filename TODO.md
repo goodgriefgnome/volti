@@ -47,55 +47,74 @@ When it's all done, run `npm test` and `npm run build`, and check each step in t
 
 Next after the night session. Designed, not built.
 
-**What one is.** A named excerpt is a part of one score, such as "Kyrie" in Mass A. It has a name
-and a span of the score's cuts, stored like an entry's span (`first`/`last`, where a missing end
-means the start or end of the score). It is always one unbroken run of cuts. Alternative cuts
-such as a "short ending" come later, with jump markers.
-- It is stored on the `Score`, as `excerpts: { id, name, first?, last? }[]`, so it is saved, undone
-  and redone with the score's cuts. When the cuts are edited, `followEdit` keeps it on the same
-  music, as it does for entries' spans.
-- Names are unique within a score, but not across scores: many masses have a "Gloria".
-- No two named excerpts of a score have the same span. Saving one with an existing excerpt's span
-  says "This is already “Kyrie”." The whole score is never a named excerpt.
-- They are listed in order of their first cut, and then of their last cut when the first is the
-  same. Spans may overlap.
+**Words.** "Score" always means the whole score. To the user, a **page** is one of the score's
+frames: the score's cuts stacked in played order (`pack` in `src/scores/frames.ts`), counted
+"Page 3 of 12". A page of the PDF is an **original page**. Change the words used today: the cut
+editor's "page 4" (`pageLabel` in `src/reader/cuts/host.ts`), the archive's "Page 3, 2 markings",
+the insert picker's "Inserted page 3" and its labels, and the excerpt picker's labels and hint all
+become "original page". The reader's counter can then say "Page 3 of 12". An excerpt being read in
+a setlist is packed on its own, so its pages break in different places and its counter starts at 1.
+That's fine.
 
-**What a setlist entry plays.** One of:
-- the whole score;
-- a named excerpt, by its id. If the excerpt changes, every entry that plays it changes;
-- a one-off span, kept in the entry as now.
+**The model.** An excerpt is its span of cuts and nothing else. Two excerpts with the same span are
+the same excerpt.
+- Setlist entries keep their spans, as now (`{ id, scoreId, first?, last? }`, where a missing end
+  means the start or end of the score). The reader keeps moving them when it edits cuts
+  (`followScore` / `followEdit`). That's fine because there won't be many setlists.
+- A **name** is a label on a span, kept on the score: `Score.names: { first?, last?, name }[]`.
+  Each span has at most one name, and names are unique within a score but not across scores.
+  The whole score can't be named.
+- Spans are compared by the cuts they play (`spanOf`'s `i0`/`i1`), not by their stored ids.
+- An entry plays a named excerpt simply when its span has a name. So naming a span names it in
+  every setlist that plays it, including setlists made before it was named, and removing a name
+  changes no setlist.
+- Named excerpts are listed in order of their first cut, then their last cut.
 
-The picker decides which one. If the chosen span is the same as a named excerpt's, the entry
-refers to that excerpt; otherwise it keeps a one-off span. Entries are matched to a named excerpt
-only at that moment. Naming an excerpt later doesn't change entries that already play the same
-span. (Open: should it?)
+**Unnamed excerpts get a generated name** from the score's pages, such as "Page 3b – 5". The
+number is the page (counted in the whole score, even inside a setlist), and the letter is the
+cut's place on that page (a, b, c…). The start's letter is left out when the excerpt starts with
+the page's first cut, and the end's letter when it ends with the page's last cut. So "Pages 3–5"
+means whole pages, and one partial page reads "Page 3b–c". The name changes when cut edits move
+the page breaks. This replaces `spanLabel`'s original-page labels. Packing needs the original's
+page shapes, which the Library doesn't have without opening the PDF. So keep the aspects with the
+saved score, or a small cache of them, updated whenever the reader opens the score.
 
-**Where named excerpts are made and changed.** Only from the score, never from a setlist:
-- The Library: each score's ⋯ menu gets "Add excerpt…". That opens the excerpt picker on the
-  score with a name field.
-- Each score row in the Library opens and closes like a setlist row, listing its named excerpts in
-  order. Each excerpt row has ⋯ with "Rename…", "Change cuts…" (the picker) and "Delete…".
-  Tapping an excerpt row opens the score in the reader at the excerpt's first cut. The arrow is
-  shown only on scores that have excerpts.
-- Maybe the score's own reader later, as a list in the toolbar for jumping to an excerpt and
-  managing excerpts. Not in the first version.
-- Deleting a named excerpt copies its span into every entry that plays it, so those entries keep
-  playing the same music as one-off spans. The confirmation names the setlists affected.
+**When cuts are edited** (in the reader):
+- Names follow the edit through `followEdit`, like entries' spans.
+- Pages inserted at the edges of the excerpt being read join every entry with the same span, and
+  its name, not just the entry being read. Otherwise the edit would split the excerpt and the
+  entry would lose its name.
+- If an edit makes two spans equal, their entries simply merge. If both had names, the names are
+  joined ("Kyrie / Christe"), so nothing is lost and you can rename it.
 
-**Choosing in a setlist.** The excerpt picker for an entry, and the preview in "Add scores", get a
-dropdown: Whole score, each named excerpt in order, and Custom. Choosing a named excerpt selects
-its span in the thumbnails. Tapping cuts by hand changes the dropdown to the excerpt with that
-span, if there is one, or else to Custom. The picker can't rename a named excerpt or change its
-span.
+**The Library.**
+- Each score's ⋯ menu gets "Add excerpt…", which opens the excerpt picker with a name field.
+  Saving a span that already has a name says "That's already “Gloria”."
+- A score row opens and closes like a setlist row, listing its named excerpts. The arrow is shown
+  only on scores that have named excerpts. Tapping an excerpt opens the score in the reader at its
+  first cut. Its ⋯ menu has:
+  - "Rename…";
+  - "Change cuts…", the picker. This moves every entry with the old span to the new one, in all
+    setlists, and the name with them. A new span that is already named is refused;
+  - "Delete…", which removes the name. Entries keep playing the same music and show the
+    generated name.
+- Named excerpts are changed only here, and later perhaps in the score's reader. They are never
+  changed from a setlist.
+- Changes that touch both the score's names and the setlists are saved together, as the reader's
+  saver does.
+- Search also matches excerpt names. When it does, the row shows the score's name as well
+  ("Gloria · Mass A").
 
-**Showing it.**
-- A setlist entry's pill shows the excerpt's name ("Kyrie"), and the page label ("Pages 3–5") for
-  a one-off span.
-- Search in the Library also matches excerpt names. When a match is on an excerpt name, the row
-  shows the score's name too ("Gloria · Mass A"), because names are only unique within a score.
+**Choosing in a setlist.** The entry's excerpt picker and the preview in "Add scores" get a
+dropdown listing Whole score, the named excerpts in order, and Custom. Choosing a named excerpt
+selects its span in the thumbnails. Tapping cuts by hand sets the dropdown to the name of that
+span, if it has one, or to Custom. The entry stores only the span either way.
 
-**Later:** creating named excerpts from the PDF's bookmarks (outline) the first time a score is
-opened.
+**Showing it.** A setlist entry's pill shows the name, or the generated name.
+
+**Later:**
+- named excerpts from the PDF's bookmarks (outline);
+- a list of named excerpts in the score's reader, for jumping to them and managing them.
 
 ## Scores and setlists
 
