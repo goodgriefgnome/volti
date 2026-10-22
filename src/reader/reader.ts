@@ -7,8 +7,8 @@ import { PEN_COLORS } from '../markings/stroke';
 import { frameOf, pack, type Frame } from '../scores/frames';
 import type { Aspects, Cut, State } from '../scores/model';
 import { loadScore, savePosition } from '../scores/store';
-import { followScore, newEntry, spanCuts, spanLabel, type Entry, type Setlist, type Span } from '../setlists/model';
-import { followNames } from '../setlists/names';
+import { followScore, newEntry, spanCuts, type Entry, type Setlist, type Span } from '../setlists/model';
+import { excerptName, followNames } from '../setlists/names';
 import { loadPosition, loadSetlists, savePosition as saveSetlistPosition } from '../setlists/store';
 import { openPdf, type PageCache } from '../originals/pdf';
 import { titleFromId, type Original } from '../originals/originals';
@@ -41,7 +41,7 @@ interface Undo { open: OpenScore; state: State; setlists: readonly Setlist[]; k:
 
 /** What the reader opens: a score on its own, or a setlist. */
 export type ToRead =
-  | { kind: 'score'; original: Original }
+  | { kind: 'score'; original: Original; at?: string }
   | { kind: 'setlist'; setlistId: string; originals: readonly Original[]; startEntry?: string };
 
 /** Frames take the first page's shape; a score that can't be opened is shown this shape. */
@@ -64,7 +64,7 @@ export async function openReader(what: ToRead, prefs: Prefs, onClose: () => void
     const aspects = await cache.allAspects();
     const { state, position } = await loadScore(original.id, original.title, aspects);
     const first: OpenScore = { id: original.id, original, aspects, state, cache };
-    new Reader([{ scoreId: original.id, title: original.title, original }], null, setlists, first, 0, position, prefs, onClose);
+    new Reader([{ scoreId: original.id, title: original.title, original }], null, setlists, first, 0, what.at ?? position, prefs, onClose);
     return;
   }
   const setlist = setlists.find((s) => s.id === what.setlistId);
@@ -308,10 +308,10 @@ class Reader {
     })));
   }
 
-  /** " · Pages 2–3" for an entry that plays an excerpt of a score that is open; otherwise nothing. */
+  /** " · Kyrie" or " · Pages 2–3" for an entry that plays an excerpt of a score that is open; otherwise nothing. */
   private excerptLabel(k: number): string {
     const cur = this.scores.get(this.items[k].scoreId), entry = this.entry(k);
-    const label = cur && entry ? spanLabel(cur.state.score.cuts, entry, cur.aspects) : null;
+    const label = cur && entry ? excerptName(cur.state.score, entry, cur.aspects) : null;
     return label ? ` · ${label}` : '';
   }
 

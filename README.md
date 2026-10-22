@@ -47,6 +47,10 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
     pages it plays, with a letter for a cut that shares its page: **Page 2b – 4** starts at page 2's
     second cut. Pinch the thumbnails there to
     zoom in, and drag to move along them.
+  - **Named excerpts**: **Add excerpt…** in a score's **⋯** menu names part of it ("Kyrie"). The
+    arrow beside the score lists them; each one's **⋯** renames it, changes its cuts or deletes it.
+    A setlist entry that plays the same cuts plays the named excerpt and shows its name, so
+    changing its cuts changes every setlist that plays it. Deleting one only takes the name away.
   - Cuts and markings always belong to the score: changing them in a setlist changes the score,
     and every setlist's excerpts follow the change.
   - **Archive** hides a setlist behind **Show archived**; only archived setlists can be deleted.

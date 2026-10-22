@@ -248,16 +248,37 @@ export interface ExcerptPicker extends ExcerptSource {
   span: Span;
   /** Starts the hint, such as "This entry plays". */
   verb?: string;
-  done(span: Span): void;
+  /** Ask for a name too, starting with this one. */
+  name?: string;
+  /** Why the span (and name) can't be taken as they are, said in the dialog; null when they can. */
+  problem?(span: Span, name: string): string | null;
+  okLabel?: string;
+  done(span: Span, name: string): void;
 }
 
-/** A dialog for choosing which of a score's cuts to play. */
+/** A dialog for choosing which of a score's cuts to play, and perhaps naming them. */
 export function openExcerptPicker(h: ExcerptPicker) {
   const d = showDialog(h.question, 'wide');
   const strip = new ExcerptStrip(h, h.span, h.verb);
+  const input = el('input', 'name');
+  input.type = 'text';
+  input.value = h.name ?? '';
+  input.placeholder = 'For example, Kyrie';
+  input.setAttribute('aria-label', 'Excerpt name');
+  input.hidden = h.name === undefined;
+  const error = el('p', 'hint error');
+  error.setAttribute('aria-live', 'polite');
+  const ok = () => {
+    const why = h.problem?.(strip.span, input.value) ?? null;
+    error.textContent = why ?? '';
+    if (why) return;
+    closeOverlay();
+    h.done(strip.span, input.value.trim());
+  };
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok(); });
   const whole = button('Whole score', () => strip.set({}));
-  const done = button('Done', () => { closeOverlay(); h.done(strip.span); }, 'primary');
-  d.append(strip.el, strip.hint, buttonRow(whole, el('span', 'grow'), button('Cancel', closeOverlay), done));
+  const done = button(h.okLabel ?? 'Done', ok, 'primary');
+  d.append(input, strip.el, strip.hint, error, buttonRow(whole, el('span', 'grow'), button('Cancel', closeOverlay), done));
   strip.reveal();
-  done.focus();
+  (input.hidden ? done : input).focus();
 }

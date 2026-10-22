@@ -29,6 +29,9 @@ export async function loadScore(id: string, title: string, aspects: Aspects): Pr
 /** The records a score and its ink are saved as, always together. */
 export const scoreEntries = (s: State): [string, unknown][] => [[keys.score(s.score.id), s.score], [keys.ink(s.score.id), s.ink]];
 
+/** The record of a score alone, for a change that leaves its ink as it is (such as naming an excerpt). */
+export const scoreEntry = (s: Score): [string, unknown] => [keys.score(s.id), s];
+
 /** A score as last saved, without opening its original: for showing what a setlist plays. */
 export const loadSavedScore = (id: string) => kv.get<Score>(keys.score(id));
 
