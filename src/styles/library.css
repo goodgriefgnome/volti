@@ -1,5 +1,5 @@
 /* The Library screen: one calm column of setlists and scores. */
-.home {
+.library {
   max-width: 880px; margin: 0 auto; display: grid; gap: 20px; align-content: start;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));

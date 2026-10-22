@@ -1,5 +1,5 @@
 /* Editing cuts: the tabs and marks over each frame, and the page thumbnails and archived cuts in their dialogs. */
-.viewer { --select: #1f6fe0; --tab-grey: #5b6170; --cut: #8a5a12; }
+.reader { --select: #1f6fe0; --tab-grey: #5b6170; --cut: #8a5a12; }
 /* While editing, the frames sit below the toolbar so the tabs at their tops can be reached. */
 .editing:not(.chrome-hidden) .stage { top: var(--bar-h, 56px); }
 /* The layer over a frame passes taps through to the music, except on its tabs. */

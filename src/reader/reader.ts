@@ -78,7 +78,7 @@ export async function openReader(source: Source, prefs: Prefs, onClose: () => vo
  * the screen, and joins up the toolbar, pointer input, the cut editor and the zoomed close-up.
  */
 class Reader {
-  private root = el('div', 'viewer');
+  private root = el('div', 'reader');
   private stage = el('div', 'stage');
   private spreadEl = el('div', 'spread');
   private scope = el('p', 'scope', 'Cuts changed here change the piece, in every setlist');
@@ -179,7 +179,7 @@ class Reader {
     this.scope.hidden = true;
     this.root.append(this.stage, this.toolbar.el, this.scope, this.toast.el);
     document.body.append(this.root);
-    document.body.classList.add('viewing');
+    document.body.classList.add('reading');
 
     this.input = new Input({
       stage: this.stage,
@@ -201,7 +201,7 @@ class Reader {
     });
     document.addEventListener('visibilitychange', this.onVisible);
     window.addEventListener('popstate', this.onPop);
-    history.pushState({ viewer: true }, '');
+    history.pushState({ reader: true }, '');
 
     void document.documentElement.requestFullscreen?.().catch(() => {});
     void this.requestWake();
@@ -596,7 +596,7 @@ class Reader {
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
     this.docs.destroy();
     this.root.remove();
-    document.body.classList.remove('viewing');
+    document.body.classList.remove('reading');
     this.onClose();
   }
 }

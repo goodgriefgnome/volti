@@ -33,7 +33,7 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
 body { background: var(--bg); color: var(--fg); font: 16px/1.5 var(--font-ui); -webkit-tap-highlight-color: transparent; }
-body.viewing { overflow: hidden; background: var(--stage); }
+body.reading { overflow: hidden; background: var(--stage); }
 [hidden] { display: none !important; }
 
 button {

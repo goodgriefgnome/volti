@@ -28,7 +28,7 @@ export class Library {
   private picked = new Set<string>();
   private showArchived = false;
 
-  private root = el('main', 'home');
+  private root = el('main', 'library');
   private pickBar = el('div', 'pickbar');
   private folderPanel = el('section', 'folder');
   private setlistHead = el('div', 'head-tools');

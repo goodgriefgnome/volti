@@ -83,6 +83,7 @@ Every push to `main` is tested, built and published to GitHub Pages by
 | `src/reader/layout.ts` | Fitting frames to the screen |
 | `src/reader/zoom.ts` | Pinch and pan maths; which part of a page is in view |
 | `src/ui/` | Shared by both screens: DOM helpers (`dom`), menus and dialogs, one at a time (`overlay`), messages (`toast`), and the setlist name and add-to menus (`setlists`) |
+| `src/styles/` | Styles, one file per part of the app, imported in order by `main.ts` |
 | `src/sw.ts` | Offline copy and the share target |
 
 A piece's **ink** is all its markings, kept per cut; a **marking** is one thing drawn or placed on
