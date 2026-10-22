@@ -95,7 +95,8 @@ input[type="text"], input[type="search"] {
 .pill.own { color: var(--accent); }
 .pill.frozen { color: var(--muted); }
 .empty { padding: 18px 4px; color: var(--muted); }
-details.archived-sets > summary { cursor: pointer; color: var(--muted); padding: 10px 4px; min-height: 44px; display: flex; align-items: center; }
+.head-tools { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.set.archived .setlist-title, .set.archived .entries .item-title { color: var(--muted); }
 .search { flex: 1 1 240px; }
 
 .list > li.set { display: block; }
@@ -122,10 +123,9 @@ details.archived-sets > summary { cursor: pointer; color: var(--muted); padding:
 }
 .pickbar .grow { flex: 1; font-weight: 600; }
 .pickbar .quiet { color: inherit; }
-.tick { flex: none; align-self: center; width: 22px; height: 22px; border: 2px solid var(--muted); border-radius: 5px; margin-right: 4px; }
-.picked .tick { background: var(--accent); border-color: var(--accent); box-shadow: inset 0 0 0 3px var(--surface); }
-.picking li.picked { background: var(--accent-soft); }
-.list .open { -webkit-touch-callout: none; }
+.pick { flex: none; width: 44px; min-height: 56px; display: grid; place-items: center; cursor: pointer; }
+.pick input { width: 22px; height: 22px; margin: 0; accent-color: var(--accent); }
+.list > li.picked { background: var(--accent-soft); }
 
 /* ---------- the reader ---------- */
 .reader { position: absolute; inset: 0; background: var(--stage); user-select: none; -webkit-user-select: none; }
@@ -225,7 +225,7 @@ details.archived-sets > summary { cursor: pointer; color: var(--muted); padding:
 <div class="wrap">
   <div class="intro">
     <h1>Volti setlists</h1>
-    <p>Prototype. Tap a setlist to read it as one score; its arrow shows its pieces. Press and hold scores to pick them for a setlist. In a setlist, Excerpt chooses which cuts of a piece it plays; cuts and markings always change the piece itself. In a score, tap the middle for the toolbar and the sides to turn. Changes are kept in this browser.</p>
+    <p>Prototype. Tap a setlist to read it as one score; its arrow shows its pieces. Tick scores to add them to a setlist, or use Add to setlist while reading a piece. In a setlist, Excerpt chooses which cuts of a piece it plays; cuts and markings always change the piece itself. In a score, tap the middle for the toolbar and the sides to turn. Changes are kept in this browser.</p>
     <div class="row">
       <button type="button" id="fill">Fill the window</button>
       <button type="button" id="reset" class="quiet">Start the example again</button>
@@ -259,7 +259,7 @@ const clone = (x) => JSON.parse(JSON.stringify(x));
 const short = (id) => id.slice(0, 4);
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 const A4 = 297 / 210;
-const STORE = 'volti-setlists-proto-v4';
+const STORE = 'volti-setlists-proto-v5';
 const device = $('#device');
 
 /* ================= example scores ================= */
@@ -593,9 +593,8 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && overlay)
 
 /* ---------- library ---------- */
 let query = '';
-/* What the library shows that isn't data: which setlists are open, and scores picked by a long press. */
-const lib = { open: new Set(), picking: null, showArchived: false };
-const LONG_PRESS = 500;
+/* What the library shows that isn't data: which setlists are open, ticked scores, and whether archived setlists show. */
+const lib = { open: new Set(), picked: new Set(), showArchived: false };
 const titleOf = (s) => s.title || 'Untitled setlist';
 
 function renderHome() {
@@ -605,30 +604,27 @@ function renderHome() {
   root.append(h('header', { class: 'masthead' }, h('h1', { class: 'brand', text: 'Volti' }), h('p', { class: 'tagline', text: 'volti subito · turn the page' })));
 
   const active = D.setlists.filter((s) => !s.archived), archived = D.setlists.filter((s) => s.archived);
-  root.append(h('section', { class: 'section-head' }, h('h2', { text: 'Setlists' }), btn('New setlist', () => askName('New setlist', '', 'Next', (name) => {
-    const s = { id: uid(), title: name, archived: false, entries: [] };
-    D.setlists.unshift(s);
-    lib.open.add(s.id);
-    save();
-    render();
-    addPieces(s);
-  }))));
+  const showArchived = archived.length ? btn(lib.showArchived ? 'Hide archived' : `Show archived (${archived.length})`,
+    () => { lib.showArchived = !lib.showArchived; render(); }, 'quiet', { 'aria-pressed': String(lib.showArchived) }) : null;
+  root.append(h('section', { class: 'section-head' }, h('h2', { text: 'Setlists' }), h('div', { class: 'head-tools' }, showArchived,
+    btn('New setlist', () => askName('New setlist', '', 'Next', (name) => {
+      const s = { id: uid(), title: name, archived: false, entries: [] };
+      D.setlists.unshift(s);
+      lib.open.add(s.id);
+      save();
+      render();
+      addPieces(s);
+    })))));
   const list = h('ul', { class: 'list' });
-  if (!active.length) list.append(h('li', { class: 'empty', text: 'No setlists yet. Press and hold a score to pick pieces for one.' }));
+  if (!active.length) list.append(h('li', { class: 'empty', text: 'No setlists yet. Tick scores below to make one.' }));
   active.forEach((s) => list.append(setlistRow(s)));
+  // Archived setlists follow the others, in grey, only when asked for.
+  if (lib.showArchived) archived.forEach((s) => list.append(setlistRow(s)));
   root.append(list);
-  if (archived.length) {
-    const det = h('details', { class: 'archived-sets', open: lib.showArchived }, h('summary', { text: `Archived (${archived.length})` }));
-    det.addEventListener('toggle', () => { lib.showArchived = det.open; });
-    const al = h('ul', { class: 'list' });
-    archived.forEach((s) => al.append(setlistRow(s)));
-    det.append(al);
-    root.append(det);
-  }
 
   root.append(h('section', { class: 'section-head' }, h('h2', { text: 'Scores' })));
   const search = h('input', { type: 'search', class: 'search', id: 'find-score', placeholder: 'Find a score', 'aria-label': 'Find a score', value: query });
-  const scores = h('ul', { class: 'list' + (lib.picking ? ' picking' : '') });
+  const scores = h('ul', { class: 'list' });
   const fill = () => {
     scores.replaceChildren();
     const q = query.trim().toLowerCase();
@@ -639,7 +635,7 @@ function renderHome() {
   search.addEventListener('input', () => { query = search.value; fill(); });
   fill();
   root.append(search, scores);
-  const screen = h('div', { class: 'screen' }, lib.picking ? pickBar() : null, root);
+  const screen = h('div', { class: 'screen' }, lib.picked.size ? pickBar() : null, root);
   device.append(screen);
   screen.scrollTop = scrollTop;
 }
@@ -647,7 +643,7 @@ function renderHome() {
 /* A setlist: tap to play it; the arrow slides its pieces open; ⋯ for the rest. */
 function setlistRow(s) {
   const open = lib.open.has(s.id);
-  const li = h('li', { class: 'set' + (open ? ' open' : '') });
+  const li = h('li', { class: 'set' + (open ? ' open' : '') + (s.archived ? ' archived' : '') });
   const body = h('div', { class: 'set-body', id: 'set-' + s.id, inert: !open });
   const expand = h('button', {
     type: 'button', class: 'expand', 'aria-expanded': String(open), 'aria-controls': 'set-' + s.id, 'aria-label': `Pieces in ${titleOf(s)}`,
@@ -661,7 +657,7 @@ function setlistRow(s) {
   }, h('span', { class: 'chev', 'aria-hidden': 'true' }));
   const play = btn([
     h('span', { class: 'item-title setlist-title', text: titleOf(s) }),
-    h('span', { class: 'meta', text: plural(s.entries.length, 'piece') }),
+    h('span', { class: 'meta', text: (s.archived ? 'Archived · ' : '') + plural(s.entries.length, 'piece') }),
   ], () => (s.entries.length ? openReader({ kind: 'setlist', setlistId: s.id }) : say('This setlist has no pieces yet.')), 'open');
   // Archiving only moves a setlist out of the main list, where it can also be deleted.
   const more = btn('⋯', () => menuAt(more, titleOf(s), [
@@ -674,7 +670,7 @@ function setlistRow(s) {
   ]), 'quiet more', { 'aria-label': `More for ${titleOf(s)}`, 'aria-haspopup': 'menu' });
   const entries = h('ol', { class: 'entries', 'aria-label': `Pieces in ${titleOf(s)}` });
   s.entries.forEach((e, i) => entries.append(entryRow(s, e, i, entries)));
-  if (!s.entries.length) entries.append(h('li', { class: 'empty', text: 'No pieces yet. Use ⋯ › Add pieces, or press and hold scores below.' }));
+  if (!s.entries.length) entries.append(h('li', { class: 'empty', text: 'No pieces yet. Use ⋯ › Add pieces, or tick scores below.' }));
   body.append(h('div', { class: 'set-inner' }, entries));
   li.append(h('div', { class: 'set-head' }, expand, play, more), body);
   return li;
@@ -704,52 +700,43 @@ function entryRow(s, e, i, list) {
   return li;
 }
 
-/* A score: tap to read it. Press and hold (or right-click) to start picking scores for a setlist. */
+/* A score: tap to read it. Its checkbox picks it for adding to a setlist. */
 function scoreRow(sc) {
-  const n = setlistsWith(sc.id).length, picked = lib.picking?.has(sc.id);
-  const b = btn([
-    lib.picking ? h('span', { class: 'tick', 'aria-hidden': 'true' }) : null,
+  const n = setlistsWith(sc.id).length, picked = lib.picked.has(sc.id);
+  const box = h('input', { type: 'checkbox', id: 'pick-score-' + sc.id, checked: picked, 'aria-label': `Pick ${sc.title}` });
+  box.addEventListener('change', () => { box.checked ? lib.picked.add(sc.id) : lib.picked.delete(sc.id); render(); });
+  const open = btn([
     h('span', { class: 'item-title', text: sc.title }),
     h('span', { class: 'meta', text: [sc.by, n ? `in ${plural(n, 'setlist')}` : ''].filter(Boolean).join(' · ') }),
-  ], () => {
-    if (b.dataset.held) { delete b.dataset.held; return; }
-    if (lib.picking) togglePick(sc.id);
-    else openReader({ kind: 'piece', pieceId: sc.id });
-  }, 'open', lib.picking ? { role: 'checkbox', 'aria-checked': String(!!picked) } : {});
-  let timer, x0, y0;
-  const startPicking = () => { b.dataset.held = '1'; if (!lib.picking) lib.picking = new Set(); togglePick(sc.id, true); };
-  b.addEventListener('pointerdown', (e) => { x0 = e.clientX; y0 = e.clientY; clearTimeout(timer); timer = setTimeout(startPicking, LONG_PRESS); });
-  b.addEventListener('pointermove', (e) => { if (Math.hypot(e.clientX - x0, e.clientY - y0) > 8) clearTimeout(timer); });
-  for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) b.addEventListener(ev, () => clearTimeout(timer));
-  b.addEventListener('contextmenu', (e) => { e.preventDefault(); clearTimeout(timer); if (!b.dataset.held) startPicking(); delete b.dataset.held; });
-  return h('li', { class: picked ? 'picked' : '' }, b);
+  ], () => openReader({ kind: 'piece', pieceId: sc.id }), 'open');
+  return h('li', { class: 'score' + (picked ? ' picked' : '') }, h('label', { class: 'pick', for: box.id }, box), open);
 }
-function togglePick(id, on) {
-  const set = lib.picking;
-  if (on ?? !set.has(id)) set.add(id); else set.delete(id);
-  if (!set.size) lib.picking = null;
-  render();
-}
+/* Shows while any score is ticked. */
 function pickBar() {
-  const n = lib.picking.size;
-  const add = btn('Add to setlist', () => menuAt(add, `Add ${plural(n, 'piece')} to`, [
+  const n = lib.picked.size;
+  const add = btn('Add to setlist', () => setlistMenu(add, `Add ${plural(n, 'piece')} to`, addPicked), 'primary', { 'aria-haspopup': 'menu' });
+  return h('div', { class: 'pickbar', role: 'toolbar', 'aria-label': 'Picked scores' },
+    btn('Clear', () => { lib.picked.clear(); render(); }, 'quiet'),
+    h('span', { class: 'grow', text: `${plural(n, 'score')} picked` }), add);
+}
+/** A menu of setlists to add to, active ones first, then archived, then New setlist…. */
+function setlistMenu(anchor, label, choose, pieceId) {
+  const has = (s) => pieceId && s.entries.some((e) => e.pieceId === pieceId);
+  menuAt(anchor, label, [
     ...[...D.setlists.filter((s) => !s.archived), ...D.setlists.filter((s) => s.archived)]
-      .map((s) => ({ label: titleOf(s) + (s.archived ? ' (archived)' : ''), run: () => addPicked(s) })),
+      .map((s) => ({ label: titleOf(s) + (s.archived ? ' (archived)' : '') + (has(s) ? ' · has it already' : ''), run: () => choose(s) })),
     { label: 'New setlist…', run: () => askName('New setlist', '', 'Make setlist', (name) => {
       const s = { id: uid(), title: name, archived: false, entries: [] };
       D.setlists.unshift(s);
-      addPicked(s);
+      choose(s);
     }) },
-  ]), 'primary', { 'aria-haspopup': 'menu' });
-  return h('div', { class: 'pickbar', role: 'toolbar', 'aria-label': 'Picked scores' },
-    btn('Cancel', () => { lib.picking = null; render(); }, 'quiet'),
-    h('span', { class: 'grow', text: `${plural(n, 'score')} picked` }), add);
+  ]);
 }
 /* Picked scores go at the end, in library order. */
 function addPicked(s) {
-  const ids = SCORES.map((x) => x.id).filter((id) => lib.picking.has(id));
+  const ids = SCORES.map((x) => x.id).filter((id) => lib.picked.has(id));
   for (const id of ids) s.entries.push({ id: uid(), pieceId: id });
-  lib.picking = null;
+  lib.picked.clear();
   lib.open.add(s.id);
   save();
   render();
@@ -917,6 +904,12 @@ function renderReader() {
   const bar = h('div', { class: 'bar' });
   const pressed = (on) => ({ 'aria-pressed': String(on) });
   const tool = (t, label) => btn(label, () => { R.tool = R.tool === t ? 'none' : t; renderReader(); }, '', pressed(R.tool === t));
+  // In a piece's own reader: add this piece, whole, to the end of a setlist.
+  const addTo = isSet ? null : btn('Add to setlist', () => setlistMenu(addTo, `Add “${D.pieces[R.src.pieceId].title}” to`, (s) => {
+    s.entries.push({ id: uid(), pieceId: R.src.pieceId });
+    save();
+    say(`Added to the end of “${titleOf(s)}”.`);
+  }, R.src.pieceId), '', { 'aria-haspopup': 'menu' });
   const piecesBtn = isSet ? btn('Pieces', () => menuAt(piecesBtn, sl.title, R.items.map((it, k) => ({
     label: `${k + 1}. ${it.piece.title}`, checked: firstOnScreen()?.k === k,
     run: () => { R.screen = screenOf(it.key); show(); },
@@ -926,6 +919,7 @@ function renderReader() {
     h('div', { class: 'group' }, tool('pen', 'Pen'), tool('eraser', 'Erase'), btn('Undo', undo, '', { disabled: !R.undo.length })),
     h('div', { class: 'group' }, piecesBtn,
       isSet ? btn('Excerpt', () => openExcerptPicker(firstOnScreen().it)) : null,
+      isSet ? null : addTo,
       btn('Edit cuts', () => { R.editing = !R.editing; R.tool = 'none'; renderReader(); }, '', pressed(R.editing)),
       h('span', { class: 'info', id: 'reader-info' })),
   );

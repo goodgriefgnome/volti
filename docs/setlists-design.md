@@ -42,7 +42,8 @@ cuts changed. The user walked it back: it was more than setlists need. Nothing o
 | Moving between pieces while reading | **One continuous score.** Turning past the end of a piece goes into the next. Each piece starts on a fresh screen. A list in the toolbar jumps to any piece. |
 | Where setlists live | **A Setlists section above the scores** on the library page. There is no separate setlist screen. |
 | Tapping a setlist or a score | **Always opens the reader.** A setlist's pieces show by **expanding its row** (they slide open) with an arrow button; its **⋯ button** has the rest. |
-| Adding pieces | **Press and hold scores** to pick several, then add them to a setlist. Also **Add pieces…** in a setlist's ⋯ menu, which adds at the end. |
+| Adding pieces | **Every score row has a checkbox**: tick several, then add them to a setlist. **Add to setlist** in a piece's reader adds that piece. Also **Add pieces…** in a setlist's ⋯ menu. All add at the end. |
+| Showing archived setlists | **A Show archived button beside New setlist** shows or hides them, **below the other setlists, in grey**. No folded section taking up space. |
 | Archiving and deleting | **Archiving only hides a setlist from the main list and allows deleting it.** An archived setlist otherwise behaves like any other, including being changed. **Only archived setlists can be deleted.** |
 | Editing cuts in a setlist | **Edit cuts shows only the setlist's excerpt of the piece**, and pages can be inserted at the excerpt's edges, which grows the excerpt. |
 | A score whose file is missing | **Its entries stay, marked Missing.** Removing scores from within the app is not handled by this work, so that no setlist or piece data can be lost through it. |
@@ -150,9 +151,13 @@ there are few.
 
 Everything about setlists happens on the library page. From the top:
 
-- **Setlists**, with a **New setlist** button. One row per setlist, newest first.
-- **Archived (n)**, folded, with archived setlists in the same kind of rows.
-- **Scores**, as now, with "in 2 setlists" after the folder when a piece is in any.
+- **Setlists**, with **Show archived (n)** (a quiet button, only when there are any) and **New
+  setlist** on the same line as the heading. One row per setlist, newest first.
+- **Archived setlists**, when shown, follow the others in the same list, newest first, in the
+  same kind of row but in grey: muted title and "Archived · 2 pieces". The button then reads
+  **Hide archived**. Whether they show is remembered while the app runs.
+- **Scores**, as now, with a checkbox at the start of each row and "in 2 setlists" after the
+  folder when a piece is in any.
 
 ### 6.2 Setlist rows
 
@@ -177,18 +182,20 @@ Everything about setlists happens on the library page. From the top:
 - **Duplicate** copies the entries, with their excerpts, under new entry ids, names the copy
   "Spring recital (copy)" and puts it at the top, open.
 
-### 6.3 Picking scores
+### 6.3 Adding scores to setlists
 
-- **Press and hold a score** (500 ms without moving more than 8 px), or right-click it, to start
-  picking. The score is picked, every score row shows a checkbox, and a dark bar sticks to the top
-  of the library: **Cancel**, "2 scores picked", **Add to setlist**.
-- While picking, **a tap ticks or unticks** a score instead of opening it. Unticking the last one
-  ends picking. Escape or Cancel ends it too.
-- **Add to setlist** opens a menu: "Add 2 pieces to", the active setlists, and **New setlist…**,
-  which asks for a name. The picked scores go at the end of that setlist in library order, picking
-  ends, the setlist opens, and a toast says "Added 2 pieces to “Spring recital”."
-- Android's own long-press menu on the button has to be suppressed
-  (`-webkit-touch-callout: none` and `preventDefault` on `contextmenu`). Check on a tablet.
+- **Each score row has a checkbox** at its left, in a 44 px column, always shown. Tapping the
+  checkbox ticks the score; tapping the rest of the row opens it, as now. Ticked rows are tinted.
+- **While any score is ticked**, a dark bar sticks to the top of the library: **Clear**, "2 scores
+  picked", **Add to setlist**. Ticks are kept while searching, and cleared after adding.
+- **Add to setlist** opens a menu: "Add 2 pieces to", the active setlists, then the archived ones
+  marked "(archived)", then **New setlist…**, which asks for a name. The ticked scores go at the
+  end of that setlist, whole, in library order. The setlist opens, and a toast says "Added 2
+  pieces to “Spring recital”."
+- **In a piece's own reader**, the toolbar has **Add to setlist**. It opens the same menu, titled
+  "Add “Blue Bossa” to", with "· has it already" after setlists that already have the piece (it
+  can still be added again). The piece goes at the end, whole, and a toast says "Added to the end
+  of “Spring recital”." The reader stays open. It isn't in a setlist's reader.
 
 ### 6.4 Reading a setlist
 
@@ -221,9 +228,9 @@ Everything about setlists happens on the library page. From the top:
 
 ### 6.5 Archived setlists
 
-Archiving only moves a setlist under Archived (n), out of the main list, and makes **Delete…**
+Archiving only hides a setlist behind Show archived, where it shows in grey, and makes **Delete…**
 available. Everything else works as for any setlist: it can be read, reordered, renamed, have
-pieces added or removed and excerpts changed, and **Add to setlist** after picking scores offers it
+pieces added or removed and excerpts changed, and **Add to setlist** offers it
 too, after the active setlists. Its pieces are the pieces as they are now, since a setlist has no
 copies.
 
@@ -275,7 +282,8 @@ setlist that plays it. Not part of this work, but build so it fits:
    Frames carry their item; edits, ink and undo go to that item's piece. Each item needs its own
    `PageCache` (one PDF per piece); open them lazily, a piece or two ahead.
 5. **The Excerpt picker**, built on the insert picker in `src/viewer/edit.ts`.
-6. **The library**: setlist rows and picking scores in `src/ui/home.ts`.
+6. **The library**: setlist rows and score checkboxes in `src/ui/home.ts`, and **Add to setlist**
+   in the reader's toolbar.
 
 Rules for this repo:
 
@@ -295,7 +303,7 @@ Rules for this repo:
 | Piece edits keeping excerpts in step | `editCut()`, `forEntries()` |
 | Library | `renderHome()`, `lib` (open rows, picked scores) |
 | Setlist rows and their menus | `setlistRow()`, `entryRow()`, `dragToReorder()`, `addPieces()`, `askName()`, `confirmDelete()` |
-| Picking scores | `scoreRow()`, `togglePick()`, `pickBar()`, `addPicked()` |
+| Adding scores to setlists | `scoreRow()`, `pickBar()`, `setlistMenu()`, `addPicked()`, and `addTo` in `renderReader()` |
 | Reader layout and turning | `build()`, `show()`, `paintFrame()`, `drawSlot()`, `turn()` |
 | The Excerpt picker | `openExcerptPicker()` |
 | Data view | `renderInspector()` |
