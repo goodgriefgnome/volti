@@ -14,4 +14,4 @@ export function button(label: string, onClick: () => void, cls = ''): HTMLButton
   return b;
 }
 
-export const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+export const plural = (n: number, word: string, words = word + 's') => `${n} ${n === 1 ? word : words}`;

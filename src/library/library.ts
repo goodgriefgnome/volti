@@ -10,7 +10,7 @@ import {
 import { excerptName, moveExcerpt, nameProblem, removeName, sameSpan, setName, sortedNames } from '../setlists/names';
 import { deleteSetlist, loadSetlists, saveChanged } from '../setlists/store';
 import {
-  allOriginals, canLinkFolder, folderState, importFiles, linkFolder, removeImported, titleFromId, unlinkFolder, unlockFolder,
+  allOriginals, canLinkFolder, folderState, importFiles, knownTitles, linkFolder, removeImported, unlinkFolder, unlockFolder,
   type FolderState, type Original,
 } from '../originals/originals';
 import type { Prefs } from '../storage/prefs';
@@ -26,6 +26,8 @@ import { openScore, type LibraryScore } from './open-score';
 export class Library {
   private folder: FolderState = { kind: 'none' };
   private originals: Original[] = [];
+  /** Every original's title as last seen, for scores whose original is missing. */
+  private titles: Record<string, string> = {};
   private setlists: Setlist[] = [];
   /** Scores as last saved, and their originals' page shapes: for their named excerpts, and the excerpt each entry plays. */
   private saved = new Map<string, Score>();
@@ -65,9 +67,10 @@ export class Library {
     this.fileInput.multiple = true;
     this.fileInput.hidden = true;
     this.fileInput.addEventListener('change', async () => {
-      const n = await importFiles(this.fileInput.files ?? []);
+      const { added, already } = await importFiles(this.fileInput.files ?? []);
       this.fileInput.value = '';
-      this.say(n ? `Added ${n} score${n === 1 ? '' : 's'}.` : 'No PDFs were selected.');
+      const have = already.length === 1 ? `“${already[0]}” is already in the library.` : already.length ? `${already.length} were already in the library.` : '';
+      this.say([added ? `Added ${plural(added, 'score')}.` : '', have].filter(Boolean).join(' ') || 'No PDFs were selected.');
       await this.refresh();
     });
 
@@ -94,7 +97,11 @@ export class Library {
     this.folder = await folderState();
     this.renderFolder();
     try {
-      this.originals = await allOriginals(this.folder);
+      const before = this.status.textContent;
+      const { originals, removed } = await allOriginals(this.folder, (done, of) => this.say(`Reading new scores: ${done} of ${of}…`));
+      this.originals = originals;
+      if (this.status.textContent !== before) this.say(before ?? '');
+      if (removed) this.toast.say(`Removed ${plural(removed, 'added copy', 'added copies')} of scores in the scores folder. Their cuts and markings are kept.`);
     } catch (e) {
       // The folder may have been moved or deleted since it was linked.
       console.error(e);
@@ -106,7 +113,7 @@ export class Library {
   }
 
   private async loadSetlists() {
-    this.setlists = await loadSetlists();
+    [this.setlists, this.titles] = await Promise.all([loadSetlists(), knownTitles()]);
     // Every score's, for its named excerpts, and those of scores in setlists that are missing.
     const ids = [...new Set([...this.originals.map((o) => o.id), ...this.setlists.flatMap((s) => s.entries.map((e) => e.scoreId))])];
     const [saved, shapes] = await Promise.all([Promise.all(ids.map(loadSavedScore)), Promise.all(ids.map(loadAspects))]);
@@ -158,7 +165,7 @@ export class Library {
   /* ---------- setlists ---------- */
 
   private originalOf(id: string) { return this.originals.find((s) => s.id === id); }
-  private titleOf(scoreId: string) { return this.originalOf(scoreId)?.title ?? this.saved.get(scoreId)?.title ?? titleFromId(scoreId); }
+  private titleOf(scoreId: string) { return this.originalOf(scoreId)?.title ?? this.titles[scoreId] ?? this.saved.get(scoreId)?.title ?? 'Missing score'; }
 
   /** Change the setlists, save the ones that changed (with `also`, other records that go with them), and show them. */
   private async change(next: Setlist[], also: [string, unknown][] = []) {

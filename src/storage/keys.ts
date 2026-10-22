@@ -6,13 +6,20 @@ export const keys = {
   prefs: 'prefs',
   /** The linked scores folder's FileSystemDirectoryHandle (originals/originals.ts). */
   folder: 'folder',
-  /** The linked folder's PDFs as last read, { path }[], listed while access is locked. */
-  folderListing: 'folder-listing',
+  /** The linked folder's PDFs as last read, { path, id }[], listed while access is locked. */
+  folderListing: 'folder-files',
+  /**
+   * Each original's SHA-256 as last worked out, with the size and modified time it was worked out
+   * for, by "folder/" + path or "imported/" + name.
+   */
+  hashes: 'hashes',
+  /** Each original's title as last seen, by id: for scores whose original is missing. */
+  titles: 'titles',
   /** Files shared into the app, waiting to be imported: File[] (originals/inbox.ts). */
   inbox: 'inbox',
 
   /*
-   * Scores (scores/store.ts), by their original's id. A score and its ink are always written
+   * Scores (scores/store.ts), by their original's id (the SHA-256 of its contents). A score and its ink are always written
    * together.
    */
   /** The Score. */

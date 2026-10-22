@@ -11,7 +11,7 @@ import { followScore, newEntry, spanCuts, type Entry, type Setlist, type Span } 
 import { excerptName, followNames } from '../setlists/names';
 import { loadPosition, loadSetlists, savePosition as saveSetlistPosition } from '../setlists/store';
 import { openPdf, type PageCache } from '../originals/pdf';
-import { titleFromId, type Original } from '../originals/originals';
+import { knownTitles, type Original } from '../originals/originals';
 import { savePrefs, type Prefs } from '../storage/prefs';
 import { el } from '../ui/dom';
 import { openExcerptPicker } from '../ui/excerpt-picker';
@@ -70,9 +70,10 @@ export async function openReader(what: ToRead, prefs: Prefs, onClose: () => void
   const setlist = setlists.find((s) => s.id === what.setlistId);
   if (!setlist?.entries.length) throw new Error('No such setlist, or no scores in it');
   const originals = new Map(what.originals.map((o) => [o.id, o]));
+  const titles = await knownTitles();
   const items: Item[] = setlist.entries.map((e) => {
     const original = originals.get(e.scoreId);
-    return { scoreId: e.scoreId, entryId: e.id, original, title: original?.title ?? titleFromId(e.scoreId), missing: !original };
+    return { scoreId: e.scoreId, entryId: e.id, original, title: original?.title ?? titles[e.scoreId] ?? 'Missing score', missing: !original };
   });
   const pos = what.startEntry ? { entry: what.startEntry } : await loadPosition(setlist.id);
   const k = Math.max(0, items.findIndex((it) => it.entryId === pos?.entry));

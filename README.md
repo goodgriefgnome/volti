@@ -16,6 +16,11 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   such as `Download/Scores` or `Documents/Scores`. After a restart, the first score you open asks
   for access again with one tap.
 - **Add PDFs**, or **Share** a PDF to Volti from Files, Gmail or Drive, keeps a copy inside the app.
+  A copy of a PDF that is also in the scores folder is deleted; the score stays.
+- A score belongs to its PDF's contents, not its name: renaming or moving a PDF keeps its cuts,
+  markings, excerpts and place in setlists, and a setlist's **Missing** score plays again once its
+  PDF is back. A PDF changed by another app is a new score. Volti reads a PDF whole the first time
+  it sees it (and after it changes), so linking a big folder takes a moment.
 - In a score: tap the right side or swipe left for the next page, the left side or swipe right for
   the previous one, and the middle to show the toolbar. Page-turn pedals that send arrow or
   Page Up/Down keys work too.
@@ -73,7 +78,7 @@ Every push to `main` is tested, built and published to GitHub Pages by
 module one too.
 
 A **score** is what is shown of its **original** (a PDF), as cuts in played order; a score's id is
-its original's id. A **setlist** is a list of excerpts of scores: each the whole score, or a span of
+its original's id, the SHA-256 of the PDF. A **setlist** is a list of excerpts of scores: each the whole score, or a span of
 its cuts kept only in that setlist.
 
 | Path | What it does |
