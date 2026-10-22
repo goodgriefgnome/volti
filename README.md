@@ -58,6 +58,8 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
     arrow beside the score lists them; each one's **⋯** renames it, changes its cuts or deletes it.
     Tapping one reads only its cuts, as a setlist entry playing it does, always from its start;
     there **Excerpt** changes its cuts and **Add to setlist** adds it.
+  - **Excerpts** in a score's toolbar lists its named excerpts too: tap one to go to it, or add,
+    rename, change or delete them there.
     A setlist entry that plays the same cuts plays the named excerpt and shows its name, so
     changing its cuts changes every setlist that plays it. Deleting one only takes the name away.
     Searching the library finds excerpts by name too, shown with their score's name.
@@ -109,7 +111,7 @@ its cuts kept only in that setlist.
 | `src/reader/gestures.ts` | How taps, swipes and keys turn pages |
 | `src/reader/layout.ts` | Fitting frames to the screen |
 | `src/reader/zoom.ts` | Pinch and pan maths; which part of a page is in view |
-| `src/ui/` | Shared by both screens: DOM helpers (`dom`), menus and dialogs, one at a time (`overlay`), messages (`toast`), and the setlist name and add-to menus (`setlists`) |
+| `src/ui/` | Shared by both screens: DOM helpers (`dom`), menus and dialogs, one at a time (`overlay`), messages (`toast`), the setlist name and add-to menus (`setlists`), choosing an excerpt (`excerpt-picker`), and the named excerpt dialogs (`excerpts`) |
 | `src/styles/` | Styles, one file per part of the app, imported in order by `main.ts` |
 | `src/sw.ts` | Offline copy and the share target |
 

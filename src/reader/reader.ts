@@ -7,15 +7,16 @@ import { PEN_COLORS } from '../markings/stroke';
 import { frameOf, pack, type Frame } from '../scores/frames';
 import type { Aspects, Cut, ExcerptName, State } from '../scores/model';
 import { loadScore, savePosition } from '../scores/store';
-import { followEdit, followScore, newEntry, spanCuts, type Entry, type Setlist, type Span } from '../setlists/model';
-import { ends, excerptName, followNames, moveExcerpt, nameOf, nameProblem, sameSpan } from '../setlists/names';
+import { followEdit, followScore, newEntry, spanCuts, spanLabel, spanOf, type Entry, type Setlist, type Span } from '../setlists/model';
+import { ends, excerptName, followNames, nameOf, sortedNames } from '../setlists/names';
 import { loadPosition, loadSetlists, savePosition as saveSetlistPosition } from '../setlists/store';
 import { openPdf, type PageCache } from '../originals/pdf';
 import { knownTitles, type Original } from '../originals/originals';
 import { savePrefs, type Prefs } from '../storage/prefs';
-import { el, plural } from '../ui/dom';
-import { openExcerptPicker, type ExcerptPicker } from '../ui/excerpt-picker';
-import { closeOverlay, showMenu } from '../ui/overlay';
+import { button, el } from '../ui/dom';
+import { openExcerptPicker, type ExcerptSource } from '../ui/excerpt-picker';
+import { addExcerpt, changeExcerptCuts, deleteExcerpt, renameExcerpt, type ExcerptHost } from '../ui/excerpts';
+import { buttonRow, closeOverlay, showDialog, showMenu } from '../ui/overlay';
 import { chooseSetlist } from '../ui/setlists';
 import { Toast } from '../ui/toast';
 import { CutEditor } from './cuts/editor';
@@ -41,7 +42,7 @@ interface Undo { open: OpenScore; state: State; setlists: readonly Setlist[]; k:
 
 /** What the reader opens: a score on its own, a named excerpt of one, or a setlist. */
 export type ToRead =
-  | { kind: 'score'; original: Original; at?: string }
+  | { kind: 'score'; original: Original }
   | { kind: 'excerpt'; original: Original; excerpt: ExcerptName }
   | { kind: 'setlist'; setlistId: string; originals: readonly Original[]; startEntry?: string };
 
@@ -73,7 +74,7 @@ export async function openReader(what: ToRead, prefs: Prefs, onClose: () => void
     const item = { scoreId: original.id, title: original.title, original };
     // An excerpt starts at its start each time: its place isn't kept.
     if (what.kind === 'excerpt') new Reader([item], { kind: 'excerpt', span: ends(what.excerpt) }, setlists, first, 0, undefined, prefs, onClose);
-    else new Reader([item], { kind: 'score' }, setlists, first, 0, what.at ?? position, prefs, onClose);
+    else new Reader([item], { kind: 'score' }, setlists, first, 0, position, prefs, onClose);
     return;
   }
   const setlist = setlists.find((s) => s.id === what.setlistId);
@@ -173,6 +174,7 @@ class Reader {
       close: () => history.back(),
       scores: () => this.scoresMenu(),
       excerpt: () => this.chooseExcerpt(),
+      excerpts: () => this.excerptsList(),
       addToSetlist: () => this.addToSetlist(),
       tool: (t) => this.setTool(t),
       penColor: (c) => { this.penColor = c; this.tool = 'pen'; this.syncBar(); },
@@ -351,13 +353,67 @@ class Reader {
     }, it.scoreId);
   }
 
+  /** An open score's pages, for the excerpt picker. */
+  private source(cur: OpenScore, cache: PageCache): ExcerptSource {
+    return { state: cur.state, aspects: cur.aspects, page: (p, w) => cache.render(p + 1, w, Math.round(w * cur.aspects[p]), dpr()) };
+  }
+
+  /** Changing the open score's named excerpts from the reader, saved with the score. */
+  private excerptHost(cur: OpenScore): ExcerptHost {
+    return {
+      setlists: this.setlists,
+      aspects: cur.aspects,
+      save: (score, setlists) => {
+        cur.state = { ...cur.state, score };
+        if (setlists) this.setlists = setlists;
+        this.saver.soon(cur);
+        this.showTitle();
+      },
+      say: (t) => this.say(t),
+    };
+  }
+
+  /** In a score's own reader: its named excerpts, to go to one, add one or change them. */
+  private excerptsList() {
+    const cur = this.current, cache = cur?.cache;
+    if (!cur || !cache) return;
+    this.editor.dismiss();
+    const score = cur.state.score, title = this.items[0].title, names = sortedNames(score);
+    const d = showDialog(`Excerpts of “${title}”`);
+    const list = el('ul', 'excerpt-list');
+    for (const x of names) {
+      const li = el('li');
+      const go = button('', () => {
+        closeOverlay();
+        void this.goTo(this.k, score.cuts[spanOf(score.cuts, x).i0]?.id);
+      }, 'open');
+      go.append(el('span', 'item-title', x.name));
+      const pages = spanLabel(score.cuts, x, cur.aspects);
+      if (pages) go.append(el('span', 'meta', pages));
+      go.setAttribute('aria-label', `Go to ${x.name}`);
+      const more = button('⋯', () => showMenu(more, x.name, [
+        { label: 'Rename…', run: () => renameExcerpt(cur.state.score, x, this.excerptHost(cur)) },
+        { label: 'Change cuts…', run: () => changeExcerptCuts(this.source(cur, cache), x, this.excerptHost(cur)) },
+        { label: 'Delete…', run: () => deleteExcerpt(cur.state.score, x, this.excerptHost(cur)) },
+      ]), 'quiet more');
+      more.setAttribute('aria-label', `More for ${x.name}`);
+      more.setAttribute('aria-haspopup', 'menu');
+      li.append(go, more);
+      list.append(li);
+    }
+    if (!names.length) list.append(el('li', 'empty', 'No excerpts yet. Add one to name part of the score, such as the Kyrie.'));
+    d.append(list, buttonRow(
+      button('Add excerpt…', () => addExcerpt(this.source(cur, cache), title, this.excerptHost(cur))),
+      button('Close', closeOverlay, 'primary'),
+    ));
+  }
+
   /** In a setlist: choose which of the score's cuts this entry plays. In an excerpt: change the excerpt's cuts. */
   private chooseExcerpt() {
     const cur = this.current;
     if (!cur?.cache) return;
     this.editor.dismiss();
-    const cache = cur.cache;
-    const pages = { state: cur.state, aspects: cur.aspects, page: (p: number, w: number) => cache.render(p + 1, w, Math.round(w * cur.aspects[p]), dpr()) };
+    const pages = this.source(cur, cur.cache);
     if (this.reading.kind === 'excerpt') {
       this.changeExcerpt(cur, this.reading.span, pages);
       return;
@@ -378,30 +434,16 @@ class Reader {
    * Give the named excerpt being read other cuts; every setlist entry that plays it moves with it.
    * An excerpt that lost its name to an edit (it came to be the whole score) just plays other cuts.
    */
-  private changeExcerpt(cur: OpenScore, span: Span, pages: Pick<ExcerptPicker, 'state' | 'aspects' | 'page'>) {
-    const score = cur.state.score, name = nameOf(score, span);
-    const using = name ? this.setlists.filter((s) => s.entries.some((e) => e.scoreId === score.id && sameSpan(score.cuts, e, span))) : [];
-    openExcerptPicker({
-      ...pages,
-      question: name ? `Which cuts are “${name.name}”?` : `Which part of “${this.items[0].title}” to read?`,
-      verb: 'It plays',
-      span,
-      problem: (to) => (!name || sameSpan(score.cuts, to, span) ? null : nameProblem(score, to, name.name, name)),
-      okLabel: using.length ? `Change in ${plural(using.length, 'setlist')}` : 'Done',
-      done: (to) => {
-        if (sameSpan(score.cuts, to, span)) return;
-        if (name) {
-          const r = moveExcerpt(score, this.setlists, name, to);
-          cur.state = { ...cur.state, score: r.score };
-          this.setlists = r.setlists;
-        }
-        this.reading = { kind: 'excerpt', span: ends(to) };
-        this.saver.soon(cur);
-        this.frames = this.framesFor(this.k);
-        this.frame = 0;
-        void this.show();
-      },
-    });
+  private changeExcerpt(cur: OpenScore, span: Span, pages: ExcerptSource) {
+    const name = nameOf(cur.state.score, span);
+    const read = (to: Span) => {
+      this.reading = { kind: 'excerpt', span: ends(to) };
+      this.frames = this.framesFor(this.k);
+      this.frame = 0;
+      void this.show();
+    };
+    if (name) changeExcerptCuts(pages, name, this.excerptHost(cur), read);
+    else openExcerptPicker({ ...pages, question: `Which part of “${this.items[0].title}” to read?`, verb: 'It plays', span, done: read });
   }
 
   private setExcerpt(entryId: string, span: Span) {

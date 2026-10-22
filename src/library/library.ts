@@ -5,9 +5,9 @@ import type { Aspects, ExcerptName, Score } from '../scores/model';
 import { loadAspects, loadSavedScore, scoreEntries, scoreEntry } from '../scores/store';
 import { openReader, type ToRead } from '../reader/reader';
 import {
-  duplicate, moveEntry, newSetlist, setlistsWith, spanLabel, type Entry, type Setlist, type Span,
+  duplicate, moveEntry, newSetlist, setlistsWith, spanLabel, type Entry, type Setlist,
 } from '../setlists/model';
-import { excerptName, moveExcerpt, nameProblem, removeName, sameSpan, setName, sortedNames } from '../setlists/names';
+import { excerptName, sortedNames } from '../setlists/names';
 import { deleteSetlist, loadSetlists, saveChanged } from '../setlists/store';
 import {
   allowWriting, allOriginals, canLinkFolder, fileNameProblem, folderState, importFiles, knownTitles, linkFolder, removeImported,
@@ -17,6 +17,7 @@ import {
 import type { Prefs } from '../storage/prefs';
 import { button, el, plural } from '../ui/dom';
 import { openExcerptPicker, type ExcerptSource } from '../ui/excerpt-picker';
+import { addExcerpt, changeExcerptCuts, deleteExcerpt, renameExcerpt, type ExcerptHost } from '../ui/excerpts';
 import { buttonRow, closeOverlay, showDialog, showMenu, whenOverlayCloses } from '../ui/overlay';
 import { askSetlistName } from '../ui/setlists';
 import { Toast } from '../ui/toast';
@@ -430,7 +431,7 @@ export class Library {
     if (s.location === 'imported') title.append(el('span', 'badge', 'Added'));
 
     const more = button('⋯', () => showMenu(more, s.title, [
-      { label: 'Add excerpt…', run: () => void this.addExcerpt(s) },
+      { label: 'Add excerpt…', run: () => void this.withPages(s, (sc) => addExcerpt(sc, s.title, this.excerptHost(s.id))) },
       { label: 'Rename…', run: () => this.renameFile(s) },
       s.location === 'imported' && { label: 'Remove from Volti', run: async () => {
         await removeImported(s);
@@ -464,9 +465,9 @@ export class Library {
     open.append(el('span', 'item-title', x.name));
     if (pages) open.append(el('span', 'meta', pages));
     const more = button('⋯', () => showMenu(more, x.name, [
-      { label: 'Rename…', run: () => this.renameExcerpt(o, x) },
-      { label: 'Change cuts…', run: () => void this.changeExcerptCuts(o, x) },
-      { label: 'Delete…', run: () => this.deleteExcerpt(o, x) },
+      { label: 'Rename…', run: () => renameExcerpt(score, x, this.excerptHost(o.id)) },
+      { label: 'Change cuts…', run: () => void this.withPages(o, (sc) => changeExcerptCuts(sc, x, this.excerptHost(o.id))) },
+      { label: 'Delete…', run: () => deleteExcerpt(score, x, this.excerptHost(o.id)) },
     ]), 'quiet more');
     more.setAttribute('aria-label', `More for ${x.name}`);
     more.setAttribute('aria-haspopup', 'menu');
@@ -519,96 +520,23 @@ export class Library {
     return this.change(setlists, [scoreEntry(score)]);
   }
 
-  /** Name part of a score, in the excerpt picker. */
-  private async addExcerpt(o: Original) {
-    const sc = await this.openForDialog(o);
-    if (!sc) return;
-    this.remember(sc);
-    openExcerptPicker({
-      ...sc,
-      question: `Add an excerpt of “${o.title}”`,
-      verb: 'It plays',
-      span: {},
-      name: '',
-      okLabel: 'Add excerpt',
-      problem: (span, name) => nameProblem(sc.state.score, span, name),
-      done: (span, name) => {
-        void this.saveScore(setName(sc.state.score, span, name));
-        this.toast.say(`Added “${name}” to “${o.title}”.`);
-      },
-    });
-    whenOverlayCloses(sc.close);
-  }
-
-  private renameExcerpt(o: Original, x: ExcerptName) {
-    const score = this.saved.get(o.id);
-    if (!score) return;
-    const d = showDialog(`Rename “${x.name}”`);
-    const input = el('input', 'name');
-    input.type = 'text';
-    input.value = x.name;
-    input.setAttribute('aria-label', 'Excerpt name');
-    const error = el('p', 'hint error');
-    error.setAttribute('aria-live', 'polite');
-    const ok = () => {
-      const why = nameProblem(score, x, input.value, x);
-      error.textContent = why ?? '';
-      if (why) return;
-      closeOverlay();
-      void this.saveScore(setName(score, x, input.value, x));
+  /** Changing a score's named excerpts here, saving them as they change. */
+  private excerptHost(scoreId: string): ExcerptHost {
+    return {
+      setlists: this.setlists,
+      aspects: this.shapes.get(scoreId),
+      save: (score, setlists) => void this.saveScore(score, setlists),
+      say: (t) => this.toast.say(t),
     };
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok(); });
-    d.append(input, error, buttonRow(button('Cancel', closeOverlay), button('Rename', ok, 'primary')));
-    input.focus();
-    input.select();
   }
 
-  /** Choose other cuts for a named excerpt. Every entry that plays it moves with it. */
-  private async changeExcerptCuts(o: Original, x: ExcerptName) {
+  /** Open the score for the excerpt picker, then `pick` from it. */
+  private async withPages(o: Original, pick: (sc: LibraryScore) => void) {
     const sc = await this.openForDialog(o);
     if (!sc) return;
     this.remember(sc);
-    const score = sc.state.score, now = score.names?.find((n) => n.name === x.name) ?? x;
-    const using = this.setlistsPlaying(score, now);
-    openExcerptPicker({
-      ...sc,
-      question: `Which cuts are “${now.name}”?`,
-      verb: 'It plays',
-      span: now,
-      problem: (span) => (sameSpan(score.cuts, span, now) ? null : nameProblem(score, span, now.name, now)),
-      okLabel: using.length ? `Change in ${plural(using.length, 'setlist')}` : 'Done',
-      done: (span) => {
-        if (sameSpan(score.cuts, span, now)) return;
-        const r = moveExcerpt(score, this.setlists, now, span);
-        void this.saveScore(r.score, r.setlists);
-        if (using.length) this.toast.say(`Changed “${now.name}” in ${plural(using.length, 'setlist')}.`);
-      },
-    });
+    pick(sc);
     whenOverlayCloses(sc.close);
-  }
-
-  /** Take the name off an excerpt. Setlists that play it keep playing the same music. */
-  private deleteExcerpt(o: Original, x: ExcerptName) {
-    const score = this.saved.get(o.id);
-    if (!score) return;
-    const using = this.setlistsPlaying(score, x);
-    const pages = spanLabel(score.cuts, x, this.shapes.get(score.id));
-    const d = showDialog(`Delete “${x.name}”?`);
-    d.append(
-      el('p', '', using.length
-        ? `${using.map((s) => `“${s.title}”`).join(', ')} still ${using.length === 1 ? 'plays' : 'play'} the same music, as ${pages ?? 'part of the score'}.`
-        : 'The score and its cuts stay as they are.'),
-      buttonRow(button('Cancel', closeOverlay), button('Delete', () => {
-        closeOverlay();
-        void this.saveScore(removeName(score, x));
-        this.toast.say(`Deleted “${x.name}”.`);
-      }, 'danger')),
-    );
-  }
-
-  /** The setlists with an entry that plays this span of the score. */
-  private setlistsPlaying(score: Score, span: Span) {
-    return this.setlists.filter((s) => s.entries.some((e) => e.scoreId === score.id && sameSpan(score.cuts, e, span)));
   }
 
   /* ---------- opening the reader ---------- */

@@ -21,6 +21,8 @@ export interface ToolbarActions {
   scores(): void;
   /** In a setlist: choosing the excerpt of this score; in a named excerpt: changing its cuts. */
   excerpt(): void;
+  /** In a score's own reader: the list of its named excerpts. */
+  excerpts(): void;
   /** In a score's or an excerpt's own reader: add it to a setlist. */
   addToSetlist(): void;
   /** Tapping the active tool again puts it away. */
@@ -86,7 +88,8 @@ export class Toolbar {
       right.append(this.button('addTo', 'Add to setlist', act.addToSetlist));
       this.buttons.addTo.setAttribute('aria-haspopup', 'menu');
     }
-    if (reading !== 'score') right.append(this.button('excerpt', 'Excerpt', act.excerpt));
+    if (reading === 'score') right.append(this.button('excerpts', 'Excerpts', act.excerpts));
+    else right.append(this.button('excerpt', 'Excerpt', act.excerpt));
     right.append(
       this.button('edit', 'Edit cuts', act.toggleEditing),
       this.button('archived', 'Archived', act.openArchive),
@@ -115,7 +118,7 @@ export class Toolbar {
     pressed('eraser', v.tool === 'eraser');
     pressed('edit', v.editing);
     for (const c of PEN_COLORS) pressed('color' + c, v.tool === 'pen' && v.penColor === c);
-    for (const k of ['pen', 'highlighter', 'eraser', 'edit', 'excerpt']) if (this.buttons[k]) this.buttons[k].disabled = !v.open;
+    for (const k of ['pen', 'highlighter', 'eraser', 'edit', 'excerpt', 'excerpts']) if (this.buttons[k]) this.buttons[k].disabled = !v.open;
     this.buttons.archived.hidden = !v.editing || !v.archived;
     this.buttons.archived.textContent = `Archived (${v.archived})`;
     this.buttons.layout.textContent = LAYOUT_LABEL[String(v.layout)];
