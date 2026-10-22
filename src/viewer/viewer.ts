@@ -274,8 +274,9 @@ class Viewer {
     const next = turnTarget(this.page, this.perScreen, this.cache.numPages, dir);
     if (next === this.page) return;
     this.page = next;
-    // Keep the toolbar while writing, so you can mark up page after page.
-    if (this.tool === 'none') this.showChrome(false);
+    // A turn means you're playing again: put the tool away and hide the toolbar.
+    this.tool = 'none';
+    this.showChrome(false);
     void this.show();
   }
 
