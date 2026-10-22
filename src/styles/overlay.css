@@ -1,0 +1,41 @@
+/* Menus and dialogs, one at a time over everything, and toasts. */
+.menu {
+  position: fixed; z-index: 20; min-width: 220px; max-width: min(340px, calc(100vw - 16px)); display: grid;
+  background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35); padding: 6px;
+}
+.menu .label { color: var(--muted); font-size: 13px; padding: 6px 10px; }
+.menu button { border: 0; text-align: left; min-height: 44px; }
+.menu button:hover, .menu button:focus-visible { background: var(--bg); }
+
+.dialog {
+  position: fixed; z-index: 20; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(720px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto;
+  background: var(--surface); color: var(--fg); border-radius: 12px; padding: 16px 18px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5); display: grid; gap: 10px;
+}
+.dialog h2 { margin: 0; font-size: 18px; }
+.dialog h3 { margin: 4px 0 0; font-size: 14px; color: var(--muted); font-weight: 600; }
+.dialog .hint { margin: 0; color: var(--muted); }
+.dialog .buttons { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.dialog .check { display: flex; gap: 8px; align-items: center; min-height: 44px; }
+.dialog .check input { width: 20px; height: 20px; flex: none; accent-color: var(--accent); }
+.dialog .check .meta { margin-left: auto; }
+.dialog.wide { width: min(760px, calc(100vw - 32px)); }
+.dialog .buttons .grow { flex: 1; }
+.dialog input.name { font: inherit; min-height: 44px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
+/* Behind a dialog, or invisibly behind a menu: a tap on it closes them. */
+.catcher, .scrim { position: fixed; inset: 0; z-index: 19; }
+.scrim { background: rgba(10, 11, 14, 0.45); }
+.menu button[aria-checked="true"]::before { content: "✓ "; }
+
+.toast {
+  position: absolute; z-index: 15; left: 50%; bottom: max(16px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  margin: 0; max-width: calc(100vw - 32px); padding: 10px 16px; border-radius: 10px;
+  background: var(--bar); color: var(--bar-fg); font-size: 15px; pointer-events: none;
+}
+.toast:empty { display: none; }
+.toast.fixed { position: fixed; z-index: 25; }
+/* A toast with an action (Undo) can be tapped. */
+.toast.act { pointer-events: auto; display: flex; gap: 14px; align-items: center; padding-block: 6px; }
+.toast.act button { min-height: 36px; padding: 4px 12px; background: transparent; color: inherit; border-color: rgba(255, 255, 255, 0.35); }

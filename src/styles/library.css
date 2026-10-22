@@ -1,0 +1,80 @@
+/* The Library screen: one calm column of setlists and scores. */
+.home {
+  max-width: 880px; margin: 0 auto; display: grid; gap: 20px; align-content: start;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: max(28px, env(safe-area-inset-top, 0px)) max(32px, env(safe-area-inset-bottom, 0px));
+}
+.masthead { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.brand { font: italic 600 2.4rem/1 var(--font-brand); margin: 0; letter-spacing: 0.01em; }
+.tagline { margin: 0; color: var(--muted); font: italic 1rem var(--font-brand); }
+
+.folder {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px;
+}
+.folder p { margin: 0; flex: 1 1 280px; min-width: 0; }
+.folder-name { display: grid; }
+.folder-name .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.folder-name strong { overflow-wrap: anywhere; }
+
+.tools { display: flex; gap: 10px; flex-wrap: wrap; }
+.search {
+  flex: 1 1 240px; min-width: 0; min-height: 44px; font: inherit; padding: 8px 14px;
+  border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg);
+}
+.status { margin: 0; color: var(--muted); min-height: 1.5em; }
+
+.section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: -10px; }
+.section-head h2 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 600; }
+.head-tools { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+
+.list { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.list > li { display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--line); min-width: 0; }
+.list .open {
+  flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; text-align: left;
+  border: 0; border-radius: 0; background: transparent; padding: 14px 4px; min-height: 56px;
+}
+.list .open:active { background: var(--line); }
+.meta { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+.pill { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; border: 1px solid currentColor; border-radius: 999px; padding: 0 8px; white-space: nowrap; color: var(--accent); }
+.pill.missing { color: var(--warn); }
+.more { flex: none; width: 48px; padding: 0; }
+
+/* A setlist: the arrow slides its pieces open beneath it. */
+.list > li.set { display: block; }
+.set-head { display: flex; align-items: center; gap: 4px; }
+.setlist-title { font: italic 1.15rem var(--font-brand); }
+.set.archived .setlist-title, .set.archived .entries .item-title { color: var(--muted); }
+.expand { flex: none; width: 44px; padding: 0; border: 0; background: transparent; color: var(--muted); }
+.chev { display: inline-block; width: 10px; height: 10px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform 200ms ease; }
+.set.open .chev { transform: rotate(45deg); }
+.set-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 220ms ease; }
+.set.open .set-body { grid-template-rows: 1fr; }
+.set-inner { overflow: hidden; min-height: 0; }
+.entries { list-style: none; margin: 0 0 8px 44px; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.entries > li { display: flex; align-items: center; gap: 4px; border-bottom: 1px solid var(--line); min-width: 0; }
+.entries > li:last-child { border-bottom: 0; }
+.entries .open { min-height: 48px; padding: 8px 4px; }
+.entries .item-title { font-size: 16px; overflow-wrap: anywhere; }
+.entry .num { width: 1.6em; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
+.entry .handle {
+  flex: none; width: 36px; min-height: 48px; padding: 0; border: 0; background: transparent; color: var(--muted);
+  cursor: grab; touch-action: none; font-size: 16px; letter-spacing: -2px;
+}
+.entry.dragging { background: var(--accent-soft); }
+
+/* Scores: the checkbox picks a score for adding to a setlist; the rest of the row opens it. */
+.pick { flex: none; width: 44px; min-height: 56px; display: grid; place-items: center; cursor: pointer; }
+.pick input { width: 22px; height: 22px; margin: 0; accent-color: var(--accent); }
+.list > li.picked { background: var(--accent-soft); }
+.pickbar {
+  position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--fg); color: var(--bg); padding: 8px 16px; border-radius: 0 0 10px 10px; margin-top: -28px;
+}
+.pickbar .grow { flex: 1; font-weight: 600; }
+.pickbar .quiet { color: inherit; }
+.score-title { font-size: 17px; overflow-wrap: anywhere; }
+.score-folder { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
+.badge { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); border: 1px solid currentColor; border-radius: 999px; padding: 0 8px; }
+.empty { padding: 24px 4px; color: var(--muted); }

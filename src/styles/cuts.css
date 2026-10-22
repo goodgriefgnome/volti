@@ -1,0 +1,37 @@
+/* Editing cuts: the tabs and marks over each frame, and the page thumbnails and archived cuts in their dialogs. */
+.viewer { --select: #1f6fe0; --tab-grey: #5b6170; --cut: #8a5a12; }
+/* While editing, the frames sit below the toolbar so the tabs at their tops can be reached. */
+.editing:not(.chrome-hidden) .stage { top: var(--bar-h, 56px); }
+/* The layer over a frame passes taps through to the music, except on its tabs. */
+.cuts-ui { position: absolute; inset: 0; pointer-events: none; }
+.cuts-ui button { pointer-events: auto; position: absolute; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; touch-action: none; }
+/* A tab's touch area is about 56 x 34; what shows is 30 x 14, flush with the frame's side and the seam. */
+.tab { width: 56px; height: 34px; }
+.tab::after { content: ""; position: absolute; width: 30px; height: 14px; background: var(--cut); opacity: 0.38; }
+.tab.top, .tab.pad { margin-top: -10px; }
+.tab.top { left: 0; }
+.tab.top::after { left: 0; top: 10px; border-radius: 0 0 6px 0; }
+.tab.bottom { right: 0; margin-top: -24px; }
+.tab.bottom::after { right: 0; bottom: 10px; border-radius: 6px 0 0 0; }
+.tab.pad { right: 0; }
+.tab.pad::after { right: 0; top: 10px; border-radius: 0 0 0 6px; background: var(--tab-grey); }
+.tab.dragging::after { background: var(--select); opacity: 1; }
+.tab:focus-visible { outline: none; }
+.tab:focus-visible::after { opacity: 1; outline: 3px solid var(--select); }
+
+.pad-line { position: absolute; left: 0; right: 0; border-top: 1px dashed rgba(0, 0, 0, 0.3); }
+/* The room left on the frame before: this much of the frame's top would fit there. */
+.room { position: absolute; left: 0; right: 0; top: 0; background: rgba(138, 90, 18, 0.06); }
+/* Where "Cut here" would cut, while the menu is open. */
+.cut-mark { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--select); }
+
+
+.thumbs { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 8px; align-items: flex-start; }
+.thumb { flex: none; display: grid; gap: 4px; justify-items: center; padding: 4px; min-height: 0; border: 2px solid transparent; background: transparent; }
+.thumb canvas, .thumb .thumb-space { width: 84px; background: #ffffff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); }
+.thumb span { font-size: 13px; color: var(--muted); }
+.thumb[aria-pressed="true"] { border-color: var(--select); background: color-mix(in srgb, var(--select) 12%, transparent); }
+.archive { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.archive li { display: flex; gap: 12px; align-items: center; }
+.archive li span { flex: 1; }
+.archive canvas { width: 84px; max-height: 120px; object-fit: cover; object-position: top; background: #ffffff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); }

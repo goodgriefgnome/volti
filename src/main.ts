@@ -2,7 +2,13 @@ import { registerSW } from 'virtual:pwa-register';
 import { Library } from './library/library';
 import { importShared } from './sources/scores';
 import { loadPrefs } from './storage/prefs';
-import './styles.css';
+// In this order: later files build on the earlier ones.
+import './styles/base.css';
+import './styles/library.css';
+import './styles/reader.css';
+import './styles/cuts.css';
+import './styles/overlay.css';
+import './styles/setlists.css';
 
 registerSW({ immediate: true });
 
