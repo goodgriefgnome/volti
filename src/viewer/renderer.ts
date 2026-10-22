@@ -95,6 +95,21 @@ export class PageCache {
     return p;
   }
 
+  /**
+   * Draw part of a page for a zoomed-in close-up: the page is drawn `pageWidth` pixels wide and
+   * `region` (in those pixels) is cut out of it. Not cached, as it changes with every pan and pinch.
+   */
+  async renderRegion(num: number, pageWidth: number, region: { x: number; y: number; w: number; h: number }): Promise<HTMLCanvasElement> {
+    const page = await this.doc.getPage(num);
+    const base = page.getViewport({ scale: 1 });
+    const viewport = page.getViewport({ scale: pageWidth / base.width });
+    const canvas = document.createElement('canvas');
+    canvas.width = region.w;
+    canvas.height = region.h;
+    await page.render({ canvas, viewport, transform: [1, 0, 0, 1, -region.x, -region.y], background: '#ffffff' }).promise;
+    return canvas;
+  }
+
   /** Drop everything except the given pages at the given size. */
   keepOnly(nums: number[], sizeOf: (num: number) => { w: number; h: number } | undefined) {
     const keep = new Set(nums.map((n) => { const s = sizeOf(n); return s && this.key(n, s.w, s.h); }));

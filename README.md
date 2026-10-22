@@ -19,8 +19,11 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
 - In a score: tap the right side or swipe left for the next page, the left side or swipe right for
   the previous one, and the middle to show the toolbar. Page-turn pedals that send arrow or
   Page Up/Down keys work too.
-- **Pen**, **Highlight** and **Erase** write with the stylus. Fingers keep turning pages and resting
-  palms are ignored, unless **Finger writes** is on. The stylus eraser end or button erases too.
+- While the toolbar shows, pinch with two fingers to zoom in and drag to move around; **Fit page**
+  zooms back out. Turning the page or hiding the toolbar also zooms out.
+- **Pen**, **Highlight** and **Erase** work with the stylus or one finger; two fingers still zoom
+  and pan. A palm resting on the screen is ignored while the stylus writes. The stylus eraser end
+  or button erases too.
 
 Markings and the last page you were on are stored in the app, per score. They are not written into
 the PDFs.
@@ -43,6 +46,7 @@ Every push to `main` is tested, built and published to GitHub Pages by
 | `src/viewer/viewer.ts` | The score screen: spreads, toolbar, pen input, undo |
 | `src/viewer/turns.ts` | How taps, swipes and keys turn pages |
 | `src/viewer/layout.ts` | Fitting pages to the screen; which pages a turn lands on |
+| `src/viewer/zoom.ts` | Pinch and pan maths; which part of a page is in view |
 | `src/viewer/renderer.ts` | pdf.js rendering, with neighbouring spreads drawn ahead of time |
 | `src/ink/` | Stroke model, drawing and storage |
 | `src/sw.ts` | Offline copy and the share target |

@@ -4,10 +4,9 @@ export type PagesPerScreen = 1 | 2 | 'auto';
 
 export interface Prefs {
   pagesPerScreen: PagesPerScreen;
-  fingerDraws: boolean;
 }
 
-const DEFAULTS: Prefs = { pagesPerScreen: 'auto', fingerDraws: false };
+const DEFAULTS: Prefs = { pagesPerScreen: 'auto' };
 
 export async function loadPrefs(): Promise<Prefs> {
   return { ...DEFAULTS, ...((await kv.get<Partial<Prefs>>('prefs')) ?? {}) };
