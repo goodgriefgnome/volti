@@ -6,7 +6,7 @@ prototype. Anything marked **Open question** is not settled, so ask the user rat
 
 The working prototype is [`prototypes/volti-setlists.html`](prototypes/volti-setlists.html): one
 self-contained page with no dependencies. It draws five made-up scores, shows a tablet-shaped app
-(the library with setlists, and the reader) and, beside it, the data Volti would store. Section 9
+(the library with setlists, and the reader) and, beside it, the data Volti would store. Section 10
 maps its code to this document.
 
 ---
@@ -37,6 +37,8 @@ cuts changed. The user walked it back: it was more than setlists need. Nothing o
 | What a setlist owns | **Only an order of pieces, and which part of each to play.** Cuts and markings always belong to the piece. |
 | Which part of a piece a setlist plays | **A span of the piece's cuts**, from a first cut to a last, in the piece's order. **No reordering**, skipping or repeating within a piece. |
 | Where the part is chosen | **In the reader**: a strip of the piece's frames, with its cuts on them. |
+| Pages inserted at a part's edge | **The part grows** to include pages inserted right before its first cut or right after its last, from that setlist's reader. |
+| Named parts (later) | **Pieces will have named parts that setlists refer to**, not copy, so changing one changes every setlist that plays it (section 8). |
 | Moving between pieces while reading | **One continuous score.** Turning past the end of a piece goes into the next. Each piece starts on a fresh screen. A list in the toolbar jumps to any piece. |
 | Where setlists live | **A Setlists section above the scores** on the library page. There is no separate setlist screen. |
 | Tapping a setlist or a score | **Always opens the reader.** A setlist's pieces show by **expanding its row** (they slide open) with an arrow button; its **⋯ button** has the rest. |
@@ -100,14 +102,14 @@ updates the parts that name them. Do it in the same commit, so undo restores bot
 | `joinNext(a, b)`: a takes b's music, b's id goes | A part that starts or ends on **b** now does on **a**. |
 | `remove(X)` (deleted or archived) | A part that **starts** on X starts on the next cut; one that **ends** on X ends on the one before. A part that was only X plays the whole piece. |
 | `setEdge`, `restoreEdge`, `setPad` | Nothing: ids don't change. |
-| `insertPages` / `insertArchived` | Nothing: new cuts inside a part are played; new cuts outside it aren't. |
+| `insertPages` / `insertArchived` | New cuts inside a part are played. New cuts **right before a part's first cut or right after its last**, inserted **from that setlist's reader**, join the part: its `first` or `last` moves to the outermost new cut. Inserted from anywhere else (the piece's reader, another setlist), they stay outside it. |
 
 After any of these, a `first` that is now the piece's first cut, or a `last` that is now its last,
 is cleared, so the part keeps following the piece's start or end.
 
-**Open question:** when pages are inserted right after a part's last cut, from that setlist's
-reader, should the part grow to include them? The prototype doesn't insert pages at all. Probably
-yes, since that is the music you were looking at.
+Growing the part on insert was the user's decision: pages inserted at a part's edge from the
+setlist you are reading are music you mean to play there. The prototype doesn't insert pages, so
+this isn't shown in it.
 
 The piece reader needs the setlists that hold the piece to do this. Load them when a piece opens:
 there are few.
@@ -224,7 +226,6 @@ the pieces.
 
 ## 7. Open questions
 
-- **Inserting pages at a part's end** (section 4).
 - **A piece deleted from the library** (an imported PDF removed). Proposal: its entries stay,
   marked Missing, so the setlist recovers if the file comes back. That needs scores to be matched
   again, by file name for instance.
@@ -234,7 +235,27 @@ the pieces.
 
 ---
 
-## 8. Building it into Volti: suggested plan
+## 8. Later: named parts on pieces
+
+The user will want to **define named parts on a piece** ("Verse 1", "Short ending") and have
+setlists **refer to them rather than copy them**. Changing a piece's named part then changes every
+setlist that plays it. Not part of this work, but build so it fits:
+
+- A named part is the same span, stored on the piece:
+  `Piece.parts: { id: string; name: string; first?: string; last?: string }[]`.
+- An entry then plays either its own span or a named part: `Entry.part?: string` (a part id) takes
+  the place of `first` and `last`. To make that easy, keep the span logic (`spanOf`, the fix-ups in
+  section 4) working on any `{ first?, last? }`, not on entries only.
+- The fix-ups in section 4 must then also run on the piece's named parts. The insert rule applies
+  when inserting from a setlist's reader that plays that named part.
+- The Part picker would list the piece's named parts above the strip, plus "Save as a named
+  part…". Choosing one makes the entry refer to it.
+- **Open question for then:** deleting a named part that setlists use. Probably copy its span into
+  each entry that refers to it, so those setlists keep playing the same music.
+
+---
+
+## 9. Building it into Volti: suggested plan
 
 1. **A pure model module, with unit tests first:** `src/setlists/model.ts`, with `spanOf`, entry
    creation, and the part fix-ups of section 4. Test each piece edit with parts that start, end
@@ -258,7 +279,7 @@ Rules for this repo:
 
 ---
 
-## 9. Prototype map
+## 10. Prototype map
 
 | Concern | Where in `prototypes/volti-setlists.html` |
 |---|---|

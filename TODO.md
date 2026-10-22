@@ -8,6 +8,9 @@ Pieces, cuts and frames are built for PDFs (`src/pieces/`, `src/viewer/edit.ts`)
   prototype in [docs/prototypes/volti-setlists.html](docs/prototypes/volti-setlists.html). A list
   of pieces read as one continuous score, each played whole or as a span of its cuts. Cuts and
   markings always belong to the piece; edits to a piece keep the spans on the same music.
+- **Named parts on pieces** (later): spans defined and named on the piece, which setlists refer to
+  instead of copying, so changing one changes every setlist that plays it. See section 8 of the
+  setlists design.
 - **Whiteout** tool, for hiding a 1st ending on the 2nd time through (an annotation, not a cut).
 - **Images as a source:** a set of images ordered by file name, scaled to a common width.
 - **A piece's page range:** a PDF may hold several pieces; the insert picker should show the
