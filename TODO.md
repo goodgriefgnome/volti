@@ -1,38 +1,31 @@
 # TODO
 
-## Pieces, systems and setlists (designed, not built)
+## Pieces, pages and setlists (designed, not built)
 
-Decisions so far; a working sketch is the "Volti reflow" prototype.
+Decisions so far; a working sketch is the "Volti pages" prototype. (An earlier sketch built pieces
+from systems; it was dropped as more complicated than it was worth.)
 
-- A **source** is a PDF, an image, or a set of images (ordered by file name). Any page image can
-  come from any source.
-- A **clip** is a rectangle on a source page, normally one system. Systems are the atomic unit.
-  Systems can be found automatically (rows of ink grouped into staves) and adjusted by hand.
-- A **piece** has a title and a key (tags come later, for search) and a played order: a list of
-  spans, each "play from system X to system Y" in page order. A repeat is another span, e.g.
-  1a→1c, 1b→1c, 1d→2d. Reordering single systems should almost never be needed, so the UI works
-  in passes built on the page itself. The page normally edits system outlines; "Add a pass" arms
-  the next two taps: the system where the pass starts, then where it ends (possibly on a later
-  page). Each pass shows as a numbered bar in a gutter beside the page, next to the systems it
-  plays.
-- A piece comes from **one PDF**, or from a set of images whose page widths are meant to match.
-- The reader **reflows** the played systems onto the screen: stacked down a column, as many as
-  fit, then the next column, then the next screen. Forward always means "next screenful",
-  whatever jumps the played order makes.
-- Systems keep **one consistent scale** within a piece, measured in page widths: the widest
-  stretch of the played systems fills the column, and every system keeps its printed size and
-  position across the page (an indented first system stays indented, a short last line stays
-  short). Only a system taller than the screen is shrunk.
-- **Ink** belongs to one system within one pass, stored relative to the clip. A marking on the 2nd
-  time through a repeat does not appear on the 1st. Hiding a 1st ending on the 2nd time is an
-  annotation (a whiteout tool), not part of the played order.
-- A new file becomes one piece in page order; it can be split or rearranged later.
-- A **setlist** is a list of pieces with its own copy of each piece's spans; cuts shorten or split
-  passes; hiding part of a system is an annotation. When a piece changes, offer a checkbox per setlist that contains it to
-  update that setlist. Archived setlists are frozen.
+- A **source** is a PDF, an image, or a set of images (ordered by file name). A piece comes from
+  **one PDF**, or from a set of images whose page widths are meant to match.
+- A **piece** has a title, a key and an orientation (portrait or landscape); tags come later, for
+  search. Its played order is a list of **pages**, and a page can appear more than once (a repeat
+  lists the page again). A new file becomes one piece, every page once, in order.
+- Each page in the played order is kept as one or more horizontal **parts**. A gap between parts
+  is a **cut** (also at the top or bottom, to trim); two parts that touch are a **split**. Both are
+  dotted lines dragged up and down on the page.
+- **Reflow**: half-screens (landscape: two side by side) have the page's own shape and scale.
+  Parts are stacked in order; a part goes on the current half-screen if it fits, otherwise it
+  starts the next one. A split lets the top of a page join the half-screen before, so a page
+  that was mostly cut away isn't followed by an early turn. While editing, a marker shows where
+  the half-screen before runs out of room, so you can see where a split should go.
+- **Ink** belongs to one page of the played order (not to the source page), so a marking on the
+  2nd time through a repeat doesn't appear on the 1st. Hiding a 1st ending is an annotation (a
+  whiteout tool), not a cut.
+- A **setlist** is a list of pieces with its own copy of each piece's played order, normally with
+  more cuts. When a piece changes, offer a checkbox per setlist that contains it to update that
+  setlist. Archived setlists are frozen.
 - Replacing a PDF with a new edition is not supported yet.
-- Later: synthetic pages (systems arranged by hand), jump markers (D.S., coda) that generate the
-  played order, tags.
+- Later: synthetic pages, jump markers (D.S., coda), tags.
 
 ## Data export
 
