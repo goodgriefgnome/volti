@@ -2,8 +2,8 @@
 
 ## Pieces, pages and setlists (designed, not built)
 
-Decisions so far; a working sketch is the "Volti frames" prototype. (An earlier sketch built pieces
-from systems; it was dropped as more complicated than it was worth.)
+The full design is in [docs/frames-design.md](docs/frames-design.md), with a working prototype in
+[docs/prototypes/volti-frames.html](docs/prototypes/volti-frames.html). Summary:
 
 - A **source** is a PDF, an image, or a set of images (ordered by file name). A piece comes from
   **one PDF**, or from a set of images whose page widths are meant to match.

@@ -1,0 +1,729 @@
+<title>Volti Frames Prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* One screen-shaped view: the score as you will read it, edited in place. */
+:root {
+  --bg: #f2f3f6;
+  --surface: #ffffff;
+  --fg: #16181d;
+  --muted: #5b6170;
+  --line: #dde0e7;
+  --accent: #8a5a12;
+  --accent-soft: rgba(138, 90, 18, 0.14);
+  --accent-fg: #ffffff;
+  --select: #1f4fd1;
+  --select-soft: rgba(31, 79, 209, 0.14);
+  --stage: #1b1d22;
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-brand: "Iowan Old Style", "Palatino Linotype", Palatino, "Noto Serif", Georgia, serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121419; --surface: #1b1e25; --fg: #e9eaee; --muted: #9aa0ad; --line: #2c313b;
+    --accent: #d6a64a; --accent-soft: rgba(214, 166, 74, 0.18); --accent-fg: #17130a;
+    --select: #7d9cff; --select-soft: rgba(125, 156, 255, 0.18); --stage: #0c0d10;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121419; --surface: #1b1e25; --fg: #e9eaee; --muted: #9aa0ad; --line: #2c313b;
+  --accent: #d6a64a; --accent-soft: rgba(214, 166, 74, 0.18); --accent-fg: #17130a;
+  --select: #7d9cff; --select-soft: rgba(125, 156, 255, 0.18); --stage: #0c0d10;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font: 15px/1.45 var(--font-ui);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 16px 32px;
+}
+h1 { margin: 0; font: italic 600 1.7rem/1.1 var(--font-brand); }
+h2 { margin: 0; font-size: 1rem; }
+p { margin: 0; }
+.wrap { max-width: 1600px; margin: 0 auto; display: grid; gap: 14px; }
+header { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; }
+header p { color: var(--muted); max-width: 75ch; }
+.panes { display: grid; gap: 14px; grid-template-columns: 1fr; align-items: start; }
+@media (min-width: 1100px) { .panes { grid-template-columns: minmax(0, 1fr) minmax(280px, 340px) minmax(0, 1.1fr); } }
+.pane { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.pane-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.hint { color: var(--muted); font-size: 13px; }
+.row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+button, select, .filebtn {
+  font: inherit; font-size: 14px; min-height: 38px; padding: 6px 12px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer;
+}
+button.primary, .filebtn { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+button[aria-pressed="true"] { background: var(--fg); color: var(--surface); border-color: var(--fg); }
+button:disabled { opacity: .4; cursor: default; }
+button:focus-visible, select:focus-visible, input:focus-visible, .filebtn:focus-within { outline: 3px solid var(--select); outline-offset: 2px; }
+input[type="text"] { font: inherit; min-height: 38px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); min-width: 0; }
+label.field { display: grid; gap: 2px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; min-width: 0; }
+label.field input { text-transform: none; letter-spacing: 0; font-size: 15px; color: var(--fg); }
+.small { font-size: 13px; }
+.num { font-variant-numeric: tabular-nums; }
+input[type="range"] { width: 140px; accent-color: var(--accent); }
+
+
+.empty { color: var(--muted); padding: 10px 2px; }
+.wrap { max-width: 1400px; gap: 10px; grid-template-columns: minmax(0, 1fr); }
+.bar { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
+.bar .sep { width: 1px; align-self: stretch; background: var(--line); }
+.bar input[type="text"] { width: 12em; }
+.bar input.key { width: 7em; }
+.bar input[type="number"] { font: inherit; width: 4.5em; min-height: 38px; padding: 4px 6px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
+.picker { position: absolute; z-index: 6; left: 50%; top: 14px; transform: translateX(-50%); width: min(94%, 760px); display: grid; gap: 8px; background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 12px; padding: 12px; box-shadow: 0 12px 32px rgba(0,0,0,.35); }
+.picker[hidden] { display: none; }
+.picker .grow { flex: 1; }
+.thumbs { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 8px; width: 100%; }
+.thumbs button { flex: none; padding: 4px; min-height: 0; display: grid; gap: 2px; justify-items: center; font-size: 12px; color: var(--muted); border-radius: 8px; }
+.thumbs button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--fg); font-weight: 600; }
+.thumbs canvas { width: 84px; height: auto; display: block; box-shadow: 0 0 0 1px var(--line); background: #fff; }
+.toggle { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; min-height: 38px; }
+.toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
+.menu { position: absolute; z-index: 5; min-width: 200px; background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 10px; padding: 4px; display: grid; box-shadow: 0 8px 24px rgba(0,0,0,.28); }
+.menu[hidden] { display: none; }
+.menu button { border: 0; background: none; text-align: left; border-radius: 6px; min-height: 40px; }
+.menu button:hover, .menu button:focus-visible { background: var(--accent-soft); }
+.menu .label { font-size: 12px; color: var(--muted); padding: 4px 12px 2px; }
+.stage { position: relative; min-width: 0; overflow: hidden; background: var(--stage); border-radius: 12px; padding: 10px; display: grid; place-items: center; }
+#screen { display: block; touch-action: none; }
+.nav { display: flex; gap: 10px; align-items: center; justify-content: center; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Volti frames</h1>
+    <p>Prototype: you edit the score as you'll read it. A piece is a run of cuts from the PDF's pages. Drag the faint tabs to trim a cut; right-click or long-press for more; tap “✂ split page here” to move the music above it onto the frame before. The example score is made up; open your own PDF or images to try it on real music.</p>
+  </header>
+
+  <div class="bar">
+    <label class="filebtn">Open PDF or images<input type="file" id="file" accept="application/pdf,.pdf,image/*" multiple hidden></label>
+    <input type="text" id="title" aria-label="Title" placeholder="Title">
+    <input type="text" id="key" class="key" aria-label="Key" placeholder="Key">
+    <span class="sep"></span>
+    <button id="landscape" aria-pressed="true">Landscape</button>
+    <button id="portrait" aria-pressed="false">Portrait</button>
+  </div>
+
+  <div class="stage" id="stage"><canvas id="screen" aria-label="Tablet screen"></canvas><div class="menu" id="menu" role="menu" hidden></div>
+    <div class="picker" id="insert" role="dialog" aria-labelledby="pickTitle" hidden>
+      <strong id="pickTitle"></strong>
+      <div class="thumbs" id="thumbs" role="group" aria-label="Pages of the score"></div>
+      <div class="row"><span class="hint" id="pickHint"></span><span class="grow"></span><button id="pickCancel">Cancel</button><button id="pickInsert" class="primary">Insert</button></div>
+    </div>
+  </div>
+  <div class="nav">
+    <button id="prevScreen">◀ Back</button>
+    <span class="num" id="screenLabel"></span>
+    <button id="nextScreen" class="primary">Forward ▶</button>
+  </div>
+  <p class="hint" id="hint"></p>
+  <p class="status" id="status" role="status"></p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+const DPR = () => window.devicePixelRatio || 1;
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const RENDER_WIDTH = 1600;
+const ROOM_CUE = 0.2;   // show the room left on the frame before when more than this much of it is empty
+
+/* ---------- model ----------
+   The played order is a flat list of parts: horizontal bands of source pages (y0..y1, fractions of
+   the page height). A gap between two parts of the same page is a cut; parts that touch are a split.
+   A frame has the page's shape. Parts are stacked in order: a part goes on the current frame if it
+   fits, otherwise it starts the next one. Landscape shows two frames side by side. */
+const state = {
+  pages: [],          // canvases
+  parts: [],          // { id, page, y0, y1, pad }: pad is white space above the part when it starts a frame, in page widths
+  frame: 0,           // the current frame
+  landscape: true,
+};
+let nextId = 1;
+const part = (page, y0 = 0, y1 = 1) => ({ id: nextId++, page, y0, y1 });
+const aspect = (p) => state.pages[p].height / state.pages[p].width;
+const frameH = () => aspect(0); // in page widths
+const per = () => (state.landscape ? 2 : 1);
+const say = (t) => { $('status').textContent = t; };
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+function pack() {
+  const H = frameH(), frames = [];
+  let open = null;
+  state.parts.forEach((p, i) => {
+    const h = (p.y1 - p.y0) * aspect(p.page);
+    if (!open || open.fill + h > H + 1e-6) { open = { items: [], fill: Math.min(p.pad || 0, H - h) }; frames.push(open); }
+    open.items.push(i); open.fill += h;
+  });
+  return frames;
+}
+const frameOf = (frames, id) => frames.findIndex((f) => f.items.some((i) => state.parts[i].id === id));
+const joined = (a, b) => a.page === b.page && Math.abs(a.y1 - b.y0) < 1e-6;
+
+/* Drop parts that were cut away entirely, and rejoin a split whose halves have ended up on one frame. */
+function tidy() {
+  state.parts = state.parts.filter((p) => p.y1 - p.y0 > 0.004);
+  for (;;) {
+    const frames = pack();
+    const f = frames.find((f) => f.items.some((i, n) => n > 0 && joined(state.parts[f.items[n - 1]], state.parts[i])));
+    if (!f) return;
+    const n = f.items.findIndex((i, n) => n > 0 && joined(state.parts[f.items[n - 1]], state.parts[i]));
+    const a = state.parts[f.items[n - 1]], b = state.parts[f.items[n]];
+    a.y1 = b.y1; state.parts.splice(f.items[n], 1);
+  }
+}
+/** Reflow, then show the frame that holds the given part. */
+function reflow(focusId) {
+  tidy();
+  const frames = pack();
+  const f = focusId != null ? frameOf(frames, focusId) : -1;
+  state.frame = clamp(f >= 0 ? f : state.frame, 0, Math.max(0, frames.length - 1));
+  render();
+}
+
+/* ---------- ink, for putting a split in the white space between systems ---------- */
+const inkCache = new Map();
+function rowInk(page) {
+  if (inkCache.has(page)) return inkCache.get(page);
+  const c = state.pages[page], g = c.getContext('2d', { willReadFrequently: true });
+  const { data } = g.getImageData(0, 0, c.width, c.height);
+  const rows = new Float32Array(c.height);
+  for (let y = 0; y < c.height; y++) {
+    let n = 0;
+    for (let x = 0; x < c.width; x += 3) { const o = (y * c.width + x) * 4; if (data[o] + data[o + 1] + data[o + 2] < 450) n++; }
+    rows[y] = n / (c.width / 3);
+  }
+  inkCache.set(page, rows);
+  return rows;
+}
+/** The best place at or above `y` (but below `lo`) to split a page: the middle of the nearest blank band. */
+function snapSplit(page, y, lo) {
+  const rows = rowInk(page), H = rows.length;
+  const blank = (r) => rows[r] < 0.002;
+  let r = Math.floor(y * H);
+  const stop = Math.ceil(lo * H);
+  while (r > stop && !blank(r)) r--;                 // up out of any music
+  if (r <= stop) return y;
+  let top = r;
+  while (top > stop && blank(top - 1)) top--;        // the blank band runs from `top` to `r`
+  if (r - top < 6) return y;
+  return (top + r) / 2 / H;
+}
+
+/* ---------- drawing the screen ---------- */
+let G = null;    // geometry of the last drawing
+let hits = [];   // things on the screen you can touch
+let drag = null;
+
+function screenSize() {
+  const stage = $('stage');
+  const W = stage.clientWidth - 20;
+  const top = stage.getBoundingClientRect().top + scrollY;
+  const roomH = Math.max(320, innerHeight - (top - scrollY) - 110);
+  const ratio = state.landscape ? 10 / 16 : 16 / 10;
+  let w = W, h = W * ratio;
+  if (h > roomH && state.landscape) { h = roomH; w = h / ratio; }
+  return { w, h };
+}
+
+function render() {
+  const frames = drag?.frozen || pack();
+  const P = per();
+  const count = Math.max(1, Math.ceil(frames.length / P));
+  const screen = Math.floor(state.frame / P);
+  const { w: W, h: Hs } = screenSize();
+  const d = DPR(), cv = $('screen');
+  cv.width = Math.round(W * d); cv.height = Math.round(Hs * d);
+  cv.style.width = W + 'px'; cv.style.height = Hs + 'px';
+  const g = cv.getContext('2d');
+  g.setTransform(d, 0, 0, d, 0, 0);
+  g.fillStyle = css('--stage'); g.fillRect(0, 0, W, Hs);
+
+  const H = frameH(), pad = 6;
+  let fh = Hs - 2 * pad, fw = fh / H;
+  if (fw * P + pad * (P + 1) > W) { fw = (W - pad * (P + 1)) / P; fh = fw * H; }
+  const x0 = (W - P * fw - (P - 1) * pad) / 2, y0 = (Hs - fh) / 2;
+  const s = fw; // screen pixels per page width
+  G = { s, fw, fh };
+  hits = [];
+  const accent = css('--accent'), select = css('--select');
+
+  for (let j = 0; j < P; j++) {
+    const fi = screen * P + j, F = frames[fi];
+    const fx = x0 + j * (fw + pad), fy = y0;
+    g.fillStyle = F ? '#fff' : 'rgba(255,255,255,.05)'; g.fillRect(fx, fy, fw, fh);
+    if (!F) continue;
+    hits.push({ kind: 'frame', fi, x: fx, y: fy, w: fw, h: fh });
+
+    // What each part shows: while an edge is dragged, the music being cut stays on screen, hatched.
+    const items = F.items.map((i) => {
+      const p = state.parts[i];
+      let d0 = p.y0, d1 = p.y1, hatch = null;
+      if (drag?.kind === 'edge' && drag.pi === i) {
+        if (drag.edge === 'bottom') { d1 = Math.max(p.y1, drag.orig); if (p.y1 < drag.orig) hatch = [p.y1, drag.orig]; }
+        else { d0 = Math.min(p.y0, drag.orig); if (p.y0 > drag.orig) hatch = [drag.orig, p.y0]; }
+      }
+      return { i, p, d0, d1, hatch, k: aspect(p.page) * s };
+    });
+    const first = items[0], padH = Math.min(first.p.pad || 0, Math.max(0, H - (first.d1 - first.d0) * aspect(first.p.page))) * s;
+    let y = fy + padH;
+    for (const it of items) { it.top = y; y += (it.d1 - it.d0) * it.k; }
+    // Dragging a cut's top tab up brings back music above it, but the cut keeps its place on the
+    // frame: it grows downwards, pushing the music below it down, like dragging its bottom tab.
+    const at = (it, v) => it.top + (v - it.d0) * it.k;
+
+    g.save(); g.beginPath(); g.rect(fx, fy, fw, fh); g.clip();
+    for (const it of items) {
+      const src = state.pages[it.p.page];
+      g.drawImage(src, 0, it.d0 * src.height, src.width, (it.d1 - it.d0) * src.height, fx, it.top, fw, (it.d1 - it.d0) * it.k);
+      if (it.hatch) hatchBand(g, fx, at(it, it.hatch[0]), fw, (it.hatch[1] - it.hatch[0]) * it.k);
+      hits.push({ kind: 'part', fi, i: it.i, it, x: fx, y: it.top, w: fw, h: (it.d1 - it.d0) * it.k });
+    }
+
+    // The room the frame before has left: a faint band, and a line you can tap to pull music up.
+    const prev = frames[fi - 1];
+    const lastBefore = prev && state.parts[prev.items.at(-1)];
+    const continues = lastBefore && lastBefore.page === first.p.page && first.p.y0 >= lastBefore.y1 - 1e-6;
+    const ry = prev && fy + (H - prev.fill) * s;
+    // No cue when the line would sit on (or below) the end of the first part: there is nothing useful to split.
+    const firstEnd = first.top + (first.d1 - first.d0) * first.k;
+    if (prev && !drag && !continues && H - prev.fill > ROOM_CUE * H && ry < firstEnd - 0.03 * fh) {
+      g.fillStyle = 'rgba(138,90,18,.06)'; g.fillRect(fx, fy, fw, ry - fy);
+      g.save(); g.strokeStyle = accent; g.globalAlpha = .7; g.lineWidth = 2; g.setLineDash([7, 5]);
+      g.beginPath(); g.moveTo(fx, ry); g.lineTo(fx + fw, ry); g.stroke(); g.restore();
+      pill(g, '✂ split page here', fx + fw / 2, ry, accent, '#fff', 'center');
+      hits.unshift({ kind: 'room', fi, ry, x: fx, y: ry - 16, w: fw, h: 32 });
+    }
+
+    // Seams: where a part starts or ends. Each has a tab on the left above it (the end of the part
+    // above) and a tab on the right below it (the start of the part below).
+    for (let n = 0; n <= items.length; n++) {
+      const above = items[n - 1], below = items[n];
+      const yA = above && at(above, above.p.y1), yB = below && at(below, below.p.y0);
+      const cut = above && below && above.p.page === below.p.page && below.p.y0 > above.p.y1 + 1e-6;
+      const ys = yB ?? yA;
+      if (above && below) {
+        g.save(); g.strokeStyle = cut ? accent : 'rgba(80,86,100,.55)'; g.lineWidth = cut ? 2 : 1; g.setLineDash(cut ? [7, 5] : [3, 4]);
+        g.beginPath(); g.moveTo(fx, ys); g.lineTo(fx + fw, ys); g.stroke(); g.restore();
+        if (cut) pill(g, '✂ cut', fx + fw / 2, ys, accent, '#fff', 'center');
+      }
+      const active = (i, edge) => drag?.kind === 'edge' && drag.pi === i && drag.edge === edge;
+      if (above) {
+        tab(g, fx + fw - TAB_W, yA, 'up', 'right', active(above.i, 'bottom'));
+        hits.unshift({ kind: 'edge', edge: 'bottom', fi, i: above.i, x: fx + fw - 56, y: yA - 30, w: 56, h: 34, seamY: yA });
+      }
+      if (below) {
+        tab(g, fx, yB, 'down', 'left', active(below.i, 'top'));
+        hits.unshift({ kind: 'edge', edge: 'top', fi, i: below.i, x: fx, y: yB - 4, w: 56, h: 34, seamY: yB });
+      }
+    }
+    // A grey tab at the right of the frame's top edge pulls white space in above the music.
+    const padY = fy + padH, padOn = drag?.kind === 'pad' && drag.fi === fi;
+    if (padH > 0.5) {
+      g.save(); g.strokeStyle = accent; g.globalAlpha = .5; g.lineWidth = 1; g.setLineDash([3, 4]);
+      g.beginPath(); g.moveTo(fx, padY); g.lineTo(fx + fw, padY); g.stroke(); g.restore();
+    }
+    tab(g, fx + fw - TAB_W, padY, 'down', 'right', padOn, true);
+    hits.unshift({ kind: 'pad', fi, i: first.i, x: fx + fw - 56, y: padY - 4, w: 56, h: 34 });
+    g.restore();
+  }
+
+  $('screenLabel').textContent = `Screen ${screen + 1} of ${count}`;
+  $('prevScreen').disabled = screen === 0;
+  $('nextScreen').disabled = screen >= count - 1;
+  $('hint').textContent = 'Each cut has a tab at its top left and bottom right: drag one to trim that end, or the other way to bring music back. The score reflows when you let go. Right-click or long-press a tab, the music or the space around it for more: restore music, join cuts, insert pages, remove a cut. The grey tab at the top right of a frame adds white space above the music.';
+}
+function hatchBand(g, x, y, w, h) {
+  if (h <= 0) return;
+  g.fillStyle = 'rgba(40,44,54,.5)'; g.fillRect(x, y, w, h);
+  g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip();
+  g.strokeStyle = 'rgba(255,255,255,.4)'; g.lineWidth = 1;
+  for (let t = -h; t < w; t += 12) { g.beginPath(); g.moveTo(x + t, y + h); g.lineTo(x + t + h, y); g.stroke(); }
+  g.restore();
+}
+const TAB_W = 30;
+/** A drag tab, hanging above the seam ('up') or below it ('down'); faint until it is being dragged. */
+function tab(g, left, y, dir, side, active, space) {
+  const w = TAB_W, h = 14, top = dir === 'up' ? y - h : y;
+  g.save();
+  g.globalAlpha = active ? 1 : 0.38;
+  g.fillStyle = active ? css('--select') : space ? '#5b6170' : css('--accent'); g.beginPath();
+  // Square where it meets the seam and the frame's edge; rounded on the one free corner.
+  const r = 6, radii = dir === 'up' ? (side === 'right' ? [r, 0, 0, 0] : [0, r, 0, 0]) : (side === 'right' ? [0, 0, 0, r] : [0, 0, r, 0]);
+  g.roundRect(left, top, w, h, radii); g.fill();
+  g.strokeStyle = '#fff'; g.lineWidth = 1.2;
+  for (const dy of [-2.5, 1.5]) { g.beginPath(); g.moveTo(left + 8, top + h / 2 + dy); g.lineTo(left + w - 8, top + h / 2 + dy); g.stroke(); }
+  g.restore();
+}
+function pill(g, text, x, y, bg, fg, align) {
+  g.font = '600 12px system-ui, sans-serif';
+  const w = g.measureText(text).width + 14;
+  const x0 = align === 'center' ? x - w / 2 : x;
+  g.fillStyle = bg; g.beginPath(); g.roundRect(x0, y - 10, w, 20, 10); g.fill();
+  g.fillStyle = fg; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillText(text, x0 + 7, y);
+}
+
+/* ---------- touching the screen ---------- */
+function point(ev) { const r = $('screen').getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top }; }
+const inside = (h, p) => p.x >= h.x && p.x <= h.x + h.w && p.y >= h.y && p.y <= h.y + h.h;
+const pageYOf = (it, y) => it.d0 + (y - it.top) / it.k;
+
+const LONG_PRESS = 500; // ms
+let press = null;      // a finger or button held down, which becomes a long press if it doesn't move
+$('screen').addEventListener('pointerdown', (ev) => {
+  if (ev.button !== 0) return;
+  closeMenu();
+  const p = point(ev);
+  const h = hits.find((h) => (h.kind === 'edge' || h.kind === 'room' || h.kind === 'pad') && inside(h, p));
+  if (h?.kind === 'room') { pullUp(h); return; }
+  if (h?.kind === 'pad') {
+    drag = { kind: 'pad', hit: h, pi: h.i, fi: h.fi, startY: p.y, orig: state.parts[h.i].pad || 0, frozen: pack() };
+  } else if (h) {
+    const pt = state.parts[h.i];
+    drag = { kind: 'edge', hit: h, pi: h.i, edge: h.edge, fi: h.fi, startY: p.y, frozen: pack(),
+             orig: h.edge === 'bottom' ? pt.y1 : pt.y0, k: aspect(pt.page) * G.s };
+  } else {
+    const f = hits.find((h) => h.kind === 'frame' && inside(h, p));
+    if (f && f.fi !== state.frame) { state.frame = f.fi; render(); }
+  }
+  // Held still for a moment: the context menu, as a right-click would give.
+  press = { p, timer: setTimeout(() => { press = null; drag = null; render(); openContext(p); }, LONG_PRESS) };
+  $('screen').setPointerCapture(ev.pointerId);
+});
+function endPress() { if (press) { clearTimeout(press.timer); press = null; } }
+$('screen').addEventListener('pointermove', (ev) => {
+  const p = point(ev);
+  if (press && Math.hypot(p.x - press.p.x, p.y - press.p.y) > 6) endPress();
+  if (!drag) return;
+  if (Math.abs(p.y - drag.startY) > 4) drag.moved = true;
+  if (!drag.moved) return;
+  if (drag.kind === 'pad') {
+    state.parts[drag.pi].pad = clamp(drag.orig + (p.y - drag.startY) / G.s, 0, frameH() * 0.6);
+  } else {
+    const parts = state.parts, pt = parts[drag.pi], v = drag.orig + (p.y - drag.startY) / drag.k;
+    if (drag.edge === 'bottom') {
+      // Up to the cut's own top (cutting all of it), down to where the next cut of the page starts.
+      const next = parts[drag.pi + 1];
+      const hi = next && next.page === pt.page && next.y0 >= drag.orig - 1e-6 ? next.y0 : 1;
+      pt.y1 = clamp(v, pt.y0, hi);
+    } else {
+      const prev = parts[drag.pi - 1];
+      const lo = prev && prev.page === pt.page && prev.y1 <= drag.orig + 1e-6 ? prev.y1 : 0;
+      pt.y0 = clamp(v, lo, pt.y1);
+    }
+  }
+  render();
+});
+function endDrag() {
+  endPress();
+  if (!drag) return;
+  const d = drag; drag = null;
+  if (!d.moved) { render(); return; }
+  if (d.kind === 'pad') { reflow(state.parts[d.pi].id); return; }
+  const pt = state.parts[d.pi];
+  // Keep showing the music around the seam: the cut itself, or if it was cut away entirely, its neighbour.
+  const near = pt.y1 - pt.y0 > 0.004 ? pt : state.parts[d.pi + (d.edge === 'bottom' ? 1 : -1)] || state.parts[d.pi - 1];
+  reflow(near?.id);
+}
+$('screen').addEventListener('pointerup', endDrag);
+$('screen').addEventListener('contextmenu', (ev) => {
+  ev.preventDefault();
+  endPress(); drag = null;
+  openContext(point(ev));
+});
+
+/** The context menu for whatever is at p: a tab, the music of a cut, or blank space on a frame. */
+function openContext(p) {
+  const tab = hits.find((h) => (h.kind === 'edge' || h.kind === 'pad') && inside(h, p));
+  if (tab) { openMenu(tab); return; }
+  const c = hits.find((h) => h.kind === 'part' && inside(h, p));
+  if (c) { showMenu(p.x, p.y, false, cutActions(c.i)); return; }
+  const f = hits.find((h) => h.kind === 'frame' && inside(h, p));
+  if (f) showMenu(p.x, p.y, false, blankActions(f.fi, p.y));
+}
+
+/* ---------- the tabs' menus ---------- */
+/* Each action returns the cut to keep in view after the score reflows, or false to skip the reflow. */
+function cutActions(i) {
+  const parts = state.parts, pt = parts[i];
+  const acts = [
+    ['Insert pages before this cut…', () => { openPicker(pt, false); return false; }],
+    ['Insert pages after this cut…', () => { openPicker(pt, true); return false; }],
+  ];
+  if (parts.length > 1) acts.push(['Remove this cut', () => { parts.splice(i, 1); return parts[i] || parts[i - 1]; }]);
+  return { title: `Cut from page ${pt.page + 1}`, acts };
+}
+/** Blank space on a frame, above its first cut or below its last: insert pages right there. */
+function blankActions(fi, y) {
+  const items = hits.filter((h) => h.kind === 'part' && h.fi === fi);
+  if (!items.length) return { title: 'Empty frame', acts: [] };
+  const above = y < items[0].y;
+  const pt = state.parts[above ? items[0].i : items.at(-1).i];
+  return { title: above ? 'Above the music' : 'Below the music', acts: [
+    ['Insert pages here…', () => { openPicker(pt, !above, 'Insert pages here'); return false; }],
+  ] };
+}
+function tabActions(h) {
+  const parts = state.parts, pt = parts[h.i], acts = [];
+  if (h.kind === 'pad') {
+    if (pt.pad > 0.001) acts.push(['Remove the white space', () => { pt.pad = 0; return pt; }]);
+    return { title: 'Space above the music', acts };
+  }
+  const top = h.edge === 'top', other = parts[h.i + (top ? -1 : 1)];
+  const samePage = other && other.page === pt.page && (top ? other.y1 <= pt.y0 + 1e-6 : other.y0 >= pt.y1 - 1e-6);
+  const [a, b] = top ? [other, pt] : [pt, other];
+  if (samePage && b.y0 - a.y1 > 1e-6) {
+    acts.push([top ? 'Restore the music cut out above' : 'Restore the music cut out below', () => { a.y1 = b.y1; parts.splice(parts.indexOf(b), 1); return a; }]);
+  } else if (samePage) {
+    acts.push([top ? 'Join with the cut above' : 'Join with the cut below', () => { a.y1 = b.y1; parts.splice(parts.indexOf(b), 1); return a; }]);
+  } else if (top ? pt.y0 > 0.001 : pt.y1 < 0.999) {
+    acts.push([top ? 'Restore the top of the page' : 'Restore the bottom of the page', () => { if (top) pt.y0 = 0; else pt.y1 = 1; return pt; }]);
+  }
+  if (parts.length > 1) acts.push(['Remove this cut', () => {
+    const i = parts.indexOf(pt); parts.splice(i, 1); return parts[i] || parts[i - 1];
+  }]);
+  return { title: `${top ? 'Top' : 'Bottom'} of this cut (page ${pt.page + 1})`, acts };
+}
+function openMenu(h) {
+  const right = h.x + h.w / 2 > G.fw;
+  showMenu(right ? h.x + h.w : h.x, h.y + h.h, right, tabActions(h));
+}
+/** Show a menu with its top corner at (x, y) on the screen canvas, opening leftwards if `right`. */
+function showMenu(x, y, right, { title, acts }) {
+  const menu = $('menu'); menu.replaceChildren();
+  menu.append(Object.assign(document.createElement('div'), { className: 'label', textContent: title }));
+  for (const [label, run] of acts) {
+    const b = Object.assign(document.createElement('button'), { textContent: label });
+    b.setAttribute('role', 'menuitem');
+    b.onclick = () => { closeMenu(); const keep = run(); if (keep !== false) reflow(keep?.id); };
+    menu.append(b);
+  }
+  if (!acts.length) menu.append(Object.assign(document.createElement('div'), { className: 'label', textContent: 'Nothing to undo here.' }));
+  menu.hidden = false;
+  // Place it beside the tab, inside the stage.
+  const st = $('stage').getBoundingClientRect(), cv = $('screen').getBoundingClientRect();
+  const left = clamp(cv.left - st.left + x - (right ? menu.offsetWidth : 0), 4, st.width - menu.offsetWidth - 4);
+  const top = clamp(cv.top - st.top + y + 4, 4, st.height - menu.offsetHeight - 4);
+  menu.style.left = left + 'px'; menu.style.top = top + 'px';
+  menu.querySelector('button')?.focus();
+}
+function closeMenu() { $('menu').hidden = true; }
+document.addEventListener('pointerdown', (ev) => { if (!ev.target.closest('#menu, #screen')) closeMenu(); });
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') { closeMenu(); closePicker(); } });
+$('screen').addEventListener('pointercancel', endDrag);
+
+/** Split the first part on frame `fi` where the room line is, and move its top onto the frame before. */
+function pullUp(h) {
+  const frames = pack(), F = frames[h.fi];
+  const pi = F.items[0], pt = state.parts[pi];
+  const room = (frameH() - frames[h.fi - 1].fill) / aspect(pt.page); // in page heights
+  const y = snapSplit(pt.page, pt.y0 + room, pt.y0);
+  if (y - pt.y0 < 0.01 || pt.y1 - y < 0.01) { say('There is no gap between systems to split at.'); return; }
+  const lower = part(pt.page, y, pt.y1);
+  pt.y1 = y;
+  state.parts.splice(pi + 1, 0, lower);
+  reflow(pt.id);
+  say(`Split page ${pt.page + 1}: its top is now on frame ${state.frame + 1}.`);
+}
+
+/* ---------- buttons ---------- */
+$('prevScreen').onclick = () => { state.frame = (Math.floor(state.frame / per()) - 1) * per(); render(); };
+$('nextScreen').onclick = () => { state.frame = (Math.floor(state.frame / per()) + 1) * per(); render(); };
+document.addEventListener('keydown', (e) => {
+  if (e.target.closest('input, select, textarea')) return;
+  if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); if (!$('nextScreen').disabled) $('nextScreen').click(); }
+  if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); if (!$('prevScreen').disabled) $('prevScreen').click(); }
+});
+$('landscape').onclick = () => setOrientation(true);
+$('portrait').onclick = () => setOrientation(false);
+function setOrientation(l) {
+  state.landscape = l;
+  $('landscape').setAttribute('aria-pressed', String(l));
+  $('portrait').setAttribute('aria-pressed', String(!l));
+  render();
+}
+let insertAt = null; // { id, after }: the cut the new pages go next to
+function openPicker(pt, after, title) {
+  insertAt = { id: pt.id, after };
+  $('pickTitle').textContent = title || `Insert pages ${after ? 'after' : 'before'} this cut (page ${pt.page + 1})`;
+  pick.a = pick.b = pt.page; pick.next = 'a';
+  syncPick();
+  $('insert').hidden = false;
+  $('thumbs').children[pt.page]?.scrollIntoView({ inline: 'center', block: 'nearest' });
+  $('pickInsert').focus();
+}
+function closePicker() { $('insert').hidden = true; insertAt = null; }
+$('pickCancel').onclick = closePicker;
+$('pickInsert').onclick = () => insert();
+/* Picking pages: tap one page, then tap another to make a range (or the same one again for just it). */
+const pick = { a: 0, b: 0, next: 'a' };
+function pickPage(n) {
+  if (pick.next === 'a') { pick.a = pick.b = n; pick.next = 'b'; }
+  else { pick.b = n; pick.next = 'a'; }
+  syncPick();
+}
+function syncPick() {
+  const lo = Math.min(pick.a, pick.b), hi = Math.max(pick.a, pick.b);
+  [...$('thumbs').children].forEach((el, n) => el.setAttribute('aria-pressed', String(n >= lo && n <= hi)));
+  $('pickHint').textContent = (lo === hi ? `Page ${lo + 1}` : `Pages ${pick.a + 1}–${pick.b + 1}`)
+    + (pick.next === 'b' ? '. Tap another page to insert a range.' : '. Tap a page to start again.');
+}
+function buildThumbs() {
+  const box = $('thumbs'); box.replaceChildren();
+  state.pages.forEach((src, n) => {
+    const b = document.createElement('button');
+    const c = document.createElement('canvas');
+    c.width = 168; c.height = Math.round(168 * src.height / src.width);
+    c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
+    b.append(c, Object.assign(document.createElement('span'), { textContent: n + 1 }));
+    b.setAttribute('aria-label', `Page ${n + 1}`);
+    b.onclick = () => pickPage(n);
+    box.append(b);
+  });
+  pick.a = pick.b = 0; pick.next = 'a';
+  syncPick();
+}
+function insert() {
+  const a = pick.a + 1, b = pick.b + 1;
+  const pages = [];
+  for (let p = a; a <= b ? p <= b : p >= b; p += a <= b ? 1 : -1) pages.push(part(p - 1));
+  const { id, after } = insertAt;
+  const i = state.parts.findIndex((p) => p.id === id);
+  state.parts.splice(after ? i + 1 : i, 0, ...pages);
+  closePicker();
+  reflow(pages[0].id);
+  say(`Inserted page${pages.length > 1 ? `s ${a}–${b}` : ` ${a}`}.`);
+}
+function pagesChanged() {
+  inkCache.clear();
+  buildThumbs();
+}
+
+/* ---------- opening files ---------- */
+async function loadPdf(file) {
+  const doc = await pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+  const pages = [];
+  for (let n = 1; n <= doc.numPages; n++) {
+    const page = await doc.getPage(n);
+    const vp1 = page.getViewport({ scale: 1 });
+    const vp = page.getViewport({ scale: RENDER_WIDTH / vp1.width });
+    const c = Object.assign(document.createElement('canvas'), { width: Math.round(vp.width), height: Math.round(vp.height) });
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+    await page.render({ canvasContext: g, viewport: vp }).promise;
+    pages.push(c);
+    say(`Reading ${file.name}: page ${n} of ${doc.numPages}…`);
+  }
+  return pages;
+}
+async function loadImage(file) {
+  const bmp = await createImageBitmap(file);
+  const scale = RENDER_WIDTH / bmp.width; // the images of a piece are meant to be the same width
+  const c = Object.assign(document.createElement('canvas'), { width: RENDER_WIDTH, height: Math.round(bmp.height * scale) });
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(bmp, 0, 0, c.width, c.height);
+  return c;
+}
+$('file').onchange = async (ev) => {
+  const files = [...ev.target.files]; ev.target.value = '';
+  if (!files.length) return;
+  try {
+    const pdfs = files.filter((f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
+    const images = files.filter((f) => f.type.startsWith('image/')).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    let pages, name;
+    if (pdfs.length) { pages = await loadPdf(pdfs[0]); name = pdfs[0].name; }
+    else if (images.length) { pages = []; for (const f of images) pages.push(await loadImage(f)); name = images[0].name; }
+    else { say('Those files are not PDFs or images.'); return; }
+    // A new file becomes one piece, every page once, in order.
+    state.pages = pages; pagesChanged();
+    state.parts = pages.map((_, p) => part(p));
+    state.frame = 0;
+    $('title').value = name.replace(/\.[^.]+$/, ''); $('key').value = '';
+    setOrientation(pages[0].width < pages[0].height);
+    const skipped = files.length - (pdfs.length ? 1 : images.length);
+    say(`Opened ${pages.length} page${pages.length === 1 ? '' : 's'}.`
+      + (skipped ? ` A piece comes from one PDF or a set of images, so ${skipped} other file${skipped === 1 ? ' was' : 's were'} left out.` : ''));
+  } catch (err) {
+    console.error(err);
+    say(`Could not open that file: ${err.message}`);
+  }
+};
+
+/* ---------- example score (made up) ---------- */
+const EX_H = Math.round(RENDER_WIDTH * 1.414);
+const EX_TOPS = [[430, 1040, 1650], [200, 870, 1540], [200, 870, 1540]];
+const SYS_ABOVE = 60, SYS_BELOW = 270; // a system's ink, measured from the top line of its upper staff
+function drawExamplePage(n) {
+  const W = RENDER_WIDTH, H = EX_H;
+  const c = Object.assign(document.createElement('canvas'), { width: W, height: H });
+  const g = c.getContext('2d');
+  g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
+  g.fillStyle = g.strokeStyle = '#111';
+  const LEFT = 120, RIGHT = W - 90, sp = 15, LOW = 150;
+  if (n === 0) {
+    g.textAlign = 'center';
+    g.font = 'italic 56px Georgia, serif'; g.fillText('Sarabande', W / 2, 170);
+    g.font = '24px Georgia, serif'; g.fillText('Example score for the prototype', W / 2, 214);
+  }
+  g.textAlign = 'center'; g.font = '22px Georgia, serif'; g.fillText(String(n + 1), W / 2, H - 70);
+  let measure = 1 + n * 12;
+  EX_TOPS[n].forEach((top, s) => {
+    const last = n === 2 && s === 2;
+    const left = LEFT + (n === 0 && s === 0 ? 90 : 0), right = last ? RIGHT - 560 : RIGHT;
+    g.lineWidth = 2;
+    for (const st of [0, LOW]) for (let i = 0; i < 5; i++) { g.beginPath(); g.moveTo(left, top + st + i * sp); g.lineTo(right, top + st + i * sp); g.stroke(); }
+    g.lineWidth = 3; g.beginPath(); g.moveTo(left, top); g.lineTo(left, top + LOW + 4 * sp); g.stroke();
+    g.font = 'bold 40px Georgia, serif'; g.textAlign = 'left';
+    g.fillText('𝄞', left + 8, top + 50); g.fillText('𝄢', left + 8, top + LOW + 38);
+    const x0 = left + 90, bars = last ? 2 : 4, bw = (right - x0) / bars;
+    g.font = '20px Georgia, serif'; g.fillText(String(measure), left, top - 18);
+    let seed = (n * 7 + s * 13 + 3) % 17;
+    for (let b = 0; b < bars; b++) {
+      for (const st of [0, LOW]) for (let k = 0; k < 3; k++) {
+        seed = (seed * 37 + 11) % 97;
+        const nx = x0 + b * bw + 34 + k * (bw - 60) / 3;
+        const step = seed % 9; const ny = top + st + 60 - step * (sp / 2);
+        g.save(); g.translate(nx, ny); g.rotate(-0.35); g.beginPath(); g.ellipse(0, 0, 10, 7, 0, 0, Math.PI * 2); g.fill(); g.restore();
+        g.lineWidth = 2.2; g.beginPath();
+        if (step < 4) { g.moveTo(nx + 9, ny - 2); g.lineTo(nx + 9, ny - 50); } else { g.moveTo(nx - 9, ny + 2); g.lineTo(nx - 9, ny + 50); }
+        g.stroke();
+      }
+      g.lineWidth = 2; g.beginPath(); g.moveTo(x0 + (b + 1) * bw, top); g.lineTo(x0 + (b + 1) * bw, top + LOW + 4 * sp); g.stroke();
+      measure++;
+    }
+    const repeatMark = (x, dir) => {
+      g.lineWidth = 7; g.beginPath(); g.moveTo(x, top); g.lineTo(x, top + LOW + 4 * sp); g.stroke();
+      g.lineWidth = 2; g.beginPath(); g.moveTo(x - dir * 10, top); g.lineTo(x - dir * 10, top + LOW + 4 * sp); g.stroke();
+      for (const st of [0, LOW]) for (const dy of [1.5, 2.5]) { g.beginPath(); g.arc(x + dir * 14, top + st + dy * sp, 4, 0, Math.PI * 2); g.fill(); }
+    };
+    if (n === 1 && s === 2) repeatMark(x0 + 4, 1);       // the repeat starts at the last system of page 2…
+    if (n === 2 && s === 0) repeatMark(right - 3, -1);   // …and goes back from the end of page 3's first system
+    if (last) { g.font = 'italic bold 24px Georgia, serif'; g.fillText('Fine', right - 60, top + LOW + 4 * sp + 44); g.lineWidth = 7; g.beginPath(); g.moveTo(right, top); g.lineTo(right, top + LOW + 4 * sp); g.stroke(); }
+  });
+  return c;
+}
+function loadExample() {
+  state.pages = [0, 1, 2].map(drawExamplePage); pagesChanged();
+  // Fractions of the page height: the gaps between systems, and just outside the music.
+  const gap = (n, s) => (EX_TOPS[n][s] + SYS_BELOW + EX_TOPS[n][s + 1] - SYS_ABOVE) / 2 / EX_H;
+  const above = (n, s) => (EX_TOPS[n][s] - SYS_ABOVE - 30) / EX_H, below = (n, s) => (EX_TOPS[n][s] + SYS_BELOW + 30) / EX_H;
+  state.parts = [
+    part(0),
+    part(1),
+    part(2, above(2, 0), gap(2, 0)),     // page 3 up to the repeat sign…
+    part(1, gap(1, 1), below(1, 2)),     // …back to the start of the repeat on page 2…
+    part(2),                             // …and page 3 again
+  ];
+  state.frame = 2;
+  $('title').value = 'Sarabande'; $('key').value = 'D minor';
+  say('Example: the repeat goes back from page 3 to the last system of page 2, which leaves frame 3 half empty. Tap “✂ split page here” on frame 4 to fill it.');
+}
+
+loadExample();
+setOrientation(true);
+let resizeT; addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(render, 120); });
+</script>
