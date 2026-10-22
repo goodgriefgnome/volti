@@ -253,12 +253,10 @@ export class ExcerptStrip {
 
 /**
  * A dropdown of the score's named excerpts, with Whole score and Custom: choosing one selects its
- * cuts in the strip, and tapping cuts shows the name of the span they make, if it has one. Null
- * for a score with no named excerpts.
+ * cuts in the strip, and tapping cuts shows the name of the span they make, if it has one.
  */
-export function namedExcerptMenu(strip: ExcerptStrip, score: Score): HTMLSelectElement | null {
+export function namedExcerptMenu(strip: ExcerptStrip, score: Score): HTMLSelectElement {
   const names = sortedNames(score);
-  if (!names.length) return null;
   const menu = el('select', 'excerpt-menu');
   menu.setAttribute('aria-label', 'Named excerpt');
   const option = (value: string, label: string) => Object.assign(el('option'), { value, textContent: label });
@@ -284,7 +282,7 @@ export interface ExcerptPicker extends ExcerptSource {
   verb?: string;
   /** Ask for a name too, starting with this one. */
   name?: string;
-  /** Offer the score's named excerpts in a dropdown. */
+  /** Offer the whole score and its named excerpts in a dropdown. */
   named?: boolean;
   /** Why the span (and name) can't be taken as they are, said in the dialog; null when they can. */
   problem?(span: Span, name: string): string | null;
@@ -312,10 +310,8 @@ export function openExcerptPicker(h: ExcerptPicker) {
     h.done(strip.span, input.value.trim());
   };
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok(); });
-  const whole = button('Whole score', () => strip.set({}));
   const done = button(h.okLabel ?? 'Done', ok, 'primary');
-  const menu = h.named ? namedExcerptMenu(strip, h.state.score) : null;
-  d.append(...(menu ? [menu] : []), input, strip.el, strip.hint, error, buttonRow(whole, el('span', 'grow'), button('Cancel', closeOverlay), done));
+  d.append(...(h.named ? [namedExcerptMenu(strip, h.state.score)] : []), input, strip.el, strip.hint, error, buttonRow(button('Cancel', closeOverlay), done));
   strip.reveal();
   (input.hidden ? done : input).focus();
 }

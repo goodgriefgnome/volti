@@ -120,8 +120,7 @@ export function openAddScores(h: AddScoresHost) {
       back();
     }, 'primary');
     heading.textContent = o.title;
-    const menu = namedExcerptMenu(strip, sc.state.score);
-    previewView.replaceChildren(...(menu ? [menu] : []), strip.el, strip.hint, buttonRow(button('Whole score', () => strip.set({})), el('span', 'grow'), button('Back', back), use));
+    previewView.replaceChildren(namedExcerptMenu(strip, sc.state.score), strip.el, strip.hint, buttonRow(button('Back', back), use));
     listView.hidden = true;
     previewView.hidden = false;
     strip.reveal();
