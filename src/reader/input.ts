@@ -202,7 +202,7 @@ export class Input {
   }
 
   private onKey = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') { if (!this.host.editor.dismiss() && !closeOverlay()) history.back(); return; }
+    if (e.key === 'Escape') { if (!closeOverlay()) history.back(); return; }
     if (overlayOpen() || (e.target as Element | null)?.closest?.('.menu, .dialog')) return;
     const g = gestureForKey(e.key);
     if (!g) return;

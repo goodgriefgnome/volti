@@ -82,7 +82,7 @@ Every push to `main` is tested, built and published to GitHub Pages by
 | `src/reader/gestures.ts` | How taps, swipes and keys turn pages |
 | `src/reader/layout.ts` | Fitting frames to the screen |
 | `src/reader/zoom.ts` | Pinch and pan maths; which part of a page is in view |
-| `src/ui/` | DOM helpers; menus, dialogs and toasts (`menu`, `overlay`); choosing a setlist to add to (`add-to`) |
+| `src/ui/` | Shared by both screens: DOM helpers (`dom`), menus and dialogs, one at a time (`overlay`), messages (`toast`), and the setlist name and add-to menus (`setlists`) |
 | `src/sw.ts` | Offline copy and the share target |
 
 A piece's **ink** is all its markings, kept per cut; a **marking** is one thing drawn or placed on

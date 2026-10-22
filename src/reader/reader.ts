@@ -8,9 +8,10 @@ import { loadPosition, loadSetlists, savePosition as saveSetlistPosition } from 
 import { openPdf, type PageCache } from '../sources/pdf';
 import { titleFromId, type Score } from '../sources/scores';
 import { savePrefs, type Prefs } from '../storage/prefs';
-import { chooseSetlist } from '../ui/add-to';
 import { el } from '../ui/dom';
-import { closeOverlay, showMenu, Toast } from '../ui/overlay';
+import { closeOverlay, showMenu } from '../ui/overlay';
+import { chooseSetlist } from '../ui/setlists';
+import { Toast } from '../ui/toast';
 import { CutEditor } from './cuts/editor';
 import { Detail } from './detail';
 import { Docs, type Doc, type Item } from './docs';
@@ -133,7 +134,6 @@ class Reader {
     this.saver = new Saver(() => this.setlists, setlists);
     const reader = this;
     this.editor = new CutEditor({
-      root: this.root,
       stage: this.stage,
       get aspects() { return reader.aspects; },
       state: () => this.state,

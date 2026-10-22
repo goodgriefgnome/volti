@@ -1,12 +1,12 @@
 import { deleteArchived } from '../../pieces/edits';
 import { el } from '../../ui/dom';
-import type { Editing } from './host';
+import { closeOverlay, showDialog } from '../../ui/overlay';
+import type { EditorHost } from './host';
 import { thumbCanvas } from './thumbs';
 
 /** Archived cuts, to delete for good. */
-export function openArchive(ed: Editing) {
-  const { host, popups } = ed;
-  const d = popups.openDialog('Archived cuts');
+export function openArchive(host: EditorHost) {
+  const d = showDialog('Archived cuts');
   const list = el('ul', 'archive');
   const fill = () => {
     const s = host.state();
@@ -22,14 +22,14 @@ export function openArchive(ed: Editing) {
         host.changed();
         fill();
       });
-      li.append(thumbCanvas(ed, c.page, c.y0, c.y1), el('span', '', `Page ${c.page + 1}, ${n} marking${n === 1 ? '' : 's'}`), del);
+      li.append(thumbCanvas(host, d, c.page, c.y0, c.y1), el('span', '', `Page ${c.page + 1}, ${n} marking${n === 1 ? '' : 's'}`), del);
       list.append(li);
     }
   };
   fill();
   const close = el('button', 'primary', 'Done');
   close.type = 'button';
-  close.addEventListener('click', () => popups.dismiss());
+  close.addEventListener('click', () => closeOverlay());
   const buttons = el('div', 'buttons');
   buttons.append(close);
   d.append(el('p', 'hint', 'Cuts removed with markings on them are kept here. Insert one again from "Insert pages…", or delete it and its markings for good.'), list, buttons);

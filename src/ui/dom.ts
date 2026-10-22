@@ -11,3 +11,5 @@ export function button(label: string, onClick: () => void, cls = ''): HTMLButton
   b.addEventListener('click', onClick);
   return b;
 }
+
+export const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;

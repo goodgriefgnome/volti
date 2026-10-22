@@ -1,6 +1,7 @@
 import { button, el } from './dom';
 
-// One menu or dialog at a time, over everything. A tap outside closes it.
+// One menu or dialog at a time, over everything. A tap outside closes it, and nothing beneath
+// it takes the tap.
 
 export interface MenuItem { label: string; run: () => void; checked?: boolean }
 
@@ -16,8 +17,16 @@ export function closeOverlay(): boolean {
 
 export const overlayOpen = () => open.length > 0;
 
-/** A menu below `anchor`, kept on the screen. Falsy items are left out. */
-export function showMenu(anchor: Element, title: string, items: (MenuItem | false | null | undefined)[]) {
+/** Remove `e` when the menu or dialog open now closes, such as a mark showing what a menu item would do. */
+export function closeWithOverlay(e: HTMLElement) {
+  open.push(e);
+}
+
+/**
+ * A menu below `at`, kept on the screen; or, when `at` is a point, at that point, kept inside
+ * `bounds`. Falsy items are left out.
+ */
+export function showMenu(at: Element | { x: number; y: number }, title: string, items: (MenuItem | false | null | undefined)[], bounds?: DOMRect) {
   closeOverlay();
   const catcher = el('div', 'catcher');
   catcher.addEventListener('pointerdown', (e) => { e.preventDefault(); closeOverlay(); });
@@ -31,17 +40,25 @@ export function showMenu(anchor: Element, title: string, items: (MenuItem | fals
     if (it.checked !== undefined) b.setAttribute('aria-checked', String(it.checked));
     menu.append(b);
   }
+  if (!menu.querySelector('button')) menu.append(el('div', 'label', 'Nothing to do here.'));
   document.body.append(catcher, menu);
   open = [catcher, menu];
-  const a = anchor.getBoundingClientRect();
-  const left = Math.min(Math.max(8, a.left), innerWidth - menu.offsetWidth - 8);
-  const below = a.bottom + 4;
-  const top = below + menu.offsetHeight > innerHeight - 8 ? Math.max(8, a.top - 4 - menu.offsetHeight) : below;
+  let left: number, top: number;
+  if (at instanceof Element) {
+    const a = at.getBoundingClientRect();
+    left = Math.min(Math.max(8, a.left), innerWidth - menu.offsetWidth - 8);
+    const below = a.bottom + 4;
+    top = below + menu.offsetHeight > innerHeight - 8 ? Math.max(8, a.top - 4 - menu.offsetHeight) : below;
+  } else {
+    const b = bounds ?? new DOMRect(0, 0, innerWidth, innerHeight);
+    left = Math.min(Math.max(at.x, b.left + 4), b.right - menu.offsetWidth - 4);
+    top = Math.min(Math.max(at.y + 4, b.top + 4), b.bottom - menu.offsetHeight - 4);
+  }
   Object.assign(menu.style, { left: left + 'px', top: top + 'px' });
   menu.querySelector('button')?.focus();
 }
 
-/** A dialog with a heading, over a scrim. The caller fills it. */
+/** A dialog with a heading, over a scrim. The caller fills it; it is open while it is connected. */
 export function showDialog(title: string, cls = ''): HTMLElement {
   closeOverlay();
   const scrim = el('div', 'scrim');
@@ -61,50 +78,3 @@ export function buttonRow(...buttons: (HTMLElement | null)[]): HTMLElement {
   row.append(...buttons.filter((b): b is HTMLElement => !!b));
   return row;
 }
-
-/** Ask for a setlist's name. */
-export function askName(heading: string, value: string, okLabel: string, done: (name: string) => void) {
-  const d = showDialog(heading);
-  const input = el('input', 'name');
-  input.type = 'text';
-  input.value = value;
-  input.placeholder = 'For example, Spring recital';
-  input.setAttribute('aria-label', 'Setlist name');
-  const ok = () => {
-    const v = input.value.trim();
-    if (!v) { input.focus(); return; }
-    closeOverlay();
-    done(v);
-  };
-  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok(); });
-  d.append(input, buttonRow(button('Cancel', closeOverlay), button(okLabel, ok, 'primary')));
-  input.focus();
-  input.select();
-}
-
-/** A message at the bottom of the screen, with an optional action such as Undo. */
-export class Toast {
-  readonly el = el('div', 'toast');
-  private timer: ReturnType<typeof setTimeout> | undefined;
-
-  constructor() {
-    this.el.setAttribute('role', 'status');
-    this.el.hidden = true;
-  }
-
-  say(text: string, action?: [label: string, run: () => void]) {
-    this.el.replaceChildren(el('span', '', text));
-    this.el.classList.toggle('act', !!action);
-    if (action) this.el.append(button(action[0], () => { this.hide(); action[1](); }));
-    this.el.hidden = false;
-    clearTimeout(this.timer);
-    this.timer = setTimeout(() => this.hide(), action ? 6000 : 3500);
-  }
-
-  hide() {
-    clearTimeout(this.timer);
-    this.el.hidden = true;
-  }
-}
-
-export const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;

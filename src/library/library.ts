@@ -10,9 +10,10 @@ import {
   type FolderState, type Score,
 } from '../sources/scores';
 import type { Prefs } from '../storage/prefs';
-import { chooseSetlist } from '../ui/add-to';
-import { button, el } from '../ui/dom';
-import { askName, buttonRow, closeOverlay, plural, showDialog, showMenu, Toast } from '../ui/overlay';
+import { button, el, plural } from '../ui/dom';
+import { buttonRow, closeOverlay, showDialog, showMenu } from '../ui/overlay';
+import { askSetlistName, chooseSetlist } from '../ui/setlists';
+import { Toast } from '../ui/toast';
 
 /** The Library screen: setlists, the scores folder, imported scores, and the list to open them from. */
 export class Library {
@@ -176,7 +177,7 @@ export class Library {
       b.setAttribute('aria-pressed', String(this.showArchived));
       this.setlistHead.append(b);
     }
-    this.setlistHead.append(button('New setlist', () => askName('New setlist', '', 'Next', (name) => {
+    this.setlistHead.append(button('New setlist', () => askSetlistName('New setlist', '', 'Next', (name) => {
       const s = newSetlist(name);
       this.openRows.add(s.id);
       void this.change([s, ...this.setlists]);
@@ -218,7 +219,7 @@ export class Library {
 
     const more = button('⋯', () => showMenu(more, s.title, [
       { label: 'Add pieces…', run: () => this.addPieces(s.id) },
-      { label: 'Rename…', run: () => askName('Rename setlist', s.title, 'Rename', (title) => void this.update({ ...this.get(s.id)!, title })) },
+      { label: 'Rename…', run: () => askSetlistName('Rename setlist', s.title, 'Rename', (title) => void this.update({ ...this.get(s.id)!, title })) },
       { label: 'Duplicate', run: () => this.duplicate(s) },
       s.archived
         ? { label: 'Unarchive', run: () => { void this.update({ ...this.get(s.id)!, archived: false }); this.toast.say(`Unarchived “${s.title}”.`); } }

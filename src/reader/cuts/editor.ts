@@ -2,11 +2,11 @@ import { edgeRange, release, setEdge, setPad, tidy } from '../../pieces/edits';
 import { freeze, roomBefore, type Frame } from '../../pieces/frames';
 import type { Cut, State } from '../../pieces/model';
 import { el } from '../../ui/dom';
-import { Popups } from '../../ui/menu';
+import { closeOverlay, overlayOpen } from '../../ui/overlay';
 import type { Hatches } from '../frames';
 import type { FrameSlot } from '../spread';
 import { openArchive } from './archive';
-import { pageLabel, sayArchived, type Edge, type EditorHost, type Editing } from './host';
+import { pageLabel, sayArchived, type Edge, type EditorHost } from './host';
 import { openContext, tabMenu } from './menus';
 
 type Drag =
@@ -27,19 +27,8 @@ export class CutEditor {
   enabled = false;
   private drag: Drag | null = null;
   private press: { pointer: number; x: number; y: number; timer: ReturnType<typeof setTimeout> } | null = null;
-  private popups: Popups;
-  private ed: Editing;
 
-  constructor(private host: EditorHost) {
-    this.popups = new Popups(host.root, host.stage);
-    this.ed = { host, popups: this.popups };
-    // A tap anywhere else closes a menu; taps on the frames are handled in onDown.
-    host.root.addEventListener('pointerdown', (e) => {
-      const t = e.target as Node;
-      const menu = this.popups.menu;
-      if (menu && !menu.contains(t) && !host.stage.contains(t)) this.dismiss();
-    });
-  }
+  constructor(private host: EditorHost) {}
 
   setEnabled(on: boolean) {
     this.enabled = on;
@@ -55,7 +44,7 @@ export class CutEditor {
 
   /** Close an open menu or dialog; true if there was one. */
   dismiss(): boolean {
-    return this.popups.dismiss();
+    return closeOverlay();
   }
 
   /* ---------- the tabs and shading over each frame ---------- */
@@ -113,7 +102,7 @@ export class CutEditor {
     b.addEventListener('click', (e) => {
       if (e.detail !== 0) return;
       const r = b.getBoundingClientRect();
-      tabMenu(this.ed, c.id, kind, r.left, r.bottom);
+      tabMenu(this.host, c.id, kind, r.left, r.bottom);
     });
     return b;
   }
@@ -121,7 +110,7 @@ export class CutEditor {
   /* ---------- pointers ---------- */
 
   onDown(e: PointerEvent): boolean {
-    if (this.popups.menu) { this.dismiss(); return true; }
+    if (overlayOpen()) { this.dismiss(); return true; }
     if (!this.enabled) return false;
     const target = e.target as Element;
     const tab = target.closest<HTMLElement>('.tab');
@@ -138,14 +127,14 @@ export class CutEditor {
       this.startPress(e, () => {
         this.drag = null;
         const r = tab.getBoundingClientRect();
-        tabMenu(this.ed, id, kind, r.left, r.bottom);
+        tabMenu(this.host, id, kind, r.left, r.bottom);
       });
       return true;
     }
     if (!this.host.inking()) {
       this.startPress(e, () => {
         this.host.cancelGesture();
-        openContext(this.ed, e.clientX, e.clientY);
+        openContext(this.host, e.clientX, e.clientY);
       });
     }
     return false;
@@ -199,7 +188,7 @@ export class CutEditor {
     this.drag = null;
     this.host.cancelGesture();
     // Android may send this after a long press has already opened the same menu.
-    if (!this.popups.menu) openContext(this.ed, e.clientX, e.clientY);
+    if (!overlayOpen()) openContext(this.host, e.clientX, e.clientY);
   }
 
   private startPress(e: PointerEvent, open: () => void) {
@@ -214,6 +203,6 @@ export class CutEditor {
 
   /** Archived cuts, to delete for good. */
   openArchive() {
-    openArchive(this.ed);
+    openArchive(this.host);
   }
 }

@@ -1,14 +1,14 @@
 import { insertArchived, insertPages, type InsertAt } from '../../pieces/edits';
 import { el } from '../../ui/dom';
+import { closeOverlay, showDialog } from '../../ui/overlay';
 import { openArchive } from './archive';
-import type { Editing } from './host';
+import type { EditorHost } from './host';
 import { THUMB_W, thumbCanvas } from './thumbs';
 
 /** Pick pages, a range of them or an archived cut to insert at `at`; the strip opens at `page`. */
-export function openPicker(ed: Editing, at: InsertAt, title: string, page: number) {
-  const { host, popups } = ed;
+export function openPicker(host: EditorHost, at: InsertAt, title: string, page: number) {
   const s = host.state();
-  const d = popups.openDialog(title);
+  const d = showDialog(title);
   const n = host.aspects.length;
   const pick: { a: number; b: number; next: 'a' | 'b'; archived?: string } = { a: page, b: page, next: 'a' };
 
@@ -34,8 +34,8 @@ export function openPicker(ed: Editing, at: InsertAt, title: string, page: numbe
   }
   void (async () => {
     for (const p of order) {
-      if (popups.dialog !== d) return;
-      const c = thumbCanvas(ed, p);
+      if (!d.isConnected) return;
+      const c = thumbCanvas(host, d, p);
       pageButtons[p].firstChild!.replaceWith(c);
       await host.thumb(p, THUMB_W).catch(() => {});
     }
@@ -50,7 +50,7 @@ export function openPicker(ed: Editing, at: InsertAt, title: string, page: numbe
       const b = el('button', 'thumb');
       b.type = 'button';
       b.setAttribute('aria-label', `Archived cut from page ${c.page + 1}`);
-      b.append(thumbCanvas(ed, c.page, c.y0, c.y1), el('span', '', `p. ${c.page + 1}`));
+      b.append(thumbCanvas(host, d, c.page, c.y0, c.y1), el('span', '', `p. ${c.page + 1}`));
       b.addEventListener('click', () => { pick.archived = c.id; sync(); });
       archivedButtons.push([c.id, b]);
       row.append(b);
@@ -67,9 +67,9 @@ export function openPicker(ed: Editing, at: InsertAt, title: string, page: numbe
   const cancel = el('button', '', 'Cancel');
   const ok = el('button', 'primary', 'Insert');
   cancel.type = ok.type = 'button';
-  cancel.addEventListener('click', () => popups.dismiss());
+  cancel.addEventListener('click', () => closeOverlay());
   ok.addEventListener('click', () => {
-    popups.dismiss();
+    closeOverlay();
     const now = host.state();
     if (pick.archived) {
       host.commit(insertArchived(now, at, pick.archived), pick.archived);
@@ -84,7 +84,7 @@ export function openPicker(ed: Editing, at: InsertAt, title: string, page: numbe
   if (s.piece.archived.length) {
     const manage = el('button', 'quiet', 'Delete archived cuts…');
     manage.type = 'button';
-    manage.addEventListener('click', () => openArchive(ed));
+    manage.addEventListener('click', () => openArchive(host));
     buttons.append(manage);
   }
   buttons.append(cancel, ok);
