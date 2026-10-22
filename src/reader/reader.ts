@@ -8,6 +8,7 @@ import { frameOf, pack, type Frame } from '../scores/frames';
 import type { Aspects, Cut, State } from '../scores/model';
 import { loadScore, savePosition } from '../scores/store';
 import { followScore, newEntry, spanCuts, spanLabel, type Entry, type Setlist, type Span } from '../setlists/model';
+import { followNames } from '../setlists/names';
 import { loadPosition, loadSetlists, savePosition as saveSetlistPosition } from '../setlists/store';
 import { openPdf, type PageCache } from '../originals/pdf';
 import { titleFromId, type Original } from '../originals/originals';
@@ -504,10 +505,12 @@ class Reader {
   private commit(s: State, focus?: string) {
     const cur = this.current!, entry = this.entry();
     this.undos.record({ open: cur, state: cur.state, setlists: this.setlists, k: this.k, focus });
-    // Every setlist's excerpts of the score follow the edit. Pages inserted at the edges of the
-    // excerpt being read join it.
-    const grow = this.setlistId && entry ? { setlist: this.setlistId, entries: new Set([entry.id]) } : undefined;
-    this.setState(s, followScore(this.setlists, cur.id, cur.state.score.cuts, s.score.cuts, grow), focus);
+    // Every setlist's excerpts of the score, and its named excerpts, follow the edit. Pages
+    // inserted at the edges of the excerpt being read join it, wherever it is played.
+    const before = cur.state.score.cuts, after = s.score.cuts, grow = this.setlistId ? entry : undefined;
+    const names = followNames(s.score.names, before, after, grow);
+    if (names !== s.score.names) s = { ...s, score: { ...s.score, names } };
+    this.setState(s, followScore(this.setlists, cur.id, before, after, grow), focus);
   }
 
   private setState(s: State, setlists: readonly Setlist[], focus?: string) {

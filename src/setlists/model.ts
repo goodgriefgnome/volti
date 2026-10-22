@@ -165,14 +165,20 @@ function isLowerHalf(after: readonly Cut[], i: number, before: readonly Cut[]): 
   return !!old && old.y1 === c.y1 && up.y1 !== old.y1;
 }
 
-/** Apply an edit of a score's cuts to every entry that plays the score. Unchanged setlists stay the same objects. */
-export function followScore(setlists: readonly Setlist[], scoreId: string, before: readonly Cut[], after: readonly Cut[], grow?: { setlist: string; entries: ReadonlySet<string> }): Setlist[] {
+/**
+ * Apply an edit of a score's cuts to every entry that plays the score. Entries that play `grow`,
+ * the span being read, take in pages inserted at its edges: an excerpt is its span, so they all
+ * stay the same excerpt. Unchanged setlists stay the same objects.
+ */
+export function followScore(setlists: readonly Setlist[], scoreId: string, before: readonly Cut[], after: readonly Cut[], grow?: Span): Setlist[] {
   if (before === after) return setlists as Setlist[];
+  const g = grow && spanOf(before, grow);
   return setlists.map((s) => {
     let changed = false;
     const entries = s.entries.map((e) => {
       if (e.scoreId !== scoreId) return e;
-      const f = followEdit(e, before, after, grow?.setlist === s.id && grow.entries.has(e.id));
+      const at = g && spanOf(before, e);
+      const f = followEdit(e, before, after, !!at && at.i0 === g.i0 && at.i1 === g.i1);
       if (f !== e) changed = true;
       return f;
     });
