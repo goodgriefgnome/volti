@@ -28,11 +28,11 @@ from systems; it was dropped as more complicated than it was worth.)
     dragging the bottom tab down does. Dragging an edge across the whole cut removes it.
   - A grey tab at the top right of each frame adds white space above the music (stored on the
     part, used only when that part starts a frame).
-  - A "show room left" toggle: when the frame before is more than a fifth empty, a faint band and a
-    dashed ✂ line show how much would fit there. Tapping the line splits the page at the nearest
-    gap between systems above it and moves the top part onto the frame before, which is then
-    shown. No cue when the frame already continues the page from the frame before, or when the
-    line would fall at the end of the frame's first part.
+  - When the frame before is more than a fifth empty, a faint band and a dashed "✂ split page
+    here" line show how much would fit there (always on; no setting). Tapping the line splits the
+    page at the nearest gap between systems above it and moves the top part onto the frame
+    before, which is then shown. No cue when the frame already continues the page from the frame
+    before, or when the line would fall at the end of the frame's first cut.
   - A tab's menu: restore the music cut out above/below
     (joins the two cuts), join a split, restore a trimmed page top/bottom, remove the cut; the white-space tab
     offers "remove the white space". Not covered yet: bringing back a part that was removed.
