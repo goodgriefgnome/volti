@@ -189,7 +189,7 @@ details.archived-sets > summary { cursor: pointer; color: var(--muted); padding:
 .thumbs { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 10px; align-items: flex-start; }
 .thumb-frame { position: relative; flex: none; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); }
 .thumb-frame canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-/* One band per cut, over the frame's music: shaded when the part leaves it out. */
+/* One band per cut, over the frame's music: shaded when the excerpt leaves it out. */
 .band { position: absolute; left: 0; right: 0; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; border-top: 1px dashed rgba(138, 90, 18, 0.7); }
 .band::before { content: attr(data-n); position: absolute; left: 3px; top: 3px; font: 600 11px/1 var(--font-ui); color: #fff; background: rgba(40, 42, 48, 0.7); border-radius: 3px; padding: 2px 4px; }
 .band.out { background: rgba(40, 42, 48, 0.55); }
@@ -225,7 +225,7 @@ details.archived-sets > summary { cursor: pointer; color: var(--muted); padding:
 <div class="wrap">
   <div class="intro">
     <h1>Volti setlists</h1>
-    <p>Prototype. Tap a setlist to read it as one score; its arrow shows its pieces. Press and hold scores to pick them for a setlist. In a setlist, Part chooses which cuts of a piece it plays; cuts and markings always change the piece itself. In a score, tap the middle for the toolbar and the sides to turn. Changes are kept in this browser.</p>
+    <p>Prototype. Tap a setlist to read it as one score; its arrow shows its pieces. Press and hold scores to pick them for a setlist. In a setlist, Excerpt chooses which cuts of a piece it plays; cuts and markings always change the piece itself. In a score, tap the middle for the toolbar and the sides to turn. Changes are kept in this browser.</p>
     <div class="row">
       <button type="button" id="fill">Fill the window</button>
       <button type="button" id="reset" class="quiet">Start the example again</button>
@@ -410,9 +410,9 @@ function drawPage(sc, page, W) {
  * D.pieces[id]     { id, title, key, aspects, cuts }          cut = { id, page, y0, y1 }
  * D.pieceInk[id]   strokes by cut id
  * D.setlists[]     { id, title, archived, entries: [{ id, pieceId, first?, last? }] }
- *                  first and last: the cut ids where the setlist's part of the piece starts and
+ *                  first and last: the cut ids where the setlist's excerpt of the piece starts and
  *                  ends. Missing means the piece's own start or end.
- * The piece is the only copy of its cuts and markings: a setlist only chooses which part of it to play.
+ * The piece is the only copy of its cuts and markings: a setlist only chooses which excerpt of it to play.
  */
 let D;
 
@@ -478,7 +478,7 @@ function spanOf(e) {
   if (i0 > i1) [i0, i1] = [0, n - 1];
   return { cuts: cuts.slice(i0, i1 + 1), i0, i1, whole: i0 === 0 && i1 === n - 1 };
 }
-/** "Pages 1–2" for the part of the piece an entry plays, or null for all of it. */
+/** "Pages 1–2" for the excerpt of the piece an entry plays, or null for all of it. */
 function spanLabel(e) {
   const sp = spanOf(e);
   if (sp.whole) return null;
@@ -494,7 +494,7 @@ const inkOf = (pieceId) => D.pieceInk[pieceId];
 /* ---------- cut edits, always to the piece ---------- */
 /*
  * Edits work as they do in the app now: a split keeps the upper half's id. Afterwards every
- * setlist's part of the piece is moved so that it still starts and ends on the same music.
+ * setlist's excerpt of the piece is moved so that it still starts and ends on the same music.
  */
 function editCut(piece, id, op, y) {
   const cuts = piece.cuts, ink = inkOf(piece.id);
@@ -505,12 +505,12 @@ function editCut(piece, id, op, y) {
     if (up.length) ink[c.id] = up; else delete ink[c.id];
     if (down.length) ink[lower.id] = down;
     piece.cuts = [...cuts.slice(0, i), { ...c, y1: y }, lower, ...cuts.slice(i + 1)];
-    // A part that ended on this cut now ends on its lower half.
+    // An excerpt that ended on this cut now ends on its lower half.
     forEntries(piece.id, (e) => { if (e.last === c.id) e.last = lower.id; });
   } else if (op === 'remove') {
     delete ink[c.id];
     piece.cuts = cuts.filter((x) => x !== c);
-    // A part that started or ended on it moves inwards; if nothing is left, it plays the whole piece.
+    // An excerpt that started or ended on it moves inwards; if nothing is left, it plays the whole piece.
     forEntries(piece.id, (e) => {
       if (e.first === c.id && e.last === c.id) { delete e.first; delete e.last; return; }
       if (e.first === c.id) e.first = cuts[i + 1]?.id;
@@ -681,22 +681,22 @@ function setlistRow(s) {
 }
 
 function entryRow(s, e, i, list) {
-  const p = D.pieces[e.pieceId], part = spanLabel(e);
+  const p = D.pieces[e.pieceId], excerpt = spanLabel(e);
   const li = h('li', { class: 'entry' });
   const handle = h('button', { type: 'button', class: 'handle', 'aria-label': `Move ${p.title}` }, '⋮⋮');
   dragToReorder(handle, li, list, s, i);
   const open = btn([
     h('span', { class: 'item-title', text: p.title }),
     h('span', { class: 'meta', text: p.key }),
-    part ? h('span', { class: 'pill own', text: part }) : null,
+    excerpt ? h('span', { class: 'pill own', text: excerpt }) : null,
   ], () => openReader({ kind: 'setlist', setlistId: s.id }, e.id), 'open');
   li.append(handle, h('span', { class: 'num', text: String(i + 1) }), open);
   {
     const more = btn('⋯', () => menuAt(more, p.title, [
       i > 0 && { label: 'Move up', run: () => move(s, i, i - 1) },
       i < s.entries.length - 1 && { label: 'Move down', run: () => move(s, i, i + 1) },
-      { label: 'Choose the part to play…', run: () => openReader({ kind: 'setlist', setlistId: s.id }, e.id, true) },
-      part && { label: 'Play the whole piece', run: () => { delete e.first; delete e.last; save(); render(); } },
+      { label: 'Choose the excerpt to play…', run: () => openReader({ kind: 'setlist', setlistId: s.id }, e.id, true) },
+      excerpt && { label: 'Play the whole piece', run: () => { delete e.first; delete e.last; save(); render(); } },
       { label: 'Remove from setlist', run: () => removeEntry(s, e) },
     ]), 'quiet more', { 'aria-label': `More for ${p.title}`, 'aria-haspopup': 'menu' });
     li.append(more);
@@ -868,14 +868,14 @@ function itemsFor(src) {
 const cutsOf = (it) => (it.entry ? spanOf(it.entry).cuts : it.piece.cuts);
 const posKey = (src) => (src.kind === 'piece' ? 'piece:' + src.pieceId : 'set:' + src.setlistId);
 
-function openReader(src, startEntry, choosePart) {
+function openReader(src, startEntry, chooseExcerpt) {
   R = { src, frames: [], screen: 0, per: 2, tool: 'none', editing: false, chrome: true, undo: [], lastPiece: null };
   go({ screen: 'reader' });
   build();
   const pos = startEntry ? { key: startEntry } : D.pos[posKey(src)];
   R.screen = pos ? screenOf(pos.key, pos.cut) : 0;
   show();
-  if (choosePart) openPartPicker(firstOnScreen().it);
+  if (chooseExcerpt) openExcerptPicker(firstOnScreen().it);
 }
 
 function pack(cuts, aspects) {
@@ -925,7 +925,7 @@ function renderReader() {
     h('div', { class: 'group' }, btn('‹ Library', closeReader), h('span', { class: 'title', id: 'reader-title' })),
     h('div', { class: 'group' }, tool('pen', 'Pen'), tool('eraser', 'Erase'), btn('Undo', undo, '', { disabled: !R.undo.length })),
     h('div', { class: 'group' }, piecesBtn,
-      isSet ? btn('Part', () => openPartPicker(firstOnScreen().it)) : null,
+      isSet ? btn('Excerpt', () => openExcerptPicker(firstOnScreen().it)) : null,
       btn('Edit cuts', () => { R.editing = !R.editing; R.tool = 'none'; renderReader(); }, '', pressed(R.editing)),
       h('span', { class: 'info', id: 'reader-info' })),
   );
@@ -1176,12 +1176,12 @@ function cutMenu(e, hit) {
   overlay.push(mark);
 }
 
-/* ---------- choosing the part a setlist plays ---------- */
+/* ---------- choosing the excerpt a setlist plays ---------- */
 /*
  * The piece's frames as thumbnails, with each cut a band on them. Tap the first cut to play,
- * then the last, as when choosing pages to insert. Cuts outside the part are shaded.
+ * then the last, as when choosing pages to insert. Cuts outside the excerpt are shaded.
  */
-function openPartPicker(it) {
+function openExcerptPicker(it) {
   const piece = it.piece, e = it.entry, cuts = piece.cuts, n = cuts.length, sp = spanOf(e);
   let i0 = sp.i0, i1 = sp.i1, pending = null;
   const TW = 112, dpr = window.devicePixelRatio || 1;
@@ -1217,7 +1217,7 @@ function openPartPicker(it) {
   sync();
   const sl = setlistOf(R.src.setlistId);
   showDialog(
-    h('h2', { text: `Which part of “${piece.title}” does “${titleOf(sl)}” play?` }),
+    h('h2', { text: `Which excerpt of “${piece.title}” does “${titleOf(sl)}” play?` }),
     strip, hint,
     h('div', { class: 'buttons' },
       btn('Whole piece', () => { i0 = 0; i1 = n - 1; pending = null; sync(); }),
@@ -1251,7 +1251,7 @@ function renderInspector() {
   const range = (c) => `p${c.page + 1} ${c.y0.toFixed(2)}–${c.y1.toFixed(2)}`;
   const kids = [
     h('h2', { text: 'What Volti stores' }),
-    h('p', { class: 'hint', text: 'Pieces hold all the cuts and markings; cut ids are shortened and ✎ counts strokes. A setlist stores only which cut its part of each piece starts and ends on.' }),
+    h('p', { class: 'hint', text: 'Pieces hold all the cuts and markings; cut ids are shortened and ✎ counts strokes. A setlist stores only which cut its excerpt of each piece starts and ends on.' }),
   ];
   const pieces = h('div', { class: 'insp-block' }, h('h3', { text: 'Pieces' }));
   for (const sc of SCORES) {
