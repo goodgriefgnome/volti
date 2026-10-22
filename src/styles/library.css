@@ -64,16 +64,7 @@
 }
 .entry.dragging { background: var(--accent-soft); }
 
-/* Scores: the checkbox picks a score for adding to a setlist; the rest of the row opens it. */
-.pick { flex: none; width: 44px; min-height: 56px; display: grid; place-items: center; cursor: pointer; }
-.pick input { width: 22px; height: 22px; margin: 0; accent-color: var(--accent); }
-.list > li.picked { background: var(--accent-soft); }
-.pickbar {
-  position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  background: var(--fg); color: var(--bg); padding: 8px 16px; border-radius: 0 0 10px 10px; margin-top: -28px;
-}
-.pickbar .grow { flex: 1; font-weight: 600; }
-.pickbar .quiet { color: inherit; }
+/* Scores: tap to open one. */
 .score-title { font-size: 17px; overflow-wrap: anywhere; }
 .score-folder { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
 .badge { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); border: 1px solid currentColor; border-radius: 999px; padding: 0 8px; }

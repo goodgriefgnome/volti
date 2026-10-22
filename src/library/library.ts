@@ -15,7 +15,7 @@ import {
 import type { Prefs } from '../storage/prefs';
 import { button, el, plural } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog, showMenu } from '../ui/overlay';
-import { askSetlistName, chooseSetlist } from '../ui/setlists';
+import { askSetlistName } from '../ui/setlists';
 import { Toast } from '../ui/toast';
 
 /** The Library screen: setlists, the scores folder, imported scores, and the list to open them from. */
@@ -28,11 +28,9 @@ export class Library {
   private query = '';
   /** What the library shows that isn't data, kept while the app runs. */
   private openRows = new Set<string>();
-  private picked = new Set<string>();
   private showArchived = false;
 
   private root = el('main', 'library');
-  private pickBar = el('div', 'pickbar');
   private folderPanel = el('section', 'folder');
   private setlistHead = el('div', 'head-tools');
   private setlistList = el('ul', 'list setlists');
@@ -74,12 +72,9 @@ export class Library {
     const scoresHead = el('div', 'section-head');
     scoresHead.append(el('h2', '', 'Scores'));
 
-    this.pickBar.setAttribute('role', 'toolbar');
-    this.pickBar.setAttribute('aria-label', 'Picked scores');
-    this.pickBar.hidden = true;
     this.status.setAttribute('role', 'status');
     this.toast.el.classList.add('fixed');
-    this.root.append(this.pickBar, header, this.status, setlistsHead, this.setlistList, scoresHead, this.folderPanel, tools, this.list);
+    this.root.append(header, this.status, setlistsHead, this.setlistList, scoresHead, this.folderPanel, tools, this.list);
     document.body.append(this.root, this.toast.el);
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !this.root.hidden) closeOverlay(); });
   }
@@ -189,7 +184,7 @@ export class Library {
 
     const list = this.setlistList;
     list.replaceChildren();
-    if (!active.length) list.append(el('li', 'empty', 'No setlists yet. Tick scores below to make one.'));
+    if (!active.length) list.append(el('li', 'empty', 'No setlists yet. Use New setlist to make one.'));
     for (const s of active) list.append(this.setlistRow(s));
     // Archived setlists follow the others, in grey, only when asked for.
     if (this.showArchived) for (const s of archived) list.append(this.setlistRow(s));
@@ -235,7 +230,7 @@ export class Library {
     const entries = el('ol', 'entries');
     entries.setAttribute('aria-label', `Scores in ${s.title}`);
     s.entries.forEach((e, i) => entries.append(this.entryRow(s, e, i, entries)));
-    if (!s.entries.length) entries.append(el('li', 'empty', 'No scores yet. Use ⋯ › Add scores, or tick scores below.'));
+    if (!s.entries.length) entries.append(el('li', 'empty', 'No scores yet. Use ⋯ › Add scores.'));
     const inner = el('div', 'set-inner');
     inner.append(entries);
     body.append(inner);
@@ -377,34 +372,7 @@ export class Library {
     find.focus();
   }
 
-  /* ---------- picking scores ---------- */
-
-  private renderPickBar() {
-    const n = this.picked.size;
-    this.pickBar.hidden = !n;
-    if (!n) return;
-    const add = button('Add to setlist', () => chooseSetlist(add, `Add ${plural(n, 'score')} to`, this.setlists, (s, isNew) => this.addPicked(s, isNew)), 'primary');
-    add.setAttribute('aria-haspopup', 'menu');
-    this.pickBar.replaceChildren(
-      button('Clear', () => { this.picked.clear(); this.renderList(); }, 'quiet'),
-      el('span', 'grow', `${plural(n, 'score')} picked`),
-      add,
-    );
-  }
-
-  /** The ticked scores go at the end, whole, in library order. */
-  private addPicked(s: Setlist, isNew: boolean) {
-    const ids = this.originals.map((x) => x.id).filter((id) => this.picked.has(id));
-    const added = { ...s, entries: [...s.entries, ...ids.map(newEntry)] };
-    this.picked.clear();
-    this.openRows.add(s.id);
-    void this.change(isNew ? [added, ...this.setlists] : this.setlists.map((x) => (x.id === s.id ? added : x)));
-    this.toast.say(`Added ${plural(ids.length, 'score')} to “${s.title}”.`);
-    this.setlistList.querySelector(`#set-${CSS.escape(s.id)}`)?.closest('li')?.scrollIntoView({ block: 'nearest' });
-  }
-
   private renderList() {
-    this.renderPickBar();
     const q = this.query.trim().toLowerCase();
     const shown = q ? this.originals.filter((s) => `${s.title} ${s.folder}`.toLowerCase().includes(q)) : this.originals;
     this.list.replaceChildren();
@@ -419,19 +387,7 @@ export class Library {
       return;
     }
     for (const s of shown) {
-      const picked = this.picked.has(s.id);
-      const li = el('li', 'score' + (picked ? ' picked' : ''));
-      const pick = el('label', 'pick');
-      const box = el('input');
-      box.type = 'checkbox';
-      box.checked = picked;
-      box.setAttribute('aria-label', `Pick ${s.title}`);
-      box.addEventListener('change', () => {
-        if (box.checked) this.picked.add(s.id); else this.picked.delete(s.id);
-        li.classList.toggle('picked', box.checked);
-        this.renderPickBar();
-      });
-      pick.append(box);
+      const li = el('li', 'score');
       const open = el('button', 'open');
       open.type = 'button';
       open.append(el('span', 'score-title', s.title));
@@ -440,7 +396,7 @@ export class Library {
       if (meta) open.append(el('span', 'score-folder', meta));
       if (s.location === 'imported') open.append(el('span', 'badge', 'Added'));
       open.addEventListener('click', () => void this.open(s));
-      li.append(pick, open);
+      li.append(open);
       if (s.location === 'imported') {
         li.append(button('Remove', async () => {
           await removeImported(s);

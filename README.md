@@ -35,7 +35,8 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
 
 - **Setlists**, above the scores in the library, play several scores as one continuous score:
   turning past the end of a score goes into the next, and each score starts on a fresh screen.
-  - Tick scores and use **Add to setlist**, or **Add to setlist** in a score's toolbar. The arrow
+  - **New setlist**, or **Add scores…** in a setlist's **⋯** menu, picks the scores to add; so does
+    **Add to setlist** in a score's toolbar. The arrow
     beside a setlist shows its scores, to reorder or remove; its **⋯** button has the rest.
   - A setlist can play an excerpt of a score: **Excerpt** in its toolbar (or **Choose the excerpt to
     play…** in the library) picks the first and last cut to play.
