@@ -26,6 +26,7 @@ import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
 import { Toast } from '../ui/toast';
 import { openAddScores } from './add-scores';
+import { makePictures } from '../pictures/maker';
 import { openScore, type LibraryScore } from './open-score';
 
 /** The Library screen: setlists, the scores folder, imported scores, and the list to open them from. */
@@ -238,6 +239,8 @@ export class Library {
   }
 
   private renderSetlists() {
+    // Shown afresh whenever they change, or the scores do: keep their pages' pictures up to date.
+    makePictures(this.originals, this.setlists);
     const active = this.setlists.filter((s) => !s.archived), archived = this.setlists.filter((s) => s.archived);
     this.setlistHead.replaceChildren();
     if (archived.length) {

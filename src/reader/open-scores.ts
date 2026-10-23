@@ -1,11 +1,24 @@
 // Opening and closing the scores being read: each score's saved state and its original, opened when
 // first needed and closed when far from the score being read.
 
-import type { PageCache } from '../originals/pdf';
+import { PageCache } from '../originals/pdf';
 import type { Original } from '../originals/originals';
+import { hasPictures, picturesOf } from '../pictures/pictures';
 import type { Aspects, State } from '../scores/model';
-import { loadScore } from '../scores/store';
+import { loadAspects, loadScore } from '../scores/store';
 import { openOriginal, PasswordNotGiven } from '../ui/passwords';
+
+/**
+ * An original's pages, to read: at once where its pages are saved as pictures and their shapes are
+ * known, the PDF opening behind them (for pages not saved, and close-ups); otherwise once it is
+ * open. Only with `ask` is its password asked for.
+ */
+export async function openPages(o: Original, ask: boolean): Promise<{ cache: PageCache; aspects: Aspects }> {
+  const [shapes, saved] = await Promise.all([loadAspects(o.id), hasPictures(o.id)]);
+  const cache = shapes && saved ? PageCache.opening(openOriginal(o, ask)) : await openOriginal(o, ask);
+  cache.pictures = picturesOf(o.id);
+  return { cache, aspects: shapes && saved ? shapes : await cache.allAspects() };
+}
 
 /** A score open in the reader. Every entry of a setlist that plays the score shares it. */
 export interface OpenScore {
@@ -65,11 +78,10 @@ export class OpenScores {
   }
 
   private async open(it: Item, original: Original, ask: boolean): Promise<OpenScore> {
-    const cache = await openOriginal(original, ask);
+    const { cache, aspects } = await openPages(original, ask);
     if (this.closed) { cache.destroy(); throw new Error('Closed'); }
     const have = this.scores.get(it.scoreId);
     if (have) { have.cache = cache; return have; }
-    const aspects = await cache.allAspects();
     const { state } = await loadScore(it.scoreId, it.title, aspects);
     const s: OpenScore = { id: it.scoreId, original, aspects, state, cache };
     this.scores.set(s.id, s);

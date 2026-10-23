@@ -1,0 +1,87 @@
+// Making the saved pictures in the background: working out which original pages setlists play, at
+// the widths this screen shows them, drawing those not saved yet, and deleting the rest.
+
+import type { Original } from '../originals/originals';
+import { readPageWidths } from '../reader/spread';
+import { pack } from '../scores/frames';
+import { loadAspects, loadScore } from '../scores/store';
+import { spanCuts, type Setlist } from '../setlists/model';
+import { openOriginal } from '../ui/passwords';
+import { hasPicture, picturesOf, setWanted, tidyPictures } from './pictures';
+
+/** How long to wait after a change, so a burst of them is worked out once. */
+const SETTLE_MS = 2000;
+
+/** A score whose pages are to be drawn: each at a width in CSS pixels, and its height. */
+interface Job { original: Original; pages: { num: number; w: number; h: number }[] }
+
+let timer: ReturnType<typeof setTimeout> | undefined;
+/** Bumped by each new start, which stops the one before. */
+let run = 0;
+
+/**
+ * Bring the saved pictures up to date with these setlists, in the background: after a setlist
+ * changes, or the scores do, and at start-up.
+ */
+export function makePictures(originals: readonly Original[], setlists: readonly Setlist[]) {
+  clearTimeout(timer);
+  const mine = ++run;
+  timer = setTimeout(() => void make(mine, originals, setlists).catch((e) => console.warn('Saving pictures stopped:', e)), SETTLE_MS);
+}
+
+async function make(mine: number, originals: readonly Original[], setlists: readonly Setlist[]) {
+  const byId = new Map(originals.map((o) => [o.id, o]));
+  const entries = setlists.filter((s) => !s.archived).flatMap((s) => s.entries);
+  // The reader fills the screen.
+  const W = document.documentElement.clientWidth, H = document.documentElement.clientHeight, scale = window.devicePixelRatio || 1;
+  const keep = new Map<string, Set<number>>();
+  // Scores whose pages can't be worked out (never opened, and their PDF can't be now): their pictures stay.
+  const unsure = new Set<string>();
+  const jobs: Job[] = [];
+  for (const id of new Set(entries.map((e) => e.scoreId))) {
+    if (mine !== run) return;
+    const original = byId.get(id);
+    let aspects = await loadAspects(id);
+    if (!aspects) {
+      const cache = original && (await openOriginal(original, false).catch(() => null));
+      if (!cache) { unsure.add(id); continue; }
+      try { aspects = await cache.allAspects(); } finally { cache.destroy(); }
+    }
+    const { state } = await loadScore(id, original?.title ?? '', aspects);
+    const widths = new Map<number, Set<number>>();
+    for (const e of entries.filter((e) => e.scoreId === id)) {
+      for (const [p, ws] of readPageWidths(pack(spanCuts(state.score.cuts, e), aspects), W, H, scale)) {
+        for (const w of ws) widths.set(p + 1, (widths.get(p + 1) ?? new Set()).add(w));
+      }
+    }
+    keep.set(id, new Set(widths.keys()));
+    if (!original) continue;
+    const pages: Job['pages'] = [];
+    for (const [num, ws] of widths) {
+      for (const w of ws) if (!(await hasPicture(id, num, Math.round(w * scale)))) pages.push({ num, w, h: Math.round(w * aspects[num - 1]) });
+    }
+    if (pages.length) jobs.push({ original, pages });
+  }
+  if (mine !== run) return;
+  setWanted(keep);
+  await tidyPictures(keep, unsure);
+  // Two scores at a time: each PDF has its own pdf.js worker, so they overlap; more would use up memory.
+  const worker = async () => {
+    for (let job = jobs.shift(); job && mine === run; job = jobs.shift()) await draw(job);
+  };
+  const draw = async ({ original, pages }: Job) => {
+    const cache = await openOriginal(original, false).catch(() => null);
+    if (!cache) return;
+    cache.pictures = picturesOf(original.id);
+    try {
+      for (const { num, w, h } of pages) {
+        if (mine !== run) return;
+        await cache.render(num, w, h, scale, 'later', true).catch((e) => console.warn('Could not draw a page to save:', e));
+        cache.keepOnly([], () => undefined); // drawn and saved: no need to keep it here
+      }
+    } finally {
+      cache.destroy();
+    }
+  };
+  await Promise.all([worker(), worker()]);
+}

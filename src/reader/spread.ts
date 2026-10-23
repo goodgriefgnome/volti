@@ -6,7 +6,7 @@ import type { Frame } from '../scores/frames';
 import type { Aspects, ScoreInk } from '../scores/model';
 import { el } from '../ui/dom';
 import { drawFrame, drawFrameInk, type Hatches } from './frames';
-import { placeFrames, sideBySide } from './layout';
+import { framesOnScreen, placeFrames, sideBySide } from './layout';
 
 /** Space between frames on one screen, in CSS pixels. */
 const GAP = 6;
@@ -36,6 +36,41 @@ export interface Placed { x: number; y: number; w: number; h: number; fw: number
 export function placeScreen(aspects: readonly number[], W: number, H: number, scale: number): Placed[] {
   const rects = placeFrames(aspects, Math.round(W * scale), Math.round(H * scale), Math.round(GAP * scale), sideBySide(aspects[0]));
   return rects.map((r) => ({ x: r.x / scale, y: r.y / scale, w: r.w / scale, h: r.h / scale, fw: r.w, fh: r.h }));
+}
+
+/**
+ * The screen starting at frame `f`: the frames on it, how many it has room for, and where they go.
+ * In a setlist (`fill`), a score's last screen keeps the rest of its room, for frames shaped like
+ * its first.
+ */
+export function screenAt(frames: readonly Frame[], f: number, W: number, H: number, scale: number, fill: boolean) {
+  const first = frames[f];
+  if (!first) return { on: [] as Frame[], wanted: 1, rects: [] as Placed[] };
+  const wanted = framesOnScreen(first.aspect, W, H);
+  const on = frames.slice(f, f + wanted);
+  const room = fill ? wanted - on.length : 0;
+  return { on, wanted, rects: placeScreen([...on.map((x) => x.aspect), ...Array<number>(room).fill(first.aspect)], W, H, scale) };
+}
+
+/** Each page the frames are cut from, with the widest of their slots it is drawn into (CSS pixels). */
+export function pageWidths(frames: readonly Frame[], widths: readonly number[]): Map<number, number> {
+  const out = new Map<number, number>();
+  frames.forEach((f, i) => { for (const p of f.items) out.set(p.cut.page, Math.max(out.get(p.cut.page) ?? 0, widths[i])); });
+  return out;
+}
+
+/**
+ * Every page shown reading the frames from the start, a screen at a time as a setlist does, with
+ * the widths (CSS pixels) it is drawn at.
+ */
+export function readPageWidths(frames: readonly Frame[], W: number, H: number, scale: number): Map<number, Set<number>> {
+  const out = new Map<number, Set<number>>();
+  for (let f = 0; f < frames.length;) {
+    const { on, rects } = screenAt(frames, f, W, H, scale, true);
+    for (const [p, w] of pageWidths(on, rects.map((r) => r.w))) out.set(p, (out.get(p) ?? new Set()).add(w));
+    f += on.length;
+  }
+  return out;
 }
 
 /** Put boxes where `placeScreen` says, with `aspects` their shapes. */

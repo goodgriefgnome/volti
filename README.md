@@ -83,6 +83,9 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   - Cuts and markings always belong to the score: changing them in a setlist changes the score,
     and every setlist's excerpts follow the change.
   - **Archive** hides a setlist behind **Show archived**; only archived setlists can be deleted.
+  - Volti keeps pictures of the pages setlists play (not archived ones), drawn for this tablet's
+    screen in the background, so a setlist opens, and turns between its scores, at once. A page
+    read at a new size (the tablet turned, say) is kept at that size too once it has been drawn.
 
 - **Export PDF…** in the **⋯** menu of a score, a named excerpt or a setlist, or **Export PDF** in
   the reader's toolbar (for what that reader pages through), makes a PDF that
@@ -126,6 +129,7 @@ its cuts kept only in that setlist.
 | `src/setlists/` | Setlists, the excerpt of each score they play, and keeping excerpts in step with cut edits |
 | `src/markings/` | What can be drawn or placed on the music: each kind's data, geometry and drawing (`stroke` for pen and highlighter) |
 | `src/library/` | The Library screen: setlists and scores |
+| `src/pictures/` | Saved pictures of the pages setlists play (`pictures`), and making them in the background (`maker`) |
 | `src/export/` | Exporting scores as PDFs (pdf-lib, loaded only to export): pages laid out as the reader's frames, and where each cut goes on them (`placement`) |
 | `src/reader/reader.ts` | The score screen, for a score or a setlist: turning pages and scores, applying edits, opening and closing |
 | `src/reader/open-scores.ts` | The scores being read, each original open only while near the one being read |

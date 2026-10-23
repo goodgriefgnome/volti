@@ -31,23 +31,6 @@ scores.
     of marking is written once and exports as it shows.
   - The picture of the markings goes. Music pdf-lib can't read, even decrypted (AES-128), is still
     drawn as a picture.
-- **Saved pictures of the pages setlists play:** Volti keeps a picture of every original page
-  that a cut played by a setlist (not archived) comes from, so opening a setlist, and turning
-  between its scores, shows the music at once (about 75 ms a page against 0.5 s or more to draw
-  a scanned one).
-  - Each is the page as drawn for this tablet's screen (WebP, about 180 KB), in the private
-    storage (OPFS), named by score id, page and width; a page shown at several widths (one or two
-    frames, either orientation) has one for each width it has been drawn at.
-  - Made in the background: whenever the reader draws such a page, and for the pages of setlist
-    entries never drawn yet (after a setlist changes, and at start-up). Two at a time, from
-    different scores where it can (each PDF has its own pdf.js worker, so they overlap better);
-    paused while the reader is drawing what's on screen, so it never slows a page turn. Not more
-    at once: each page drawn takes a canvas of up to ~37 MB, too much for a tablet in bulk.
-  - The reader shows a saved picture straight away and opens the PDF behind it, needed only to
-    zoom in. A score's id is its PDF's contents, and pictures are of whole pages, so changing cuts
-    never makes one wrong.
-  - A picture goes when no setlist plays its page any more (a setlist archived or deleted, an
-    entry removed or its cuts changed), checked when setlists change and at start-up.
 
 ## Manual check
 
@@ -68,6 +51,9 @@ Things to try on the tablet.
   Move to folder… for an added PDF, and Add scores' collapsed lists.
 - **Exporting a password-protected score:** its music comes out sharp when zoomed (vectors, or the
   scan as it was), and the dialog says “Original quality”.
+- **Setlists open at once:** a while after making or changing a setlist, opening it, and turning
+  from one of its scores to the next, shows the music straight away, scans included; zooming in
+  still works. Reading with the tablet turned the other way is slow the first time only.
 - **Reader opens with the toolbar hidden:** a score, excerpt or setlist shows only the music and
   the back arrow; a tap in the middle brings up the toolbar.
 

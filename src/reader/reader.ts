@@ -17,13 +17,12 @@ import { button, el } from '../ui/dom';
 import { openExcerptPicker, type ExcerptSource } from '../ui/excerpt-picker';
 import { addExcerpt, changeExcerptCuts, deleteExcerpt, renameExcerpt, type ExcerptHost } from '../ui/excerpts';
 import { openExportPdf } from '../ui/export-pdf';
-import { openOriginal } from '../ui/passwords';
 import { buttonRow, closeOverlay, showDialog, showMenu } from '../ui/overlay';
 import { chooseSetlist } from '../ui/setlists';
 import { Toast } from '../ui/toast';
 import { CutEditor } from './cuts/editor';
 import { Detail } from './detail';
-import { OpenScores, type Item, type OpenScore } from './open-scores';
+import { OpenScores, openPages, type Item, type OpenScore } from './open-scores';
 import type { Hatches } from './frames';
 import type { Gesture } from './gestures';
 import { History } from './history';
@@ -31,7 +30,7 @@ import { Input } from './input';
 import { framesOnScreen } from './layout';
 import { Saver } from './saver';
 import { blankBox, ScoreCard, showSetlistTitle } from './setlist';
-import { paintSlot, paintSlotInk, placeBoxes, placeScreen, placeSlots, type FrameSlot } from './spread';
+import { pageWidths, paintSlot, paintSlotInk, placeBoxes, placeSlots, screenAt, type FrameSlot } from './spread';
 import { backIcon, Toolbar, type ToolChoice } from './toolbar';
 import type { ToolName } from './tools/tool';
 import { isZoomed, NO_ZOOM, type Zoom } from './zoom';
@@ -59,13 +58,6 @@ const A4 = 297 / 210;
 
 const dpr = () => window.devicePixelRatio || 1;
 
-/** Each page the frames are cut from, with the widest of their slots it is drawn into (CSS pixels). */
-function pageWidths(frames: Frame[], widths: number[]): Map<number, number> {
-  const out = new Map<number, number>();
-  frames.forEach((f, i) => { for (const p of f.items) out.set(p.cut.page, Math.max(out.get(p.cut.page) ?? 0, widths[i])); });
-  return out;
-}
-
 /** Whether two played orders put the same music in the same places. */
 const sameLayout = (a: readonly Cut[], b: readonly Cut[]) =>
   a.length === b.length && a.every((c, i) => c.id === b[i].id && c.page === b[i].page && c.y0 === b[i].y0 && c.y1 === b[i].y1 && c.pad === b[i].pad);
@@ -76,8 +68,7 @@ export async function openReader(what: ToRead, onClose: () => void): Promise<voi
   const setlists = await loadSetlists();
   if (what.kind !== 'setlist') {
     const { original } = what;
-    const cache = await openOriginal(original);
-    const aspects = await cache.allAspects();
+    const { cache, aspects } = await openPages(original, true);
     const { state, position } = await loadScore(original.id, original.title, aspects);
     const first: OpenScore = { id: original.id, original, aspects, state, cache };
     const item = { scoreId: original.id, title: original.title, original };
@@ -500,12 +491,7 @@ class Reader {
    * after a score's last frame.
    */
   private screenAt(frames: Frame[], f: number, W: number, H: number, scale: number) {
-    const first = frames[f];
-    if (!first) return { on: [] as Frame[], wanted: 1, rects: [] as { w: number }[] };
-    const wanted = framesOnScreen(first.aspect, W, H);
-    const on = frames.slice(f, f + wanted);
-    const room = this.setlistId ? wanted - on.length : 0;
-    return { on, wanted, rects: placeScreen([...on.map((x) => x.aspect), ...Array<number>(room).fill(first.aspect)], W, H, scale) };
+    return screenAt(frames, f, W, H, scale, !!this.setlistId);
   }
 
   /** Where a score's last screen starts: at its last two frames when the one before last shows two. */
@@ -548,7 +534,7 @@ class Reader {
     const widths = pageWidths(on, rects.map((r) => r.w));
     let canvases: HTMLCanvasElement[];
     try {
-      canvases = await Promise.all([...widths].map(([p, w]) => this.cache.render(p + 1, w, this.pageSize(p, w).h, scale)));
+      canvases = await Promise.all([...widths].map(([p, w]) => this.cache.render(p + 1, w, this.pageSize(p, w).h, scale, 'now', true)));
     } catch (e) {
       if (seq === this.seq) this.toolbar.info.textContent = 'Could not draw this page';
       console.error(e);
@@ -618,7 +604,7 @@ class Reader {
     for (const [p, w] of widths) near.set(p, w);
     this.cache.keepOnly([...near.keys()].map((p) => p + 1), (n) => this.pageSize(n - 1, near.get(n - 1)!));
     const cache = this.cache;
-    await Promise.all([...near].map(([p, w]) => cache.render(p + 1, w, this.pageSize(p, w).h, scale, true).catch(() => {})));
+    await Promise.all([...near].map(([p, w]) => cache.render(p + 1, w, this.pageSize(p, w).h, scale, 'ahead', true).catch(() => {})));
     if (seq !== this.seq) return;
     // On a score's last screen in a setlist, draw the next score's first screen too.
     if (!this.setlistId || this.frame + this.shown < this.frames.length || this.k + 1 >= this.items.length) return;
@@ -626,7 +612,7 @@ class Reader {
     if (seq !== this.seq || !cur?.cache) return;
     const { on, rects } = this.screenAt(this.framesFor(this.k + 1), 0, W, H, scale);
     const next = cur.cache;
-    await Promise.all([...pageWidths(on, rects.map((r) => r.w))].map(([p, w]) => next.render(p + 1, w, Math.round(w * cur.aspects[p]), scale, true).catch(() => {})));
+    await Promise.all([...pageWidths(on, rects.map((r) => r.w))].map(([p, w]) => next.render(p + 1, w, Math.round(w * cur.aspects[p]), scale, 'ahead', true).catch(() => {})));
   }
 
 
