@@ -13,9 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **A dialog with the keyboard open is centred:** it now sits at the top of the space above the
-  keyboard; centre it there instead, as long as the field being typed into stays in view (when the
-  dialog is taller than the space, keep that field visible rather than centring).
 - **The excerpt picker's thumbnails a third of the screen tall** by default (now a quarter).
 - **A back button always in the reader:** with the toolbar hidden, a small back icon at the top
   left goes back to the library. With the toolbar showing, its "Library" button becomes the same
@@ -51,6 +48,8 @@ Things to try on the tablet.
   folder) asks once, to edit files; Rename… and Export PDF… then don't ask again.
 - **The Update button:** with Volti left open after a change is published, coming back to it (or
   within half an hour) shows Update in the library's banner; tapping it loads the new version.
+- **A dialog with the keyboard open** sits centred in the space above the keyboard, with the field
+  being typed into in view.
 
 ## Confirmed features which require more thought
 

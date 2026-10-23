@@ -95,6 +95,9 @@ function followVisibleArea() {
     root.style.setProperty('--seen-top', vv.offsetTop + 'px');
     root.style.setProperty('--seen-height', vv.height + 'px');
     root.classList.toggle('keyboard', Math.abs(vv.scale - 1) < 0.01 && vv.height < KEYBOARD_LEFT * window.innerHeight);
+    // The field being typed into stays in sight when the dialog shrinks or scrolls.
+    const typing = document.activeElement;
+    if (typing instanceof HTMLInputElement && typing.closest('.dialog')) typing.scrollIntoView({ block: 'nearest' });
   };
   vv.addEventListener('resize', set);
   vv.addEventListener('scroll', set);
