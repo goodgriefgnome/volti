@@ -5,11 +5,13 @@
 import type { ExcerptSource } from '../dialogs/excerpt-picker';
 import type { ExcerptHost } from '../dialogs/excerpts';
 import { openExportPdf } from '../dialogs/export-pdf';
+import { askPassword } from '../dialogs/passwords';
 import { chooseSetlist } from '../dialogs/setlists';
 import type { Span } from '../excerpts/span';
 import type { ExportPart } from '../export/pdf';
 import { folderState, linkFolder, unlinkFolder, unlockFolder, type FolderState } from '../originals/folder';
-import { PasswordNotGiven } from '../originals/open';
+import { lockedOriginals } from '../originals/locks';
+import { openOriginal, PasswordNotGiven, savedPassword } from '../originals/open';
 import { allOriginals, knownTitles, type Original } from '../originals/originals';
 import { makePictures } from '../pictures/maker';
 import { openReader, type ToRead } from '../reader/reader';
@@ -35,6 +37,7 @@ export class Library implements LibraryHost {
   saved = new Map<string, Score>();
   shapes = new Map<string, Aspects>();
   openRows = new Set<string>();
+  locked = new Set<string>();
   toast = new Toast();
   /** Every original's title as last seen, for scores whose original is missing. */
   private titles: Record<string, string> = {};
@@ -125,6 +128,16 @@ export class Library implements LibraryHost {
     this.saved = new Map(saved.filter((x): x is Score => !!x).map((x) => [x.id, x]));
     this.shapes = new Map(ids.flatMap((id, i) => (shapes[i] ? [[id, shapes[i]] as const] : [])));
     this.renderSetlists();
+    void this.findLocked();
+  }
+
+  /** Work out which scores are locked, in the background (new PDFs are looked at once), and show them. */
+  private async findLocked() {
+    const readable = (o: Original) => o.location === 'imported' || this.folder.kind === 'ready';
+    const locked = await lockedOriginals(this.originals, readable).catch((e) => { console.warn(e); return this.locked; });
+    if ([...locked].join() === [...this.locked].join()) return;
+    this.locked = locked;
+    this.scoresSection.render();
   }
 
   /* ---------- the scores folder ---------- */
@@ -195,7 +208,10 @@ export class Library implements LibraryHost {
    * `what`; the second opens a menu of setlists below `anchor`, with New setlist….
    */
   addToItems(anchor: Element, scoreId: string, what: string, span: Span = {}): MenuItem[] {
-    const add = (s: Setlist) => {
+    const add = async (s: Setlist) => {
+      const o = this.originalOf(scoreId);
+      if (o && !(await this.givePassword(o))) return;
+      s = this.setlist(s.id) ?? s;
       this.openRows.add(s.id);
       this.addedTo(s.id);
       void this.change(withSetlist(this.setlists, addEntries(s, [{ scoreId, span }])));
@@ -203,8 +219,8 @@ export class Library implements LibraryHost {
     };
     const d = defaultSetlist(this.setlists, this.lastAddedTo);
     return [
-      ...(d ? [{ label: `Add to “${d.title}”`, run: () => add(this.setlist(d.id) ?? d) }] : []),
-      { label: 'Add to setlist…', run: () => chooseSetlist(anchor, `Add “${what}” to`, this.setlists, add, scoreId) },
+      ...(d ? [{ label: `Add to “${d.title}”`, run: () => void add(d) }] : []),
+      { label: 'Add to setlist…', run: () => chooseSetlist(anchor, `Add “${what}” to`, this.setlists, (s) => void add(s), scoreId) },
     ];
   }
 
@@ -272,6 +288,27 @@ export class Library implements LibraryHost {
       this.toast.say(e instanceof PasswordNotGiven ? `“${o.title}” needs its password to open.` : `Could not open “${o.title}”. It may have been moved or renamed.`);
       return null;
     }
+  }
+
+  async givePassword(o: Original): Promise<boolean> {
+    // Given meanwhile, as opening it to preview asks for it too.
+    if (!this.locked.has(o.id) || (await savedPassword(o.id)) !== undefined) return this.unlocked(o);
+    if (o.location === 'folder' && this.folder.kind === 'locked' && !(await this.unlock())) return false;
+    try {
+      (await openOriginal(o, askPassword)).destroy();
+    } catch (e) {
+      if (!(e instanceof PasswordNotGiven)) {
+        console.error(e);
+        this.toast.say(`Could not open “${o.title}”. It may have been moved or renamed.`);
+      }
+      return false;
+    }
+    return this.unlocked(o);
+  }
+
+  private unlocked(o: Original) {
+    if (this.locked.delete(o.id)) this.scoresSection.render();
+    return true;
   }
 
   /* ---------- opening the reader ---------- */

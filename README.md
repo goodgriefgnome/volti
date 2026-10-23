@@ -23,7 +23,8 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   **Move to folder…** in its **⋯** menu lists it under a subfolder (one there is, or a new one);
   the PDF itself stays in Volti, and **None** takes it back to the top.
 - A PDF protected by a password asks for it the first time it is opened. Volti remembers it on
-  this tablet, so it asks only once. An exported PDF of it has no password.
+  this tablet, so it asks only once. An exported PDF of it has no password. Until its password is
+  given, it shows a lock in the library, and adding it to a setlist asks for the password first.
 - **Rename…** in a score's **⋯** menu renames its PDF. Volti asks to change files in the scores
   folder (not only read them) when it is linked, and with the one tap that allows access again
   after a restart, so renaming and exporting don't ask separately.

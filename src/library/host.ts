@@ -23,6 +23,8 @@ export interface LibraryHost {
   /** Scores as last saved, and their originals' page shapes: for their named excerpts, and the excerpt each entry plays. */
   readonly saved: ReadonlyMap<string, Score>;
   readonly shapes: ReadonlyMap<string, Aspects>;
+  /** The scores whose PDF needs a password not given yet, by id. */
+  readonly locked: ReadonlySet<string>;
   /** The rows opened (a setlist's scores, a score's named excerpts), by id, while the app runs. */
   readonly openRows: Set<string>;
   readonly toast: Toast;
@@ -62,6 +64,12 @@ export interface LibraryHost {
   withPages(o: Original, pick: (sc: LibraryScore) => void): Promise<void>;
   /** Keep a score opened for a dialog, for naming the excerpts entries play. */
   remember(sc: ExcerptSource): void;
+
+  /**
+   * Ask for a locked score's password (true at once for one not locked), as adding it to a setlist
+   * does; false when it isn't given.
+   */
+  givePassword(o: Original): Promise<boolean>;
 
   /** Read a score from where it was left. */
   open(o: Original): void;

@@ -8,7 +8,7 @@ import { ends, sameSpan, type Span } from '../excerpts/span';
 import type { Original } from '../originals/originals';
 import type { ExcerptName, Score } from '../scores/model';
 import type { Setlist } from '../setlists/model';
-import { button, el, plural } from '../ui/dom';
+import { button, el, lockIcon, plural } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog, whenOverlayCloses } from '../ui/overlay';
 import { byFolder } from './folders';
 import type { LibraryScore } from './open-score';
@@ -21,6 +21,10 @@ export interface AddScoresHost {
   saved: ReadonlyMap<string, Score>;
   /** Open a score to preview; null if it can't be (having said why). */
   open(o: Original): Promise<LibraryScore | null>;
+  /** The scores whose PDF needs a password not given yet, by id. */
+  locked: ReadonlySet<string>;
+  /** Ask for a locked score's password; false when it isn't given. */
+  givePassword(o: Original): Promise<boolean>;
   /** Add entries playing these to the end of the setlist; `scores` are the ones they choose excerpts of. */
   add(entries: { scoreId: string; span: Span }[], scores: ExcerptSource[]): void;
 }
@@ -32,9 +36,11 @@ export interface AddScoresHost {
 interface Choice { span: Span; label: string | null; named?: boolean; src?: ExcerptSource }
 
 /** A row's title, with what else it says ("in this setlist"), wrapping beside its checkbox. */
-function pickText(title: string, meta = ''): HTMLElement {
+function pickText(title: string, meta = '', locked = false): HTMLElement {
   const t = el('span', 'pick-text');
-  t.append(el('span', 'pick-title', title));
+  const name = el('span', 'pick-title', title);
+  if (locked) name.append(lockIcon('Needs its password'));
+  t.append(name);
   if (meta) t.append(el('span', 'meta', meta));
   return t;
 }
@@ -54,14 +60,20 @@ export function openAddScores(h: AddScoresHost) {
   const heading = d.querySelector('h2')!;
   const listView = el('div', 'view');
   const list = el('div', 'picklist');
-  const add = button('Add', () => {
+  const add = button('Add', () => void addChosen(), 'primary');
+  const addChosen = async () => {
+    // A locked score goes in only once its password is given.
+    for (const o of h.originals) {
+      if (chosen.has(o.id) && h.locked.has(o.id) && !(await h.givePassword(o))) chosen.delete(o.id);
+    }
+    if (!count()) { sync(); fill(find.value); return; }
     closeOverlay();
     const picked = h.originals.flatMap((o) => (chosen.get(o.id) ?? []).map((c) => [o.id, c] as const));
     h.add(
       picked.map(([scoreId, c]) => ({ scoreId, span: c.span })),
       [...new Set(picked.flatMap(([, c]) => (c.src ? [c.src] : [])))],
     );
-  }, 'primary');
+  };
   const sync = () => {
     const n = count();
     add.disabled = !n;
@@ -127,7 +139,7 @@ export function openAddScores(h: AddScoresHost) {
     });
     const redraw = () => { sync(); r.replaceWith(row(sc, names)); };
     const has = s.entries.filter((e) => e.scoreId === sc.id).length;
-    label.append(box, pickText(sc.title, has ? `in this setlist${has > 1 ? ` ${has}×` : ''}` : ''));
+    label.append(box, pickText(sc.title, has ? `in this setlist${has > 1 ? ` ${has}×` : ''}` : '', h.locked.has(sc.id)));
     const preview = button('Preview', () => void showPreview(sc), 'quiet');
     preview.setAttribute('aria-label', `Preview ${sc.title}`);
     r.append(label, preview);

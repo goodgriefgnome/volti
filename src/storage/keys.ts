@@ -18,6 +18,11 @@ export const keys = {
   addedFolders: 'added-folders',
   /** The library's subfolder lists closed by hand, by path (library/store.ts). */
   closedFolders: 'closed-folders',
+  /**
+   * Whether each original needs a password to open, by id: false for one that isn't encrypted or
+   * only limits what may be done with it. Worked out once (originals/locks.ts).
+   */
+  locks: 'locks',
   /** Files shared into the app, waiting to be imported: File[] (originals/inbox.ts). */
   inbox: 'inbox',
 

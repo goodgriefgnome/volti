@@ -13,18 +13,7 @@ scores.
 
 ## Work for the immediate future
 
-- **Password-protected scores are locked until their password is given:** a score whose PDF
-  needs a password Volti doesn't know shows a lock beside its title in the library (and in Add
-  scores). It can't go into a setlist without its password, so a setlist never holds a score
-  its saved pictures can't be made for.
-  - Adding a locked score to a setlist (Add scores, Add to setlist…, Add to) first asks for its
-    password, in the dialog used when opening it; Cancel leaves it out. Opening it, as now, asks
-    too; either way the lock goes once the password is saved.
-  - Knowing which are locked without opening each: when Volti reads a new PDF whole (to hash it),
-    it notes whether it is encrypted (an `/Encrypt` entry); an encrypted one with no saved
-    password is then opened by pdf.js in the background with no password, which tells a PDF that
-    needs one from one that only limits what may be done with it (no lock). Remembered by score
-    id, like the hashes, so it is worked out once.
+Nothing at the moment.
 
 ## Manual check
 
@@ -55,6 +44,9 @@ Things to try on the tablet.
 - **Markings in an exported PDF:** open the export in another PDF app (Acrobat, Xodo, the
   browser): the pen (thicker where pressed harder) and highlighter (notes under it still black)
   look as in Volti, and the app lists them as annotations it can hide or delete.
+- **Locked scores:** a password-protected PDF whose password hasn't been given shows a lock in
+  the library and in Add scores (one that only stops printing or copying doesn't); adding it to a
+  setlist asks for the password, Cancel leaves it out, and once given the lock goes.
 - **Reader opens with the toolbar hidden:** a score, excerpt or setlist shows only the music and
   the back arrow; a tap in the middle brings up the toolbar.
 

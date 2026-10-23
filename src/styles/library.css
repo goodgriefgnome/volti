@@ -75,6 +75,7 @@
 
 /* Scores: tap to open one. */
 .score-title { font-size: 17px; overflow-wrap: anywhere; }
+.lock-icon { width: 15px; height: 15px; margin-left: 6px; vertical-align: -2px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: 0.75; }
 .score-folder { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
 .badge { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); border: 1px solid currentColor; border-radius: 999px; padding: 0 8px; }
 .empty { padding: 24px 4px; color: var(--muted); }
