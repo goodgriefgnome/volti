@@ -42,8 +42,6 @@ scores.
     “Rasterized (unsupported encryption): “Mass A”, …” naming each score that falls back. It
     opens at once and checks the originals in the background (each one's `/Encrypt` dictionary,
     or a trial decrypt), showing “Checking quality…” until it knows.
-
-
 - **Draw a screen's pages at the same time:** in every reader (score, excerpt or setlist), the
   pages on a screen, and those drawn ahead, are drawn together rather than one after another
   (about 25% quicker for two scanned pages). The page cache's one-at-a-time queue becomes a
@@ -83,7 +81,8 @@ Things to try on the tablet.
   to the library without getting in the way of the music or of turning back a page.
 - **Scores grouped by subfolder:** the lists, closing them (remembered after a restart), searching,
   Move to folder… for an added PDF, and Add scores' collapsed lists.
-Opening a score, excerpt or setlist shows only the music and the back arrow; a tap in the middle brings up the toolbar.
+- **Reader opens with the toolbar hidden:** a score, excerpt or setlist shows only the music and
+  the back arrow; a tap in the middle brings up the toolbar.
 
 ## Confirmed features which require more thought
 
