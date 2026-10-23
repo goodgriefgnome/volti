@@ -13,7 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **The excerpt picker's thumbnails a third of the screen tall** by default (now a quarter).
 - **A back button always in the reader:** with the toolbar hidden, a small back icon at the top
   left goes back to the library. With the toolbar showing, its "Library" button becomes the same
   icon (still labelled Library for screen readers). The icon is a tap target of its own, so taps

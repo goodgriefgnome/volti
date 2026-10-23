@@ -12,7 +12,7 @@ import { button, el } from './dom';
 import { buttonRow, closeOverlay, showDialog } from './overlay';
 
 /** How tall the thumbnails are, unzoomed, as a share of the screen's height; and how narrow they may get. */
-const THUMB_SHARE = 0.25;
+const THUMB_SHARE = 1 / 3;
 const MIN_THUMB_W = 112;
 /** How far the thumbnails zoom in. */
 const MAX_THUMB_ZOOM = 4;
