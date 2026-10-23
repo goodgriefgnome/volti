@@ -64,7 +64,10 @@ export class Library {
     const header = el('header', 'masthead');
     const brand = el('h1', 'brand', 'Volti');
     const tagline = el('p', 'tagline', 'volti subito · turn the page');
-    header.append(brand, tagline);
+    const name = el('div', 'brand-line');
+    name.append(brand, tagline);
+    // The scores folder beside the name, so Allow access is in sight as the library opens.
+    header.append(name, this.folderPanel);
 
     this.search.type = 'search';
     this.search.id = 'search';
@@ -104,7 +107,7 @@ export class Library {
 
     this.status.setAttribute('role', 'status');
     this.toast.el.classList.add('fixed');
-    this.root.append(header, this.status, setlistsHead, this.setlistList, scoresHead, this.folderPanel, tools, this.list);
+    this.root.append(header, this.status, setlistsHead, this.setlistList, scoresHead, tools, this.list);
     document.body.append(this.root, this.toast.el);
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !this.root.hidden) closeOverlay(); });
   }

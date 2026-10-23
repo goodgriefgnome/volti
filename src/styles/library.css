@@ -5,7 +5,13 @@
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: max(28px, env(safe-area-inset-top, 0px)) max(32px, env(safe-area-inset-bottom, 0px));
 }
-.masthead { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+/* The name, and beside it the scores folder; the folder goes below it when there isn't room. */
+.masthead { display: flex; align-items: center; gap: 14px 20px; flex-wrap: wrap; }
+.brand-line { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.masthead .folder { flex: 1 1 360px; min-width: 0; }
+.masthead .folder p { flex-basis: 120px; }
+/* The status line takes no room while it has nothing to say. */
+.library > .status:empty { display: none; }
 .brand { font: italic 600 2.4rem/1 var(--font-brand); margin: 0; letter-spacing: 0.01em; }
 .tagline { margin: 0; color: var(--muted); font: italic 1rem var(--font-brand); }
 
