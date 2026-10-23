@@ -78,17 +78,23 @@ export function showMenu(at: Element | { x: number; y: number }, title: string, 
   menu.querySelector('button')?.focus();
 }
 
+/** The visible part of the page shorter than this share of it, unzoomed: the keyboard is open. */
+const KEYBOARD_LEFT = 0.85;
+
 /**
  * Keep dialogs in the part of the screen that can be seen: the on-screen keyboard covers the
  * bottom of the page without making it any shorter, so a dialog centred on the page could be
- * hidden under it. The visual viewport is what is left above the keyboard.
+ * hidden under it. The visual viewport is what is left above the keyboard; while the keyboard is
+ * open, dialogs fill it (the "keyboard" class).
  */
 function followVisibleArea() {
   const vv = window.visualViewport;
   if (!vv) return;
+  const root = document.documentElement;
   const set = () => {
-    document.documentElement.style.setProperty('--seen-top', vv.offsetTop + 'px');
-    document.documentElement.style.setProperty('--seen-height', vv.height + 'px');
+    root.style.setProperty('--seen-top', vv.offsetTop + 'px');
+    root.style.setProperty('--seen-height', vv.height + 'px');
+    root.classList.toggle('keyboard', Math.abs(vv.scale - 1) < 0.01 && vv.height < KEYBOARD_LEFT * window.innerHeight);
   };
   vv.addEventListener('resize', set);
   vv.addEventListener('scroll', set);

@@ -20,6 +20,16 @@
 .dialog .hint { margin: 0; color: var(--muted); }
 .dialog .hint.error { color: var(--warn); }
 .dialog .hint.error:empty { display: none; }
+/*
+ * While the on-screen keyboard is open, a dialog fills what is left of the screen above it and
+ * scrolls as a whole; the lists and thumbnails in it grow to their full height rather than
+ * scrolling on their own.
+ */
+.keyboard .dialog, .keyboard .dialog.wide {
+  left: 0; top: var(--seen-top, 0px); transform: none; width: 100vw; height: var(--seen-height, 100vh);
+  max-height: var(--seen-height, 100vh); border-radius: 0; grid-auto-rows: max-content; align-content: start;
+}
+.keyboard .dialog .thumbs.excerpt, .keyboard .dialog .picklist, .keyboard .dialog .excerpt-list { max-height: none; }
 /* The buttons stay in sight when the dialog is too tall and scrolls. */
 .dialog .buttons {
   display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap;

@@ -184,6 +184,14 @@ export class ExcerptStrip {
    * One finger drags the strip along, two pinch it. Taps still reach the bands; a drag or a
    * pinch doesn't, so moving about never changes the excerpt.
    */
+  /** Move along the thumbnails; what they can't scroll themselves scrolls the dialog, as when it fills the screen. */
+  private drag(dx: number, dy: number) {
+    const strip = this.el, top = strip.scrollTop;
+    strip.scrollBy(dx, dy);
+    const left = dy - (strip.scrollTop - top);
+    if (Math.abs(left) >= 1) strip.closest('.dialog')?.scrollBy(0, left);
+  }
+
   private listen() {
     const strip = this.el;
     const at = new Map<number, Pt>();
@@ -226,7 +234,7 @@ export class ExcerptStrip {
           down = null;
           strip.setPointerCapture(e.pointerId);
         }
-        if (moved) strip.scrollBy(was.x - now.x, was.y - now.y);
+        if (moved) this.drag(was.x - now.x, was.y - now.y);
       }
     });
     const up = (e: PointerEvent) => {

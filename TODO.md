@@ -5,10 +5,6 @@ scores.
 
 ## Work for the immediate future
 
-- **While the keyboard is open, a dialog fills the screen** above it and scrolls as a whole, so the
-  excerpt picker's thumbnails don't scroll on their own (today the dialog shrinks to fit above the
-  keyboard, and the thumbnails scroll inside it). Checked on the tablet: pinching and panning the
-  thumbnails is smooth.
 - **Bigger cut tabs, to accessibility guidelines:** the tabs for dragging a cut's edges are a
   little too small on the tablet (long press works fine). Touch area at least 48×48 CSS px
   (Material Design's 48 dp, Android being the target; WCAG 2.2 asks 24×24 at AA, 44×44 at AAA),
@@ -67,6 +63,9 @@ Things to try on the tablet.
 - **Exporting with no folder linked** (the share sheet). Exporting into the folder works.
 - **Adding a PDF with Add PDFs** (it failed on the tablet: the copy came out empty): it opens,
   and Come_People_Of_The_Risen_King.pdf is titled without the digits Android added.
+- **Dialogs with the keyboard open** fill the screen above it and scroll as a whole; dragging the
+  excerpt picker's thumbnails scrolls the dialog. (The keyboard is taken to be open when the visible
+  area is under 85% of the page's height, unzoomed.)
 
 ## Confirmed features which require more thought
 
