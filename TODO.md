@@ -13,7 +13,15 @@ scores.
 
 ## Work for the immediate future
 
-Nothing at the moment.
+- **Importing a single image as a 1-page score:** Add PDFs (and sharing to Volti) also takes
+  image files (JPEG, PNG, and whatever else the browser can draw, such as WebP or HEIC), each
+  becoming a score of one page.
+  - Each image is wrapped in a one-page PDF as it is imported (pdf-lib, its page the image's shape,
+    as wide as an A4 page), and that PDF is the imported original, named after the image
+    ("Ave verum.jpg" → "Ave verum.pdf"). Everything else (hashing, the reader, saved pictures,
+    export) then works on it unchanged. JPEG goes in as it is; other formats are drawn to a canvas
+    and go in as PNG.
+  - Several images picked at once are several scores, one each.
 
 ## Manual check
 
@@ -78,8 +86,8 @@ Things to try on the tablet.
   open a screen of two, which would take in f). For now it goes back by as many frames as show.
 - **Square frames:** a frame neither wider nor taller is both portrait and landscape; decide how
   it lays out on the screen (for now, as portrait).
-- **Images as an original**: a set of images ordered by file name, scaled to a common width,
-  beside the PDF reader in `src/originals/`.
+- **Several images as one original**: a set of images ordered by file name, scaled to a common
+  width, as one score (single images are imported as 1-page scores: see the immediate item).
 - **Page-turn strategies** (half-page turns and the like): to be discussed separately.
 - **Exporting the library** (scores, setlists, markings, reading positions) as files, for backup
   and for moving to another device; probably written into the linked scores folder.
