@@ -2,8 +2,7 @@
 
 import { scoreEntries } from '../scores/store';
 import type { Setlist } from '../setlists/model';
-import { changedEntries } from '../setlists/store';
-import { kv } from '../storage/kv';
+import { saveChanged } from '../setlists/store';
 import type { OpenScore } from './open-scores';
 
 /**
@@ -26,13 +25,11 @@ export class Saver {
   async flush() {
     clearTimeout(this.timer);
     this.timer = undefined;
-    const entries = [...this.dirty].flatMap((d) => scoreEntries(d.state));
+    const scores = [...this.dirty].flatMap((d) => scoreEntries(d.state));
     this.dirty.clear();
-    const setlists = this.setlists();
-    if (setlists !== this.saved) {
-      entries.push(...changedEntries(setlists, this.saved));
-      this.saved = setlists;
-    }
-    if (entries.length) await kv.setMany(entries);
+    const setlists = this.setlists(), before = this.saved;
+    if (!scores.length && setlists === before) return;
+    this.saved = setlists;
+    await saveChanged(setlists, before, scores);
   }
 }

@@ -21,13 +21,12 @@ import { button, el, plural } from '../ui/dom';
 import type { ExportPart } from '../export/pdf';
 import { PasswordNotGiven } from '../originals/open';
 import { buttonRow, closeOverlay, showDialog, showMenu, whenOverlayCloses, type MenuItem } from '../ui/overlay';
-import { keys } from '../storage/keys';
-import { kv } from '../storage/kv';
 import { Toast } from '../ui/toast';
 import { openAddScores } from './add-scores';
 import { makePictures } from '../pictures/maker';
 import { byFolder } from './folders';
 import { openScore, type LibraryScore } from './open-score';
+import { loadClosedFolders, saveClosedFolders } from './store';
 
 /** The Library screen: setlists, the scores folder, imported scores, and the list to open them from. */
 export class Library {
@@ -172,7 +171,7 @@ export class Library {
   private async loadSetlists() {
     [this.setlists, this.titles, this.lastAddedTo] = await Promise.all([loadSetlists(), knownTitles(), loadLastAddedTo()]);
     // Read once: after that, the lists opened and closed here are the ones to go by.
-    this.closedFolders ??= new Set((await kv.get<string[]>(keys.closedFolders)) ?? []);
+    this.closedFolders ??= new Set(await loadClosedFolders());
     // Every score's, for its named excerpts, and those of scores in setlists that are missing.
     const ids = [...new Set([...this.originals.map((o) => o.id), ...this.setlists.flatMap((s) => s.entries.map((e) => e.scoreId))])];
     const [saved, shapes] = await Promise.all([Promise.all(ids.map(loadSavedScore)), Promise.all(ids.map(loadAspects))]);
@@ -496,7 +495,7 @@ export class Library {
       // A search opens lists for the while; what is closed by hand is remembered.
       if (searching) return;
       if (now) closed.delete(folder); else closed.add(folder);
-      void kv.set(keys.closedFolders, [...closed]);
+      void saveClosedFolders([...closed]);
     }, 'folder-head');
     head.append(el('span', 'chev'), el('span', '', folder.split('/').join(' / ')));
     head.setAttribute('aria-expanded', String(open));

@@ -5,8 +5,7 @@ import type { ExcerptSource } from '../dialogs/excerpt-picker';
 import { askPassword } from '../dialogs/passwords';
 import type { Original } from '../originals/originals';
 import { openOriginal } from '../originals/open';
-import { loadSavedScore, loadScore, scoreEntries } from '../scores/store';
-import { kv } from '../storage/kv';
+import { loadSavedScore, loadScore, saveScore } from '../scores/store';
 
 /** A score and its original, open until `close`. */
 export interface LibraryScore extends ExcerptSource {
@@ -23,7 +22,7 @@ export async function openScore(o: Original): Promise<LibraryScore> {
     const aspects = await cache.allAspects();
     const fresh = !(await loadSavedScore(o.id));
     const { state } = await loadScore(o.id, o.title, aspects);
-    if (fresh) await kv.setMany(scoreEntries(state));
+    if (fresh) await saveScore(state);
     const dpr = window.devicePixelRatio || 1;
     return {
       state,

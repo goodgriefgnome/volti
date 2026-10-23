@@ -1,21 +1,22 @@
-// Every key in the kv store, and what it holds: add a key here before storing anything new.
-// Renaming one loses what is stored under it.
+// Every key in the kv store, what it holds, and the module that reads and writes it: add a key here
+// before storing anything new. Renaming one loses what is stored under it. Only the modules named
+// here use the kv store: the */store.ts files, and originals/.
 
 export const keys = {
-  /** The linked scores folder's FileSystemDirectoryHandle (originals/originals.ts). */
+  /** The linked scores folder's FileSystemDirectoryHandle (originals/folder.ts). */
   folder: 'folder',
-  /** The linked folder's PDFs as last read, { path, id }[], listed while access is locked. */
+  /** The linked folder's PDFs as last read, { path, id }[], listed while access is locked (originals/folder.ts). */
   folderListing: 'folder-files',
   /**
    * Each original's SHA-256 as last worked out, with the size and modified time it was worked out
-   * for, by "folder/" + path or "imported/" + name.
+   * for, by "folder/" + path or "imported/" + name (originals/hashes.ts).
    */
   hashes: 'hashes',
-  /** Each original's title as last seen, by id: for scores whose original is missing. */
+  /** Each original's title as last seen, by id: for scores whose original is missing (originals/originals.ts). */
   titles: 'titles',
-  /** The subfolder each imported original is filed under in the library, by id ("Masses/Latin"). */
+  /** The subfolder each imported original is filed under in the library, by id ("Masses/Latin") (originals/imported.ts). */
   addedFolders: 'added-folders',
-  /** The library's subfolder lists closed by hand, by path. */
+  /** The library's subfolder lists closed by hand, by path (library/store.ts). */
   closedFolders: 'closed-folders',
   /** Files shared into the app, waiting to be imported: File[] (originals/inbox.ts). */
   inbox: 'inbox',
