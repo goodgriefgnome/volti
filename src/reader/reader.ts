@@ -33,6 +33,7 @@ import { blankBox, ScoreCard, showSetlistTitle } from './setlist';
 import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './spread';
 import { backIcon, Toolbar, type ToolChoice } from './toolbar';
 import { ReaderMenus } from './toolbar-menus';
+import { offerScore, turnFrom, type Offer } from './turning';
 import type { ToolName } from './tools';
 import type { ReaderView } from './view';
 
@@ -131,7 +132,7 @@ class Reader {
   /** A score's file was renamed, moved or removed here: the library reads its scores again. */
   private filesChanged = false;
   /** The score offered by turning past this one's end: turning that way again while it is offered opens it. */
-  private offered: { dir: 1 | -1; id: string; until: number } | null = null;
+  private offered: Offer | null = null;
 
   constructor(
     items: Item[],
@@ -482,22 +483,21 @@ class Reader {
   /** Turn a screen; in a setlist, past a score's end into the next one, or back into the one before. */
   private turn(dir: 1 | -1) {
     if (this.loading) return;
-    // Forward by the frames shown; back by as many (to the first frame, near the start).
-    const next = dir > 0 ? this.frame + this.shown : this.frame > 0 ? Math.max(0, this.frame - this.shown) : -1;
     // Put the tool away so taps turn pages again. The toolbar stays until you dismiss it.
     this.tool = 'none';
-    if (next >= 0 && next < this.frames.length) {
-      this.offered = null;
-      this.frame = next;
+    const place = { k: this.k, items: this.items.length, frame: this.frame, shown: this.shown, frames: this.frames.length };
+    const t = turnFrom(place, dir, this.reading.what.kind);
+    if (t.to !== 'score') this.offered = null;
+    if (t.to === 'frame') {
+      this.frame = t.frame;
       this.syncBar();
       void this.show();
-      return;
+    } else if (t.to === 'item') {
+      this.syncBar();
+      void this.goTo(t.k, t.at);
+    } else if (t.to === 'score') {
+      this.offerScore(t.dir);
     }
-    if (this.reading.what.kind === 'score') { this.offerScore(dir); return; }
-    const k = this.k + dir;
-    if (k < 0 || k >= this.items.length) return;
-    this.syncBar();
-    void this.goTo(k, dir > 0 ? 'first' : 'last');
   }
 
   /**
@@ -507,16 +507,14 @@ class Reader {
   private offerScore(dir: 1 | -1) {
     const here = this.library.findIndex((o) => o.id === this.items[0].scoreId);
     const o = here < 0 ? undefined : this.library[here + dir];
-    if (!o) { this.offered = null; this.say(dir > 0 ? 'This is the last score.' : 'This is the first score.'); return; }
-    const was = this.offered;
-    if (was?.dir === dir && was.id === o.id && Date.now() < was.until) {
-      this.offered = null;
+    const { open, offered } = offerScore(this.offered, dir, o?.id, Date.now(), OFFER_MS);
+    this.offered = offered;
+    if (!o) this.say(dir > 0 ? 'This is the last score.' : 'This is the first score.');
+    else if (!open) this.say(`Tap again for “${o.title}”`);
+    else {
       this.toast.hide();
       void this.turnToScore(o, dir);
-      return;
     }
-    this.offered = { dir, id: o.id, until: Date.now() + OFFER_MS };
-    this.say(`Tap again for “${o.title}”`);
   }
 
   /** Read score `o` instead: from its start going forward, from its last screen going back. */
