@@ -48,6 +48,28 @@ scores.
   is easy, but having to hide it before a performance is a trap. Update the README's reader
   section to match.
 
+- **Draw a screen's pages at the same time:** in every reader (score, excerpt or setlist), the
+  pages on a screen, and those drawn ahead, are drawn together rather than one after another
+  (about 25% quicker for two scanned pages). The page cache's one-at-a-time queue becomes a
+  limit of two or so, so drawing ahead still never holds up the screen asked for for long.
+- **Draw ahead sooner in setlists:** the next score's first screen is drawn as soon as the current
+  screen is shown (after the current score's neighbouring screens), not only on its last screen;
+  and the previous score's last screen too, so turning back into it is quick.
+- **Saved pictures of the pages setlists play:** Volti keeps a picture of every original page
+  that a cut played by a setlist (not archived) comes from, so opening a setlist, and turning
+  between its scores, shows the music at once (about 75 ms a page against 0.5 s or more to draw
+  a scanned one).
+  - Each is the page as drawn for this tablet's screen (WebP, about 180 KB), in the private
+    storage (OPFS), named by score id, page and width; a page shown at several widths (one or two
+    frames, either orientation) has one for each width it has been drawn at.
+  - Made in the background, a page at a time: whenever the reader draws such a page, and for the
+    pages of setlist entries never drawn yet (after a setlist changes, and at start-up).
+  - The reader shows a saved picture straight away and opens the PDF behind it, needed only to
+    zoom in. A score's id is its PDF's contents, and pictures are of whole pages, so changing cuts
+    never makes one wrong.
+  - A picture goes when no setlist plays its page any more (a setlist archived or deleted, an
+    entry removed or its cuts changed), checked when setlists change and at start-up.
+
 ## Manual check
 
 Things to try on the tablet.
@@ -101,6 +123,9 @@ Things to try on the tablet.
 
 ## Speculative future ideas
 
+- **Read only the parts of a PDF that are needed:** open originals through a range transport
+  (`PDFDataRangeTransport`, slices of the File) instead of copying the whole file to pdf.js;
+  saves some of the ~0.65 s pdf.js spends copying and parsing a 42 MB scan.
 - **Synthetic pages** (systems arranged by hand), **jump markers** (D.S., coda) that generate the
   played order, and **tags** for search.
 - **Named excerpts from the PDF's bookmarks** (outline), made the first time a score is opened.
