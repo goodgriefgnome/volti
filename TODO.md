@@ -40,7 +40,8 @@ scores.
   - Searching keeps matches under their headings, opens the lists holding matches for the
     search, and hides lists without any.
   - Added PDFs sit in the main list, but "Move to folder…" in their ⋯ menu files one under a
-    subfolder path of your choosing (an existing subfolder, or a new path), in Volti only: it
+    subfolder path of your choosing, in Volti only. Its dialog has a text field for the path,
+    with the existing subfolders offered as suggestions to pick from as you type (and None). It
     then shows in that subfolder's list beside the real files there, or in a list of its own when
     no such subfolder exists. The file itself stays where it is. A "None" choice moves it back to
     the main list.
