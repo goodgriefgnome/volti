@@ -13,8 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **A taller thumbnail strip in the excerpt picker:** by default about 25% of the screen's height,
-  so the pages can be read without zooming every time.
 - **Taller cut tabs:** what shows of a tab can be taller than its 20 pixels now.
 - **Frames take their pages' shape; each screen shows 1 or 2 frames by orientation.**
   - *Frames:* cuts are stacked into frames as now, but a frame takes the shape of the original
@@ -53,6 +51,7 @@ Things to try on the tablet.
   password once; after a restart it opens without asking.
 - **A dialog with the keyboard open** stays a dialog (margins, rounded corners), most of the
   screen wide; zooming the thumbnails makes it scroll as a whole, not the strip.
+- **The excerpt picker's thumbnails** are a quarter of the screen tall: readable without zooming?
 
 ## Confirmed features which require more thought
 

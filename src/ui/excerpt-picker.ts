@@ -11,7 +11,9 @@ import { nameOf, sortedNames } from '../setlists/names';
 import { button, el } from './dom';
 import { buttonRow, closeOverlay, showDialog } from './overlay';
 
-const THUMB_W = 112;
+/** How tall the thumbnails are, unzoomed, as a share of the screen's height; and how narrow they may get. */
+const THUMB_SHARE = 0.25;
+const MIN_THUMB_W = 112;
 /** How far the thumbnails zoom in. */
 const MAX_THUMB_ZOOM = 4;
 /** A finger that moves this far (CSS pixels) is panning, not tapping. */
@@ -48,6 +50,8 @@ export class ExcerptStrip {
   /** The thumbnails' zoom, 1 to MAX_THUMB_ZOOM. */
   private s = 1;
   private redrawTimer: ReturnType<typeof setTimeout> | undefined;
+  /** The thumbnails' width unzoomed, in CSS pixels. */
+  private w: number;
 
   /** Called whenever the span chosen changes, or a tap starts choosing a new one. */
   onChange: () => void = () => {};
@@ -60,20 +64,21 @@ export class ExcerptStrip {
     this.hint.setAttribute('aria-live', 'polite');
 
     // Sizes are in --u, a CSS pixel times the zoom, so zooming changes one property.
-    const fh = THUMB_W * frameHeight(aspects);
+    const W = this.w = Math.max(MIN_THUMB_W, Math.round(THUMB_SHARE * window.innerHeight / frameHeight(aspects)));
+    const fh = W * frameHeight(aspects);
     const u = (n: number) => `calc(var(--u) * ${n})`;
     const frames = this.frames = pack(cuts, aspects);
     this.places = places(cuts, aspects);
     this.drawnAt = frames.map(() => 0);
     this.boxes = frames.map((f) => {
       const box = el('div', 'thumb-frame');
-      Object.assign(box.style, { width: u(THUMB_W), height: u(fh) });
+      Object.assign(box.style, { width: u(W), height: u(fh) });
       for (const p of f.items) {
         const b = el('button', 'band');
         b.type = 'button';
         const at = placeLabel(this.places[p.index]);
         b.dataset.n = at;
-        Object.assign(b.style, { top: u(p.top * THUMB_W), height: u(p.h * THUMB_W) });
+        Object.assign(b.style, { top: u(p.top * W), height: u(p.h * W) });
         b.setAttribute('aria-label', `Page ${at}, from original page ${p.cut.page + 1}`);
         b.addEventListener('click', () => this.tap(p.index));
         this.bands[p.index] = b;
@@ -87,7 +92,7 @@ export class ExcerptStrip {
 
     // Draw the frames one after another, so the strip shows at once.
     void (async () => {
-      for (const i of frames.keys()) if (!(await this.draw(i, THUMB_W))) return;
+      for (const i of frames.keys()) if (!(await this.draw(i, W))) return;
     })();
     this.sync();
   }
@@ -171,7 +176,7 @@ export class ExcerptStrip {
 
   private async redraw() {
     // Widths go in steps, so small pinches don't redraw, and the pages drawn can be reused.
-    const w = THUMB_W * Math.min(MAX_THUMB_ZOOM, 2 ** Math.ceil(Math.log2(this.s - 0.001)));
+    const w = this.w * Math.min(MAX_THUMB_ZOOM, 2 ** Math.ceil(Math.log2(this.s - 0.001)));
     const view = this.el.getBoundingClientRect();
     for (const [i, box] of this.boxes.entries()) {
       const r = box.getBoundingClientRect();
