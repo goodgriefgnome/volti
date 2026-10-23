@@ -13,7 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **Taller cut tabs:** what shows of a tab can be taller than its 20 pixels now.
 - **Frames take their pages' shape; each screen shows 1 or 2 frames by orientation.**
   - *Frames:* cuts are stacked into frames as now, but a frame takes the shape of the original
     pages its cuts come from, not the first page's. A cut from a page whose aspect ratio differs
@@ -52,6 +51,7 @@ Things to try on the tablet.
 - **A dialog with the keyboard open** stays a dialog (margins, rounded corners), most of the
   screen wide; zooming the thumbnails makes it scroll as a whole, not the strip.
 - **The excerpt picker's thumbnails** are a quarter of the screen tall: readable without zooming?
+- **Cut tabs** show 40×28 now (were 40×20): tall enough?
 
 ## Confirmed features which require more thought
 

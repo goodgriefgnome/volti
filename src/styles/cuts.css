@@ -6,11 +6,11 @@
 .cuts-ui { position: absolute; inset: 0; pointer-events: none; }
 .cuts-ui button { pointer-events: auto; position: absolute; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; touch-action: none; }
 /*
- * A tab's touch area is 64 x 48 (Material Design's 48 dp at least); what shows is 40 x 20, flush
+ * A tab's touch area is 64 x 48 (Material Design's 48 dp at least); what shows is 40 x 28, flush
  * with the frame's side and the seam, at 3:1 contrast with the white page (WCAG 1.4.11).
  */
 .tab { width: 64px; height: 48px; }
-.tab::after { content: ""; position: absolute; width: 40px; height: 20px; background: var(--cut); opacity: 0.7; }
+.tab::after { content: ""; position: absolute; width: 40px; height: 28px; background: var(--cut); opacity: 0.7; }
 .tab.top, .tab.pad { margin-top: -12px; }
 .tab.top { left: 0; }
 .tab.top::after { left: 0; top: 12px; border-radius: 0 0 8px 0; }
