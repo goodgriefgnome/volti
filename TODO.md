@@ -43,6 +43,11 @@ scores.
     opens at once and checks the originals in the background (each one's `/Encrypt` dictionary,
     or a trial decrypt), showing “Checking quality…” until it knows.
 
+- **The reader opens with the toolbar hidden:** a score, excerpt or setlist opens ready to play,
+  only the back arrow showing; a tap in the middle brings the toolbar up. Showing it in rehearsal
+  is easy, but having to hide it before a performance is a trap. Update the README's reader
+  section to match.
+
 ## Manual check
 
 Things to try on the tablet.
