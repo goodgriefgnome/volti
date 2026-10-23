@@ -38,6 +38,9 @@ export function supersample(width: number, height: number): number {
   return room >= 2 ? 2 : room >= 1.5 ? 1.5 : 1;
 }
 
+/** Pages drawn at once: two overlap well (the worker reads one while the other is painted); more only use up memory. */
+const AT_ONCE = 2;
+
 /**
  * Renders pages to canvases and keeps the ones around the current spread,
  * so turning to a neighbouring spread shows a page that is already drawn.
@@ -45,7 +48,9 @@ export function supersample(width: number, height: number): number {
 export class PageCache {
   private cache = new Map<string, Promise<HTMLCanvasElement>>();
   private aspects = new Map<number, number>();
-  private queue: Promise<unknown> = Promise.resolve();
+  /** Draws waiting for a turn: pages wanted now go before pages drawn ahead. */
+  private waiting: { now: (() => void)[]; ahead: (() => void)[] } = { now: [], ahead: [] };
+  private drawing = 0;
 
   constructor(private task: pdfjs.PDFDocumentLoadingTask, private doc: pdfjs.PDFDocumentProxy) {}
 
@@ -71,12 +76,31 @@ export class PageCache {
 
   has(num: number, cssW: number, cssH: number) { return this.cache.has(this.key(num, cssW, cssH)); }
 
-  /** One render at a time, so pre-drawing never slows down the page you asked for more than one render. */
-  render(num: number, cssW: number, cssH: number, dpr: number): Promise<HTMLCanvasElement> {
+  /** Wait for a turn to draw, then hand it on when done. */
+  private async turn<T>(ahead: boolean, draw: (waited: boolean) => Promise<T>): Promise<T> {
+    const waited = this.drawing >= AT_ONCE;
+    if (waited) await new Promise<void>((go) => this.waiting[ahead ? 'ahead' : 'now'].push(go));
+    else this.drawing++;
+    try {
+      return await draw(waited);
+    } finally {
+      const next = this.waiting.now.shift() ?? this.waiting.ahead.shift();
+      if (next) next(); // the turn passes straight on
+      else this.drawing--;
+    }
+  }
+
+  /**
+   * Draw a page, a couple at a time. A page drawn `ahead` (one not on the screen yet) waits for
+   * any page wanted now, so drawing ahead never holds up the page asked for for long.
+   */
+  render(num: number, cssW: number, cssH: number, dpr: number, ahead = false): Promise<HTMLCanvasElement> {
     const k = this.key(num, cssW, cssH);
     let p = this.cache.get(k);
     if (p) return p;
-    p = this.queue.catch(() => {}).then(async () => {
+    p = this.turn(ahead, async (waited) => {
+      // Turned past while it waited: no longer kept, so not worth drawing.
+      if (ahead && waited && !this.cache.has(k)) throw new Error('No longer wanted');
       const page = await this.doc.getPage(num);
       const base = page.getViewport({ scale: 1 });
       // Size the result in whole screen pixels, so the browser never has to stretch it.
@@ -106,7 +130,6 @@ export class PageCache {
       big.width = big.height = 0; // free its memory now rather than at garbage collection
       return canvas;
     });
-    this.queue = p;
     this.cache.set(k, p);
     p.catch(() => this.cache.delete(k));
     return p;

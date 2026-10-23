@@ -617,19 +617,16 @@ class Reader {
     }
     for (const [p, w] of widths) near.set(p, w);
     this.cache.keepOnly([...near.keys()].map((p) => p + 1), (n) => this.pageSize(n - 1, near.get(n - 1)!));
-    for (const [p, w] of near) {
-      if (seq !== this.seq) return;
-      await this.cache.render(p + 1, w, this.pageSize(p, w).h, scale).catch(() => {});
-    }
+    const cache = this.cache;
+    await Promise.all([...near].map(([p, w]) => cache.render(p + 1, w, this.pageSize(p, w).h, scale, true).catch(() => {})));
+    if (seq !== this.seq) return;
     // On a score's last screen in a setlist, draw the next score's first screen too.
     if (!this.setlistId || this.frame + this.shown < this.frames.length || this.k + 1 >= this.items.length) return;
     const cur = await this.scores.ensure(this.k + 1);
     if (seq !== this.seq || !cur?.cache) return;
     const { on, rects } = this.screenAt(this.framesFor(this.k + 1), 0, W, H, scale);
-    for (const [p, w] of pageWidths(on, rects.map((r) => r.w))) {
-      if (seq !== this.seq || !cur.cache) return;
-      await cur.cache.render(p + 1, w, Math.round(w * cur.aspects[p]), scale).catch(() => {});
-    }
+    const next = cur.cache;
+    await Promise.all([...pageWidths(on, rects.map((r) => r.w))].map(([p, w]) => next.render(p + 1, w, Math.round(w * cur.aspects[p]), scale, true).catch(() => {})));
   }
 
 

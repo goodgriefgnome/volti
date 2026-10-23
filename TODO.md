@@ -42,10 +42,6 @@ scores.
     “Rasterized (unsupported encryption): “Mass A”, …” naming each score that falls back. It
     opens at once and checks the originals in the background (each one's `/Encrypt` dictionary,
     or a trial decrypt), showing “Checking quality…” until it knows.
-- **Draw a screen's pages at the same time:** in every reader (score, excerpt or setlist), the
-  pages on a screen, and those drawn ahead, are drawn together rather than one after another
-  (about 25% quicker for two scanned pages). The page cache's one-at-a-time queue becomes a
-  limit of two or so, so drawing ahead still never holds up the screen asked for for long.
 - **Saved pictures of the pages setlists play:** Volti keeps a picture of every original page
   that a cut played by a setlist (not archived) comes from, so opening a setlist, and turning
   between its scores, shows the music at once (about 75 ms a page against 0.5 s or more to draw
