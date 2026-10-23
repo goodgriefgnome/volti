@@ -49,7 +49,11 @@
 .pick-row { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 .pick-row .chosen { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px; padding: 0 0 8px 28px; }
 .pick-row .chosen .pill { min-height: 32px; padding: 2px 10px; background: transparent; border-color: currentColor; }
-.pick-row .check { flex: 1; min-width: 0; flex-wrap: wrap; }
+/* The checkboxes in a column, and beside each its title, which wraps within its own column. */
+.pick-row .check { flex: 1; min-width: 0; align-items: flex-start; padding-block: 10px; }
+.pick-row .check input { margin: 2px 0 0; }
+.pick-text { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; overflow-wrap: anywhere; }
+.pick-text .meta { margin-left: auto; }
 /* A score's named excerpts, indented under it, each with its Preview. */
 .pick-sub { flex-basis: 100%; display: flex; align-items: center; gap: 4px; padding-left: 28px; }
 /* The reader's list of a score's named excerpts: tap one to go to it, ⋯ for the rest. */

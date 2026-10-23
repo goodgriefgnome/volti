@@ -29,6 +29,14 @@ export interface AddScoresHost {
  */
 interface Choice { span: Span; label: string | null; named?: boolean; src?: ExcerptSource }
 
+/** A row's title, with what else it says (its folder, say), wrapping beside its checkbox. */
+function pickText(title: string, meta = ''): HTMLElement {
+  const t = el('span', 'pick-text');
+  t.append(el('span', 'pick-title', title));
+  if (meta) t.append(el('span', 'meta', meta));
+  return t;
+}
+
 /**
  * Scores as checkboxes, each with its named excerpts under it; the ticked ones go at the end, in
  * library order. Preview shows a score's pages, to add other excerpts of it instead of the whole
@@ -95,7 +103,7 @@ export function openAddScores(h: AddScoresHost) {
     });
     const redraw = () => { sync(); r.replaceWith(row(sc, names)); };
     const has = s.entries.filter((e) => e.scoreId === sc.id).length;
-    label.append(box, el('span', '', sc.title), el('span', 'meta', has ? `in this setlist${has > 1 ? ` ${has}×` : ''}` : sc.folder));
+    label.append(box, pickText(sc.title, has ? `in this setlist${has > 1 ? ` ${has}×` : ''}` : sc.folder));
     const preview = button('Preview', () => void showPreview(sc), 'quiet');
     preview.setAttribute('aria-label', `Preview ${sc.title}`);
     r.append(label, preview);
@@ -112,7 +120,7 @@ export function openAddScores(h: AddScoresHost) {
         toggle(sc.id, { span: ends(x), label: x.name, named: true }, b.checked, isIt);
         redraw();
       });
-      named.append(b, el('span', '', x.name));
+      named.append(b, pickText(x.name));
       const look = button('Preview', () => void showPreview(sc, x), 'quiet');
       look.setAttribute('aria-label', `Preview ${x.name}`);
       sub.append(named, look);

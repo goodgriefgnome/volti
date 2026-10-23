@@ -5,11 +5,6 @@ scores.
 
 ## Work for the immediate future
 
-- **Add scores: checkboxes in a column, titles beside them:** a long title wraps badly today (the
-  checkbox, a line break, then the title). Lay each row out as a checkbox column and a title column,
-  so a long title wraps within its own column, beside its checkbox. Named excerpts are laid out
-  the same way, indented: their checkboxes in a column a step in from the scores', and a long
-  excerpt name wraps beside its checkbox too.
 - **Setlist entry numbers line up with their titles:** in an expanded setlist in the Library,
   each entry's number sits lower than its title. Align them.
 - **No "Play the whole score" in a setlist entry's menu:** remove it from the ⋯ menu of an entry
