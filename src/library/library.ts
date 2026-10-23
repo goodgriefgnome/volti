@@ -318,7 +318,6 @@ export class Library {
       i > 0 && { label: 'Move up', run: () => void this.update(moveEntry(s, i, i - 1)) },
       i < s.entries.length - 1 && { label: 'Move down', run: () => void this.update(moveEntry(s, i, i + 1)) },
       !missing && { label: 'Change excerpt…', run: () => void this.chooseExcerpt(s, e) },
-      !!excerpt && { label: 'Play the whole score', run: () => void this.update({ ...s, entries: s.entries.map((x) => (x === e ? { id: e.id, scoreId: e.scoreId } : x)) }) },
       { label: 'Remove from setlist', run: () => this.removeEntry(s, e) },
     ]), 'quiet more');
     more.setAttribute('aria-label', `More for ${title}`);

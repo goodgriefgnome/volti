@@ -5,8 +5,7 @@ scores.
 
 ## Work for the immediate future
 
-- **No "Play the whole score" in a setlist entry's menu:** remove it from the ⋯ menu of an entry
-  in a setlist in the Library (Change excerpt… can choose Whole score in its dropdown).
+Nothing queued.
 
 ## Manual check
 
