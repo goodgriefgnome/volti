@@ -5,10 +5,6 @@ scores.
 
 ## Work for the immediate future
 
-- **Show the library while new PDFs are read:** linking a big folder (each new or changed PDF is
-  read whole once to hash it) works but could be faster. Show the library straight away with the
-  scores already known, and add the others as each is hashed, in the background, rather than
-  waiting for them all. Don't hash only part of each file: two PDFs could then pass for one.
 - **Export PDF from the reader:** a toolbar button (crowding the toolbar is fine for now) that
   exports what that reader pages through: the score, the named excerpt, or the whole setlist.
 - **No old version while a new one loads:** at start-up, show a plain start screen and ask the
@@ -62,6 +58,8 @@ Things to try on the tablet.
   area is under 85% of the page's height, unzoomed.)
 - **Cut tabs** are bigger (64×48 to touch, 40×20 showing, solid enough for 3:1 contrast): easy to
   hit, and not hiding too much music.
+- **Linking a big folder:** the library shows at once with the scores already known, and the new
+  ones appear one by one, with "Reading new scores: n left…".
 
 ## Confirmed features which require more thought
 

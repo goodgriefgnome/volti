@@ -32,6 +32,11 @@ export class Library {
   private originals: Original[] = [];
   /** Every original's title as last seen, for scores whose original is missing. */
   private titles: Record<string, string> = {};
+  /** The refresh running, and whether another was asked for meanwhile. */
+  private refreshing: Promise<void> | null = null;
+  private refreshAgain = false;
+  /** New PDFs are still being read. */
+  private reading = false;
   private setlists: Setlist[] = [];
   /** Scores as last saved, and their originals' page shapes: for their named excerpts, and the excerpt each entry plays. */
   private saved = new Map<string, Score>();
@@ -106,14 +111,33 @@ export class Library {
     this.status.textContent = text;
   }
 
-  async refresh() {
+  /** Read the folder and the imported copies again, and show them. A refresh asked for while one runs follows it. */
+  refresh(): Promise<void> {
+    if (this.refreshing) {
+      this.refreshAgain = true;
+      return this.refreshing;
+    }
+    this.refreshing = this.readOriginals().finally(() => {
+      this.refreshing = null;
+      if (this.refreshAgain) { this.refreshAgain = false; void this.refresh(); }
+    });
+    return this.refreshing;
+  }
+
+  private async readOriginals() {
     this.folder = await folderState();
     this.renderFolder();
+    const before = this.status.textContent;
+    let shown = false;
     try {
-      const before = this.status.textContent;
-      const { originals, removed } = await allOriginals(this.folder, (done, of) => this.say(`Reading new scores: ${done} of ${of}…`));
+      // New PDFs are read whole to know them: show the others meanwhile, and each as it is read.
+      const { originals, removed } = await allOriginals(this.folder, (originals, left) => {
+        this.originals = originals;
+        this.reading = left > 0;
+        this.say(left ? `Reading new scores: ${left} left…` : before ?? '');
+        if (!shown) { shown = true; void this.loadSetlists().then(() => this.renderList()); } else this.renderList();
+      });
       this.originals = originals;
-      if (this.status.textContent !== before) this.say(before ?? '');
       if (removed) this.toast.say(`Removed ${plural(removed, 'added copy', 'added copies')} of scores in the scores folder. Their cuts and markings are kept.`);
     } catch (e) {
       // The folder may have been moved or deleted since it was linked.
@@ -388,7 +412,7 @@ export class Library {
     const rows = this.originals.flatMap((s) => [...(matches(s) ? [this.scoreRow(s)] : []), ...hits(s)]);
     this.list.replaceChildren();
     if (!this.originals.length) {
-      this.list.append(el('li', 'empty', this.folder.kind === 'none'
+      this.list.append(el('li', 'empty', this.reading ? 'Reading the scores…' : this.folder.kind === 'none'
         ? 'No scores yet. Link your scores folder, add PDFs, or share a PDF to Volti from another app.'
         : 'No PDFs found in this folder or its subfolders.'));
       return;

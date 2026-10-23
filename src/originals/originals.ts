@@ -167,41 +167,20 @@ function folderOriginal({ path, id }: ListingEntry): Original {
   };
 }
 
-/** Reports how many of the files that need hashing are done. */
-export type Progress = (done: number, of: number) => void;
-
-/** A file found, and what to make of it once its id is known. */
-interface Found<T> { where: string; file: File; make: (id: string) => T }
-
-/** Give each file its id, hashing those new or changed one at a time, as each is read whole. */
-async function identify<T>(files: Found<T>[], hasher: Hasher, progress?: Progress): Promise<T[]> {
-  const of = files.filter((f) => !hasher.known(f.where, f.file)).length;
-  let done = 0;
-  const out: T[] = [];
-  for (const f of files) {
-    const fresh = !hasher.known(f.where, f.file);
-    out.push(f.make(await hasher.id(f.where, f.file)));
-    if (fresh) progress?.(++done, of);
-  }
-  return out;
-}
-
 /**
- * Originals in the linked folder. Reads the folder when access is granted;
- * otherwise returns the list remembered from last time.
+ * Hears the originals known so far while new or changed files are read, and how many are `left`
+ * to read.
  */
-async function folderOriginals(state: FolderState, hasher: Hasher, progress?: Progress): Promise<Original[]> {
-  if (state.kind === 'none') return [];
-  if (state.kind === 'locked') {
-    const remembered = (await kv.get<ListingEntry[]>(keys.folderListing)) ?? [];
-    return remembered.map(folderOriginal);
-  }
+export type Progress = (originals: Original[], left: number) => void;
+
+/** A file found, and the original it is once its id is known. */
+interface Found { where: string; file: File; make: (id: string) => Original }
+
+/** The PDFs in the linked folder, read now; access must be granted. */
+async function folderFiles(): Promise<Found[]> {
   const found: [string, FileSystemFileHandle][] = [];
   await walk(dir!, '', 0, found);
-  const files = await Promise.all(found.map(async ([path, h]) => ({ where: 'folder/' + path, file: await h.getFile(), make: (id: string): ListingEntry => ({ path, id }) })));
-  const listing = await identify(files, hasher, progress);
-  await kv.set(keys.folderListing, listing);
-  return listing.map(folderOriginal);
+  return Promise.all(found.map(async ([path, h]) => ({ where: 'folder/' + path, file: await h.getFile(), make: (id: string) => folderOriginal({ path, id }) })));
 }
 
 /* ---------- imported originals (origin private file system) ---------- */
@@ -275,13 +254,13 @@ export async function removeImported(o: Original): Promise<void> {
   await d.removeEntry(o.path);
 }
 
-async function importedOriginals(hasher: Hasher, progress?: Progress): Promise<Original[]> {
+/** The copies imported into the app. Empty ones, which failed to be written as they were added, are deleted. */
+async function importedFiles(): Promise<Found[]> {
   const d = await importsDir();
-  const files: Found<Original>[] = [];
+  const files: Found[] = [];
   for await (const [name, h] of d.entries()) {
     if (h.kind !== 'file') continue;
     const handle = h as FileSystemFileHandle, file = await handle.getFile();
-    // An empty file is one that failed to be written while it was added; it can't be opened.
     if (!file.size) { await d.removeEntry(name).catch(() => {}); continue; }
     files.push({
       where: 'imported/' + name,
@@ -289,24 +268,46 @@ async function importedOriginals(hasher: Hasher, progress?: Progress): Promise<O
       make: (id) => ({ id, title: titleOf(name), folder: '', location: 'imported', path: name, getFile: () => handle.getFile() }),
     });
   }
-  return identify(files, hasher, progress);
+  return files;
 }
 
+/** The imported copies, with their ids. */
+async function importedOriginals(hasher: Hasher): Promise<Original[]> {
+  return Promise.all((await importedFiles()).map(async (f) => f.make(await hasher.id(f.where, f.file))));
+}
+
+const byTitle = (x: Original, y: Original) => x.title.localeCompare(y.title, undefined, { numeric: true, sensitivity: 'base' });
+
 /**
- * Every original, each file once, sorted by title. An imported copy of a file that is also in the
- * folder is deleted: `removed` counts them. Files new or changed since last time are hashed, which
- * reads them whole; `progress` hears how that goes.
+ * Every original, each file once, sorted by title. Files new or changed since last time are
+ * hashed, which reads them whole, one at a time; `progress` hears the originals known so far
+ * before the first and after each. An imported copy of a file that is also in the folder is then
+ * deleted: `removed` counts them. While the folder is locked, its PDFs are the ones remembered.
  */
 export async function allOriginals(state: FolderState, progress?: Progress): Promise<{ originals: Original[]; removed: number }> {
   const hasher = await Hasher.load();
-  const folder = await folderOriginals(state, hasher, progress);
-  const imported = await importedOriginals(hasher, progress);
+  const remembered = state.kind === 'locked' ? ((await kv.get<ListingEntry[]>(keys.folderListing)) ?? []).map(folderOriginal) : [];
+  const files = [...(state.kind === 'ready' ? await folderFiles() : []), ...await importedFiles()];
+  const ids = new Map<Found, string>();
+  const known = (deleteCopies: boolean) => {
+    const done = files.filter((f) => ids.has(f)).map((f) => f.make(ids.get(f)!));
+    return oneEach([...remembered, ...done.filter((o) => o.location === 'folder')], done.filter((o) => o.location === 'imported'), deleteCopies);
+  };
+  const fresh: Found[] = [];
+  for (const f of files) {
+    if (hasher.known(f.where, f.file)) ids.set(f, await hasher.id(f.where, f.file)); else fresh.push(f);
+  }
+  for (const [i, f] of fresh.entries()) {
+    if (i === 0) progress?.(known(false).originals.sort(byTitle), fresh.length);
+    ids.set(f, await hasher.id(f.where, f.file));
+    progress?.(known(false).originals.sort(byTitle), fresh.length - i - 1);
+  }
+  if (state.kind === 'ready') await kv.set(keys.folderListing, files.filter((f) => f.where.startsWith('folder/')).map((f) => ({ path: f.where.slice('folder/'.length), id: ids.get(f)! })));
   await hasher.save(state.kind === 'ready' ? undefined : 'folder/');
-  const { originals, copies } = oneEach(folder, imported, state.kind === 'ready');
+  const { originals, copies } = known(state.kind === 'ready');
   for (const c of copies) await removeImported(c);
   await kv.update<Record<string, string>>(keys.titles, (old) => ({ ...old, ...Object.fromEntries(originals.map((o) => [o.id, o.title])) }));
-  originals.sort((x, y) => x.title.localeCompare(y.title, undefined, { numeric: true, sensitivity: 'base' }));
-  return { originals, removed: copies.length };
+  return { originals: originals.sort(byTitle), removed: copies.length };
 }
 
 /* ---------- renaming ---------- */
