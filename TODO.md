@@ -5,6 +5,10 @@ scores.
 
 ## Work for the immediate future
 
+- **Added PDFs don't open (bug, seen on the tablet):** opening one says "Could not open “<title>”.
+  It may have been moved or renamed." Their titles also end in an odd numeric suffix. Not yet
+  investigated. (Adding a PDF whose name an added PDF of other contents already has saves it as
+  "Name (2).pdf", which may or may not be the suffix seen.)
 - **While the keyboard is open, a dialog fills the screen** above it and scrolls as a whole, so the
   excerpt picker's thumbnails don't scroll on their own (today the dialog shrinks to fit above the
   keyboard, and the thumbnails scroll inside it). Checked on the tablet: pinching and panning the
