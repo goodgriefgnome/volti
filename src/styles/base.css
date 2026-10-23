@@ -45,3 +45,7 @@ button.quiet { border-color: transparent; background: transparent; color: var(--
 button.danger { background: var(--warn); border-color: var(--warn); color: #ffffff; }
 button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 button:disabled { opacity: 0.4; cursor: default; }
+/* The start screen, shown while looking for a new version of the app. */
+.start { position: fixed; inset: 0; display: grid; place-content: center; justify-items: center; gap: 12px; background: var(--bg); }
+.start .brand { font: italic 600 2.4rem/1 var(--font-brand); margin: 0; }
+.start-note { margin: 0; color: var(--muted); min-height: 1.5em; }

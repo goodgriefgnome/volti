@@ -9,7 +9,8 @@ export default defineConfig({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.ts',
-      registerType: 'autoUpdate',
+      // A new version takes over only at start-up, when the page asks it to (src/updates.ts).
+      registerType: 'prompt',
       injectRegister: false,
       injectManifest: {
         globPatterns: ['**/*.{html,js,mjs,css,png,svg,webmanifest,wasm,pfb,ttf,bcmap,icc}'],

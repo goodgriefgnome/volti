@@ -8,7 +8,9 @@ import { putInbox } from './originals/inbox';
 
 declare const self: ServiceWorkerGlobalScope;
 
-self.skipWaiting();
+// A new version waits until the page, starting up, tells it to take over (updates.ts), so it
+// never changes under a page already open.
+self.addEventListener('message', (e) => { if (e.data?.type === 'SKIP_WAITING') void self.skipWaiting(); });
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 
 // PDFs shared from another app (Files, Gmail, Drive) arrive as a form post.

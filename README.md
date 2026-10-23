@@ -87,6 +87,10 @@ npm test           # unit tests
 npm run build      # type check and production build into dist/
 ```
 
+The installed app takes a new version only as it starts: it shows a start screen, looks for one
+for up to 3 seconds, and if it finds one says "Updating Volti…" and reloads into it. A version
+published while the app is open waits for its next start (`src/updates.ts`).
+
 Every push to `main` is tested, built and published to GitHub Pages by
 `.github/workflows/deploy.yml`. Unit tests sit next to the modules they test, as `*.test.ts`. Each module starts with a comment saying what kind of code belongs in it; give a new
 module one too.
@@ -122,6 +126,7 @@ its cuts kept only in that setlist.
 | `src/ui/` | Shared by both screens: DOM helpers (`dom`), menus and dialogs, one at a time (`overlay`), messages (`toast`), the setlist name and add-to menus (`setlists`), choosing an excerpt (`excerpt-picker`), the named excerpt dialogs (`excerpts`), and exporting a PDF (`export-pdf`) |
 | `src/styles/` | Styles, one file per part of the app, imported in order by `main.ts` |
 | `src/sw.ts` | Offline copy and the share target |
+| `src/updates.ts` | Taking a new version of the app at start-up |
 
 A score's **ink** is all its markings, kept per cut; a **marking** is one thing drawn or placed on
 the music, so far only pen and highlighter strokes. A new kind of marking (a post-it, text) goes in

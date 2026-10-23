@@ -5,12 +5,6 @@ scores.
 
 ## Work for the immediate future
 
-- **No old version while a new one loads:** at start-up, show a plain start screen and ask the
-  server for a newer service worker before showing the library. No update (or offline): show the
-  library. An update: say "Updating Volti…" until it takes over, then reload into it. Give up
-  after about 3 seconds and open the version already installed, which then updates at the next
-  launch rather than reloading under you. Today the old version shows and reloads by itself a few
-  seconds later once the new one has downloaded, which can happen mid-read.
 - **An empty setlist offers Add scores:** expanding a setlist with no scores shows "No scores yet.
   Use ⋯ › Add scores." Show an Add scores button there instead.
 - **Add to setlist… in the Library, and a default setlist:** every score's and named excerpt's ⋯
@@ -58,6 +52,9 @@ Things to try on the tablet.
   hit, and not hiding too much music.
 - **Linking a big folder:** the library shows at once with the scores already known, and the new
   ones appear one by one, with "Reading new scores: n left…".
+- **Updating:** after a change is published, closing and reopening Volti shows the start screen
+  (perhaps "Updating Volti…"), then the new version, never the old one first; with Volti left
+  open, it doesn't reload by itself.
 
 ## Confirmed features which require more thought
 
