@@ -59,8 +59,11 @@ scores.
   - Each is the page as drawn for this tablet's screen (WebP, about 180 KB), in the private
     storage (OPFS), named by score id, page and width; a page shown at several widths (one or two
     frames, either orientation) has one for each width it has been drawn at.
-  - Made in the background, a page at a time: whenever the reader draws such a page, and for the
-    pages of setlist entries never drawn yet (after a setlist changes, and at start-up).
+  - Made in the background: whenever the reader draws such a page, and for the pages of setlist
+    entries never drawn yet (after a setlist changes, and at start-up). Two at a time, from
+    different scores where it can (each PDF has its own pdf.js worker, so they overlap better);
+    paused while the reader is drawing what's on screen, so it never slows a page turn. Not more
+    at once: each page drawn takes a canvas of up to ~37 MB, too much for a tablet in bulk.
   - The reader shows a saved picture straight away and opens the PDF behind it, needed only to
     zoom in. A score's id is its PDF's contents, and pictures are of whole pages, so changing cuts
     never makes one wrong.
