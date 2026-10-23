@@ -51,7 +51,7 @@ export class Library {
   private rowSeq = 0;
 
   private root = el('main', 'library');
-  private folderPanel = el('section', 'folder');
+  private folderTools = el('div', 'banner-tools');
   private setlistHead = el('div', 'head-tools');
   private setlistList = el('ul', 'list setlists');
   private list = el('ul', 'list scores');
@@ -66,8 +66,8 @@ export class Library {
     const tagline = el('p', 'tagline', 'volti subito · turn the page');
     const name = el('div', 'brand-line');
     name.append(brand, tagline);
-    // The scores folder beside the name, so Allow access is in sight as the library opens.
-    header.append(name, this.folderPanel);
+    // The scores folder's tools beside the name, so Allow access is in sight as the library opens.
+    header.append(name, this.folderTools);
 
     this.search.type = 'search';
     this.search.id = 'search';
@@ -164,29 +164,28 @@ export class Library {
     this.renderSetlists();
   }
 
+  /**
+   * The banner's tools for the scores folder, which is set and forget: the one button that needs a
+   * tap (Link scores folder while none is linked, Allow access while locked), and ⋯ for the rest.
+   */
   private renderFolder() {
-    const p = this.folderPanel;
+    const p = this.folderTools;
     p.replaceChildren();
     const f = this.folder;
     if (f.kind === 'none') {
-      const text = canLinkFolder()
-        ? 'Link the folder on this tablet where you keep your PDF scores. Volti reads them where they are.'
-        : 'This browser cannot link a folder. Add PDFs to keep copies in Volti instead.';
-      p.append(el('p', '', text));
       if (canLinkFolder()) p.append(button('Link scores folder', () => void this.link(), 'primary'));
       return;
     }
-    const name = el('p', 'folder-name');
-    name.append(el('span', 'label', 'Scores folder'), el('strong', '', f.name));
-    p.append(name);
-    if (f.kind === 'locked') {
-      p.append(button('Allow access', () => void this.unlock(), 'primary'));
-    }
-    p.append(
-      button('Change', () => void this.link()),
-      button('Unlink', async () => { await unlinkFolder(); this.say('Folder unlinked. Your markings are kept.'); await this.refresh(); }, 'quiet'),
-    );
+    if (f.kind === 'locked') p.append(button('Allow access', () => void this.unlock(), 'primary'));
+    const more = button('⋯', () => showMenu(more, `Scores folder: ${f.name}`, [
+      { label: 'Change folder…', run: () => void this.link() },
+      { label: 'Unlink', run: async () => { await unlinkFolder(); this.say('Folder unlinked. Your markings are kept.'); await this.refresh(); } },
+    ]), 'quiet more');
+    more.setAttribute('aria-label', 'Scores folder');
+    more.setAttribute('aria-haspopup', 'menu');
+    p.append(more);
   }
+
 
   private async link() {
     try {

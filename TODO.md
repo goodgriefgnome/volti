@@ -13,10 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **The scores folder in a ⋯ menu:** the banner row is cluttered. The folder is set and forget, so
-  its panel (name, Change, Unlink) moves into a ⋯ menu at the end of the banner row. One button
-  stays in the banner row itself: "Allow access" while the folder is locked, or "Link scores
-  folder" in its place while none is linked (so a first visit finds it); none once it is ready.
 - **An Update button when a new version is ready:** while Volti is open, look for a new version now
   and then (when it comes back to the front, and every 30 minutes or so; not while offline). Once
   one has downloaded, show "Update" in the library's banner row, never in the reader; tapping it
