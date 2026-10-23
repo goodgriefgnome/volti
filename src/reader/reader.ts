@@ -104,7 +104,8 @@ export async function openReader(what: ToRead, onClose: () => void): Promise<voi
  * the screen, and joins up the toolbar, pointer input, the cut editor and the zoomed close-up.
  */
 class Reader {
-  private root = el('div', 'reader');
+  // Opens ready to play, with the toolbar hidden: a tap in the middle brings it up.
+  private root = el('div', 'reader chrome-hidden');
   private stage = el('div', 'stage');
   private spreadEl = el('div', 'spread');
   private scope = el('p', 'scope', 'Cuts changed here change the score, in every setlist');

@@ -43,10 +43,6 @@ scores.
     opens at once and checks the originals in the background (each one's `/Encrypt` dictionary,
     or a trial decrypt), showing “Checking quality…” until it knows.
 
-- **The reader opens with the toolbar hidden:** a score, excerpt or setlist opens ready to play,
-  only the back arrow showing; a tap in the middle brings the toolbar up. Showing it in rehearsal
-  is easy, but having to hide it before a performance is a trap. Update the README's reader
-  section to match.
 
 - **Draw a screen's pages at the same time:** in every reader (score, excerpt or setlist), the
   pages on a screen, and those drawn ahead, are drawn together rather than one after another
@@ -87,6 +83,7 @@ Things to try on the tablet.
   to the library without getting in the way of the music or of turning back a page.
 - **Scores grouped by subfolder:** the lists, closing them (remembered after a restart), searching,
   Move to folder… for an added PDF, and Add scores' collapsed lists.
+Opening a score, excerpt or setlist shows only the music and the back arrow; a tap in the middle brings up the toolbar.
 
 ## Confirmed features which require more thought
 
