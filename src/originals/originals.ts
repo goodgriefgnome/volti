@@ -100,10 +100,10 @@ export async function folderState(): Promise<FolderState> {
   return perm === 'granted' ? { kind: 'ready', name: dir.name } : { kind: 'locked', name: dir.name };
 }
 
-/** Must be called from a tap. */
+/** Must be called from a tap. Asks to change files too (renaming, exports), so that's asked once. */
 export async function linkFolder(): Promise<boolean> {
   try {
-    dir = await window.showDirectoryPicker({ id: 'volti-scores', mode: 'read' });
+    dir = await window.showDirectoryPicker({ id: 'volti-scores', mode: 'readwrite' });
   } catch (e) {
     if ((e as DOMException).name === 'AbortError') return false;
     throw e;
@@ -112,15 +112,20 @@ export async function linkFolder(): Promise<boolean> {
   return true;
 }
 
-/** Must be called from a tap. */
+/**
+ * Must be called from a tap. Asks to change files as well as read them, so renaming and exporting
+ * don't ask again this session; when that is refused, asks to read them only.
+ */
 export async function unlockFolder(): Promise<boolean> {
   if (!dir) return false;
+  if ((await dir.requestPermission({ mode: 'readwrite' }).catch(() => 'denied')) === 'granted') return true;
   return (await dir.requestPermission({ mode: 'read' })) === 'granted';
 }
 
 /** Ask to change files in the linked folder as well as read them. Must be called from a tap. */
 export async function allowWriting(): Promise<boolean> {
   if (!dir) return false;
+  if ((await dir.queryPermission({ mode: 'readwrite' })) === 'granted') return true;
   return (await dir.requestPermission({ mode: 'readwrite' })) === 'granted';
 }
 

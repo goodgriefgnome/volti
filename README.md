@@ -17,8 +17,9 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   for access again with one tap.
 - **Add PDFs**, or **Share** a PDF to Volti from Files, Gmail or Drive, keeps a copy inside the app.
   A copy of a PDF that is also in the scores folder is deleted; the score stays.
-- **Rename…** in a score's **⋯** menu renames its PDF. The first time, Volti asks for permission to
-  change files in the scores folder.
+- **Rename…** in a score's **⋯** menu renames its PDF. Volti asks to change files in the scores
+  folder (not only read them) when it is linked, and with the one tap that allows access again
+  after a restart, so renaming and exporting don't ask separately.
 - A score belongs to its PDF's contents, not its name: renaming or moving a PDF keeps its cuts,
   markings, excerpts and place in setlists, and a setlist's **Missing** score plays again once its
   PDF is back. A PDF changed by another app is a new score. Volti reads a PDF whole the first time
