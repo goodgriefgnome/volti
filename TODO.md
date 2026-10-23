@@ -11,17 +11,22 @@ scores.
   thumbnails is smooth.
 - **Bigger cut tabs:** the tabs for dragging a cut's edges are a little too small on the tablet
   (long press works fine).
-- **Renaming a PDF in the scores folder** asked for write access, then said "Could not rename it"
-  and left the file as it was. A fallback that copies the file when moving it fails is pushed but
-  not yet tried on the tablet; if it still fails, the message now names the error.
-- Check on a real tablet: exporting a score with markings; exporting with no folder linked (the
-  share sheet). Exporting into the folder works.
 - Scores and setlists saved before scores were keyed by hash still use the old path ids: their
   setlists show those scores as Missing. Remove and add them again, or clear the app's data.
 - Linking a big folder (each PDF is read whole once to hash it) works but could be faster.
 - Excerpts of a score whose original hasn't been opened since page shapes were kept are named by
   original pages ("Original pages 2–3") until it is opened once.
 - Export PDF is only in the Library's menus, not the reader's toolbar.
+
+## Manual check
+
+Things to try on the tablet.
+
+- **Renaming a PDF in the scores folder:** it asked for write access, then said "Could not rename
+  it" and left the file as it was. A fallback that copies the file when moving it fails is pushed;
+  check it renames now. If it still fails, the message names the error.
+- **Exporting a score with markings.**
+- **Exporting with no folder linked** (the share sheet). Exporting into the folder works.
 
 ## Confirmed features which require more thought
 
