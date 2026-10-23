@@ -9,11 +9,18 @@ scores. Still to do:
   is opened.
 - Excerpts of a score whose original hasn't been opened since page shapes were kept are named by
   original pages ("Original pages 2–3") until it is opened once.
-- Check pinching the excerpt picker's thumbnails on a real tablet.
-- Check on a real tablet, from the morning session: dialogs above the on-screen keyboard; asking
-  for write access to the scores folder (Rename…, Export PDF…); renaming a PDF in the folder
-  (`FileSystemFileHandle.move`, else copy and delete); sharing an export; how long linking a big
-  folder takes, as each PDF is read whole once to hash it.
+- **While the keyboard is open, a dialog fills the screen** above it and scrolls as a whole, so the
+  excerpt picker's thumbnails don't scroll on their own (today the dialog shrinks to fit above the
+  keyboard, and the thumbnails scroll inside it). Checked on the tablet: pinching and panning the
+  thumbnails is smooth.
+- **Bigger cut tabs:** the tabs for dragging a cut's edges are a little too small on the tablet
+  (long press works fine).
+- **Renaming a PDF in the scores folder** asked for write access, then said "Could not rename it"
+  and left the file as it was. A fallback that copies the file when moving it fails is pushed but
+  not yet tried on the tablet; if it still fails, the message now names the error.
+- Check on a real tablet: exporting a score with markings; exporting with no folder linked (the
+  share sheet). Exporting into the folder works.
+- Linking a big folder (each PDF is read whole once to hash it) works but could be faster.
 - Scores and setlists saved before scores were keyed by hash still use the old path ids: their
   setlists show those scores as Missing. Remove and add them again, or clear the app's data.
 - Export PDF is only in the Library's menus, not the reader's toolbar. Ink is exported as an image
