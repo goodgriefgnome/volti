@@ -13,13 +13,25 @@ scores.
 
 ## Work for the immediate future
 
-Nothing queued.
+- **Markings exported as vectors:** in an exported PDF, markings are lines in the page's own
+  content, placed exactly as the reader places them (not clipped to their cut), instead of a
+  2000-pixel picture over each page.
+  - Pen strokes: segment by segment with round ends, each segment's width following the pen's
+    pressure, as on screen. Highlighter strokes: one see-through line per stroke, so a stroke
+    doesn't darken where it crosses itself; darken-only ("multiply") over the music, so notes
+    under it stay black, as on paper (on screen it lightens them slightly).
+  - Markings stay part of the page (not PDF annotations, which other apps could remove but which
+    can't follow pen pressure and differ between viewers).
+  - Markings draw through a small drawing interface (move, line, width, colour, transparency)
+    that the screen's canvas and the PDF exporter each implement, so each kind of marking, text
+    or post-its later too, is written once and exports as it shows.
+  - The picture of the markings goes. Music pdf-lib can't read (password-protected PDFs) is still
+    drawn as a picture.
 
 ## Manual check
 
 Things to try on the tablet.
 
-- **Exporting a score with markings.**
 - **Exporting with no folder linked** (the share sheet). Exporting into the folder works.
 - **Linking a big folder:** the library shows at once with the scores already known, and the new
   ones appear one by one, with "Reading new scores: n left…".
@@ -58,7 +70,6 @@ Things to try on the tablet.
 
 - **Synthetic pages** (systems arranged by hand), **jump markers** (D.S., coda) that generate the
   played order, and **tags** for search.
-- **Ink as vectors in exported PDFs**, rather than an image over each page (2000 pixels wide).
 - **Named excerpts from the PDF's bookmarks** (outline), made the first time a score is opened.
 - **Whiteout** tool, for hiding a 1st ending on the 2nd time through (an annotation, not a cut).
 - **A new edition of an original:** replacing a score's PDF isn't supported, as cuts and ink refer
