@@ -30,6 +30,20 @@ scores.
   icon (still labelled Library for screen readers). The icon is a tap target of its own, so taps
   next to it still turn back a page; it sits over the corner of the music, so keep it small and
   unobtrusive.
+- **Scores grouped by subfolder:** the library's Scores list shows the PDFs at the top of the
+  scores folder (and the added ones), then one list per subfolder, headed with its path ("Masses /
+  Latin"; folders inside subfolders get lists of their own, flat, not nested), sorted by path.
+  - Each subfolder list collapses and opens from its heading, open at first; whether each is open
+    is remembered on the tablet, across restarts. Headings show no count.
+  - Rows lose the folder name from their second line (excerpt and setlist counts stay). Exports
+    is an ordinary subfolder list.
+  - Searching keeps matches under their headings, opens the lists holding matches for the
+    search, and hides lists without any.
+  - Added PDFs sit in the main list, but "Move to folder…" in their ⋯ menu files one under a
+    subfolder path of your choosing (an existing subfolder, or a new path), in Volti only: it
+    then shows in that subfolder's list beside the real files there, or in a list of its own when
+    no such subfolder exists. The file itself stays where it is.
+  - Add scores groups the same way, its subfolder lists collapsed at first (not remembered).
 
 ## Manual check
 
