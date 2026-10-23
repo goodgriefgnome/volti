@@ -13,7 +13,15 @@ scores.
 
 ## Work for the immediate future
 
-Nothing queued.
+- **The scores folder in a ⋯ menu:** the banner row is cluttered. The folder is set and forget, so
+  its panel (name, Link scores folder, Change, Unlink) moves into a ⋯ menu at the end of the
+  banner row. Only "Allow access" stays on the library page itself, in the banner row, while the
+  folder is locked. With no folder linked, the empty library's message keeps a Link scores folder
+  button, so a first visit can still find it.
+- **An Update button when a new version is ready:** while Volti is open, look for a new version now
+  and then (when it comes back to the front, and every 30 minutes or so; not while offline). Once
+  one has downloaded, show "Update" in the library's banner row, never in the reader; tapping it
+  switches to the new version and reloads. Untapped, the next start takes it anyway, as now.
 
 ## Manual check
 
