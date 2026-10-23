@@ -5,8 +5,6 @@ scores.
 
 ## Work for the immediate future
 
-- **Setlist entry numbers line up with their titles:** in an expanded setlist in the Library,
-  each entry's number sits lower than its title. Align them.
 - **No "Play the whole score" in a setlist entry's menu:** remove it from the ⋯ menu of an entry
   in a setlist in the Library (Change excerpt… can choose Whole score in its dropdown).
 
