@@ -51,7 +51,8 @@ export class Library {
   private rowSeq = 0;
 
   private root = el('main', 'library');
-  private folderTools = el('div', 'banner-tools');
+  private bannerTools = el('div', 'banner-tools');
+  private folderTools = el('div', 'folder-tools');
   private setlistHead = el('div', 'head-tools');
   private setlistList = el('ul', 'list setlists');
   private list = el('ul', 'list scores');
@@ -67,7 +68,8 @@ export class Library {
     const name = el('div', 'brand-line');
     name.append(brand, tagline);
     // The scores folder's tools beside the name, so Allow access is in sight as the library opens.
-    header.append(name, this.folderTools);
+    this.bannerTools.append(this.folderTools);
+    header.append(name, this.bannerTools);
 
     this.search.type = 'search';
     this.search.id = 'search';
@@ -110,6 +112,14 @@ export class Library {
     this.root.append(header, this.status, setlistsHead, this.setlistList, scoresHead, tools, this.list);
     document.body.append(this.root, this.toast.el);
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !this.root.hidden) closeOverlay(); });
+  }
+
+  /** A new version of the app is ready: offer it, beside the scores folder's tools. `take` switches to it. */
+  offerUpdate(take: () => void) {
+    const b = button('Update', take, 'primary');
+    b.title = 'A new version of Volti is ready';
+    b.setAttribute('aria-label', 'Update Volti to the new version');
+    this.bannerTools.prepend(b);
   }
 
   say(text: string) {

@@ -13,10 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **An Update button when a new version is ready:** while Volti is open, look for a new version now
-  and then (when it comes back to the front, and every 30 minutes or so; not while offline). Once
-  one has downloaded, show "Update" in the library's banner row, never in the reader; tapping it
-  switches to the new version and reloads. Untapped, the next start takes it anyway, as now.
 - **A dialog with the keyboard open is centred:** it now sits at the top of the space above the
   keyboard; centre it there instead, as long as the field being typed into stays in view (when the
   dialog is taller than the space, keep that field visible rather than centring).
@@ -53,6 +49,8 @@ Things to try on the tablet.
   ones appear one by one, with "Reading new scores: n left…".
 - **One access prompt per session:** after a restart, Allow access (or opening a score from the
   folder) asks once, to edit files; Rename… and Export PDF… then don't ask again.
+- **The Update button:** with Volti left open after a change is published, coming back to it (or
+  within half an hour) shows Update in the library's banner; tapping it loads the new version.
 
 ## Confirmed features which require more thought
 

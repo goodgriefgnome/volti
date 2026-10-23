@@ -1,12 +1,14 @@
-// Taking a new version of the app at start-up, before anything shows, so an old version never
-// shows and then reloads under you. A new version found later waits for the next start: the
-// service worker doesn't take over until it is told to (sw.ts).
+// Taking a new version of the app: at start-up, before anything shows, so an old version never
+// shows and then reloads under you; and, while the app is open, when the library's Update button is
+// tapped. The service worker doesn't take over until it is told to (sw.ts).
 
 /** How long to look for a new version before opening the one installed. */
 const LOOK_MS = 3000;
 /** How long a new version may take to download, and then to take over, before opening the old one. */
 const INSTALL_MS = 60_000;
 const TAKE_OVER_MS = 10_000;
+/** How often to look for a new version while the app is open. */
+const LOOK_EVERY_MS = 30 * 60_000;
 
 /** `p`, or `fallback` after `ms`. */
 const within = <T>(p: Promise<T>, ms: number, fallback: T) =>
@@ -40,10 +42,42 @@ export async function takeUpdate(updating: () => void): Promise<void> {
   if (!next) return;
   updating();
   const ready = await within(downloaded(next), INSTALL_MS, null);
-  if (!ready) return;
+  if (ready) await switchTo(ready);
+}
+
+/** Have a downloaded version take over and reload into it; resolves only if it doesn't take over in time. */
+async function switchTo(ready: ServiceWorker): Promise<void> {
+  const sw = navigator.serviceWorker;
   const took = new Promise<boolean>((resolve) => sw.addEventListener('controllerchange', () => resolve(true), { once: true }));
   ready.postMessage({ type: 'SKIP_WAITING' });
   if (!(await within(took, TAKE_OVER_MS, false))) return;
   location.reload();
   await new Promise(() => {});
+}
+
+/**
+ * While the app is open, look for a new version now and then (when it comes back to the front,
+ * and every LOOK_EVERY_MS; not offline). Once one has downloaded, `ready` is told, once, with a
+ * function that switches to it.
+ */
+export async function watchForUpdates(ready: (take: () => void) => void) {
+  const sw = navigator.serviceWorker;
+  if (!sw) return;
+  // Once the app's service worker is registered and running, even on a first visit.
+  const reg = await sw.ready;
+  let told = false;
+  const offer = async (w: ServiceWorker | null) => {
+    // Without a version in control (a first visit), the one installing is the first, not an update.
+    if (!sw.controller) return;
+    const got = w && (await downloaded(w));
+    if (!got || told) return;
+    told = true;
+    ready(() => void switchTo(got));
+  };
+  // One found by the browser, or still downloading from start-up, counts too.
+  reg.addEventListener('updatefound', () => void offer(reg.installing));
+  void offer(reg.waiting ?? reg.installing);
+  const look = () => { if (navigator.onLine && !told) void reg.update().catch(() => {}); };
+  setInterval(look, LOOK_EVERY_MS);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') look(); });
 }

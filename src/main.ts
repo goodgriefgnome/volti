@@ -6,7 +6,7 @@ import { registerSW } from 'virtual:pwa-register';
 import { Library } from './library/library';
 import { importShared } from './originals/originals';
 import { el } from './ui/dom';
-import { takeUpdate } from './updates';
+import { takeUpdate, watchForUpdates } from './updates';
 // In this order: later files build on the earlier ones.
 import './styles/base.css';
 import './styles/library.css';
@@ -31,6 +31,7 @@ async function start() {
   void navigator.storage?.persist?.().catch(() => {});
 
   const library = new Library();
+  void watchForUpdates((take) => library.offerUpdate(take));
   const shared = await importShared().catch(() => 0);
   if (location.search.includes('shared')) history.replaceState(null, '', location.pathname);
   if (shared) library.say(`Added ${shared} shared score${shared === 1 ? '' : 's'}.`);
