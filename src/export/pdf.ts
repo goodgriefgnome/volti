@@ -1,7 +1,8 @@
 // Exporting scores as PDFs that read as the reader does in 1-page mode: a page for each frame, the
 // music cut from the original's pages, and the ink over it. The music stays as it is in the
-// original (vectors, or the scan) where pdf-lib can read the original, and is drawn by pdf.js
-// where it can't (an encrypted PDF, say). pdf-lib is only loaded to export.
+// original (vectors, or the scan) where pdf-lib can read the original, decrypting an encrypted
+// one first, and is drawn by pdf.js where it can't (an encryption pdf-decrypt doesn't know, say).
+// pdf-lib and pdf-decrypt are only loaded to export.
 
 import type { PDFDocument, PDFEmbeddedPage, PDFPage } from 'pdf-lib';
 import type { Original } from '../originals/originals';
@@ -11,6 +12,8 @@ import { pack, type Frame } from '../scores/frames';
 import type { Aspects, State } from '../scores/model';
 import { visible } from '../scores/ownership';
 import { loadScore } from '../scores/store';
+import { keys } from '../storage/keys';
+import { kv } from '../storage/kv';
 import { spanCuts, type Span } from '../setlists/model';
 import { openOriginal } from '../ui/passwords';
 import { placeCut, shownSize, type SourcePage } from './placement';
@@ -42,13 +45,56 @@ const sourcePage = (page: PDFPage): SourcePage => {
   return { width: box.width, height: box.height, rotation: page.getRotation().angle };
 };
 
+/** Why pdf-lib can't have an original's music: its password isn't known yet, or it can't read it at all. */
+type Unread = 'password' | 'encryption' | 'unreadable';
+
+/**
+ * pdf-lib's copy of an original, decrypted with its remembered password (or none, for a PDF that
+ * only limits what may be done with it) where it is encrypted; or why there can't be one.
+ */
+async function musicOf(lib: PdfLib, o: Original): Promise<PDFDocument | Unread> {
+  const bytes = new Uint8Array(await (await o.getFile()).arrayBuffer());
+  try {
+    const doc = await lib.PDFDocument.load(bytes, { ignoreEncryption: true });
+    if (!doc.isEncrypted) return doc;
+  } catch (e) {
+    console.warn('Exporting by drawing the pages:', e);
+    return 'unreadable';
+  }
+  const { decryptPDF } = await import('@pdfsmaller/pdf-decrypt');
+  const password = (await kv.get<string>(keys.password(o.id))) ?? '';
+  try {
+    return await lib.PDFDocument.load(await decryptPDF(bytes, password));
+  } catch (e) {
+    console.warn('Exporting by drawing the pages:', e);
+    const message = e instanceof Error ? e.message : '';
+    return message.includes('Incorrect password') ? 'password' : message.includes('Unsupported encryption') ? 'encryption' : 'unreadable';
+  }
+}
+
+/**
+ * The originals whose music would be exported as pictures of their pages, and why. One whose
+ * password isn't known yet isn't among them: exporting asks for it.
+ */
+export async function drawnOriginals(originals: readonly Original[]): Promise<{ original: Original; why: 'encryption' | 'unreadable' }[]> {
+  const lib = await import('pdf-lib');
+  const out: { original: Original; why: 'encryption' | 'unreadable' }[] = [];
+  // One at a time: a long setlist of scans would otherwise hold every one in memory at once.
+  for (const o of new Map(originals.map((o) => [o.id, o])).values()) {
+    const music = await musicOf(lib, o).catch(() => 'unreadable' as const);
+    if (music === 'encryption' || music === 'unreadable') out.push({ original: o, why: music });
+  }
+  return out;
+}
+
 async function open(lib: PdfLib, o: Original): Promise<Source> {
-  const file = await o.getFile();
+  // Asks for the password, if it isn't known yet, which decrypting the music then uses.
   const cache = await openOriginal(o);
   try {
     const aspects = await cache.allAspects();
     const { state } = await loadScore(o.id, o.title, aspects);
-    const doc = await lib.PDFDocument.load(await file.arrayBuffer()).catch((e) => { console.warn('Exporting by drawing the pages:', e); return null; });
+    const music = await musicOf(lib, o);
+    const doc = typeof music === 'string' ? null : music;
     const widths = aspects.map((_, i) => (doc && i < doc.getPageCount() ? shownSize(sourcePage(doc.getPage(i))).width : A4_W));
     return { state, aspects, cache, doc, widths, embedded: new Map() };
   } catch (e) {

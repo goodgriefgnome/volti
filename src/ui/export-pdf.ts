@@ -2,7 +2,7 @@
 // exporting a score, an excerpt or a setlist, and writing it into the scores folder's Exports
 // folder, or sharing it when no folder is linked.
 
-import { exportPdf, type ExportPart } from '../export/pdf';
+import { drawnOriginals, exportPdf, type ExportPart } from '../export/pdf';
 import { allowWriting, EXPORTS, exportExists, fileNameProblem, saveExport } from '../originals/originals';
 import { button, el, focusHighlighted } from './dom';
 import { buttonRow, closeOverlay, showDialog } from './overlay';
@@ -30,6 +30,14 @@ export function openExportPdf(h: ExportHost) {
     ? `It reads as the score does with 1 page on the screen, and goes in the ${EXPORTS} folder in the scores folder.`
     : 'It reads as the score does with 1 page on the screen. Share it to save or send it.');
   const left = h.missing.length ? el('p', 'hint', `Left out, as ${h.missing.length === 1 ? 'it is' : 'they are'} missing: ${h.missing.map((t) => `“${t}”`).join(', ')}.`) : null;
+  const quality = el('p', 'hint', 'Checking quality…');
+  quality.setAttribute('aria-live', 'polite');
+  void drawnOriginals(h.parts.map((p) => p.original)).then((drawn) => {
+    const titles = (why: string) => drawn.filter((d) => d.why === why).map((d) => `“${d.original.title}”`).join(', ');
+    const enc = titles('encryption'), bad = titles('unreadable');
+    quality.textContent = !drawn.length ? 'Original quality.'
+      : [enc && `Rasterized (unsupported encryption): ${enc}.`, bad && `Rasterized (could not be read as it is): ${bad}.`].filter(Boolean).join(' ');
+  }, (e) => { console.error(e); quality.textContent = ''; });
   const error = el('p', 'hint error');
   error.setAttribute('aria-live', 'polite');
   const go = button('Export', () => void ok(), 'primary');
@@ -98,6 +106,6 @@ export function openExportPdf(h: ExportHost) {
     share.focus();
   };
 
-  d.append(input, where, ...(left ? [left] : []), error, buttonRow(cancel, go));
+  d.append(input, where, quality, ...(left ? [left] : []), error, buttonRow(cancel, go));
   focusHighlighted(input);
 }

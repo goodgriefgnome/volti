@@ -89,7 +89,9 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   reads as the reader does, one of its pages to a PDF page: its cuts, in order, with their markings, and
   each setlist entry starting on a new page. Name the file; it goes in an **Exports** folder in the
   scores folder (which then shows in the library too), or, with no folder linked, to the share
-  sheet.
+  sheet. The music is the original's own, password-protected PDFs included; the dialog says
+  **Rasterized** for a score whose encryption Volti can't undo (AES-128), whose pages then go in
+  as pictures.
 
 Markings, cuts, setlists and the place you were at are stored in the app. They are not written into
 the PDFs.

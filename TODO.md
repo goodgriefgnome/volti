@@ -29,19 +29,8 @@ scores.
   - Markings draw through a small drawing interface (move, line, width, colour, transparency,
     blending) that the screen's canvas and the PDF appearance writer each implement, so each kind
     of marking is written once and exports as it shows.
-  - The picture of the markings goes. Music pdf-lib can't read (password-protected PDFs) is still
+  - The picture of the markings goes. Music pdf-lib can't read, even decrypted (AES-128), is still
     drawn as a picture.
-- **Encrypted PDFs export as vectors:** export decrypts an encrypted original with
-  `@pdfsmaller/pdf-decrypt` (MIT, ~92 KB, loaded with pdf-lib only to export) before
-  `PDFDocument.load`, using the score's saved password, or none for a permissions-only PDF. The
-  music then stays vector instead of being drawn as a JPEG.
-  - It handles RC4 and AES-256 but not AES-128 (`/V 4 /R 4`, common from Acrobat 7–9); those, and
-    anything else it can't read, still fall back to the JPEG picture.
-  - The export dialog (where the file is named) says, under the name, like the hint for missing
-    scores, how the music will come out: “Original quality” when every original can be read, or
-    “Rasterized (unsupported encryption): “Mass A”, …” naming each score that falls back. It
-    opens at once and checks the originals in the background (each one's `/Encrypt` dictionary,
-    or a trial decrypt), showing “Checking quality…” until it knows.
 - **Saved pictures of the pages setlists play:** Volti keeps a picture of every original page
   that a cut played by a setlist (not archived) comes from, so opening a setlist, and turning
   between its scores, shows the music at once (about 75 ms a page against 0.5 s or more to draw
@@ -77,6 +66,8 @@ Things to try on the tablet.
   to the library without getting in the way of the music or of turning back a page.
 - **Scores grouped by subfolder:** the lists, closing them (remembered after a restart), searching,
   Move to folder… for an added PDF, and Add scores' collapsed lists.
+- **Exporting a password-protected score:** its music comes out sharp when zoomed (vectors, or the
+  scan as it was), and the dialog says “Original quality”.
 - **Reader opens with the toolbar hidden:** a score, excerpt or setlist shows only the music and
   the back arrow; a tap in the middle brings up the toolbar.
 
