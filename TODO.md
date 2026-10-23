@@ -25,9 +25,11 @@ scores.
   Use ⋯ › Add scores." Show an Add scores button there instead.
 - **Add to setlist… in the Library, and a default setlist:** every score's and named excerpt's ⋯
   menu gets "Add to setlist…", as the reader's toolbar has (an excerpt adds itself, not the whole
-  score). One setlist is the default, and these menus also get "Add to <default setlist>". A
-  setlist's ⋯ menu has "Set as default". The only setlist is always the default; with no
-  setlists, there is no "Add to <default setlist>" item.
+  score), and "Add to <default setlist>". The default setlist is always the last one any score was
+  added to, however it was added; it can't be set by hand. The only setlist is always the default;
+  with no setlists, there is no "Add to <default setlist>" item. When the default is archived or
+  deleted, the one added to most recently before it becomes the default. The reader's toolbar
+  keeps only its "Add to setlist".
 
 ## Manual check
 
