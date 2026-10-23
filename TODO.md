@@ -15,9 +15,15 @@ scores.
 - **Setlist entry number and title centred in their row:** the number now lines up with the
   title, but both sit high in the row; centre them vertically, as the drag handle and ⋯ are (and
   an excerpt's name in its pill). A title that wraps is centred as a block, the number beside it.
-- **Adding a PDF still doesn't work (bug, seen on the tablet after the fix):** Add PDFs behaves
-  as before. The fix (read each picked file once; drop digits from a name without .pdf) didn't
-  help, so the cause is something else. Not yet investigated.
+- **Password-protected PDFs:** one (Come_People_Of_The_Risen_King3420.pdf) is added but can't be
+  opened ("Could not open … It may have been moved or renamed"); other PDFs work. Ask for its
+  password when it is first opened, and only once: remember it on the tablet, by the score's id,
+  across restarts (pdf.js takes a password; pdf-lib can't read such a PDF, so its exports are
+  drawn by pdf.js, as already happens). A wrong password asks again.
+- **Undo the guess about made-up names:** adding a PDF drops trailing digits from a name without
+  ".pdf" (importName), on the theory that Android had added "3420" to that name. It hadn't: the
+  file is called that, and the picker only clipped it. Keep a name as it comes (adding ".pdf"), and
+  keep reading each added file once.
 - **The dialog with the keyboard open stays a dialog:** today it turns into a full-width sheet,
   which doesn't look nice. Keep it a dialog (margins, rounded corners), grown to a large share of
   the screen's width and to the height left above the keyboard; when the thumbnails are zoomed in
