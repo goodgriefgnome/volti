@@ -31,6 +31,17 @@ scores.
     of marking is written once and exports as it shows.
   - The picture of the markings goes. Music pdf-lib can't read (password-protected PDFs) is still
     drawn as a picture.
+- **Encrypted PDFs export as vectors:** export decrypts an encrypted original with
+  `@pdfsmaller/pdf-decrypt` (MIT, ~92 KB, loaded with pdf-lib only to export) before
+  `PDFDocument.load`, using the score's saved password, or none for a permissions-only PDF. The
+  music then stays vector instead of being drawn as a JPEG.
+  - It handles RC4 and AES-256 but not AES-128 (`/V 4 /R 4`, common from Acrobat 7–9); those, and
+    anything else it can't read, still fall back to the JPEG picture.
+  - When any of the music will be a picture, the export dialog (where the file is named) says so,
+    under the name, like the hint for missing scores: e.g. ““Mass A” will be exported as pictures
+    of its pages, not as the original's music, so it will be larger and less sharp when zoomed.”
+    The dialog opens at once and checks the originals in the background (read each one's
+    encryption from its `/Encrypt` dictionary, or try the decrypt), adding the warning when found.
 
 ## Manual check
 
