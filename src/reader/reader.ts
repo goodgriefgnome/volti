@@ -11,11 +11,13 @@ import { followEdit, followScore, newEntry, spanCuts, spanLabel, spanOf, type En
 import { ends, excerptName, followNames, nameOf, sortedNames } from '../setlists/names';
 import { loadPosition, loadSetlists, savePosition as saveSetlistPosition } from '../setlists/store';
 import { openPdf, type PageCache } from '../originals/pdf';
-import { knownTitles, type Original } from '../originals/originals';
+import { folderState, knownTitles, type Original } from '../originals/originals';
+import type { ExportPart } from '../export/pdf';
 import { savePrefs, type Prefs } from '../storage/prefs';
 import { button, el } from '../ui/dom';
 import { openExcerptPicker, type ExcerptSource } from '../ui/excerpt-picker';
 import { addExcerpt, changeExcerptCuts, deleteExcerpt, renameExcerpt, type ExcerptHost } from '../ui/excerpts';
+import { openExportPdf } from '../ui/export-pdf';
 import { buttonRow, closeOverlay, showDialog, showMenu } from '../ui/overlay';
 import { chooseSetlist } from '../ui/setlists';
 import { Toast } from '../ui/toast';
@@ -175,6 +177,7 @@ class Reader {
       scores: () => this.scoresMenu(),
       excerpt: () => this.chooseExcerpt(),
       excerpts: () => this.excerptsList(),
+      exportPdf: () => void this.exportPdf(),
       addToSetlist: () => this.addToSetlist(),
       tool: (t) => this.setTool(t),
       penColor: (c) => { this.penColor = c; this.tool = 'pen'; this.syncBar(); },
@@ -351,6 +354,29 @@ class Reader {
       this.saver.soon();
       this.say(`Added to the end of “${s.title}”.`);
     }, it.scoreId);
+  }
+
+  /** Export what this reader pages through: the score, the excerpt, or the whole setlist. */
+  private async exportPdf() {
+    this.editor.dismiss();
+    // The export reads the scores as saved.
+    await this.saver.flush();
+    const parts: ExportPart[] = [], missing: string[] = [];
+    this.items.forEach((it, k) => {
+      if (it.original && !it.missing) parts.push({ original: it.original, span: this.entry(k) });
+      else missing.push(it.title);
+    });
+    if (!parts.length) { this.say('Its scores are all missing.'); return; }
+    const cur = this.current, span = this.entry();
+    const title = this.setlist?.title
+      ?? (this.reading.kind === 'excerpt' && cur && span ? `${this.items[0].title} - ${excerptName(cur.state.score, span, cur.aspects)}` : this.items[0].title);
+    openExportPdf({
+      title,
+      parts,
+      missing,
+      toFolder: (await folderState()).kind !== 'none',
+      saved: (name) => this.say(`Saved “${name}.pdf” in Exports, in the scores folder.`),
+    });
   }
 
   /** An open score's pages, for the excerpt picker. */

@@ -19,11 +19,11 @@ import { button, el, plural } from '../ui/dom';
 import type { ExportPart } from '../export/pdf';
 import { openExcerptPicker, type ExcerptSource } from '../ui/excerpt-picker';
 import { addExcerpt, changeExcerptCuts, deleteExcerpt, renameExcerpt, type ExcerptHost } from '../ui/excerpts';
+import { openExportPdf } from '../ui/export-pdf';
 import { buttonRow, closeOverlay, showDialog, showMenu, whenOverlayCloses } from '../ui/overlay';
 import { askSetlistName } from '../ui/setlists';
 import { Toast } from '../ui/toast';
 import { openAddScores } from './add-scores';
-import { openExportPdf } from './export-pdf';
 import { openScore, type LibraryScore } from './open-score';
 
 /** The Library screen: setlists, the scores folder, imported scores, and the list to open them from. */
@@ -560,7 +560,7 @@ export class Library {
     }
     if (!parts.length) { this.toast.say('Its scores are all missing.'); return; }
     openExportPdf({
-      title: title.replace(/[\\/:*?"<>|]/g, '-'),
+      title,
       parts,
       missing,
       toFolder: this.folder.kind !== 'none',

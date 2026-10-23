@@ -68,7 +68,8 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
     and every setlist's excerpts follow the change.
   - **Archive** hides a setlist behind **Show archived**; only archived setlists can be deleted.
 
-- **Export PDF…** in the **⋯** menu of a score, a named excerpt or a setlist makes a PDF that
+- **Export PDF…** in the **⋯** menu of a score, a named excerpt or a setlist, or **Export PDF** in
+  the reader's toolbar (for what that reader pages through), makes a PDF that
   reads as the reader does with 1 page on the screen: its cuts, in order, with their markings, and
   each setlist entry starting on a new page. Name the file; it goes in an **Exports** folder in the
   scores folder (which then shows in the library too), or, with no folder linked, to the share
@@ -118,7 +119,7 @@ its cuts kept only in that setlist.
 | `src/reader/gestures.ts` | How taps, swipes and keys turn pages |
 | `src/reader/layout.ts` | Fitting frames to the screen |
 | `src/reader/zoom.ts` | Pinch and pan maths; which part of a page is in view |
-| `src/ui/` | Shared by both screens: DOM helpers (`dom`), menus and dialogs, one at a time (`overlay`), messages (`toast`), the setlist name and add-to menus (`setlists`), choosing an excerpt (`excerpt-picker`), and the named excerpt dialogs (`excerpts`) |
+| `src/ui/` | Shared by both screens: DOM helpers (`dom`), menus and dialogs, one at a time (`overlay`), messages (`toast`), the setlist name and add-to menus (`setlists`), choosing an excerpt (`excerpt-picker`), the named excerpt dialogs (`excerpts`), and exporting a PDF (`export-pdf`) |
 | `src/styles/` | Styles, one file per part of the app, imported in order by `main.ts` |
 | `src/sw.ts` | Offline copy and the share target |
 

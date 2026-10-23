@@ -5,8 +5,6 @@ scores.
 
 ## Work for the immediate future
 
-- **Export PDF from the reader:** a toolbar button (crowding the toolbar is fine for now) that
-  exports what that reader pages through: the score, the named excerpt, or the whole setlist.
 - **No old version while a new one loads:** at start-up, show a plain start screen and ask the
   server for a newer service worker before showing the library. No update (or offline): show the
   library. An update: say "Updating Volti…" until it takes over, then reload into it. Give up

@@ -1,13 +1,14 @@
-// The "Export PDF" dialog: naming the file, exporting a score, an excerpt or a setlist, and
-// writing it into the scores folder's Exports folder, or sharing it when no folder is linked.
+// The "Export PDF" dialog, from the library's menus and the reader's toolbar: naming the file,
+// exporting a score, an excerpt or a setlist, and writing it into the scores folder's Exports
+// folder, or sharing it when no folder is linked.
 
 import { exportPdf, type ExportPart } from '../export/pdf';
 import { allowWriting, EXPORTS, exportExists, fileNameProblem, saveExport } from '../originals/originals';
-import { button, el } from '../ui/dom';
-import { buttonRow, closeOverlay, showDialog } from '../ui/overlay';
+import { button, el } from './dom';
+import { buttonRow, closeOverlay, showDialog } from './overlay';
 
 export interface ExportHost {
-  /** What is exported, and the file's first name. */
+  /** What is exported, and the file's first name (characters a file name can't have become dashes). */
   title: string;
   parts: ExportPart[];
   /** Titles of scores left out because their originals are missing. */
@@ -23,7 +24,7 @@ export function openExportPdf(h: ExportHost) {
   const d = showDialog(`Export “${h.title}” as PDF`);
   const input = el('input', 'name');
   input.type = 'text';
-  input.value = h.title;
+  input.value = h.title.replace(/[\\/:*?"<>|]/g, '-');
   input.setAttribute('aria-label', 'File name');
   const where = el('p', 'hint', h.toFolder
     ? `It reads as the score does with 1 page on the screen, and goes in the ${EXPORTS} folder in the scores folder.`

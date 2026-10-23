@@ -23,6 +23,8 @@ export interface ToolbarActions {
   excerpt(): void;
   /** In a score's own reader: the list of its named excerpts. */
   excerpts(): void;
+  /** Export what the reader pages through as a PDF. */
+  exportPdf(): void;
   /** In a score's or an excerpt's own reader: add it to a setlist. */
   addToSetlist(): void;
   /** Tapping the active tool again puts it away. */
@@ -91,6 +93,7 @@ export class Toolbar {
     if (reading === 'score') right.append(this.button('excerpts', 'Excerpts', act.excerpts));
     else right.append(this.button('excerpt', 'Excerpt', act.excerpt));
     right.append(
+      this.button('export', 'Export PDF', act.exportPdf),
       this.button('edit', 'Edit cuts', act.toggleEditing),
       this.button('archived', 'Archived', act.openArchive),
       this.button('fit', 'Fit page', act.fit),
