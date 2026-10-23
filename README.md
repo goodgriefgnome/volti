@@ -17,6 +17,8 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   for access again with one tap.
 - **Add PDFs**, or **Share** a PDF to Volti from Files, Gmail or Drive, keeps a copy inside the app.
   A copy of a PDF that is also in the scores folder is deleted; the score stays.
+- A PDF protected by a password asks for it the first time it is opened. Volti remembers it on
+  this tablet, so it asks only once. An exported PDF of it has no password.
 - **Rename…** in a score's **⋯** menu renames its PDF. Volti asks to change files in the scores
   folder (not only read them) when it is linked, and with the one tap that allows access again
   after a restart, so renaming and exporting don't ask separately.
@@ -126,7 +128,7 @@ its cuts kept only in that setlist.
 | `src/reader/gestures.ts` | How taps, swipes and keys turn pages |
 | `src/reader/layout.ts` | Fitting frames to the screen |
 | `src/reader/zoom.ts` | Pinch and pan maths; which part of a page is in view |
-| `src/ui/` | Shared by both screens: DOM helpers (`dom`), menus and dialogs, one at a time (`overlay`), messages (`toast`), the setlist name and add-to menus (`setlists`), choosing an excerpt (`excerpt-picker`), the named excerpt dialogs (`excerpts`), and exporting a PDF (`export-pdf`) |
+| `src/ui/` | Shared by both screens: opening an original, asking for its password once (`passwords`), DOM helpers (`dom`), menus and dialogs, one at a time (`overlay`), messages (`toast`), the setlist name and add-to menus (`setlists`), choosing an excerpt (`excerpt-picker`), the named excerpt dialogs (`excerpts`), and exporting a PDF (`export-pdf`) |
 | `src/styles/` | Styles, one file per part of the app, imported in order by `main.ts` |
 | `src/sw.ts` | Offline copy and the share target |
 | `src/updates.ts` | Taking a new version of the app at start-up |

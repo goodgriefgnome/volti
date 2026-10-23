@@ -13,11 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **Password-protected PDFs:** one (Come_People_Of_The_Risen_King3420.pdf) is added but can't be
-  opened ("Could not open … It may have been moved or renamed"); other PDFs work. Ask for its
-  password when it is first opened, and only once: remember it on the tablet, by the score's id,
-  across restarts (pdf.js takes a password; pdf-lib can't read such a PDF, so its exports are
-  drawn by pdf.js, as already happens). A wrong password asks again.
 - **Undo the guess about made-up names:** adding a PDF drops trailing digits from a name without
   ".pdf" (importName), on the theory that Android had added "3420" to that name. It hadn't: the
   file is called that, and the picker only clipped it. Keep a name as it comes (adding ".pdf"), and
@@ -63,6 +58,8 @@ Things to try on the tablet.
   ones appear one by one, with "Reading new scores: n left…".
 - **One access prompt per session:** after a restart, Allow access (or opening a score from the
   folder) asks once, to edit files; Rename… and Export PDF… then don't ask again.
+- **A password-protected PDF** (Come_People_Of_The_Risen_King3420.pdf): opening it asks for the
+  password once; after a restart it opens without asking.
 
 ## Confirmed features which require more thought
 

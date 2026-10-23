@@ -116,6 +116,21 @@ export function showDialog(title: string, cls = ''): HTMLElement {
   return d;
 }
 
+/**
+ * A dialog over the one open, which stays: for a question that must be answered before that one
+ * can go on, such as a PDF's password. The only dialog not one at a time. `close` takes it away.
+ */
+export function showOnTop(title: string): { dialog: HTMLElement; close: () => void } {
+  const scrim = el('div', 'scrim on-top');
+  const d = el('div', 'dialog on-top');
+  d.setAttribute('role', 'dialog');
+  d.setAttribute('aria-modal', 'true');
+  d.setAttribute('aria-label', title);
+  d.append(el('h2', '', title));
+  document.body.append(scrim, d);
+  return { dialog: d, close: () => { scrim.remove(); d.remove(); } };
+}
+
 export function buttonRow(...buttons: (HTMLElement | null)[]): HTMLElement {
   const row = el('div', 'buttons');
   row.append(...buttons.filter((b): b is HTMLElement => !!b));

@@ -5,13 +5,14 @@
 
 import type { PDFDocument, PDFEmbeddedPage, PDFPage } from 'pdf-lib';
 import type { Original } from '../originals/originals';
-import { openPdf, type PageCache } from '../originals/pdf';
+import type { PageCache } from '../originals/pdf';
 import { drawFrame, drawFrameInk } from '../reader/frames';
 import { pack, type Frame } from '../scores/frames';
 import { frameHeight, type Aspects, type State } from '../scores/model';
 import { visible } from '../scores/ownership';
 import { loadScore } from '../scores/store';
 import { spanCuts, type Span } from '../setlists/model';
+import { openOriginal } from '../ui/passwords';
 import { placeCut, shownSize, type SourcePage } from './placement';
 
 /** One part of an export: a score, whole or the excerpt `span` of it. Each starts on a new page. */
@@ -43,7 +44,7 @@ const sourcePage = (page: PDFPage): SourcePage => {
 
 async function open(lib: PdfLib, o: Original): Promise<Source> {
   const file = await o.getFile();
-  const cache = await openPdf(file);
+  const cache = await openOriginal(o);
   try {
     const aspects = await cache.allAspects();
     const { state } = await loadScore(o.id, o.title, aspects);

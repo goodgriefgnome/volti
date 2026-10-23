@@ -10,7 +10,11 @@ pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
 const assets = import.meta.env.BASE_URL + 'pdfjs/';
 
-export async function openPdf(file: File): Promise<PageCache> {
+/**
+ * Open a PDF. One protected by a password asks `password` for it, saying whether the last one was
+ * wrong; null gives up, and the opening fails.
+ */
+export async function openPdf(file: File, password?: (wrong: boolean) => Promise<string | null>): Promise<PageCache> {
   const task = pdfjs.getDocument({
     data: new Uint8Array(await file.arrayBuffer()),
     cMapUrl: assets + 'cmaps/',
@@ -18,6 +22,10 @@ export async function openPdf(file: File): Promise<PageCache> {
     wasmUrl: assets + 'wasm/',
     iccUrl: assets + 'iccs/',
   });
+  task.onPassword = (answer: (p: string | Error) => void, reason: number) => {
+    const ask = password?.(reason === pdfjs.PasswordResponses.INCORRECT_PASSWORD) ?? Promise.resolve(null);
+    void ask.then((p) => answer(p ?? new Error('No password')), (e: Error) => answer(e));
+  };
   return new PageCache(task, await task.promise);
 }
 

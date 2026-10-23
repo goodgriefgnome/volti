@@ -1,10 +1,11 @@
 // Opening and closing the scores being read: each score's saved state and its original, opened when
 // first needed and closed when far from the score being read.
 
-import { openPdf, type PageCache } from '../originals/pdf';
+import type { PageCache } from '../originals/pdf';
 import type { Original } from '../originals/originals';
 import type { Aspects, State } from '../scores/model';
 import { loadScore } from '../scores/store';
+import { openOriginal, PasswordNotGiven } from '../ui/passwords';
 
 /** A score open in the reader. Every entry of a setlist that plays the score shares it. */
 export interface OpenScore {
@@ -39,26 +40,32 @@ export class OpenScores {
 
   get(scoreId: string): OpenScore | undefined { return this.scores.get(scoreId); }
 
-  /** Open item k's score, or find that it can't be. */
-  ensure(k: number): Promise<OpenScore | null> {
+  /**
+   * Open item k's score, or find that it can't be. Only with `ask` (the score is being turned to,
+   * not opened ahead of time) is a PDF's password asked for; one that can't be opened without it
+   * then waits for that.
+   */
+  ensure(k: number, ask = false): Promise<OpenScore | null> {
     const it = this.items[k];
     if (!it || it.missing || !it.original) return Promise.resolve(null);
     const have = this.scores.get(it.scoreId);
     if (have?.cache) return Promise.resolve(have);
     let p = this.opening.get(it.scoreId);
     if (!p) {
-      p = this.open(it, it.original).catch((e) => {
+      p = this.open(it, it.original, ask).catch((e) => {
+        if (e instanceof PasswordNotGiven && !ask) return null;
         console.error(e);
         for (const x of this.items) if (x.scoreId === it.scoreId) x.missing = true;
         return null;
       }).finally(() => this.opening.delete(it.scoreId));
       this.opening.set(it.scoreId, p);
     }
-    return p;
+    // Opened ahead of time without asking for a password: ask now.
+    return ask ? p.then((s) => s ?? (it.missing ? null : this.ensure(k, true))) : p;
   }
 
-  private async open(it: Item, original: Original): Promise<OpenScore> {
-    const cache = await openPdf(await original.getFile());
+  private async open(it: Item, original: Original, ask: boolean): Promise<OpenScore> {
+    const cache = await openOriginal(original, ask);
     if (this.closed) { cache.destroy(); throw new Error('Closed'); }
     const have = this.scores.get(it.scoreId);
     if (have) { have.cache = cache; return have; }

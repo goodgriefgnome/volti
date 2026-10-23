@@ -20,6 +20,7 @@ import type { ExportPart } from '../export/pdf';
 import { openExcerptPicker, type ExcerptSource } from '../ui/excerpt-picker';
 import { addExcerpt, changeExcerptCuts, deleteExcerpt, renameExcerpt, type ExcerptHost } from '../ui/excerpts';
 import { openExportPdf } from '../ui/export-pdf';
+import { PasswordNotGiven } from '../ui/passwords';
 import { buttonRow, closeOverlay, showDialog, showMenu, whenOverlayCloses, type MenuItem } from '../ui/overlay';
 import { askSetlistName, chooseSetlist } from '../ui/setlists';
 import { Toast } from '../ui/toast';
@@ -670,7 +671,7 @@ export class Library {
       return sc;
     } catch (e) {
       console.error(e);
-      this.toast.say(`Could not open “${o.title}”. It may have been moved or renamed.`);
+      this.toast.say(e instanceof PasswordNotGiven ? `“${o.title}” needs its password to open.` : `Could not open “${o.title}”. It may have been moved or renamed.`);
       return null;
     }
   }
@@ -716,7 +717,7 @@ export class Library {
     } catch (e) {
       console.error(e);
       this.root.hidden = false;
-      this.say(failed);
+      this.say(e instanceof PasswordNotGiven ? `${e.message} to open.` : failed);
     }
   }
 }

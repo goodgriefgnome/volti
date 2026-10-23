@@ -44,6 +44,9 @@
 /* Behind a dialog, or invisibly behind a menu: a tap on it closes them. */
 .catcher, .scrim { position: fixed; inset: 0; z-index: 19; touch-action: none; }
 .scrim { background: rgba(10, 11, 14, 0.45); }
+/* A dialog over the one open (a PDF's password). */
+.scrim.on-top { z-index: 29; }
+.dialog.on-top { z-index: 30; }
 .menu button[aria-checked="true"]::before { content: "✓ "; }
 
 .toast {

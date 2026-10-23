@@ -10,7 +10,7 @@ import { loadScore, savePosition } from '../scores/store';
 import { followEdit, followScore, newEntry, spanCuts, spanLabel, spanOf, type Entry, type Setlist, type Span } from '../setlists/model';
 import { ends, excerptName, followNames, nameOf, sortedNames } from '../setlists/names';
 import { loadPosition, loadSetlists, saveLastAddedTo, savePosition as saveSetlistPosition } from '../setlists/store';
-import { openPdf, type PageCache } from '../originals/pdf';
+import type { PageCache } from '../originals/pdf';
 import { folderState, knownTitles, type Original } from '../originals/originals';
 import type { ExportPart } from '../export/pdf';
 import { savePrefs, type Prefs } from '../storage/prefs';
@@ -18,6 +18,7 @@ import { button, el } from '../ui/dom';
 import { openExcerptPicker, type ExcerptSource } from '../ui/excerpt-picker';
 import { addExcerpt, changeExcerptCuts, deleteExcerpt, renameExcerpt, type ExcerptHost } from '../ui/excerpts';
 import { openExportPdf } from '../ui/export-pdf';
+import { openOriginal } from '../ui/passwords';
 import { buttonRow, closeOverlay, showDialog, showMenu } from '../ui/overlay';
 import { chooseSetlist } from '../ui/setlists';
 import { Toast } from '../ui/toast';
@@ -69,7 +70,7 @@ export async function openReader(what: ToRead, prefs: Prefs, onClose: () => void
   const setlists = await loadSetlists();
   if (what.kind !== 'setlist') {
     const { original } = what;
-    const cache = await openPdf(await original.getFile());
+    const cache = await openOriginal(original);
     const aspects = await cache.allAspects();
     const { state, position } = await loadScore(original.id, original.title, aspects);
     const first: OpenScore = { id: original.id, original, aspects, state, cache };
@@ -265,7 +266,7 @@ class Reader {
     const seq = ++this.goSeq;
     this.loading = true;
     if (k !== this.k) { this.editor.dismiss(); this.toolbar.info.textContent = 'Opening…'; }
-    await this.scores.ensure(k);
+    await this.scores.ensure(k, true);
     if (seq !== this.goSeq || this.scores.closed) return;
     this.loading = false;
     this.k = k;

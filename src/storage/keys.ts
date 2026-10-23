@@ -30,6 +30,8 @@ export const keys = {
   pos: (id: string) => 'pos:' + id,
   /** Aspects, the original's page shapes as last opened: for laying out pages without opening it. */
   aspects: (id: string) => 'aspects:' + id,
+  /** The password that opened the original, for a PDF protected by one (ui/passwords.ts). */
+  password: (id: string) => 'password:' + id,
 
   /* Setlists (setlists/store.ts). Cuts and markings are only ever stored in the score. */
   /** Setlist ids, newest first. */
