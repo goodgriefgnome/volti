@@ -13,7 +13,11 @@ scores.
 
 ## Work for the immediate future
 
-Nothing at the moment.
+- **A setlist always starts at its beginning:** tapping a setlist in the library opens it at its
+  first entry, not where it was left (each performance runs from the top); tapping one of its
+  entries still starts there. Its reading position is no longer kept: `saveSetlistPosition`,
+  `loadSetlistPosition` and the `setlistPos` key go, and deleting a setlist no longer deletes
+  it. A score's own reader still opens where it was left.
 
 ## Manual check
 
