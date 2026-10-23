@@ -1,5 +1,5 @@
-// Dialogs only the library's score rows open: renaming a score's PDF, and filing an added PDF
-// under a subfolder.
+// Dialogs about a score's file, from the library's score rows and a score's reader: renaming its
+// PDF (or image), and filing an added one under a subfolder.
 
 import { allowWriting } from '../originals/folder';
 import { fileAdded } from '../originals/imported';
@@ -7,10 +7,16 @@ import { fileNameProblem, tidyFolder } from '../originals/names';
 import { renameOriginal, type Original } from '../originals/originals';
 import { askText } from '../ui/ask-text';
 import { el } from '../ui/dom';
-import type { LibraryHost } from './host';
+
+/** What the dialogs need from the screen that opens them. */
+export interface ScoreFileHost {
+  say(text: string): void;
+  /** The file changed: read the scores again, or show the change. `renamed` is its new title, when renamed. */
+  changed(renamed?: string): void | Promise<void>;
+}
 
 /** Rename a score's PDF. Its cuts, markings and setlists stay with it, as its contents don't change. */
-export function renameFile(lib: LibraryHost, o: Original) {
+export function renameFile(h: ScoreFileHost, o: Original) {
   askText({
     title: `Rename “${o.title}”`,
     value: o.title,
@@ -32,14 +38,17 @@ export function renameFile(lib: LibraryHost, o: Original) {
       }
     },
     done: async (title) => {
-      lib.toast.say(`Renamed to “${title.trim()}”.`);
-      await lib.refresh();
+      h.say(`Renamed to “${title.trim()}”.`);
+      await h.changed(title.trim());
     },
   });
 }
 
-/** File an added PDF under a subfolder in the library: one of the folder's, or a new one; None takes it back to the top. */
-export function moveAdded(lib: LibraryHost, o: Original) {
+/**
+ * File an added PDF under a subfolder in the library: one of `folders` (the library's subfolders),
+ * or a new one; None takes it back to the top.
+ */
+export function moveAdded(h: ScoreFileHost, o: Original, folders: readonly string[]) {
   askText({
     title: `Move “${o.title}” to a folder`,
     value: o.folder,
@@ -47,13 +56,13 @@ export function moveAdded(lib: LibraryHost, o: Original) {
     label: 'Folder',
     okLabel: 'Move',
     // The subfolders there are.
-    choices: [...new Set(lib.originals.map((x) => x.folder).filter(Boolean))].sort(),
+    choices: [...folders],
     below: [el('p', 'hint', 'Volti lists it under that folder, beside the scores folder’s own PDFs there. The PDF itself stays where it is.')],
     alt: { label: 'None', text: '' },
     done: async (folder) => {
       await fileAdded(o, folder);
-      lib.toast.say(tidyFolder(folder) ? `Moved “${o.title}” to ${tidyFolder(folder).split('/').join(' / ')}.` : `Moved “${o.title}” to the top of the list.`);
-      await lib.refresh();
+      h.say(tidyFolder(folder) ? `Moved “${o.title}” to ${tidyFolder(folder).split('/').join(' / ')}.` : `Moved “${o.title}” to the top of the list.`);
+      await h.changed();
     },
   });
 }

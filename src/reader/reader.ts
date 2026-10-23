@@ -27,7 +27,7 @@ import type { Gesture } from './gestures';
 import { History } from './history';
 import { Input } from './input';
 import { OpenScores, openPages, type Item, type OpenScore } from './open-scores';
-import { Reading, type ReadingKind, type ReadingSnapshot } from './reading';
+import { Reading, setlistItems, type ReadingKind, type ReadingSnapshot } from './reading';
 import { Saver } from './saver';
 import { blankBox, ScoreCard, showSetlistTitle } from './setlist';
 import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './spread';
@@ -58,7 +58,7 @@ const sameLayout = (a: readonly Cut[], b: readonly Cut[]) =>
 
 
 /** Open a score, or a setlist as one continuous score. A score that can't be opened throws; a setlist carries on past it. */
-export async function openReader(what: ToRead, onClose: () => void): Promise<void> {
+export async function openReader(what: ToRead, onClose: (filesChanged: boolean) => void): Promise<void> {
   const setlists = await loadSetlists();
   if (what.kind !== 'setlist') {
     const { original } = what;
@@ -73,15 +73,10 @@ export async function openReader(what: ToRead, onClose: () => void): Promise<voi
   }
   const setlist = setlists.find((s) => s.id === what.setlistId);
   if (!setlist?.entries.length) throw new Error('No such setlist, or no scores in it');
-  const originals = new Map(what.originals.map((o) => [o.id, o]));
-  const titles = await knownTitles();
-  const items: Item[] = setlist.entries.map((e) => {
-    const original = originals.get(e.scoreId);
-    return { scoreId: e.scoreId, entryId: e.id, original, title: original?.title ?? titles[e.scoreId] ?? 'Missing score', missing: !original };
-  });
+  const items = setlistItems(setlist, new Map(what.originals.map((o) => [o.id, o])), await knownTitles());
   const pos = what.startEntry ? { entry: what.startEntry } : await loadSetlistPosition(setlist.id);
   const k = Math.max(0, items.findIndex((it) => it.entryId === pos?.entry));
-  new Reader(items, { kind: 'setlist', id: setlist.id }, setlists, null, k, pos?.cut, onClose);
+  new Reader(items, { kind: 'setlist', id: setlist.id }, setlists, null, k, pos?.cut, onClose, what.originals);
 }
 
 /**
@@ -133,6 +128,8 @@ class Reader {
 
   private reading: Reading;
   private menus: ReaderMenus;
+  /** A score's file was renamed, moved or removed here: the library reads its scores again. */
+  private filesChanged = false;
   /** The score offered by turning past this one's end: turning that way again while it is offered opens it. */
   private offered: { dir: 1 | -1; id: string; until: number } | null = null;
 
@@ -143,8 +140,8 @@ class Reader {
     first: OpenScore | null,
     k: number,
     position: string | undefined,
-    private onClose: () => void,
-    /** In a score's own reader, the library's scores in its order, to turn to. */
+    private onClose: (filesChanged: boolean) => void,
+    /** The library's scores; in a score's own reader, in the library's order, to turn to. */
     private library: readonly Original[] = [],
   ) {
     this.reading = new Reading(items, what, setlists);
@@ -175,8 +172,7 @@ class Reader {
       scores: () => this.menus.scores(),
       excerpt: () => this.menus.excerpt(),
       excerpts: () => this.menus.excerpts(),
-      exportPdf: () => void this.menus.exportPdf(),
-      addToSetlist: () => this.menus.addToSetlist(),
+      more: () => void this.menus.more(),
       tool: (t) => this.setTool(t),
       penColor: (c) => { this.penColor = c; this.tool = 'pen'; this.syncBar(); },
       undo: () => this.undo(),
@@ -199,7 +195,17 @@ class Reader {
       },
       retitle: () => this.showTitle(),
       dismiss: () => this.editor.dismiss(),
-      say: (t) => this.say(t),
+      say: (t, action) => this.toast.say(t, action),
+      library: this.library,
+      relisted: (entryId, at) => this.relisted(entryId, at),
+      readSpan: (span) => {
+        this.reading.play(this.k, span);
+        this.frames = this.framesFor(this.k);
+        this.frame = 0;
+        void this.show();
+      },
+      leave: () => history.back(),
+      filesChanged: () => { this.filesChanged = true; },
     });
     this.syncBar();
     this.stage.append(this.spreadEl);
@@ -267,6 +273,28 @@ class Reader {
     this.syncBar();
     await this.show();
     this.scores.keepNear(this.k);
+  }
+
+  /**
+   * The setlist's entries changed: list them again, and read entry `entryId` where it is now, or,
+   * when it's gone, the entry now at `at` (or the last); with none left, back to the library.
+   */
+  private relisted(entryId?: string, at = this.k) {
+    const s = this.reading.setlist;
+    if (!s?.entries.length) { history.back(); return; }
+    const titles = Object.fromEntries(this.items.map((it) => [it.scoreId, it.title]));
+    const was = this.items[this.k]?.entryId;
+    this.reading.relist(setlistItems(s, new Map(this.library.map((o) => [o.id, o])), titles));
+    const k = entryId ? this.items.findIndex((it) => it.entryId === entryId) : -1;
+    if (k >= 0 && entryId === was) {
+      // Still reading the same entry, only somewhere else in the setlist.
+      this.k = k;
+      this.syncBar();
+      void this.show();
+      this.scores.keepNear(k);
+      return;
+    }
+    void this.goTo(k >= 0 ? k : Math.min(at, this.items.length - 1), 'first');
   }
 
   /* ---------- toolbar ---------- */
@@ -633,6 +661,6 @@ class Reader {
     this.scores.destroy();
     this.root.remove();
     document.body.classList.remove('reading');
-    this.onClose();
+    this.onClose(this.filesChanged);
   }
 }

@@ -28,10 +28,8 @@ export interface ToolbarActions {
   excerpt(): void;
   /** In a score's own reader: the list of its named excerpts. */
   excerpts(): void;
-  /** Export what the reader pages through as a PDF. */
-  exportPdf(): void;
-  /** In a score's or an excerpt's own reader: add it to a setlist. */
-  addToSetlist(): void;
+  /** The menu of what is read, as its ⋯ menu in the library. */
+  more(): void;
   /** Tapping the active tool again puts it away. */
   tool(t: ToolName): void;
   penColor(c: string): void;
@@ -89,17 +87,17 @@ export class Toolbar {
     if (reading === 'setlist') {
       right.append(this.button('scores', 'Scores', act.scores));
       this.buttons.scores.setAttribute('aria-haspopup', 'menu');
-    } else {
-      right.append(this.button('addTo', 'Add to setlist', act.addToSetlist));
-      this.buttons.addTo.setAttribute('aria-haspopup', 'menu');
     }
     if (reading === 'score') right.append(this.button('excerpts', 'Excerpts', act.excerpts));
     else right.append(this.button('excerpt', 'Excerpt', act.excerpt));
+    const more = this.button('more', '⋯', act.more, 'more');
+    more.setAttribute('aria-label', reading === 'setlist' ? 'More for this setlist' : 'More');
+    more.setAttribute('aria-haspopup', 'menu');
     right.append(
-      this.button('export', 'Export PDF', act.exportPdf),
       this.button('edit', 'Edit cuts', act.toggleEditing),
       this.button('archived', 'Archived', act.openArchive),
       this.button('fit', 'Fit page', act.fit),
+      more,
       this.info,
     );
     this.el.append(left, tools, right);
@@ -114,7 +112,7 @@ export class Toolbar {
   }
 
   /** A toolbar button, for a menu to open below it. */
-  anchor(key: 'scores' | 'addTo'): HTMLElement { return this.buttons[key]; }
+  anchor(key: 'scores' | 'more'): HTMLElement { return this.buttons[key]; }
 
   sync(v: ToolbarView) {
     const pressed = (k: string, on: boolean) => this.buttons[k].setAttribute('aria-pressed', String(on));

@@ -11,7 +11,7 @@ import type { Aspects, ExcerptName, Score } from '../scores/model';
 import type { Setlist } from '../setlists/model';
 import type { MenuItem } from '../ui/overlay';
 import type { Toast } from '../ui/toast';
-import type { LibraryScore } from './open-score';
+import type { LibraryScore } from '../dialogs/open-score';
 
 export interface LibraryHost {
   readonly folder: FolderState;

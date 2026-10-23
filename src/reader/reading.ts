@@ -4,6 +4,7 @@
 
 import { excerptName, followNames } from '../excerpts/names';
 import { ends, followEdit, spanCuts, type Span } from '../excerpts/span';
+import type { Original } from '../originals/originals';
 import type { Aspects, Cut, Score, State } from '../scores/model';
 import { addEntries, followScore, setEntrySpan, withSetlist, type Entry, type Setlist } from '../setlists/model';
 import type { Item } from './open-scores';
@@ -13,6 +14,17 @@ import type { Item } from './open-scores';
  * span follows edits, as entries' spans do); or a setlist.
  */
 export type ReadingKind = { kind: 'score' } | { kind: 'excerpt'; span: Span } | { kind: 'setlist'; id: string };
+
+/**
+ * A setlist's items, one for each entry: its score's original (from `originals`, by id), or, for a
+ * score missing from the library, its title as last seen.
+ */
+export function setlistItems(s: Setlist, originals: ReadonlyMap<string, Original>, titles: Readonly<Record<string, string>>): Item[] {
+  return s.entries.map((e) => {
+    const original = originals.get(e.scoreId);
+    return { scoreId: e.scoreId, entryId: e.id, original, title: original?.title ?? titles[e.scoreId] ?? 'Missing score', missing: !original };
+  });
+}
 
 /** What a Reading is at one moment, for undo. */
 export interface ReadingSnapshot { what: ReadingKind; setlists: readonly Setlist[] }
@@ -71,6 +83,21 @@ export class Reading {
   /** Add what is read (a score, or the excerpt read) to the end of `setlist`, which may be new. */
   addTo(setlist: Setlist) {
     this.setlists = withSetlist(this.setlists, addEntries(setlist, [{ scoreId: this.items[0].scoreId, span: this.span(0) }]));
+  }
+
+  /**
+   * In a setlist, its entries changed (added, moved or removed): its items again, in place, as
+   * `setlistItems` makes them. A score found missing while reading stays missing.
+   */
+  relist(items: Item[]) {
+    const missing = new Set(this.items.filter((it) => it.missing).map((it) => it.scoreId));
+    for (const it of items) if (missing.has(it.scoreId)) it.missing = true;
+    this.items.splice(0, this.items.length, ...items);
+  }
+
+  /** A score's file was renamed: its items take the new name. */
+  renamed(o: Original) {
+    for (const it of this.items) if (it.scoreId === o.id) { it.title = o.title; it.original = o; }
   }
 
   /** In a score's own reader: read another score instead. */

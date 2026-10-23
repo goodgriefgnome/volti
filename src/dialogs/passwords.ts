@@ -1,7 +1,8 @@
-// Asking for a PDF's password, over whatever is open. Opening the PDF, and remembering the
-// password, is originals/open.ts.
+// Asking for a PDF's password, over whatever is open, and making sure a locked score's is known.
+// Opening the PDF, and remembering the password, is originals/open.ts.
 
-import type { AskPassword } from '../originals/open';
+import { openOriginal, PasswordNotGiven, savedPassword, type AskPassword } from '../originals/open';
+import type { Original } from '../originals/originals';
 import { button, el } from '../ui/dom';
 import { buttonRow, showOnTop } from '../ui/overlay';
 
@@ -18,3 +19,18 @@ export const askPassword: AskPassword = (title, wrong) => new Promise((resolve) 
   dialog.append(input, hint, buttonRow(button('Cancel', () => done(null)), button('Open', () => done(input.value), 'primary')));
   input.focus();
 });
+
+/**
+ * Make sure a PDF's password is known, asking for it if it isn't (as adding a locked score to a
+ * setlist does); false when it isn't given. Throws when the PDF can't be opened at all.
+ */
+export async function givePassword(o: Original): Promise<boolean> {
+  if ((await savedPassword(o.id)) !== undefined) return true;
+  try {
+    (await openOriginal(o, askPassword)).destroy();
+    return true;
+  } catch (e) {
+    if (e instanceof PasswordNotGiven) return false;
+    throw e;
+  }
+}

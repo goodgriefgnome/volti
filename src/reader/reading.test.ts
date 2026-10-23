@@ -3,7 +3,8 @@ import { nameOf, setName } from '../excerpts/names';
 import { insertPages, remove } from '../scores/edits';
 import { aspects, cut, state } from '../scores/testing';
 import { newEntry, newSetlist, type Setlist } from '../setlists/model';
-import { Reading } from './reading';
+import type { Original } from '../originals/originals';
+import { Reading, setlistItems } from './reading';
 
 /** Three whole pages, the Kyrie being the first two. */
 const mass = () => {
@@ -22,6 +23,20 @@ describe('Reading', () => {
     expect(r.playedCuts(0, s.score.cuts)).toHaveLength(2);
     expect(r.excerptName(0, s.score)).toBe('Kyrie');
     expect(new Reading([item], { kind: 'score' }, []).playedCuts(0, s.score.cuts)).toHaveLength(3);
+  });
+
+  it('lists a setlist\'s entries again in place, keeping a score found missing', () => {
+    const a = newEntry('p'), b = newEntry('q');
+    const set: Setlist = { ...newSetlist('Spring'), entries: [a, b] };
+    const originals = new Map([['p', { id: 'p', title: 'Mass' } as Original]]);
+    const items = setlistItems(set, originals, { q: 'Requiem' });
+    expect(items.map((it) => [it.title, !!it.missing])).toEqual([['Mass', false], ['Requiem', true]]);
+    const r = new Reading(items, { kind: 'setlist', id: set.id }, [set]);
+    const shared = r.items;
+    items[0].missing = true; // it couldn't be opened
+    r.relist(setlistItems({ ...set, entries: [b, a, a] }, originals, {}));
+    expect(r.items).toBe(shared);
+    expect(r.items.map((it) => [it.title, !!it.missing])).toEqual([['Missing score', true], ['Mass', true], ['Mass', true]]);
   });
 
   it('turns to another score only in a score\'s own reader', () => {

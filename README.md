@@ -44,6 +44,10 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   back to the library. Page-turn pedals that send arrow or Page Up/Down keys work too.
 - In a score (not a setlist), turning on past its end says which score comes next in the library;
   turning on again opens it. The same back, from a score's start, opens the one before at its end.
+- The **⋯** at the right of the reader's toolbar has what the library's **⋯** menu has for what
+  is read: for a score, a named excerpt or a setlist, and in a setlist, for the entry being read
+  too (Move up, Move down, Remove from setlist). Removing the entry or deleting the named excerpt
+  being read goes on to the next one; with none left, back to the library.
 - While the toolbar shows, pinch with two fingers to zoom in and drag to move around; **Fit page**
   zooms back out. Turning the page or hiding the toolbar also zooms out.
 - **Pen**, **Highlight** and **Erase** work with the stylus or one finger; two fingers still zoom
@@ -63,8 +67,7 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
 - **Setlists**, above the scores in the library, play several scores as one continuous score:
   turning past the end of a score goes into the next, and each score starts on a fresh screen.
   - **New setlist**, or **Add scores…** in a setlist's **⋯** menu, picks the scores to add; so does
-    **Add to setlist** in a score's toolbar, and in the **⋯** menu of a score or a named excerpt in
-    the library. That menu also has **Add to** the setlist a score was last added to (or the first
+    **Add to setlist…** in the **⋯** menu of a score or a named excerpt. That menu also has **Add to** the setlist a score was last added to (or the first
     setlist, until one has been). The arrow
     beside a setlist shows its scores, to reorder or remove; its **⋯** button has the rest.
   - A setlist can play part of a score, and can come back to the same score (the Kyrie, another
@@ -91,8 +94,7 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
     screen in the background, so a setlist opens, and turns between its scores, at once. A page
     read at a new size (the tablet turned, say) is kept at that size too once it has been drawn.
 
-- **Export PDF…** in the **⋯** menu of a score, a named excerpt or a setlist, or **Export PDF** in
-  the reader's toolbar (for what that reader pages through), makes a PDF that
+- **Export PDF…** in the **⋯** menu of a score, a named excerpt or a setlist makes a PDF that
   reads as the reader does, one of its pages to a PDF page: its cuts, in order, with their markings, and
   each setlist entry starting on a new page. Markings go in as PDF annotations that look as they
   do in Volti (pen pressure, see-through highlighter and all), so other PDF apps can hide or

@@ -8,7 +8,7 @@ import { scoreEntries } from '../scores/store';
 import { addEntries, duplicate, moveEntry, newSetlist, setEntrySpan, withSetlist, type Entry, type Setlist } from '../setlists/model';
 import { button, el, plural } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog, showMenu, whenOverlayCloses } from '../ui/overlay';
-import { openAddScores } from './add-scores';
+import { openAddScores } from '../dialogs/add-scores';
 import type { LibraryHost } from './host';
 import { expandableRow, moreButton } from './rows';
 

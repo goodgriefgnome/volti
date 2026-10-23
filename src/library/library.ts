@@ -5,13 +5,13 @@
 import type { ExcerptSource } from '../dialogs/excerpt-picker';
 import type { ExcerptHost } from '../dialogs/excerpts';
 import { openExportPdf } from '../dialogs/export-pdf';
-import { askPassword } from '../dialogs/passwords';
+import { givePassword } from '../dialogs/passwords';
 import { chooseSetlist } from '../dialogs/setlists';
 import type { Span } from '../excerpts/span';
 import type { ExportPart } from '../export/pdf';
 import { folderState, linkFolder, unlinkFolder, unlockFolder, type FolderState } from '../originals/folder';
 import { lockedOriginals } from '../originals/locks';
-import { openOriginal, PasswordNotGiven, savedPassword } from '../originals/open';
+import { PasswordNotGiven } from '../originals/open';
 import { allOriginals, knownTitles, type Original } from '../originals/originals';
 import { makePictures } from '../pictures/maker';
 import { openReader, type ToRead } from '../reader/reader';
@@ -23,9 +23,9 @@ import { el, plural } from '../ui/dom';
 import { closeOverlay, whenOverlayCloses, type MenuItem } from '../ui/overlay';
 import { Toast } from '../ui/toast';
 import { FolderBanner } from './folder-banner';
-import { byFolder } from './folders';
+import { byFolder } from '../originals/by-folder';
 import type { LibraryHost } from './host';
-import { openScore, type LibraryScore } from './open-score';
+import { openScore, type LibraryScore } from '../dialogs/open-score';
 import { ScoresSection } from './scores-section';
 import { SetlistsSection } from './setlists-section';
 
@@ -292,16 +292,13 @@ export class Library implements LibraryHost {
   }
 
   async givePassword(o: Original): Promise<boolean> {
-    // Given meanwhile, as opening it to preview asks for it too.
-    if (!this.locked.has(o.id) || (await savedPassword(o.id)) !== undefined) return this.unlocked(o);
+    if (!this.locked.has(o.id)) return true;
     if (o.location === 'folder' && this.folder.kind === 'locked' && !(await this.unlock())) return false;
     try {
-      (await openOriginal(o, askPassword)).destroy();
+      if (!(await givePassword(o))) return false;
     } catch (e) {
-      if (!(e instanceof PasswordNotGiven)) {
-        console.error(e);
-        this.toast.say(`Could not open “${o.title}”. It may have been moved or renamed.`);
-      }
+      console.error(e);
+      this.toast.say(`Could not open “${o.title}”. It may have been moved or renamed.`);
       return false;
     }
     return this.unlocked(o);
@@ -338,10 +335,12 @@ export class Library implements LibraryHost {
     closeOverlay();
     this.toast.hide();
     this.root.hidden = true;
-    const back = () => {
+    const back = (filesChanged: boolean) => {
       this.root.hidden = false;
       this.scoresSection.search.blur();
-      void this.loadSetlists().then(() => this.scoresSection.render());
+      // A score renamed, moved or removed in the reader: read the scores again.
+      if (filesChanged) void this.refresh();
+      else void this.loadSetlists().then(() => this.scoresSection.render());
     };
     try {
       await openReader(what, back);

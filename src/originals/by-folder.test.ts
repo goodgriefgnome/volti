@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Original } from '../originals/originals';
-import { byFolder } from './folders';
+import { byFolder } from './by-folder';
 
 const original = (id: string, location: Original['location'], path: string): Original =>
   ({ id, title: path, folder: '', location, path, getFile: () => Promise.reject(new Error('not here')) });

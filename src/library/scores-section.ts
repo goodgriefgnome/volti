@@ -10,8 +10,8 @@ import type { ExcerptName, Score } from '../scores/model';
 import { setlistsWith } from '../setlists/model';
 import { button, el, lockIcon, plural } from '../ui/dom';
 import { showMenu } from '../ui/overlay';
-import { moveAdded, renameFile } from './dialogs';
-import { byFolder } from './folders';
+import { moveAdded, renameFile } from '../dialogs/score-files';
+import { byFolder, subfolders } from '../originals/by-folder';
 import type { LibraryHost } from './host';
 import { expandableRow, moreButton } from './rows';
 import { loadClosedFolders, saveClosedFolders } from './store';
@@ -27,6 +27,8 @@ export class ScoresSection {
   private closedFolders: Set<string> | undefined;
   /** For giving each subfolder list an id. */
   private rowSeq = 0;
+  /** For the dialogs about a score's file. */
+  private files = { say: (t: string) => this.lib.toast.say(t), changed: () => this.lib.refresh() };
 
   constructor(private lib: LibraryHost) {
     this.search.type = 'search';
@@ -149,9 +151,9 @@ export class ScoresSection {
     const more = moreButton(s.title, (at) => showMenu(at, s.title, [
       ...lib.addToItems(at, s.id, s.title),
       { label: 'Add excerpt…', run: () => void lib.withPages(s, (sc) => addExcerpt(sc, s.title, lib.excerptHost(s.id))) },
-      { label: 'Rename…', run: () => renameFile(lib, s) },
+      { label: 'Rename…', run: () => renameFile(this.files, s) },
       { label: 'Export PDF…', run: () => lib.exportPdf(s.title, [{ scoreId: s.id }]) },
-      s.location === 'imported' && { label: 'Move to folder…', run: () => moveAdded(lib, s) },
+      s.location === 'imported' && { label: 'Move to folder…', run: () => moveAdded(this.files, s, subfolders(lib.originals)) },
       s.location === 'imported' && { label: 'Remove from Volti', run: async () => {
         await removeImported(s);
         lib.say(`Removed “${s.title}”.`);

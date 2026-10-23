@@ -13,21 +13,7 @@ scores.
 
 ## Work for the immediate future
 
-- **The reader's ⋯ menu, as the library's:** the reader's toolbar gets a ⋯ menu for what is being
-  read, with the same items as that thing's ⋯ menu in the library, and the toolbar buttons those
-  items repeat go (Add to setlist, Export PDF), so each action is in one place.
-  - A score: Add to “default”, Add to setlist…, Add excerpt…, Rename…, Export PDF…, and for an
-    added PDF, Move to folder… and Remove from Volti.
-  - A named excerpt: Add to “default”, Add to setlist…, Rename…, Export PDF…, Delete…. Changing
-    its cuts stays a toolbar button (Excerpt), not in the menu.
-  - A setlist: its own items (Add scores…, Rename…, Duplicate, Export PDF…, Archive, Delete… when
-    archived), then those of the entry being read (Move up, Move down, Remove from setlist), not
-    those of the score behind the entry. Changing the entry's excerpt stays a toolbar button
-    (Excerpt), not in the menu.
-  - When what is read goes away: removing the entry being read, or deleting the named excerpt
-    being read, moves on to the next entry or named excerpt (of the setlist, or of the score), or
-    the one before when it was the last; when none is left, back to the library. Removing a score
-    from Volti, or deleting the setlist being read, goes back to the library.
+Nothing at the moment.
 
 ## Manual check
 
@@ -68,6 +54,10 @@ Things to try on the tablet.
 - **Turning on to the next score:** in a score's reader (not a setlist), turning past the last
   page says “Tap again for …”, and turning again opens the library's next score at its start;
   back from the first page opens the one before at its end. Try it with the pedal too.
+- **The reader's ⋯ menu:** in a score, a named excerpt and a setlist, its items do what the
+  library's do (renaming a score's file in the scores folder, Move to folder…, Add scores…,
+  Archive), and the library shows the changes on going back. Removing the entry being read, or
+  deleting the named excerpt being read, goes on to the next.
 - **Reader opens with the toolbar hidden:** a score, excerpt or setlist shows only the music and
   the back arrow; a tap in the middle brings up the toolbar.
 

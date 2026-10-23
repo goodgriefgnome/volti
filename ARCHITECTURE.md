@@ -36,7 +36,7 @@ that needs one is a sign the code belongs somewhere else.
 | 10 | `src/*.ts` | Start-up (`main.ts`), taking new versions (`updates.ts`), the service worker (`sw.ts`) |
 | 9 | `library/` | The Library screen |
 | 8 | `reader/` | The score screen: reading a score, an excerpt or a setlist, writing on it, editing its cuts |
-| 7 | `dialogs/` | Dialogs both screens open: choosing an excerpt, the named excerpt dialogs, exporting, setlist names and menus, a PDF's password |
+| 7 | `dialogs/` | Dialogs both screens open: choosing an excerpt, the named excerpt dialogs, adding scores to a setlist, renaming and filing a score's file, exporting, setlist names and menus, a PDF's password |
 | 6 | `export/`, `pictures/` | Exporting PDFs (with pdf-lib); saving pictures of the pages setlists play |
 | 5 | `render/` | What is on a screen: fitting frames to it (`layout`, `screen`), zoom maths (`zoom`), drawing a frame on a canvas (`paint`) |
 | 4 | `setlists/` | Setlists and their entries, and keeping them on the same music when a score's cuts change |
@@ -54,8 +54,8 @@ Other rules, the first also tested:
 - Files that say **Pure** at the top use no DOM and no storage, and are unit tested next to them
   (`*.test.ts`). Most of the rules of the app (`scores/edits.ts`, `excerpts/span.ts`,
   `setlists/model.ts`, `reader/reading.ts`) are pure; keep them so.
-- A dialog that only one screen opens lives with that screen (`library/add-scores.ts`,
-  `reader/cuts/insert-picker.ts`); one both open goes in `dialogs/`.
+- A dialog that only one screen opens lives with that screen (`reader/cuts/insert-picker.ts`);
+  one both open goes in `dialogs/` (`dialogs/add-scores.ts`, `dialogs/score-files.ts`).
 
 ## The two screens
 
@@ -105,7 +105,8 @@ it, and the loading and saving in that module's `store.ts` (or in `originals/`).
 
 **An item in a library menu**: the `⋯` menus are built in `library/setlists-section.ts` (setlists
 and their entries) and `library/scores-section.ts` (scores and their named excerpts); what they
-change goes through the `LibraryHost`.
+change goes through the `LibraryHost`. The reader's `⋯` menu (`reader/toolbar-menus.ts`, `more`)
+has the same items for what it reads, so add the item there too.
 
 **A dialog**: `ui/ask-text.ts` for one that asks for a line of text; otherwise `showDialog` from
 `ui/overlay.ts`, filled with `el`, `button` and `buttonRow` from `ui/dom.ts` and `ui/overlay.ts`.
