@@ -27,9 +27,9 @@ scores.
   menu gets "Add to setlist…", as the reader's toolbar has (an excerpt adds itself, not the whole
   score), and "Add to <default setlist>". The default setlist is always the last one any score was
   added to, however it was added; it can't be set by hand. The only setlist is always the default;
-  with no setlists, there is no "Add to <default setlist>" item. When the default is archived or
-  deleted, the one added to most recently before it becomes the default. The reader's toolbar
-  keeps only its "Add to setlist".
+  with no setlists, there is no "Add to <default setlist>" item. Keep only the last one's id: when
+  there is none yet, or that setlist is archived or deleted, the first setlist in the list is the
+  default. The reader's toolbar keeps only its "Add to setlist".
 
 ## Manual check
 
