@@ -31,6 +31,22 @@ export const newEntry = (scoreId: string): Entry => ({ id: newId(), scoreId });
 
 export const newSetlist = (title: string): Setlist => ({ id: newId(), title, archived: false, entries: [] });
 
+/** The setlists with `s` in place of the one with its id, or, when it is new, `s` first. */
+export function withSetlist(all: readonly Setlist[], s: Setlist): Setlist[] {
+  return all.some((x) => x.id === s.id) ? all.map((x) => (x.id === s.id ? s : x)) : [s, ...all];
+}
+
+/** The setlist with entries playing these spans of the score added at its end, each its own entry. */
+export const addEntries = (s: Setlist, add: readonly { scoreId: string; span?: Span }[]): Setlist =>
+  ({ ...s, entries: [...s.entries, ...add.map(({ scoreId, span }) => ({ ...newEntry(scoreId), ...ends(span ?? {}) }))] });
+
+/** An entry that plays `span` of its score instead. */
+const playing = (e: Entry, span: Span): Entry => ({ id: e.id, scoreId: e.scoreId, ...ends(span) });
+
+/** The setlist with entry `entryId` playing `span` of its score instead. */
+export const setEntrySpan = (s: Setlist, entryId: string, span: Span): Setlist =>
+  ({ ...s, entries: s.entries.map((e) => (e.id === entryId ? playing(e, span) : e)) });
+
 /**
  * The setlist scores are added to by default: the one a score was last added to (`last`), or,
  * when there is none or it is archived or deleted, the first setlist not archived.
@@ -87,7 +103,7 @@ export function moveExcerpt(score: Score, setlists: readonly Setlist[], name: Ex
     const entries = s.entries.map((e) => {
       if (e.scoreId !== score.id || !sameSpan(cuts, e, name)) return e;
       changed = true;
-      return { id: e.id, scoreId: e.scoreId, ...ends(to) };
+      return playing(e, to);
     });
     return changed ? { ...s, entries } : s;
   });

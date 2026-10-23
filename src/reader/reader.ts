@@ -9,7 +9,7 @@ import { PEN_COLORS } from '../markings/stroke';
 import { frameOf, pack, type Frame } from '../scores/frames';
 import type { Aspects, Cut, ExcerptName, State } from '../scores/model';
 import { loadScore, savePosition } from '../scores/store';
-import { followScore, newEntry, type Entry, type Setlist } from '../setlists/model';
+import { addEntries, followScore, setEntrySpan, withSetlist, type Entry, type Setlist } from '../setlists/model';
 import { loadPosition, loadSetlists, saveLastAddedTo, savePosition as saveSetlistPosition } from '../setlists/store';
 import type { PageCache } from '../originals/pdf';
 import { folderState, knownTitles, type Original } from '../originals/originals';
@@ -348,9 +348,8 @@ class Reader {
   private addToSetlist() {
     const it = this.items[0], span = this.entry(0), cur = this.current;
     const what = span && cur ? excerptName(cur.state.score, span, cur.aspects) ?? it.title : it.title;
-    chooseSetlist(this.toolbar.anchor('addTo'), `Add “${what}” to`, this.setlists, (s, isNew) => {
-      const added = { ...s, entries: [...s.entries, { ...newEntry(it.scoreId), ...(span ? ends(span) : {}) }] };
-      this.setlists = isNew ? [added, ...this.setlists] : this.setlists.map((x) => (x.id === s.id ? added : x));
+    chooseSetlist(this.toolbar.anchor('addTo'), `Add “${what}” to`, this.setlists, (s) => {
+      this.setlists = withSetlist(this.setlists, addEntries(s, [{ scoreId: it.scoreId, span }]));
       void saveLastAddedTo(s.id);
       this.saver.soon();
       this.say(`Added to the end of “${s.title}”.`);
@@ -474,10 +473,8 @@ class Reader {
   }
 
   private setExcerpt(entryId: string, span: Span) {
-    this.setlists = this.setlists.map((s) => (s.id !== this.setlistId ? s : {
-      ...s,
-      entries: s.entries.map((e) => (e.id === entryId ? { id: e.id, scoreId: e.scoreId, ...span } : e)),
-    }));
+    const s = this.setlist;
+    if (s) this.setlists = withSetlist(this.setlists, setEntrySpan(s, entryId, span));
     // The score too: one opened for the first time isn't saved yet, and the span names its cuts.
     this.saver.soon(this.current);
     this.frames = this.framesFor(this.k);

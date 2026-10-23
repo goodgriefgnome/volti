@@ -2,11 +2,11 @@
 // only this screen uses; what the reader also needs goes in ui/.
 
 import { excerptName, sortedNames } from '../excerpts/names';
-import { ends, spanLabel, type Span } from '../excerpts/span';
+import { spanLabel, type Span } from '../excerpts/span';
 import type { Aspects, ExcerptName, Score } from '../scores/model';
 import { loadAspects, loadSavedScore, scoreEntries, scoreEntry } from '../scores/store';
 import { openReader, type ToRead } from '../reader/reader';
-import { defaultSetlist, duplicate, moveEntry, newEntry, newSetlist, setlistsWith, type Entry, type Setlist } from '../setlists/model';
+import { addEntries, defaultSetlist, duplicate, moveEntry, newSetlist, setEntrySpan, setlistsWith, withSetlist, type Entry, type Setlist } from '../setlists/model';
 import { deleteSetlist, loadLastAddedTo, loadSetlists, saveChanged, saveLastAddedTo } from '../setlists/store';
 import {
   allowWriting, allOriginals, byFolder, canLinkFolder, fileAdded, fileNameProblem, folderState, importFiles, knownTitles, linkFolder, removeImported, tidyFolder,
@@ -234,7 +234,7 @@ export class Library {
   }
 
   private update(s: Setlist) {
-    return this.change(this.setlists.map((x) => (x.id === s.id ? s : x)));
+    return this.change(withSetlist(this.setlists, s));
   }
 
   private renderSetlists() {
@@ -421,7 +421,7 @@ export class Library {
         this.addedTo(id);
         for (const x of scores) this.remember(x);
         // The scores excerpts were chosen from too, so the spans and the cuts they name agree.
-        void this.change(this.setlists.map((x) => (x.id === id ? { ...now, entries: [...now.entries, ...entries] } : x)), scores.flatMap((x) => scoreEntries(x.state)));
+        void this.change(withSetlist(this.setlists, addEntries(now, entries)), scores.flatMap((x) => scoreEntries(x.state)));
         this.toast.say(`Added ${plural(entries.length, 'score')} to “${now.title}”.`);
       },
     });
@@ -438,16 +438,15 @@ export class Library {
    * `what`; the second opens a menu of setlists below `anchor`, with New setlist….
    */
   private addToItems(anchor: Element, scoreId: string, what: string, span: Span = {}): MenuItem[] {
-    const add = (s: Setlist, isNew: boolean) => {
-      const added = { ...s, entries: [...s.entries, { ...newEntry(scoreId), ...ends(span) }] };
+    const add = (s: Setlist) => {
       this.openRows.add(s.id);
       this.addedTo(s.id);
-      void this.change(isNew ? [added, ...this.setlists] : this.setlists.map((x) => (x.id === s.id ? added : x)));
+      void this.change(withSetlist(this.setlists, addEntries(s, [{ scoreId, span }])));
       this.toast.say(`Added “${what}” to “${s.title}”.`);
     };
     const d = defaultSetlist(this.setlists, this.lastAddedTo);
     return [
-      ...(d ? [{ label: `Add to “${d.title}”`, run: () => add(this.get(d.id) ?? d, false) }] : []),
+      ...(d ? [{ label: `Add to “${d.title}”`, run: () => add(this.get(d.id) ?? d) }] : []),
       { label: 'Add to setlist…', run: () => chooseSetlist(anchor, `Add “${what}” to`, this.setlists, add, scoreId) },
     ];
   }
@@ -768,9 +767,8 @@ export class Library {
         const now = this.get(s.id);
         if (!now) return;
         this.remember(sc);
-        const entries = now.entries.map((x) => (x.id === e.id ? { id: x.id, scoreId: x.scoreId, ...span } : x));
         // The score too: one never opened isn't saved yet, and the span names its cuts.
-        void this.change(this.setlists.map((x) => (x.id === s.id ? { ...now, entries } : x)), scoreEntries(sc.state));
+        void this.change(withSetlist(this.setlists, setEntrySpan(now, e.id, span)), scoreEntries(sc.state));
       },
     });
     whenOverlayCloses(sc.close);

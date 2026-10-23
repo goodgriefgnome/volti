@@ -4,7 +4,9 @@ import { spanCuts, type Span } from '../excerpts/span';
 import { insertPages, split } from '../scores/edits';
 import type { Score, State } from '../scores/model';
 import { A4, cut, state } from '../scores/testing';
-import { defaultSetlist, duplicate, followScore, moveEntry, moveExcerpt, newEntry, newSetlist, type Setlist } from './model';
+import {
+  addEntries, defaultSetlist, duplicate, followScore, moveEntry, moveExcerpt, newEntry, newSetlist, setEntrySpan, withSetlist, type Setlist,
+} from './model';
 
 const aspects = [A4, A4, A4, A4];
 
@@ -85,6 +87,22 @@ describe('setlist edits', () => {
     expect(d.archived).toBe(false);
     expect(d.entries.map((e) => [e.scoreId, e.last])).toEqual([['a', undefined], ['b', 'x'], ['c', undefined]]);
     expect(d.entries.some((e, i) => e.id === s.entries[i].id)).toBe(false);
+  });
+  it('adds entries at the end, each with only the ends of its span', () => {
+    const named = { first: 'p', name: 'Kyrie' };
+    const t = addEntries(s, [{ scoreId: 'd' }, { scoreId: 'e', span: named }]);
+    expect(t.entries.slice(0, 3)).toEqual(s.entries);
+    expect(t.entries.slice(3).map(({ id: _, ...e }) => e)).toEqual([{ scoreId: 'd' }, { scoreId: 'e', first: 'p' }]);
+  });
+  it('sets the span an entry plays', () => {
+    const t = setEntrySpan(s, s.entries[1].id, { first: 'y' });
+    expect(t.entries[1]).toEqual({ id: s.entries[1].id, scoreId: 'b', first: 'y' });
+    expect(t.entries[0]).toBe(s.entries[0]);
+  });
+  it('puts a changed setlist in its place, and a new one first', () => {
+    const other = newSetlist('Other'), renamed = { ...s, title: 'Autumn recital' };
+    expect(withSetlist([other, s], renamed)).toEqual([other, renamed]);
+    expect(withSetlist([s], other)).toEqual([other, s]);
   });
 });
 

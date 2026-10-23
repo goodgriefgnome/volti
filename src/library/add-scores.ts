@@ -6,7 +6,7 @@ import { excerptName, nameOf, sortedNames } from '../excerpts/names';
 import { ends, sameSpan, type Span } from '../excerpts/span';
 import { byFolder, type Original } from '../originals/originals';
 import type { ExcerptName, Score } from '../scores/model';
-import { newId, type Entry, type Setlist } from '../setlists/model';
+import type { Setlist } from '../setlists/model';
 import { button, el, plural } from '../ui/dom';
 import { ExcerptStrip, namedExcerptMenu, type ExcerptSource } from '../ui/excerpt-picker';
 import { buttonRow, closeOverlay, showDialog, whenOverlayCloses } from '../ui/overlay';
@@ -20,8 +20,8 @@ export interface AddScoresHost {
   saved: ReadonlyMap<string, Score>;
   /** Open a score to preview; null if it can't be (having said why). */
   open(o: Original): Promise<LibraryScore | null>;
-  /** Add these entries to the end of the setlist; `scores` are the ones they choose excerpts of. */
-  add(entries: Entry[], scores: ExcerptSource[]): void;
+  /** Add entries playing these to the end of the setlist; `scores` are the ones they choose excerpts of. */
+  add(entries: { scoreId: string; span: Span }[], scores: ExcerptSource[]): void;
 }
 
 /**
@@ -57,7 +57,7 @@ export function openAddScores(h: AddScoresHost) {
     closeOverlay();
     const picked = h.originals.flatMap((o) => (chosen.get(o.id) ?? []).map((c) => [o.id, c] as const));
     h.add(
-      picked.map(([scoreId, c]) => ({ id: newId(), scoreId, ...c.span })),
+      picked.map(([scoreId, c]) => ({ scoreId, span: c.span })),
       [...new Set(picked.flatMap(([, c]) => (c.src ? [c.src] : [])))],
     );
   }, 'primary');
