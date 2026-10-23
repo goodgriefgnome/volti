@@ -30,6 +30,10 @@ scores.
 
 Things to try on the tablet.
 
+- **After the code was reorganised** (no change meant to what it does): writing with the pen and
+  erasing, zoomed in and out, with the palm resting; editing cuts by long press and by dragging
+  tabs; opening a password-protected score; exporting into the scores folder; Allow access after a
+  restart.
 - **Exporting with no folder linked** (the share sheet). Exporting into the folder works.
 - **Linking a big folder:** the library shows at once with the scores already known, and the new
   ones appear one by one, with "Reading new scores: n left…".

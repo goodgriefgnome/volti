@@ -116,47 +116,10 @@ published while the app is open waits for its next start, or for a tap on **Upda
 in the library's banner once it has downloaded (`src/updates.ts`).
 
 Every push to `main` is tested, built and published to GitHub Pages by
-`.github/workflows/deploy.yml`. Unit tests sit next to the modules they test, as `*.test.ts`. Each module starts with a comment saying what kind of code belongs in it; give a new
-module one too.
+`.github/workflows/deploy.yml`.
 
-A **score** is what is shown of its **original** (a PDF), as cuts in played order; a score's id is
-its original's id, the SHA-256 of the PDF. A **setlist** is a list of excerpts of scores: each the whole score, or a span of
-its cuts kept only in that setlist.
-
-| Path | What it does |
-| --- | --- |
-| `src/storage/` | IndexedDB key-value store, with every key listed in `keys.ts` |
-| `src/originals/` | Scores' originals: the PDFs in the linked folder or imported, the shared-file inbox, and reading PDFs with pdf.js |
-| `src/scores/` | A score: its cuts in played order (`model`), editing it (`edits`), laying it out on frames (`frames`), which cut owns a marking (`ownership`), loading and saving (`store`) |
-| `src/setlists/` | Setlists, the excerpt of each score they play, and keeping excerpts in step with cut edits |
-| `src/markings/` | What can be drawn or placed on the music: each kind's data, geometry and drawing (`stroke` for pen and highlighter), through a small drawing interface (`draw`) the screen and exported PDFs share |
-| `src/library/` | The Library screen: setlists and scores |
-| `src/pictures/` | Saved pictures of the pages setlists play (`pictures`), and making them in the background (`maker`) |
-| `src/export/` | Exporting scores as PDFs (pdf-lib, loaded only to export): pages laid out as the reader's frames, where each cut goes on them (`placement`), and markings as annotations (`annotations`) |
-| `src/reader/reader.ts` | The score screen, for a score or a setlist: turning pages and scores, applying edits, opening and closing |
-| `src/reader/open-scores.ts` | The scores being read, each original open only while near the one being read |
-| `src/reader/saver.ts` | Saving scores and setlists together |
-| `src/reader/input.ts` | Pointers and keys: palm rejection, pinch and pan, handing a pointer to the selected tool, taps and swipes |
-| `src/reader/tools/` | The toolbar's tools that act on the frames: pen and highlighter, eraser; `index.ts` lists them |
-| `src/reader/toolbar.ts` | The toolbar |
-| `src/reader/spread.ts` | Placing frames on the screen and drawing them |
-| `src/reader/detail.ts` | The sharp close-up drawn while zoomed in |
-| `src/reader/history.ts` | Undo and redo |
-| `src/reader/setlist.ts` | How the reader shows where it is in a setlist: title, score card, the box after a score |
-| `src/reader/cuts/` | Editing cuts on the frames: tabs and drags (`editor`), menus, the insert-pages picker, archived cuts |
-| `src/reader/frames.ts` | Drawing a frame's music and ink |
-| `src/reader/gestures.ts` | How taps, swipes and keys turn pages |
-| `src/reader/layout.ts` | How many frames a screen shows, which way, and how large |
-| `src/reader/zoom.ts` | Pinch and pan maths; which part of a page is in view |
-| `src/ui/` | Shared by both screens: opening an original, asking for its password once (`passwords`), DOM helpers (`dom`), menus and dialogs, one at a time (`overlay`), messages (`toast`), the setlist name and add-to menus (`setlists`), choosing an excerpt (`excerpt-picker`), the named excerpt dialogs (`excerpts`), and exporting a PDF (`export-pdf`) |
-| `src/styles/` | Styles, one file per part of the app, imported in order by `main.ts` |
-| `src/sw.ts` | Offline copy and the share target |
-| `src/updates.ts` | Taking a new version of the app: at start-up, or from the library's Update button |
-
-A score's **ink** is all its markings, kept per cut; a **marking** is one thing drawn or placed on
-the music, so far only pen and highlighter strokes. A new kind of marking (a post-it, text) goes in
-`src/markings/`, as described at the top of `markings/model.ts`, with a tool to make it in
-`src/reader/tools/`.
+How the code is put together (the words it uses, which directory holds what and may use what, and
+where to start on the usual changes) is in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 pdf.js comes from its legacy build, which carries fallbacks for JavaScript features newer than some
 Android Chrome versions. Its fonts and image decoders are copied into `public/pdfjs/` before each

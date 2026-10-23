@@ -1,7 +1,7 @@
 // The centre of the score screen: the frames on the screen, turning pages and scores, taking edits
 // (commit, undo, redo), and opening and closing. It joins the other reader files together: what is
-// read and how edits carry to setlists is reading.ts, the toolbar's menus and dialogs toolbar-menus.ts.
-// Code that can stand on its own goes in one of them.
+// read, and how edits carry to setlists, is reading.ts; the toolbar's menus and dialogs are
+// toolbar-menus.ts. Code that can stand on its own goes in one of them.
 
 import { ends } from '../excerpts/span';
 import type { Marking } from '../markings/model';
