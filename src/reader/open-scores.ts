@@ -6,7 +6,8 @@ import type { Original } from '../originals/originals';
 import { hasPictures, picturesOf } from '../pictures/pictures';
 import type { Aspects, State } from '../scores/model';
 import { loadAspects, loadScore } from '../scores/store';
-import { openOriginal, PasswordNotGiven } from '../ui/passwords';
+import { openOriginal, PasswordNotGiven } from '../originals/open';
+import { askPassword } from '../ui/passwords';
 
 /**
  * An original's pages, to read: at once where its pages are saved as pictures and their shapes are
@@ -15,7 +16,7 @@ import { openOriginal, PasswordNotGiven } from '../ui/passwords';
  */
 export async function openPages(o: Original, ask: boolean): Promise<{ cache: PageCache; aspects: Aspects }> {
   const [shapes, saved] = await Promise.all([loadAspects(o.id), hasPictures(o.id)]);
-  const cache = shapes && saved ? PageCache.opening(openOriginal(o, ask)) : await openOriginal(o, ask);
+  const cache = shapes && saved ? PageCache.opening(openOriginal(o, ask ? askPassword : undefined)) : await openOriginal(o, ask ? askPassword : undefined);
   cache.pictures = picturesOf(o.id);
   return { cache, aspects: shapes && saved ? shapes : await cache.allAspects() };
 }

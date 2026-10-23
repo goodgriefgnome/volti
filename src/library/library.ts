@@ -19,7 +19,7 @@ import type { ExportPart } from '../export/pdf';
 import { openExcerptPicker, type ExcerptSource } from '../ui/excerpt-picker';
 import { addExcerpt, changeExcerptCuts, deleteExcerpt, renameExcerpt, type ExcerptHost } from '../ui/excerpts';
 import { openExportPdf } from '../ui/export-pdf';
-import { PasswordNotGiven } from '../ui/passwords';
+import { PasswordNotGiven } from '../originals/open';
 import { buttonRow, closeOverlay, showDialog, showMenu, whenOverlayCloses, type MenuItem } from '../ui/overlay';
 import { askSetlistName, chooseSetlist } from '../ui/setlists';
 import { keys } from '../storage/keys';

@@ -2,7 +2,8 @@
 // the reader. The reader opens scores its own way, in reader/open-scores.ts.
 
 import type { Original } from '../originals/originals';
-import { openOriginal } from '../ui/passwords';
+import { openOriginal } from '../originals/open';
+import { askPassword } from '../ui/passwords';
 import { loadSavedScore, loadScore, scoreEntries } from '../scores/store';
 import { kv } from '../storage/kv';
 import type { ExcerptSource } from '../ui/excerpt-picker';
@@ -17,7 +18,7 @@ export interface LibraryScore extends ExcerptSource {
  * the cut ids an excerpt chosen now names are the ones the score keeps.
  */
 export async function openScore(o: Original): Promise<LibraryScore> {
-  const cache = await openOriginal(o);
+  const cache = await openOriginal(o, askPassword);
   try {
     const aspects = await cache.allAspects();
     const fresh = !(await loadSavedScore(o.id));

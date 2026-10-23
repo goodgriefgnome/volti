@@ -6,7 +6,7 @@ import { readPageWidths } from '../reader/spread';
 import { pack } from '../scores/frames';
 import { loadAspects, loadScore } from '../scores/store';
 import { spanCuts, type Setlist } from '../setlists/model';
-import { openOriginal } from '../ui/passwords';
+import { openOriginal } from '../originals/open';
 import { hasPicture, picturesOf, setWanted, tidyPictures } from './pictures';
 
 /** How long to wait after a change, so a burst of them is worked out once. */
@@ -43,7 +43,7 @@ async function make(mine: number, originals: readonly Original[], setlists: read
     const original = byId.get(id);
     let aspects = await loadAspects(id);
     if (!aspects) {
-      const cache = original && (await openOriginal(original, false).catch(() => null));
+      const cache = original && (await openOriginal(original).catch(() => null));
       if (!cache) { unsure.add(id); continue; }
       try { aspects = await cache.allAspects(); } finally { cache.destroy(); }
     }
@@ -70,7 +70,7 @@ async function make(mine: number, originals: readonly Original[], setlists: read
     for (let job = jobs.shift(); job && mine === run; job = jobs.shift()) await draw(job);
   };
   const draw = async ({ original, pages }: Job) => {
-    const cache = await openOriginal(original, false).catch(() => null);
+    const cache = await openOriginal(original).catch(() => null);
     if (!cache) return;
     cache.pictures = picturesOf(original.id);
     try {

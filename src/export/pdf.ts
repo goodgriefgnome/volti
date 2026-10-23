@@ -11,10 +11,8 @@ import { cutTarget, drawFrame, shownOn } from '../reader/frames';
 import { pack, type Frame } from '../scores/frames';
 import type { Aspects, State } from '../scores/model';
 import { loadScore } from '../scores/store';
-import { keys } from '../storage/keys';
-import { kv } from '../storage/kv';
 import { spanCuts, type Span } from '../setlists/model';
-import { openOriginal } from '../ui/passwords';
+import { openOriginal, savedPassword, type AskPassword } from '../originals/open';
 import { annotate } from './annotations';
 import { placeCut, shownSize, type SourcePage } from './placement';
 
@@ -62,7 +60,7 @@ async function musicOf(lib: PdfLib, o: Original): Promise<PDFDocument | Unread> 
     return 'unreadable';
   }
   const { decryptPDF } = await import('@pdfsmaller/pdf-decrypt');
-  const password = (await kv.get<string>(keys.password(o.id))) ?? '';
+  const password = (await savedPassword(o.id)) ?? '';
   try {
     return await lib.PDFDocument.load(await decryptPDF(bytes, password));
   } catch (e) {
@@ -87,9 +85,9 @@ export async function drawnOriginals(originals: readonly Original[]): Promise<{ 
   return out;
 }
 
-async function open(lib: PdfLib, o: Original): Promise<Source> {
+async function open(lib: PdfLib, o: Original, ask?: AskPassword): Promise<Source> {
   // Asks for the password, if it isn't known yet, which decrypting the music then uses.
-  const cache = await openOriginal(o);
+  const cache = await openOriginal(o, ask);
   try {
     const aspects = await cache.allAspects();
     const { state } = await loadScore(o.id, o.title, aspects);
@@ -157,10 +155,10 @@ async function addFrame(lib: PdfLib, out: PDFDocument, src: Source, frame: Frame
 }
 
 /**
- * A PDF of the parts, one after another, each starting on a new page. `progress` hears how many
- * parts are done.
+ * A PDF of the parts, one after another, each starting on a new page. `ask` asks for the password
+ * of an original that needs one not known yet; `progress` hears how many parts are done.
  */
-export async function exportPdf(parts: readonly ExportPart[], title: string, progress?: (done: number, of: number) => void): Promise<Uint8Array> {
+export async function exportPdf(parts: readonly ExportPart[], title: string, ask?: AskPassword, progress?: (done: number, of: number) => void): Promise<Uint8Array> {
   const lib = await import('pdf-lib');
   const out = await lib.PDFDocument.create();
   out.setTitle(title);
@@ -170,7 +168,7 @@ export async function exportPdf(parts: readonly ExportPart[], title: string, pro
     for (const [i, part] of parts.entries()) {
       const o = part.original;
       let p = sources.get(o.id);
-      if (!p) sources.set(o.id, p = open(lib, o));
+      if (!p) sources.set(o.id, p = open(lib, o, ask));
       const src = await p;
       const cuts = part.span ? spanCuts(src.state.score.cuts, part.span) : src.state.score.cuts;
       for (const frame of pack(cuts, src.aspects)) await addFrame(lib, out, src, frame);

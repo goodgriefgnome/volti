@@ -5,6 +5,7 @@
 import { drawnOriginals, exportPdf, type ExportPart } from '../export/pdf';
 import { allowWriting, EXPORTS, exportExists, fileNameProblem, saveExport } from '../originals/originals';
 import { button, el, focusHighlighted } from './dom';
+import { askPassword } from './passwords';
 import { buttonRow, closeOverlay, showDialog } from './overlay';
 
 export interface ExportHost {
@@ -63,7 +64,7 @@ export function openExportPdf(h: ExportHost) {
     go.textContent = 'Exporting…';
     let bytes: Uint8Array;
     try {
-      bytes = await exportPdf(h.parts, name, (done, of) => { if (of > 1) go.textContent = `Exporting ${done} of ${of}…`; });
+      bytes = await exportPdf(h.parts, name, askPassword, (done, of) => { if (of > 1) go.textContent = `Exporting ${done} of ${of}…`; });
     } catch (e) {
       console.error(e);
       error.textContent = 'Could not export it. A score may have been moved or renamed.';
