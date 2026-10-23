@@ -7,7 +7,7 @@
 import type { PDFDocument, PDFEmbeddedPage, PDFPage } from 'pdf-lib';
 import type { Original } from '../originals/originals';
 import type { PageCache } from '../originals/pdf';
-import { cutTarget, drawFrame, shownOn } from '../reader/frames';
+import { cutTarget, drawFrame, shownOn } from '../render/paint';
 import { pack, type Frame } from '../scores/frames';
 import type { Aspects, State } from '../scores/model';
 import { loadScore } from '../scores/store';

@@ -2,8 +2,9 @@
 // about the stage's top-left corner, then a shift by (x, y), as in the CSS transform
 // `translate(x, y) scale(s)`.
 
+import type { Rect } from './layout';
+
 export interface Zoom { s: number; x: number; y: number }
-export interface Rect { x: number; y: number; w: number; h: number }
 export interface Pt { x: number; y: number }
 
 export const NO_ZOOM: Zoom = { s: 1, x: 0, y: 0 };

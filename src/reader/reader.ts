@@ -20,20 +20,21 @@ import { openExportPdf } from '../ui/export-pdf';
 import { buttonRow, closeOverlay, showDialog, showMenu } from '../ui/overlay';
 import { chooseSetlist } from '../ui/setlists';
 import { Toast } from '../ui/toast';
+import type { Hatches } from '../render/paint';
+import { framesOnScreen } from '../render/layout';
+import { isZoomed, NO_ZOOM, type Zoom } from '../render/zoom';
+import { pageWidths, screenAt } from '../render/screen';
 import { CutEditor } from './cuts/editor';
 import { Detail } from './detail';
 import { OpenScores, openPages, type Item, type OpenScore } from './open-scores';
-import type { Hatches } from './frames';
 import type { Gesture } from './gestures';
 import { History } from './history';
 import { Input } from './input';
-import { framesOnScreen } from './layout';
 import { Saver } from './saver';
 import { blankBox, ScoreCard, showSetlistTitle } from './setlist';
-import { pageWidths, paintSlot, paintSlotInk, placeBoxes, placeSlots, screenAt, type FrameSlot } from './spread';
+import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './spread';
 import { backIcon, Toolbar, type ToolChoice } from './toolbar';
 import type { ToolName } from './tools/tool';
-import { isZoomed, NO_ZOOM, type Zoom } from './zoom';
 
 /**
  * Undo keeps whole states: each entry is a score's state before an edit, the setlists (whose

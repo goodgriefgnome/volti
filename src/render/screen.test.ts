@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { pack } from '../scores/frames';
 import { aspects, cut, sarabande } from '../scores/testing';
-import { readPageWidths, screenAt } from './spread';
+import { readPageWidths, screenAt } from './screen';
 
 describe('screenAt', () => {
   it('in a setlist, keeps the room left on a score\'s last screen', () => {

@@ -2,8 +2,8 @@
 // the dialog around them. The reader and the library both use it; where the pages come from is
 // the caller's business.
 
-import { drawFrame, drawFrameInk } from '../reader/frames';
-import { scrollForPinch, type Pt } from '../reader/zoom';
+import { drawFrame, drawFrameInk } from '../render/paint';
+import { scrollForPinch, type Pt } from '../render/zoom';
 import { pack, placeLabel, places, type Frame, type Place } from '../scores/frames';
 import type { Aspects, Score, State } from '../scores/model';
 import { spanFor, spanLabel, spanOf, type Span } from '../setlists/model';

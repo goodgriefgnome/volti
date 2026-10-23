@@ -3,9 +3,9 @@
 import type { Aspects, ScoreInk } from '../scores/model';
 import type { PageCache } from '../originals/pdf';
 import { el } from '../ui/dom';
-import { drawFrameInk, regionBands } from './frames';
+import { drawFrameInk, regionBands } from '../render/paint';
 import type { FrameSlot } from './spread';
-import { isZoomed, visiblePart, type Zoom } from './zoom';
+import { isZoomed, visiblePart, type Zoom } from '../render/zoom';
 
 /** Wait this long after a pinch or pan settles before drawing the sharp close-up. */
 const DETAIL_DELAY_MS = 150;

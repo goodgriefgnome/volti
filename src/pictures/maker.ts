@@ -2,7 +2,7 @@
 // the widths this screen shows them, drawing those not saved yet, and deleting the rest.
 
 import type { Original } from '../originals/originals';
-import { readPageWidths } from '../reader/spread';
+import { readPageWidths } from '../render/screen';
 import { pack } from '../scores/frames';
 import { loadAspects, loadScore } from '../scores/store';
 import { spanCuts, type Setlist } from '../setlists/model';

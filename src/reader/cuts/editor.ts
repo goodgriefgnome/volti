@@ -7,7 +7,7 @@ import { freeze, roomBefore, type Frame } from '../../scores/frames';
 import type { Cut, State } from '../../scores/model';
 import { el } from '../../ui/dom';
 import { closeOverlay, overlayOpen } from '../../ui/overlay';
-import type { Hatches } from '../frames';
+import type { Hatches } from '../../render/paint';
 import type { FrameSlot } from '../spread';
 import { openArchive } from './archive';
 import { pageLabel, sayArchived, type Edge, type EditorHost } from './host';

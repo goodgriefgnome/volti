@@ -1,6 +1,6 @@
 // Laying the played order out on frames, cuts stacked down each frame in played order, and
 // questions about that layout (which frame holds a cut, the room left on one). Pure; drawing a
-// frame is reader/frames.ts.
+// frame is render/paint.ts.
 
 import { cutHeight, EPS, type Aspects, type Cut } from './model';
 

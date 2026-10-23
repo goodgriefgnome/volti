@@ -10,7 +10,7 @@ import type { FrameSlot } from './spread';
 import type { ToolChoice } from './toolbar';
 import { TOOLS } from './tools';
 import type { ToolHost, ToolPointer } from './tools/tool';
-import { isZoomed, pan, pinch, type Pt, type Zoom } from './zoom';
+import { isZoomed, pan, pinch, type Pt, type Zoom } from '../render/zoom';
 
 /** After the pen lifts, finger touches are ignored this long, as they are probably the writing hand. */
 const PALM_GUARD_MS = 600;

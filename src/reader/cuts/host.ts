@@ -3,7 +3,7 @@
 
 import type { Frame } from '../../scores/frames';
 import type { Aspects, Cut, State } from '../../scores/model';
-import type { Hatches } from '../frames';
+import type { Hatches } from '../../render/paint';
 import type { FrameSlot } from '../spread';
 
 /** What the cut editor needs from the reader. */
