@@ -46,6 +46,10 @@ scores.
 - **Preview a named excerpt in Add scores:** each named excerpt listed under its score gets a
   Preview button, like the score's. It opens the score's preview with the excerpt chosen (the
   dropdown set to its name), so Add this excerpt adds it as it is, or other cuts once changed.
+- **Add scores: checkboxes in a column, titles beside them:** a long title wraps badly today (the
+  checkbox, a line break, then the title). Lay each row out as a checkbox column and a title column,
+  so a long title wraps within its own column, beside its checkbox. Named excerpts keep their
+  indent.
 
 ## Manual check
 
