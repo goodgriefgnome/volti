@@ -1,20 +1,13 @@
 // What the cut editor needs from the reader (EditorHost), and small helpers the cut editor's files
 // share.
 
-import type { Frame } from '../../scores/frames';
-import type { Aspects, Cut, State } from '../../scores/model';
 import type { Hatches } from '../../render/paint';
-import type { FrameSlot } from '../spread';
+import type { Frame } from '../../scores/frames';
+import type { Cut, State } from '../../scores/model';
+import type { ReaderView } from '../view';
 
-/** What the cut editor needs from the reader. */
-export interface EditorHost {
-  /** Menus are kept inside the stage. */
-  stage: HTMLElement;
-  /** The current score's: read each time, as the reader turns from score to score. */
-  readonly aspects: Aspects;
-  state(): State;
-  frames(): Frame[];
-  slots(): FrameSlot[];
+/** What the cut editor needs from the reader. Menus are kept inside the stage. */
+export interface EditorHost extends ReaderView {
   /** Take the result of an edit: undo, save, reflow, and show the frame holding `focus`. */
   commit(s: State, focus?: string): void;
   /** Show a drag in progress with the layout frozen, or (null) go back to the real layout. */

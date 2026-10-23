@@ -1,24 +1,12 @@
 // The sharp close-up drawn over the frames while zoomed in.
 
-import type { Aspects, ScoreInk } from '../scores/model';
-import type { PageCache } from '../originals/pdf';
 import { dpr, el } from '../ui/dom';
 import { drawFrameInk, regionBands } from '../render/paint';
-import type { FrameSlot } from './spread';
-import { isZoomed, visiblePart, type Zoom } from '../render/zoom';
+import { isZoomed, visiblePart } from '../render/zoom';
+import type { ReaderView } from './view';
 
 /** Wait this long after a pinch or pan settles before drawing the sharp close-up. */
 const DETAIL_DELAY_MS = 150;
-
-export interface DetailHost {
-  stage: HTMLElement;
-  /** The current score's: read each time, as the reader turns from score to score. */
-  readonly cache: PageCache;
-  readonly aspects: Aspects;
-  slots(): FrameSlot[];
-  zoom(): Zoom;
-  ink(): ScoreInk;
-}
 
 /**
  * Zoomed in, the frame drawings are stretched and soft. This draws the visible part of each frame
@@ -28,7 +16,7 @@ export class Detail {
   private timer: ReturnType<typeof setTimeout> | undefined;
   private seq = 0;
 
-  constructor(private host: DetailHost) {}
+  constructor(private host: ReaderView) {}
 
   /** The zoom changed: draw close-ups once it settles, or drop them when zoomed out. */
   update() {
@@ -54,7 +42,7 @@ export class Detail {
 
   private async draw() {
     const seq = ++this.seq;
-    const { stage, cache, aspects } = this.host;
+    const { stage } = this.host, cache = this.host.cache(), aspects = this.host.aspects();
     const z = this.host.zoom();
     const W = stage.clientWidth, H = stage.clientHeight;
     const k = dpr() * z.s;
@@ -86,7 +74,7 @@ export class Detail {
       slot.detail?.canvas.remove();
       slot.detail?.ink.remove();
       slot.detail = { canvas, ink, W: fw, x, y };
-      drawFrameInk(ink.getContext('2d')!, slot.frame, this.host.ink(), aspects, fw, x, y);
+      drawFrameInk(ink.getContext('2d')!, slot.frame, this.host.state().ink, aspects, fw, x, y);
       slot.box.insertBefore(canvas, slot.ui ?? null);
       slot.box.insertBefore(ink, slot.ui ?? null);
     }

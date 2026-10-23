@@ -11,7 +11,7 @@ export const THUMB_W = 84;
  */
 export function thumbCanvas(host: EditorHost, dialog: HTMLElement, page: number, y0 = 0, y1 = 1): HTMLCanvasElement {
   const c = el('canvas');
-  const a = host.aspects[page], scale = dpr();
+  const a = host.aspects()[page], scale = dpr();
   c.width = Math.round(THUMB_W * scale);
   c.height = Math.max(1, Math.round(THUMB_W * a * (y1 - y0) * scale));
   c.style.width = THUMB_W + 'px';

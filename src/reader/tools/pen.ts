@@ -40,7 +40,7 @@ export const penTool = (kind: 'pen' | 'highlighter'): Tool => ({
       },
       end(cancelled) {
         if (cancelled) { host.paintInk(slot); return; } // the system decided it was a palm
-        const claimed = claimMarking(slot.frame, { ...stroke, points: compact(stroke.points) }, host.aspects);
+        const claimed = claimMarking(slot.frame, { ...stroke, points: compact(stroke.points) }, host.aspects());
         if (!claimed) { host.paintInk(slot); return; }
         const { cut, marking } = claimed, state = host.state();
         host.commit(setInk(state, cut.id, [...(state.ink[cut.id] ?? []), marking]), cut.id);

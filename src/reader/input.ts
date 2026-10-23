@@ -17,11 +17,8 @@ const PALM_GUARD_MS = 600;
 
 /** What pointer and key handling needs from the reader, besides what the tools need. */
 export interface InputHost extends ToolHost {
-  stage: HTMLElement;
   editor: CutEditor;
-  slots(): FrameSlot[];
   tool(): ToolChoice;
-  zoom(): Zoom;
   setZoom(z: Zoom): void;
   /** The toolbar showing means annotation mode: zooming and writing are available. */
   annotating(): boolean;

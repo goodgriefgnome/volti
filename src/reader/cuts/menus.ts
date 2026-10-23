@@ -53,7 +53,7 @@ export function tabMenu(host: EditorHost, id: string, kind: Edge | 'pad', x: num
   const c = cuts[i];
   if (!c) return;
   if (kind === 'pad') {
-    const items: MenuItem[] = (c.pad ?? 0) > 0.001 ? [{ label: 'Remove the white space', run: () => apply(host, setPad(s, id, 0, host.aspects), id) }] : [];
+    const items: MenuItem[] = (c.pad ?? 0) > 0.001 ? [{ label: 'Remove the white space', run: () => apply(host, setPad(s, id, 0, host.aspects()), id) }] : [];
     menuAt(host, x, y, 'Space above the music', items);
     return;
   }
@@ -77,8 +77,8 @@ export function tabMenu(host: EditorHost, id: string, kind: Edge | 'pad', x: num
 /** The menu on a cut's music, pressed `fy` frame widths from the top of the frame. */
 function cutMenu(host: EditorHost, slot: FrameSlot, p: Placed, fy: number, x: number, y: number) {
   const c = p.cut, s = host.state();
-  const at = c.y0 + (fy - p.top) / host.aspects[c.page];
-  const cut = cutAt(s, c.id, at, host.aspects);
+  const at = c.y0 + (fy - p.top) / host.aspects()[c.page];
+  const cut = cutAt(s, c.id, at, host.aspects());
   menuAt(host, x, y, `Cut from ${pageLabel(c)}`, [
     ...(cut ? [{ label: 'Cut here', run: () => host.commit(cut, c.id) }] : []),
     { label: 'Insert original pages before this cut…', run: () => openPicker(host, { id: c.id, after: false }, `Insert original pages before this cut (${pageLabel(c)})`, c.page) },

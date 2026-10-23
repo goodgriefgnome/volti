@@ -59,7 +59,7 @@ export class CutEditor {
     const d = this.drag;
     const cuts = (d?.current ?? this.host.state()).score.cuts;
     const now = new Map(cuts.map((c) => [c.id, c]));
-    const { aspects } = this.host;
+    const aspects = this.host.aspects();
     for (const slot of slots) {
       const f = frames[slot.index];
       if (!f?.items.length) continue;
@@ -127,7 +127,7 @@ export class CutEditor {
       const base = { pointer: e.pointerId, id, y0: e.clientY, before: s, frames: this.host.frames(), moved: false, current: s, tab };
       this.drag = kind === 'pad'
         ? { ...base, kind: 'pad', orig: c.pad ?? 0, perUnit: rect.width }
-        : { ...base, kind: 'edge', edge: kind, orig: c, range: edgeRange(s.score.cuts, i, kind), perUnit: rect.width * this.host.aspects[c.page] };
+        : { ...base, kind: 'edge', edge: kind, orig: c, range: edgeRange(s.score.cuts, i, kind), perUnit: rect.width * this.host.aspects()[c.page] };
       this.startPress(e, () => {
         this.drag = null;
         const r = tab.getBoundingClientRect();
@@ -153,7 +153,7 @@ export class CutEditor {
     if (!d.moved && Math.abs(dy) <= DRAG_SLOP) return true;
     d.moved = true;
     this.endPress();
-    const { aspects } = this.host;
+    const aspects = this.host.aspects();
     if (d.kind === 'pad') {
       d.current = setPad(d.before, d.id, d.orig + dy / d.perUnit, aspects);
       this.host.preview(d.current, freeze(d.frames, d.current.score.cuts, aspects));

@@ -37,6 +37,7 @@ import { blankBox, ScoreCard, showSetlistTitle } from './setlist';
 import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './spread';
 import { backIcon, Toolbar, type ToolChoice } from './toolbar';
 import type { ToolName } from './tools';
+import type { ReaderView } from './view';
 
 /**
  * Undo keeps whole states: each entry is a score's state before an edit, the setlists (whose
@@ -147,13 +148,17 @@ class Reader {
   ) {
     this.scores = new OpenScores(items, first);
     this.saver = new Saver(() => this.setlists, setlists);
-    const reader = this;
-    this.editor = new CutEditor({
+    const view: ReaderView = {
       stage: this.stage,
-      get aspects() { return reader.aspects; },
+      aspects: () => this.aspects,
+      cache: () => this.cache,
       state: () => this.state,
       frames: () => this.frames,
       slots: () => this.slots,
+      zoom: () => this.zoom,
+    };
+    this.editor = new CutEditor({
+      ...view,
       commit: (s, focus) => this.commit(s, focus),
       preview: (s, frames, hatches) => this.preview(s, frames, hatches),
       thumb: (page, w) => this.cache.render(page + 1, w, Math.round(w * this.aspects[page]), dpr()),
@@ -162,14 +167,7 @@ class Reader {
       say: (t) => this.say(t),
       changed: () => this.syncBar(),
     });
-    this.detail = new Detail({
-      stage: this.stage,
-      get cache() { return reader.cache; },
-      get aspects() { return reader.aspects; },
-      slots: () => this.slots,
-      zoom: () => this.zoom,
-      ink: () => this.state.ink,
-    });
+    this.detail = new Detail(view);
     this.toolbar = new Toolbar(reading.kind, {
       close: () => history.back(),
       scores: () => this.scoresMenu(),
@@ -199,15 +197,10 @@ class Reader {
     document.body.classList.add('reading');
 
     this.input = new Input({
-      stage: this.stage,
-      get aspects() { return reader.aspects; },
+      ...view,
       editor: this.editor,
-      slots: () => this.slots,
-      state: () => this.state,
       tool: () => this.tool,
       penColor: () => this.penColor,
-      zoom: () => this.zoom,
-      scale: () => this.zoom.s,
       setZoom: (z) => this.setZoom(z),
       annotating: () => this.annotating,
       act: (g) => this.act(g),

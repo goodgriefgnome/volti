@@ -2,17 +2,13 @@
 // frames with a pointer; each tool has its own file here, and index.ts lists them.
 
 import type { Marking, Point } from '../../markings/model';
-import type { Aspects, State } from '../../scores/model';
+import type { State } from '../../scores/model';
 import type { FrameSlot } from '../spread';
+import type { ReaderView } from '../view';
 
 /** What a tool needs from the reader. */
-export interface ToolHost {
-  /** The current score's: read each time, as the reader turns from score to score. */
-  readonly aspects: Aspects;
-  state(): State;
+export interface ToolHost extends ReaderView {
   penColor(): string;
-  /** The zoom scale, so a tool can keep its size on the screen. */
-  scale(): number;
   /** Draw a frame's ink again; `extra` is a marking still being made. */
   paintInk(slot: FrameSlot, extra?: Marking): void;
   /** Take an edit: undo, save, reflow, and show the frame holding `focus`. */
