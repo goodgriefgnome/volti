@@ -17,7 +17,7 @@ import { frameOf, pack, type Frame } from '../scores/frames';
 import { A4, type Aspects, type Cut, type ExcerptName, type State } from '../scores/model';
 import { loadScore, saveScorePosition } from '../scores/store';
 import type { Setlist } from '../setlists/model';
-import { loadSetlistPosition, loadSetlists, saveSetlistPosition } from '../setlists/store';
+import { loadSetlists } from '../setlists/store';
 import { dpr, el } from '../ui/dom';
 import { closeOverlay } from '../ui/overlay';
 import { Toast } from '../ui/toast';
@@ -75,9 +75,9 @@ export async function openReader(what: ToRead, onClose: (filesChanged: boolean) 
   const setlist = setlists.find((s) => s.id === what.setlistId);
   if (!setlist?.entries.length) throw new Error('No such setlist, or no scores in it');
   const items = setlistItems(setlist, new Map(what.originals.map((o) => [o.id, o])), await knownTitles());
-  const pos = what.startEntry ? { entry: what.startEntry } : await loadSetlistPosition(setlist.id);
-  const k = Math.max(0, items.findIndex((it) => it.entryId === pos?.entry));
-  new Reader(items, { kind: 'setlist', id: setlist.id }, setlists, null, k, pos?.cut, onClose, what.originals);
+  // From its first entry, as each performance runs from the top; or from the entry tapped.
+  const k = Math.max(0, items.findIndex((it) => it.entryId === what.startEntry));
+  new Reader(items, { kind: 'setlist', id: setlist.id }, setlists, null, k, undefined, onClose, what.originals);
 }
 
 /**
@@ -423,12 +423,12 @@ class Reader {
   }
 
 
-  /** Remember the first cut on the screen, to come back to; an excerpt always starts at its start. */
+  /**
+   * In a score's own reader, remember the first cut on the screen, to come back to; an excerpt and
+   * a setlist always start at their start.
+   */
   private saveSpot(cut: string | undefined) {
-    const it = this.items[this.k], setlistId = this.reading.setlistId;
-    if (this.reading.what.kind === 'excerpt') return;
-    if (setlistId && it.entryId) void saveSetlistPosition(setlistId, { entry: it.entryId, cut });
-    else if (cut) void saveScorePosition(it.scoreId, cut);
+    if (this.reading.what.kind === 'score' && cut) void saveScorePosition(this.items[this.k].scoreId, cut);
   }
 
   /** Draw a frame's music and ink at its current layout. */

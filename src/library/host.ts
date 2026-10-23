@@ -75,6 +75,6 @@ export interface LibraryHost {
   open(o: Original): void;
   /** Read a named excerpt, from its start. */
   readExcerpt(o: Original, x: ExcerptName): void;
-  /** Play a setlist from where it was left, or from one of its entries. */
+  /** Play a setlist from its first entry, or from one of its entries. */
   play(s: Setlist, startEntry?: string): void;
 }

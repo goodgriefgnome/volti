@@ -1,11 +1,9 @@
-// Loading, saving and deleting setlists, and setlist reading positions, in the kv store. The only
-// place setlists touch storage.
+// Loading, saving and deleting setlists in the kv store, and the setlist scores were last added to.
+// The only place setlists touch storage.
 
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
 import type { Setlist } from './model';
-
-export interface SetlistPosition { entry: string; cut?: string }
 
 export async function loadSetlists(): Promise<Setlist[]> {
   const ids = (await kv.get<string[]>(keys.setlists)) ?? [];
@@ -29,12 +27,8 @@ export const saveChanged = (all: readonly Setlist[], before: readonly Setlist[] 
 export async function deleteSetlist(all: readonly Setlist[], id: string): Promise<void> {
   await kv.setMany([orderEntry(all.filter((s) => s.id !== id))]);
   await kv.del(keys.setlist(id));
-  await kv.del(keys.setlistPos(id));
 }
-
-export const loadSetlistPosition = (id: string) => kv.get<SetlistPosition>(keys.setlistPos(id));
 
 /** The setlist a score was last added to (see `defaultSetlist`). */
 export const loadLastAddedTo = () => kv.get<string>(keys.lastAddedTo);
 export const saveLastAddedTo = (id: string) => kv.set(keys.lastAddedTo, id);
-export const saveSetlistPosition = (id: string, p: SetlistPosition) => kv.set(keys.setlistPos(id), p);

@@ -66,6 +66,8 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
 
 - **Setlists**, above the scores in the library, play several scores as one continuous score:
   turning past the end of a score goes into the next, and each score starts on a fresh screen.
+  Tapping a setlist plays it from its first score, as a performance does; tapping one of its
+  scores starts there.
   - **New setlist**, or **Add scores…** in a setlist's **⋯** menu, picks the scores to add; so does
     **Add to setlist…** in the **⋯** menu of a score or a named excerpt. That menu also has **Add to** the setlist a score was last added to (or the first
     setlist, until one has been). The arrow

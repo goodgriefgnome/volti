@@ -13,11 +13,7 @@ scores.
 
 ## Work for the immediate future
 
-- **A setlist always starts at its beginning:** tapping a setlist in the library opens it at its
-  first entry, not where it was left (each performance runs from the top); tapping one of its
-  entries still starts there. Its reading position is no longer kept: `saveSetlistPosition`,
-  `loadSetlistPosition` and the `setlistPos` key go, and deleting a setlist no longer deletes
-  it. A score's own reader still opens where it was left.
+Nothing at the moment.
 
 ## Manual check
 
@@ -62,6 +58,8 @@ Things to try on the tablet.
   library's do (renaming a score's file in the scores folder, Move to folder…, Add scores…,
   Archive), and the library shows the changes on going back. Removing the entry being read, or
   deleting the named excerpt being read, goes on to the next.
+- **Setlists start at the top:** tapping a setlist opens its first score even after reading part
+  of it; tapping one of its scores opens that one.
 - **Reader opens with the toolbar hidden:** a score, excerpt or setlist shows only the music and
   the back arrow; a tap in the middle brings up the toolbar.
 
