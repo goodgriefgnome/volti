@@ -25,6 +25,11 @@ scores.
   keyboard; centre it there instead, as long as the field being typed into stays in view (when the
   dialog is taller than the space, keep that field visible rather than centring).
 - **The excerpt picker's thumbnails a third of the screen tall** by default (now a quarter).
+- **A back button always in the reader:** with the toolbar hidden, a small back icon at the top
+  left goes back to the library. With the toolbar showing, its "Library" button becomes the same
+  icon (still labelled Library for screen readers). The icon is a tap target of its own, so taps
+  next to it still turn back a page; it sits over the corner of the music, so keep it small and
+  unobtrusive.
 
 ## Manual check
 
