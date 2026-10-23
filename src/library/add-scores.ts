@@ -5,7 +5,7 @@
 import type { Original } from '../originals/originals';
 import type { ExcerptName, Score } from '../scores/model';
 import { newId, type Entry, type Setlist, type Span } from '../setlists/model';
-import { ends, excerptName, sameSpan, sortedNames } from '../setlists/names';
+import { ends, excerptName, nameOf, sameSpan, sortedNames } from '../setlists/names';
 import { button, el, plural } from '../ui/dom';
 import { ExcerptStrip, namedExcerptMenu, type ExcerptSource } from '../ui/excerpt-picker';
 import { buttonRow, closeOverlay, showDialog, whenOverlayCloses } from '../ui/overlay';
@@ -99,9 +99,10 @@ export function openAddScores(h: AddScoresHost) {
     const preview = button('Preview', () => void showPreview(sc), 'quiet');
     preview.setAttribute('aria-label', `Preview ${sc.title}`);
     r.append(label, preview);
-    // Named excerpts, indented under their score.
+    // Named excerpts, indented under their score, each with its own Preview.
     const score = h.saved.get(sc.id);
     for (const x of score ? names : []) {
+      const sub = el('div', 'pick-sub');
       const named = el('label', 'check excerpt');
       const b = el('input');
       b.type = 'checkbox';
@@ -112,7 +113,10 @@ export function openAddScores(h: AddScoresHost) {
         redraw();
       });
       named.append(b, el('span', '', x.name));
-      r.append(named);
+      const look = button('Preview', () => void showPreview(sc, x), 'quiet');
+      look.setAttribute('aria-label', `Preview ${x.name}`);
+      sub.append(named, look);
+      r.append(sub);
     }
     // Excerpts chosen in the preview, each with a button to take it out again.
     const previewed = mine.filter((c) => c.label && !c.named);
@@ -144,17 +148,20 @@ export function openAddScores(h: AddScoresHost) {
     heading.textContent = `Add scores to “${s.title}”`;
     fill(find.value);
   };
-  const showPreview = async (o: Original) => {
+  /** Show a score's pages to choose an excerpt of it, starting from `span` (a named excerpt, say). */
+  const showPreview = async (o: Original, span: Span = {}) => {
     const sc = await h.open(o);
     if (!sc || !d.isConnected) { sc?.close(); return; }
     closePreview();
     open = sc;
-    const strip = new ExcerptStrip(sc, {}, 'Adds');
+    const strip = new ExcerptStrip(sc, span, 'Adds');
     const use = button('Add this excerpt', () => {
-      const span = strip.span, label = excerptName(sc.state.score, span, sc.aspects);
+      const span = strip.span, score = sc.state.score, name = nameOf(score, span);
       // An excerpt takes the place of the whole score ticked on its own; the same one twice is once.
-      const was = (chosen.get(o.id) ?? []).filter((c) => c.label && !sameSpan(sc.state.score.cuts, c.span, span));
-      chosen.set(o.id, [...was, { span, label, src: sc }]);
+      // A named excerpt is ticked under its score, rather than shown apart.
+      const was = (chosen.get(o.id) ?? []).filter((c) => c.label && !sameSpan(score.cuts, c.span, span));
+      const choice: Choice = name ? { span: ends(name), label: name.name, named: true, src: sc } : { span, label: excerptName(score, span, sc.aspects), src: sc };
+      chosen.set(o.id, [...was, choice]);
       sync();
       back();
     }, 'primary');
