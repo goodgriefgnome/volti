@@ -1,16 +1,11 @@
-// Named excerpts: names on spans of a score's cuts. An excerpt is its span and nothing more, so a
-// name is a label on a span: every entry that plays the span plays the named excerpt. Naming,
-// renaming and finding names, and keeping them on the same music when the cuts are edited. Pure:
-// no DOM, no storage.
+// Named excerpts: names on spans of a score's cuts, kept on the score. An excerpt is its span and
+// nothing more, so a name is a label on a span: every entry that plays the span plays the named
+// excerpt. Naming, renaming and finding names, and keeping them on the same music when the cuts
+// are edited. Moving a named excerpt, with the setlist entries that play it, is setlists/model.ts.
+// Pure: no DOM, no storage.
 
 import type { Aspects, Cut, ExcerptName, Score } from '../scores/model';
-import { followEdit, spanLabel, spanOf, type Setlist, type Span } from './model';
-
-/** Whether two spans play the same cuts, however their ends are stored. */
-export function sameSpan(cuts: readonly { id: string }[], a: Span, b: Span): boolean {
-  const x = spanOf(cuts, a), y = spanOf(cuts, b);
-  return x.i0 === y.i0 && x.i1 === y.i1;
-}
+import { followEdit, sameSpan, spanLabel, spanOf, type Span } from './span';
 
 /** The name on a span, if it has one. */
 export function nameOf(score: Score, span: Span): ExcerptName | undefined {
@@ -53,24 +48,6 @@ export function setName(score: Score, span: Span, name: string, was?: ExcerptNam
 /** Take a name off its span. Entries that play the span keep playing it, under its generated name. */
 export function removeName(score: Score, name: ExcerptName): Score {
   return { ...score, names: (score.names ?? []).filter((n) => n !== name) };
-}
-
-/**
- * Give a named excerpt other cuts: the name moves to `to`, and so does every entry, in every
- * setlist, that played the old span, as the excerpt is its span. Check `nameProblem` first.
- */
-export function moveExcerpt(score: Score, setlists: readonly Setlist[], name: ExcerptName, to: Span): { score: Score; setlists: Setlist[] } {
-  const cuts = score.cuts;
-  const out = setlists.map((s) => {
-    let changed = false;
-    const entries = s.entries.map((e) => {
-      if (e.scoreId !== score.id || !sameSpan(cuts, e, name)) return e;
-      changed = true;
-      return { id: e.id, scoreId: e.scoreId, ...ends(to) };
-    });
-    return changed ? { ...s, entries } : s;
-  });
-  return { score: setName(score, to, name.name, name), setlists: out };
 }
 
 /**

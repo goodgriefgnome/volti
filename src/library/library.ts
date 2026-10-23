@@ -1,13 +1,12 @@
 // The Library screen: setlists, the scores folder, imported scores, and opening the reader. Code
 // only this screen uses; what the reader also needs goes in ui/.
 
+import { excerptName, sortedNames } from '../excerpts/names';
+import { ends, spanLabel, type Span } from '../excerpts/span';
 import type { Aspects, ExcerptName, Score } from '../scores/model';
 import { loadAspects, loadSavedScore, scoreEntries, scoreEntry } from '../scores/store';
 import { openReader, type ToRead } from '../reader/reader';
-import {
-  defaultSetlist, duplicate, moveEntry, newEntry, newSetlist, setlistsWith, spanLabel, type Entry, type Setlist, type Span,
-} from '../setlists/model';
-import { ends, excerptName, sortedNames } from '../setlists/names';
+import { defaultSetlist, duplicate, moveEntry, newEntry, newSetlist, setlistsWith, type Entry, type Setlist } from '../setlists/model';
 import { deleteSetlist, loadLastAddedTo, loadSetlists, saveChanged, saveLastAddedTo } from '../setlists/store';
 import {
   allowWriting, allOriginals, byFolder, canLinkFolder, fileAdded, fileNameProblem, folderState, importFiles, knownTitles, linkFolder, removeImported, tidyFolder,

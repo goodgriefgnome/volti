@@ -2,12 +2,12 @@
 // the dialog around them. The reader and the library both use it; where the pages come from is
 // the caller's business.
 
+import { nameOf, sortedNames } from '../excerpts/names';
+import { spanFor, spanLabel, spanOf, type Span } from '../excerpts/span';
 import { drawFrame, drawFrameInk } from '../render/paint';
 import { scrollForPinch, type Pt } from '../render/zoom';
 import { pack, placeLabel, places, type Frame, type Place } from '../scores/frames';
 import type { Aspects, Score, State } from '../scores/model';
-import { spanFor, spanLabel, spanOf, type Span } from '../setlists/model';
-import { nameOf, sortedNames } from '../setlists/names';
 import { button, el } from './dom';
 import { buttonRow, closeOverlay, showDialog } from './overlay';
 

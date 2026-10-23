@@ -28,7 +28,7 @@ export interface Score {
   /** Removed cuts that had their own ink; their markings stay in the ink record. */
   archived: Cut[];
   /**
-   * Named excerpts: names on spans of the cuts, kept as setlist entries keep theirs (setlists/).
+   * Named excerpts: names on spans of the cuts, kept as setlist entries keep theirs (excerpts/).
    * At most one name per span, and none on the whole score. Missing in scores saved before names.
    */
   names?: ExcerptName[];

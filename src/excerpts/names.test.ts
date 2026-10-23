@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { insertPages, joinNext, remove, split } from '../scores/edits';
 import type { Score } from '../scores/model';
 import { A4, cut, state } from '../scores/testing';
-import { newEntry, type Setlist } from './model';
-import { excerptName, followNames, moveExcerpt, nameOf, nameProblem, removeName, sameSpan, setName, sortedNames } from './names';
+import { excerptName, followNames, nameOf, nameProblem, removeName, setName, sortedNames } from './names';
+import { sameSpan } from './span';
 
 const aspects = [A4, A4, A4, A4];
 
@@ -51,26 +51,6 @@ describe('names on spans', () => {
     const renamed = setName(s.score, kyrie, 'Kyrie eleison', kyrie);
     expect(sortedNames(renamed).map((n) => n.name)).toEqual(['Kyrie eleison', 'Gloria']);
     expect(nameOf(removeName(s.score, kyrie), { last: b.id })).toBeUndefined();
-  });
-});
-
-describe('moveExcerpt', () => {
-  it('moves the name and every entry of its span, in every setlist', () => {
-    const { s, a, b } = mass();
-    const kyrie = nameOf(s.score, { last: b.id })!;
-    const e1 = { ...newEntry('p'), last: b.id }, e2 = { ...newEntry('p'), first: a.id, last: b.id }, other = { ...newEntry('p'), last: a.id };
-    const setlists: Setlist[] = [
-      { id: 'x', title: 'x', archived: false, entries: [e1, other] },
-      { id: 'y', title: 'y', archived: false, entries: [e2] },
-      { id: 'z', title: 'z', archived: false, entries: [newEntry('q')] },
-    ];
-    const r = moveExcerpt(s.score, setlists, kyrie, { last: a.id });
-    expect(nameOf(r.score, { last: a.id })?.name).toBe('Kyrie');
-    expect(nameOf(r.score, { last: b.id })).toBeUndefined();
-    expect(r.setlists[0].entries[0]).toEqual({ id: e1.id, scoreId: 'p', last: a.id });
-    expect(r.setlists[0].entries[1]).toBe(other);
-    expect(r.setlists[1].entries[0]).toEqual({ id: e2.id, scoreId: 'p', last: a.id });
-    expect(r.setlists[2]).toBe(setlists[2]);
   });
 });
 

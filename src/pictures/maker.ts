@@ -1,11 +1,12 @@
 // Making the saved pictures in the background: working out which original pages setlists play, at
 // the widths this screen shows them, drawing those not saved yet, and deleting the rest.
 
+import { spanCuts } from '../excerpts/span';
 import type { Original } from '../originals/originals';
 import { readPageWidths } from '../render/screen';
 import { pack } from '../scores/frames';
 import { loadAspects, loadScore } from '../scores/store';
-import { spanCuts, type Setlist } from '../setlists/model';
+import type { Setlist } from '../setlists/model';
 import { openOriginal } from '../originals/open';
 import { hasPicture, picturesOf, setWanted, tidyPictures } from './pictures';
 

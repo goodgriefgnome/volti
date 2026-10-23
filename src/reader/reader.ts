@@ -2,13 +2,14 @@
 // and scores, taking edits (commit, undo, redo), and opening and closing. It joins the other reader
 // files together; code that can stand on its own goes in one of them.
 
+import { excerptName, followNames, nameOf, sortedNames } from '../excerpts/names';
+import { ends, followEdit, spanCuts, spanLabel, spanOf, type Span } from '../excerpts/span';
 import type { Marking } from '../markings/model';
 import { PEN_COLORS } from '../markings/stroke';
 import { frameOf, pack, type Frame } from '../scores/frames';
 import type { Aspects, Cut, ExcerptName, State } from '../scores/model';
 import { loadScore, savePosition } from '../scores/store';
-import { followEdit, followScore, newEntry, spanCuts, spanLabel, spanOf, type Entry, type Setlist, type Span } from '../setlists/model';
-import { ends, excerptName, followNames, nameOf, sortedNames } from '../setlists/names';
+import { followScore, newEntry, type Entry, type Setlist } from '../setlists/model';
 import { loadPosition, loadSetlists, saveLastAddedTo, savePosition as saveSetlistPosition } from '../setlists/store';
 import type { PageCache } from '../originals/pdf';
 import { folderState, knownTitles, type Original } from '../originals/originals';

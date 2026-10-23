@@ -1,9 +1,10 @@
 // Named excerpt dialogs that both the library and the reader use: adding one, renaming it, changing
 // its cuts and deleting it. Where the score comes from and how it is saved is the caller's.
 
+import { nameProblem, removeName, setName } from '../excerpts/names';
+import { sameSpan, spanLabel, type Span } from '../excerpts/span';
 import type { Aspects, ExcerptName, Score } from '../scores/model';
-import { spanLabel, type Setlist, type Span } from '../setlists/model';
-import { moveExcerpt, nameProblem, removeName, sameSpan, setName } from '../setlists/names';
+import { moveExcerpt, type Setlist } from '../setlists/model';
 import { button, el, focusHighlighted, plural } from './dom';
 import { openExcerptPicker, type ExcerptSource } from './excerpt-picker';
 import { buttonRow, closeOverlay, showDialog } from './overlay';
