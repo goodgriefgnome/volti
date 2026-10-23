@@ -12,6 +12,9 @@ scores.
 - **The scores folder up in the banner:** move the scores folder panel (its name, Allow access,
   Change, Unlink, or Link scores folder) up into the masthead row beside "Volti", so Allow access
   is in plain sight when the library opens locked.
+- **Setlist entry number and title centred in their row:** the number now lines up with the
+  title, but both sit high in the row; centre them vertically, as the drag handle and ⋯ are (and
+  an excerpt's name in its pill). A title that wraps is centred as a block, the number beside it.
 
 ## Manual check
 
