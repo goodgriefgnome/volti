@@ -60,6 +60,12 @@ Things to try on the tablet.
 
 ## Confirmed features which require more thought
 
+- **Cropping, in batches of pages:** a mode of its own, like Edit cuts, for trimming the margins
+  of the original's pages, applied to several pages at once. To think through: what a batch is (a
+  range of pages, odd and even pages apart for scans of a book); whether it trims all four sides
+  or only left and right (cuts already trim top and bottom); how it changes the pages' shape, and
+  so frames and orientation; markings, which are placed on the page and must stay on the music;
+  and exports and thumbnails, which would show the cropped pages.
 - **Turning back so forward restores the screen:** turning back should show the screen that
   turning forward from would come back to the current one. With the first frame on screen f:
   frames f−2 and f−1 when f−2 would open a screen of two; otherwise f−1 alone (also when f−1 would
