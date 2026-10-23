@@ -52,6 +52,19 @@ Things to try on the tablet.
 
 ## Confirmed features which require more thought
 
+- **Text and symbol markings**, beside the pen and highlighter, each exported as a PDF annotation
+  with its own vector appearance (see the immediate item on exported markings):
+  - *Text:* typed on the music ("rit.", cues, bar numbers), with an optional shape behind it: a
+    plain rectangle with a see-through fill, or a rectangle pointing left or right (a tag). A
+    FreeText annotation, its appearance drawing the shape, then the text.
+  - *Symbols:* fingerings (finger numbers 1–5, and substitutions such as 4–5) and organ pedal
+    marks (toe and heel, for the left and right foot, as above or below the staff). Stamp
+    annotations, each symbol's outline drawn as vector paths from an open music font (Bravura,
+    SIL Open Font License, SMuFL's keyboard pedal glyphs), so nothing depends on the viewer's
+    fonts. Placed with a tap, then moved and resized.
+  - To think through: the toolbar (one tool with a palette of symbols rather than a button each;
+    text entry and editing on the music); sizes relative to the staff; colours; how the eraser and
+    undo treat them; and keeping each on its original page and cut, as strokes are.
 - **Cropping, in batches of pages:** a mode of its own, like Edit cuts, for trimming the margins
   of the original's pages, applied to several pages at once. To think through: what a batch is (a
   range of pages, odd and even pages apart for scans of a book); whether it trims all four sides
