@@ -2,8 +2,8 @@
 // password, is originals/open.ts.
 
 import type { AskPassword } from '../originals/open';
-import { button, el } from './dom';
-import { buttonRow, showOnTop } from './overlay';
+import { button, el } from '../ui/dom';
+import { buttonRow, showOnTop } from '../ui/overlay';
 
 /** Ask for a PDF's password, over whatever is open; null when it isn't given. */
 export const askPassword: AskPassword = (title, wrong) => new Promise((resolve) => {

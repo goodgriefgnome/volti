@@ -2,8 +2,8 @@
 // played order.
 
 import { insertArchived, insertPages, type InsertAt } from '../../scores/edits';
-import { el } from '../../ui/dom';
-import { closeOverlay, showDialog } from '../../ui/overlay';
+import { button, el } from '../../ui/dom';
+import { buttonRow, closeOverlay, showDialog } from '../../ui/overlay';
 import { openArchive } from './archive';
 import type { EditorHost } from './host';
 import { THUMB_W, thumbCanvas } from './thumbs';
@@ -20,18 +20,16 @@ export function openPicker(host: EditorHost, at: InsertAt, title: string, page: 
   // Draw thumbnails one after another, nearest the selection first, so the ones you see come first.
   const order = Array.from({ length: n }, (_, i) => i).sort((x, y) => Math.abs(x - page) - Math.abs(y - page));
   for (let p = 0; p < n; p++) {
-    const b = el('button', 'thumb');
-    b.type = 'button';
-    b.setAttribute('aria-label', `Original page ${p + 1}`);
-    const ph = el('div', 'thumb-space');
-    ph.style.height = THUMB_W * host.aspects[p] + 'px';
-    b.append(ph, el('span', '', String(p + 1)));
-    b.addEventListener('click', () => {
+    const b = button('', () => {
       pick.archived = undefined;
       // A range always runs in page order: a page before the first one picked starts it instead.
       if (pick.next === 'a') { pick.a = pick.b = p; pick.next = 'b'; } else { [pick.a, pick.b] = [Math.min(pick.a, p), Math.max(pick.a, p)]; pick.next = 'a'; }
       sync();
-    });
+    }, 'thumb');
+    b.setAttribute('aria-label', `Original page ${p + 1}`);
+    const ph = el('div', 'thumb-space');
+    ph.style.height = THUMB_W * host.aspects[p] + 'px';
+    b.append(ph, el('span', '', String(p + 1)));
     pageButtons.push(b);
     strip.append(b);
   }
@@ -50,11 +48,9 @@ export function openPicker(host: EditorHost, at: InsertAt, title: string, page: 
     d.append(el('h3', '', 'Archived cuts'));
     const row = el('div', 'thumbs');
     for (const c of s.score.archived) {
-      const b = el('button', 'thumb');
-      b.type = 'button';
+      const b = button('', () => { pick.archived = c.id; sync(); }, 'thumb');
       b.setAttribute('aria-label', `Archived cut from original page ${c.page + 1}`);
       b.append(thumbCanvas(host, d, c.page, c.y0, c.y1), el('span', '', `p. ${c.page + 1}`));
-      b.addEventListener('click', () => { pick.archived = c.id; sync(); });
       archivedButtons.push([c.id, b]);
       row.append(b);
     }
@@ -67,11 +63,7 @@ export function openPicker(host: EditorHost, at: InsertAt, title: string, page: 
   copy.checked = true;
   copyLabel.append(copy, ' Copy markings');
   const hint = el('p', 'hint');
-  const cancel = el('button', '', 'Cancel');
-  const ok = el('button', 'primary', 'Insert');
-  cancel.type = ok.type = 'button';
-  cancel.addEventListener('click', () => closeOverlay());
-  ok.addEventListener('click', () => {
+  const ok = button('Insert', () => {
     closeOverlay();
     const now = host.state();
     if (pick.archived) {
@@ -82,16 +74,9 @@ export function openPicker(host: EditorHost, at: InsertAt, title: string, page: 
     const r = insertPages(now, at, pick.a, pick.b, copy.checked, host.aspects);
     host.commit(r.state, r.first);
     host.say(pick.a === pick.b ? `Inserted original page ${pick.a + 1}.` : `Inserted original pages ${pick.a + 1}–${pick.b + 1}.`);
-  });
-  const buttons = el('div', 'buttons');
-  if (s.score.archived.length) {
-    const manage = el('button', 'quiet', 'Delete archived cuts…');
-    manage.type = 'button';
-    manage.addEventListener('click', () => openArchive(host));
-    buttons.append(manage);
-  }
-  buttons.append(cancel, ok);
-  d.append(copyLabel, hint, buttons);
+  }, 'primary');
+  const manage = s.score.archived.length ? button('Delete archived cuts…', () => openArchive(host), 'quiet') : null;
+  d.append(copyLabel, hint, buttonRow(manage, button('Cancel', closeOverlay), ok));
 
   const sync = () => {
     const lo = Math.min(pick.a, pick.b), hi = Math.max(pick.a, pick.b);

@@ -2,6 +2,10 @@
 // and scores, taking edits (commit, undo, redo), and opening and closing. It joins the other reader
 // files together; code that can stand on its own goes in one of them.
 
+import { openExcerptPicker, type ExcerptSource } from '../dialogs/excerpt-picker';
+import { addExcerpt, changeExcerptCuts, deleteExcerpt, renameExcerpt, type ExcerptHost } from '../dialogs/excerpts';
+import { openExportPdf } from '../dialogs/export-pdf';
+import { chooseSetlist } from '../dialogs/setlists';
 import { excerptName, followNames, nameOf, sortedNames } from '../excerpts/names';
 import { ends, followEdit, spanCuts, spanLabel, spanOf, type Span } from '../excerpts/span';
 import type { Marking } from '../markings/model';
@@ -15,11 +19,7 @@ import type { PageCache } from '../originals/pdf';
 import { folderState, knownTitles, type Original } from '../originals/originals';
 import type { ExportPart } from '../export/pdf';
 import { button, el } from '../ui/dom';
-import { openExcerptPicker, type ExcerptSource } from '../ui/excerpt-picker';
-import { addExcerpt, changeExcerptCuts, deleteExcerpt, renameExcerpt, type ExcerptHost } from '../ui/excerpts';
-import { openExportPdf } from '../ui/export-pdf';
 import { buttonRow, closeOverlay, showDialog, showMenu } from '../ui/overlay';
-import { chooseSetlist } from '../ui/setlists';
 import { Toast } from '../ui/toast';
 import type { Hatches } from '../render/paint';
 import { framesOnScreen } from '../render/layout';

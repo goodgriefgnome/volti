@@ -1,6 +1,10 @@
 // The Library screen: setlists, the scores folder, imported scores, and opening the reader. Code
 // only this screen uses; what the reader also needs goes in ui/.
 
+import { openExcerptPicker, type ExcerptSource } from '../dialogs/excerpt-picker';
+import { addExcerpt, changeExcerptCuts, deleteExcerpt, renameExcerpt, type ExcerptHost } from '../dialogs/excerpts';
+import { openExportPdf } from '../dialogs/export-pdf';
+import { askSetlistName, chooseSetlist } from '../dialogs/setlists';
 import { excerptName, sortedNames } from '../excerpts/names';
 import { spanLabel, type Span } from '../excerpts/span';
 import type { Aspects, ExcerptName, Score } from '../scores/model';
@@ -13,14 +17,11 @@ import {
   renameOriginal, unlinkFolder, unlockFolder,
   type FolderState, type Original,
 } from '../originals/originals';
-import { button, el, focusHighlighted, plural } from '../ui/dom';
+import { askText } from '../ui/ask-text';
+import { button, el, plural } from '../ui/dom';
 import type { ExportPart } from '../export/pdf';
-import { openExcerptPicker, type ExcerptSource } from '../ui/excerpt-picker';
-import { addExcerpt, changeExcerptCuts, deleteExcerpt, renameExcerpt, type ExcerptHost } from '../ui/excerpts';
-import { openExportPdf } from '../ui/export-pdf';
 import { PasswordNotGiven } from '../originals/open';
 import { buttonRow, closeOverlay, showDialog, showMenu, whenOverlayCloses, type MenuItem } from '../ui/overlay';
-import { askSetlistName, chooseSetlist } from '../ui/setlists';
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
 import { Toast } from '../ui/toast';
@@ -506,30 +507,22 @@ export class Library {
 
   /** File an added PDF under a subfolder in the library: one of the folder's, or a new one; None takes it back to the top. */
   private moveAdded(o: Original) {
-    const d = showDialog(`Move “${o.title}” to a folder`);
-    const input = el('input', 'name');
-    input.type = 'text';
-    input.value = o.folder;
-    input.placeholder = 'For example, Masses/Latin';
-    input.setAttribute('aria-label', 'Folder');
-    // The subfolders there are, offered as you type.
-    const choices = el('datalist');
-    choices.id = 'folder-choices';
-    for (const f of [...new Set(this.originals.map((x) => x.folder).filter(Boolean))].sort()) choices.append(Object.assign(el('option'), { value: f }));
-    input.setAttribute('list', choices.id);
-    const go = async (folder: string) => {
-      closeOverlay();
-      await fileAdded(o, folder);
-      this.toast.say(tidyFolder(folder) ? `Moved “${o.title}” to ${tidyFolder(folder).split('/').join(' / ')}.` : `Moved “${o.title}” to the top of the list.`);
-      await this.refresh();
-    };
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') void go(input.value); });
-    d.append(
-      input, choices,
-      el('p', 'hint', 'Volti lists it under that folder, beside the scores folder’s own PDFs there. The PDF itself stays where it is.'),
-      buttonRow(button('Cancel', closeOverlay), button('None', () => void go(''), 'quiet'), button('Move', () => void go(input.value), 'primary')),
-    );
-    focusHighlighted(input);
+    askText({
+      title: `Move “${o.title}” to a folder`,
+      value: o.folder,
+      placeholder: 'For example, Masses/Latin',
+      label: 'Folder',
+      okLabel: 'Move',
+      // The subfolders there are.
+      choices: [...new Set(this.originals.map((x) => x.folder).filter(Boolean))].sort(),
+      below: [el('p', 'hint', 'Volti lists it under that folder, beside the scores folder’s own PDFs there. The PDF itself stays where it is.')],
+      alt: { label: 'None', text: '' },
+      done: async (folder) => {
+        await fileAdded(o, folder);
+        this.toast.say(tidyFolder(folder) ? `Moved “${o.title}” to ${tidyFolder(folder).split('/').join(' / ')}.` : `Moved “${o.title}” to the top of the list.`);
+        await this.refresh();
+      },
+    });
   }
 
 
@@ -628,37 +621,31 @@ export class Library {
 
   /** Rename a score's PDF. Its cuts, markings and setlists stay with it, as its contents don't change. */
   private renameFile(o: Original) {
-    const d = showDialog(`Rename “${o.title}”`);
-    const input = el('input', 'name');
-    input.type = 'text';
-    input.value = o.title;
-    input.setAttribute('aria-label', 'File name');
-    const hint = el('p', 'hint', o.location === 'folder'
-      ? `Renames “${o.path.slice(o.path.lastIndexOf('/') + 1)}” in the scores folder.`
-      : 'Renames the copy kept in Volti.');
-    const error = el('p', 'hint error');
-    error.setAttribute('aria-live', 'polite');
-    const ok = async () => {
-      let why = fileNameProblem(input.value);
-      // Asked from this tap, which a request for access needs.
-      if (!why && o.location === 'folder' && !(await allowWriting())) why = 'Volti needs permission to change files in the scores folder to rename one.';
-      if (!why) {
+    askText({
+      title: `Rename “${o.title}”`,
+      value: o.title,
+      label: 'File name',
+      okLabel: 'Rename',
+      below: [el('p', 'hint', o.location === 'folder'
+        ? `Renames “${o.path.slice(o.path.lastIndexOf('/') + 1)}” in the scores folder.`
+        : 'Renames the copy kept in Volti.')],
+      check: async (title) => {
+        const why = fileNameProblem(title);
+        if (why) return why;
+        // Asked from this tap, which a request for access needs.
+        if (o.location === 'folder' && !(await allowWriting())) return 'Volti needs permission to change files in the scores folder to rename one.';
         try {
-          why = await renameOriginal(o, input.value);
+          return await renameOriginal(o, title);
         } catch (e) {
           console.error(e);
-          why = `Could not rename it (${(e as Error).name}). It may have been moved or renamed already.`;
+          return `Could not rename it (${(e as Error).name}). It may have been moved or renamed already.`;
         }
-      }
-      error.textContent = why ?? '';
-      if (why) return;
-      closeOverlay();
-      this.toast.say(`Renamed to “${input.value.trim()}”.`);
-      await this.refresh();
-    };
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') void ok(); });
-    d.append(input, hint, error, buttonRow(button('Cancel', closeOverlay), button('Rename', () => void ok(), 'primary')));
-    focusHighlighted(input);
+      },
+      done: async (title) => {
+        this.toast.say(`Renamed to “${title.trim()}”.`);
+        await this.refresh();
+      },
+    });
   }
 
   /** Export scores (whole or excerpts of them) as one PDF, named `title` to start with. */

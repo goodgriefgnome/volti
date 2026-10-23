@@ -8,8 +8,8 @@ import { drawFrame, drawFrameInk } from '../render/paint';
 import { scrollForPinch, type Pt } from '../render/zoom';
 import { pack, placeLabel, places, type Frame, type Place } from '../scores/frames';
 import type { Aspects, Score, State } from '../scores/model';
-import { button, el } from './dom';
-import { buttonRow, closeOverlay, showDialog } from './overlay';
+import { button, el } from '../ui/dom';
+import { buttonRow, closeOverlay, showDialog } from '../ui/overlay';
 
 /** How tall the thumbnails are, unzoomed, as a share of the screen's height; and how narrow they may get. */
 const THUMB_SHARE = 1 / 3;

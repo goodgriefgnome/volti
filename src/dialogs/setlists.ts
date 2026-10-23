@@ -2,26 +2,20 @@
 // uses live with that screen.
 
 import { newSetlist, type Setlist } from '../setlists/model';
-import { button, el, focusHighlighted } from './dom';
-import { buttonRow, closeOverlay, showDialog, showMenu } from './overlay';
+import { askText } from '../ui/ask-text';
+import { showMenu } from '../ui/overlay';
 
 /** Ask for a setlist's name. */
 export function askSetlistName(heading: string, value: string, okLabel: string, done: (name: string) => void) {
-  const d = showDialog(heading);
-  const input = el('input', 'name');
-  input.type = 'text';
-  input.value = value;
-  input.placeholder = 'For example, Spring recital';
-  input.setAttribute('aria-label', 'Setlist name');
-  const ok = () => {
-    const v = input.value.trim();
-    if (!v) { input.focus(); return; }
-    closeOverlay();
-    done(v);
-  };
-  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok(); });
-  d.append(input, buttonRow(button('Cancel', closeOverlay), button(okLabel, ok, 'primary')));
-  focusHighlighted(input);
+  askText({
+    title: heading,
+    value,
+    placeholder: 'For example, Spring recital',
+    label: 'Setlist name',
+    okLabel,
+    check: (v) => (v.trim() ? null : ''),
+    done: (v) => done(v.trim()),
+  });
 }
 
 /**

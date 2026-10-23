@@ -5,9 +5,10 @@ import { nameProblem, removeName, setName } from '../excerpts/names';
 import { sameSpan, spanLabel, type Span } from '../excerpts/span';
 import type { Aspects, ExcerptName, Score } from '../scores/model';
 import { moveExcerpt, type Setlist } from '../setlists/model';
-import { button, el, focusHighlighted, plural } from './dom';
+import { askText } from '../ui/ask-text';
+import { button, el, plural } from '../ui/dom';
+import { buttonRow, closeOverlay, showDialog } from '../ui/overlay';
 import { openExcerptPicker, type ExcerptSource } from './excerpt-picker';
-import { buttonRow, closeOverlay, showDialog } from './overlay';
 
 /** Where a score's named excerpts are changed. */
 export interface ExcerptHost {
@@ -42,23 +43,14 @@ export function addExcerpt(src: ExcerptSource, title: string, h: ExcerptHost) {
 }
 
 export function renameExcerpt(score: Score, x: ExcerptName, h: ExcerptHost) {
-  const d = showDialog(`Rename “${x.name}”`);
-  const input = el('input', 'name');
-  input.type = 'text';
-  input.value = x.name;
-  input.setAttribute('aria-label', 'Excerpt name');
-  const error = el('p', 'hint error');
-  error.setAttribute('aria-live', 'polite');
-  const ok = () => {
-    const why = nameProblem(score, x, input.value, x);
-    error.textContent = why ?? '';
-    if (why) return;
-    closeOverlay();
-    h.save(setName(score, x, input.value, x));
-  };
-  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok(); });
-  d.append(input, error, buttonRow(button('Cancel', closeOverlay), button('Rename', ok, 'primary')));
-  focusHighlighted(input);
+  askText({
+    title: `Rename “${x.name}”`,
+    value: x.name,
+    label: 'Excerpt name',
+    okLabel: 'Rename',
+    check: (name) => nameProblem(score, x, name, x),
+    done: (name) => h.save(setName(score, x, name, x)),
+  });
 }
 
 /**

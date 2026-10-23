@@ -2,13 +2,13 @@
 // excerpts, or as excerpts chosen in its preview. "New setlist" and a setlist's ⋯ › Add scores
 // both open it.
 
+import { ExcerptStrip, namedExcerptMenu, type ExcerptSource } from '../dialogs/excerpt-picker';
 import { excerptName, nameOf, sortedNames } from '../excerpts/names';
 import { ends, sameSpan, type Span } from '../excerpts/span';
 import { byFolder, type Original } from '../originals/originals';
 import type { ExcerptName, Score } from '../scores/model';
 import type { Setlist } from '../setlists/model';
 import { button, el, plural } from '../ui/dom';
-import { ExcerptStrip, namedExcerptMenu, type ExcerptSource } from '../ui/excerpt-picker';
 import { buttonRow, closeOverlay, showDialog, whenOverlayCloses } from '../ui/overlay';
 import type { LibraryScore } from './open-score';
 

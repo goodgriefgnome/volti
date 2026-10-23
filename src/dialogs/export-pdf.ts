@@ -4,9 +4,9 @@
 
 import { drawnOriginals, exportPdf, type ExportPart } from '../export/pdf';
 import { allowWriting, EXPORTS, exportExists, fileNameProblem, saveExport } from '../originals/originals';
-import { button, el, focusHighlighted } from './dom';
+import { button, el, focusHighlighted } from '../ui/dom';
+import { buttonRow, closeOverlay, showDialog } from '../ui/overlay';
 import { askPassword } from './passwords';
-import { buttonRow, closeOverlay, showDialog } from './overlay';
 
 export interface ExportHost {
   /** What is exported, and the file's first name (characters a file name can't have become dashes). */
