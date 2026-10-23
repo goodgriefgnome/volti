@@ -42,7 +42,8 @@ scores.
   - Added PDFs sit in the main list, but "Move to folder…" in their ⋯ menu files one under a
     subfolder path of your choosing (an existing subfolder, or a new path), in Volti only: it
     then shows in that subfolder's list beside the real files there, or in a list of its own when
-    no such subfolder exists. The file itself stays where it is.
+    no such subfolder exists. The file itself stays where it is. A "None" choice moves it back to
+    the main list.
   - Add scores groups the same way, its subfolder lists collapsed at first (not remembered).
 
 ## Manual check
