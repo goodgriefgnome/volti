@@ -15,6 +15,12 @@ scores.
 - Excerpts of a score whose original hasn't been opened since page shapes were kept are named by
   original pages ("Original pages 2–3") until it is opened once.
 - Export PDF is only in the Library's menus, not the reader's toolbar.
+- **No old version while a new one loads:** at start-up, show a plain start screen and ask the
+  server for a newer service worker before showing the library. No update (or offline): show the
+  library. An update: say "Updating Volti…" until it takes over, then reload into it. Give up
+  after about 3 seconds and open the version already installed, which then updates at the next
+  launch rather than reloading under you. Today the old version shows and reloads by itself a few
+  seconds later once the new one has downloaded, which can happen mid-read.
 
 ## Manual check
 
