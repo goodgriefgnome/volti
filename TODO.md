@@ -55,6 +55,8 @@ scores.
   so a long title wraps within its own column, beside its checkbox. Named excerpts are laid out
   the same way, indented: their checkboxes in a column a step in from the scores', and a long
   excerpt name wraps beside its checkbox too.
+- **Setlist entry numbers line up with their titles:** in an expanded setlist in the Library,
+  each entry's number sits lower than its title. Align them.
 
 ## Manual check
 
