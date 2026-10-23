@@ -21,6 +21,8 @@ scores.
   after about 3 seconds and open the version already installed, which then updates at the next
   launch rather than reloading under you. Today the old version shows and reloads by itself a few
   seconds later once the new one has downloaded, which can happen mid-read.
+- **An empty setlist offers Add scores:** expanding a setlist with no scores shows "No scores yet.
+  Use ⋯ › Add scores." Show an Add scores button there instead.
 
 ## Manual check
 
