@@ -30,7 +30,7 @@ export default defineConfig({
           action: 'share',
           method: 'POST',
           enctype: 'multipart/form-data',
-          params: { files: [{ name: 'pdfs', accept: ['application/pdf', '.pdf'] }] },
+          params: { files: [{ name: 'pdfs', accept: ['application/pdf', '.pdf', 'image/*'] }] },
         },
         icons: [
           { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },

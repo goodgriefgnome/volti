@@ -11,14 +11,16 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
 
 ## Using it
 
-- **Link scores folder** reads every PDF in that folder and its subfolders. Android does not let
+- **Link scores folder** reads every PDF and image in that folder and its subfolders. Android does not let
   apps link the Download folder itself or the top of internal storage; use a folder inside them,
   such as `Download/Scores` or `Documents/Scores`. After a restart, the first score you open asks
   for access again with one tap (**Allow access**, beside the name). The **⋯** there changes or
   unlinks the folder.
 - The scores at the top of the folder come first, then a list for each subfolder ("Masses /
   Latin"), which its heading opens and closes; Volti remembers which are closed.
-- **Add PDFs**, or **Share** a PDF to Volti from Files, Gmail or Drive, keeps a copy inside the app.
+- An image (a photo or scan: JPEG, PNG, WebP, or HEIC where the tablet can show it) is a score of
+  one page, in the folder or added, just like a PDF; a photo shows the way up the camera held it.
+- **Add PDFs** (images too), or **Share** a PDF or image to Volti from Files, Gmail or Drive, keeps a copy inside the app.
   A copy of a PDF that is also in the scores folder is deleted; the score stays.
   **Move to folder…** in its **⋯** menu lists it under a subfolder (one there is, or a new one);
   the PDF itself stays in Volti, and **None** takes it back to the top.

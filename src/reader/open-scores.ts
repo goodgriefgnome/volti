@@ -4,7 +4,7 @@
 import { askPassword } from '../dialogs/passwords';
 import { openOriginal, PasswordNotGiven } from '../originals/open';
 import type { Original } from '../originals/originals';
-import { PageCache } from '../originals/pdf';
+import { PageCache } from '../originals/pages';
 import { hasPictures, picturesOf } from '../pictures/pictures';
 import type { Aspects, State } from '../scores/model';
 import { loadAspects, loadScore } from '../scores/store';

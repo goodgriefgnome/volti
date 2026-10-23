@@ -37,7 +37,7 @@ export class ScoresSection {
 
     this.fileInput.type = 'file';
     this.fileInput.id = 'import-files';
-    this.fileInput.accept = 'application/pdf,.pdf';
+    this.fileInput.accept = 'application/pdf,.pdf,image/*';
     this.fileInput.multiple = true;
     this.fileInput.hidden = true;
     this.fileInput.addEventListener('change', () => void this.addPdfs());
@@ -56,14 +56,14 @@ export class ScoresSection {
       result = await importFiles(this.fileInput.files ?? []);
     } catch (e) {
       console.error(e);
-      lib.say(`Could not add the PDFs (${(e as Error).name}).`);
+      lib.say(`Could not add them (${(e as Error).name}).`);
       return;
     } finally {
       this.fileInput.value = '';
     }
     const { added, already } = result;
     const have = already.length === 1 ? `“${already[0]}” is already in the library.` : already.length ? `${already.length} were already in the library.` : '';
-    lib.say([added ? `Added ${plural(added, 'score')}.` : '', have].filter(Boolean).join(' ') || 'No PDFs were selected.');
+    lib.say([added ? `Added ${plural(added, 'score')}.` : '', have].filter(Boolean).join(' ') || 'No PDFs or images were selected.');
     await lib.refresh();
   }
 
@@ -80,7 +80,7 @@ export class ScoresSection {
     if (!lib.originals.length) {
       this.list.append(el('li', 'empty', lib.reading ? 'Reading the scores…' : lib.folder.kind === 'none'
         ? 'No scores yet. Link your scores folder, add PDFs, or share a PDF to Volti from another app.'
-        : 'No PDFs found in this folder or its subfolders.'));
+        : 'No PDFs or images found in this folder or its subfolders.'));
       return;
     }
     // The top of the folder, then a list for each subfolder; while searching, only lists with matches.

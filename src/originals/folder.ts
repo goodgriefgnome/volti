@@ -4,7 +4,7 @@
 
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
-import { isPdfName, titleOf } from './names';
+import { isOriginalName, titleOf } from './names';
 import type { Found, Original } from './originals';
 
 export type FolderState =
@@ -66,7 +66,7 @@ export interface ListingEntry { path: string; id: string }
 async function walk(d: FileSystemDirectoryHandle, prefix: string, depth: number, out: [string, FileSystemFileHandle][]) {
   for await (const [name, h] of d.entries()) {
     if (name.startsWith('.')) continue;
-    if (h.kind === 'file' && isPdfName(name)) out.push([prefix + name, h as FileSystemFileHandle]);
+    if (h.kind === 'file' && isOriginalName(name)) out.push([prefix + name, h as FileSystemFileHandle]);
     else if (h.kind === 'directory' && depth < MAX_DEPTH) await walk(h as FileSystemDirectoryHandle, `${prefix}${name}/`, depth + 1, out);
   }
 }

@@ -10,7 +10,7 @@ import { nameOf, sortedNames } from '../excerpts/names';
 import { spanLabel, spanOf, type Span } from '../excerpts/span';
 import type { ExportPart } from '../export/pdf';
 import { folderState } from '../originals/folder';
-import type { PageCache } from '../originals/pdf';
+import type { PageCache } from '../originals/pages';
 import { saveLastAddedTo } from '../setlists/store';
 import { button, dpr, el } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog, showMenu } from '../ui/overlay';

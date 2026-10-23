@@ -8,6 +8,7 @@ import { kv } from '../storage/kv';
 import { folderFiles, folderOriginal, placeOf, rememberedListing, saveListing, type FolderState } from './folder';
 import { Hasher, rememberHash } from './hashes';
 import { importedFiles, importsDir, removeImported } from './imported';
+import { endingOf } from './names';
 
 /** A score's original: a PDF in the linked folder or imported into the app. */
 export interface Original {
@@ -88,12 +89,12 @@ export async function allOriginals(state: FolderState, progress?: Progress): Pro
 }
 
 /**
- * Rename an original's file to `title` + ".pdf", in the same folder; its score stays, as its
+ * Rename an original's file to `title` (with its ending, ".pdf" or an image's), in the same folder; its score stays, as its
  * contents haven't changed. For the linked folder, write access must have been allowed. Says why
  * when it can't (a file of that name is there already).
  */
 export async function renameOriginal(o: Original, title: string): Promise<string | null> {
-  const name = title.trim() + '.pdf';
+  const name = title.trim() + (endingOf(o.path) || '.pdf');
   const [d, old] = o.location === 'folder' ? await placeOf(o.path) : [await importsDir(), o.path];
   if (name === old) return null;
   const h = await d.getFileHandle(old);

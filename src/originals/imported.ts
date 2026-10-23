@@ -1,4 +1,4 @@
-// The copies of PDFs imported into the app (the origin private file system): adding them, from the
+// The copies of PDFs and images imported into the app (the origin private file system): adding them, from the
 // file picker or shared from other apps, listing and removing them, and the subfolder each is
 // filed under in the library.
 
@@ -7,7 +7,7 @@ import { kv } from '../storage/kv';
 import { rememberedListing } from './folder';
 import { hashBytes, Hasher } from './hashes';
 import { takeInbox } from './inbox';
-import { freeName, importName, isPdfName, tidyFolder, titleOf } from './names';
+import { freeName, importName, isOriginalFile, tidyFolder, titleOf } from './names';
 import type { Found, Original } from './originals';
 
 export const importsDir = async () => (await navigator.storage.getDirectory()).getDirectoryHandle('imported', { create: true });
@@ -26,12 +26,12 @@ export async function importFiles(files: Iterable<File>): Promise<{ added: numbe
   let added = 0;
   const already: string[] = [];
   for (const f of files) {
-    if (!isPdfName(f.name) && f.type !== 'application/pdf') continue;
+    if (!isOriginalFile(f)) continue;
     // Read once: on Android a picked file may not be readable a second time.
     const bytes = await f.arrayBuffer();
     const id = await hashBytes(bytes);
-    if (have.has(id)) { already.push(titleOf(importName(f.name))); continue; }
-    const name = freeName(importName(f.name), taken);
+    if (have.has(id)) { already.push(titleOf(importName(f.name, f.type))); continue; }
+    const name = freeName(importName(f.name, f.type), taken);
     const h = await d.getFileHandle(name, { create: true });
     try {
       const w = await h.createWritable();

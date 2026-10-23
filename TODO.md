@@ -13,19 +13,7 @@ scores.
 
 ## Work for the immediate future
 
-- **Images as 1-page scores:** an image file (JPEG, PNG, WebP, and whatever else the browser can
-  draw, such as HEIC) is an original of one page, from the linked scores folder as well as from
-  Add PDFs and sharing to Volti. Several images picked at once are several scores, one each.
-  - The image itself is the original (its id the SHA-256 of the file, as for a PDF): no PDF is
-    made from it. The folder listing and imports take image names and types beside `.pdf`.
-  - Reading: the page cache's four uses of pdf.js (a page's shape, the number of pages, drawing a
-    page at a width, drawing a region for a close-up) go behind a small page source, with pdf.js
-    as one and the image (decoded once with `createImageBitmap`, scaled or cut from) as the
-    other. Everything above the page cache (the reader, cuts, markings, saved pictures, excerpt
-    thumbnails) then works on images unchanged.
-  - Exporting: an image's music goes in as the image, placed and clipped as a PDF page's is (JPEG
-    as it is, others as PNG), so the dialog says “Original quality”. Locks: an image is never
-    locked.
+Nothing at the moment.
 
 ## Manual check
 
@@ -59,6 +47,10 @@ Things to try on the tablet.
 - **Locked scores:** a password-protected PDF whose password hasn't been given shows a lock in
   the library and in Add scores (one that only stops printing or copying doesn't); adding it to a
   setlist asks for the password, Cancel leaves it out, and once given the lock goes.
+- **Images as scores:** a photo of a page taken on the tablet, in the scores folder and added
+  with Add PDFs (or shared from the Gallery): it shows the right way up, zooms in sharply, takes
+  markings, and exports as the photo itself (“Original quality”). HEIC photos may not open, if the
+  tablet's browser can't show them.
 - **Reader opens with the toolbar hidden:** a score, excerpt or setlist shows only the music and
   the back arrow; a tap in the middle brings up the toolbar.
 
@@ -91,7 +83,7 @@ Things to try on the tablet.
 - **Square frames:** a frame neither wider nor taller is both portrait and landscape; decide how
   it lays out on the screen (for now, as portrait).
 - **Several images as one original**: a set of images ordered by file name, scaled to a common
-  width, as one score (single images are 1-page scores: see the immediate item).
+  width, as one score (single images are already 1-page scores).
 - **Page-turn strategies** (half-page turns and the like): to be discussed separately.
 - **Exporting the library** (scores, setlists, markings, reading positions) as files, for backup
   and for moving to another device; probably written into the linked scores folder.

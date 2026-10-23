@@ -3,7 +3,7 @@
 // score id, page and width in device pixels. A score's id is its PDF's contents and a picture is of
 // a whole page, so one is never out of date; it goes when no setlist plays its page any more.
 
-import type { PagePictures } from '../originals/pdf';
+import type { PagePictures } from '../originals/pages';
 
 const DIR = 'page-pictures';
 const fileName = (id: string, num: number, width: number) => `${id}-${num}-${width}.webp`;

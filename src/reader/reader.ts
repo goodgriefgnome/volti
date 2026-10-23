@@ -7,7 +7,7 @@ import { ends } from '../excerpts/span';
 import type { Marking } from '../markings/model';
 import { PEN_COLORS } from '../markings/stroke';
 import { knownTitles, type Original } from '../originals/originals';
-import type { PageCache } from '../originals/pdf';
+import type { PageCache } from '../originals/pages';
 import { framesOnScreen } from '../render/layout';
 import type { Hatches } from '../render/paint';
 import { pageWidths, screenAt } from '../render/screen';

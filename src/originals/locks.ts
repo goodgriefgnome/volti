@@ -4,6 +4,7 @@
 
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
+import { isImageName } from './names';
 import { openOriginal, PasswordNotGiven, savedPassword } from './open';
 import type { Original } from './originals';
 
@@ -56,6 +57,7 @@ export async function lockedOriginals(originals: readonly Original[], readable: 
   let found = false;
   for (const o of originals) {
     if (o.id in locks || !readable(o)) continue;
+    if (isImageName(o.path)) { locks[o.id] = false; found = true; continue; }
     try {
       locks[o.id] = (await encrypted(await o.getFile())) && (await needsPassword(o));
       found = true;

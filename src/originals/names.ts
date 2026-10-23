@@ -1,20 +1,40 @@
-// Names of PDF files and folders: a score's title from its file's name, the name an added PDF is
-// kept under, what a file name can't be, and folder paths tidied. Pure.
+// Names of originals' files (PDFs and images) and folders: a score's title from its file's name, the
+// name an added file is kept under, what a file name can't be, and folder paths tidied. Pure.
 
-/** A score's title: its file's name without ".pdf". */
-export const titleOf = (name: string) => name.replace(/\.pdf$/i, '');
+const IMAGE = /\.(jpe?g|png|webp|gif|bmp|avif|heic|heif)$/i;
+/** An original's file name ending: ".pdf", or an image's. */
+const ENDING = /\.(pdf|jpe?g|png|webp|gif|bmp|avif|heic|heif)$/i;
 
-/** Whether a file's name says it is a PDF. */
-export const isPdfName = (name: string) => /\.pdf$/i.test(name);
+/** A score's title: its file's name without ".pdf" (or its image ending). */
+export const titleOf = (name: string) => name.replace(ENDING, '');
 
-/** The name to keep an added PDF under: its own, with ".pdf" added if it hasn't one. */
-export const importName = (name: string) => (isPdfName(name) ? name : name + '.pdf');
+/** Whether a file's name says it is an image, read as a score of one page. */
+export const isImageName = (name: string) => IMAGE.test(name);
+
+/** Whether a file's name says it is an original: a PDF or an image. */
+export const isOriginalName = (name: string) => ENDING.test(name);
+
+/** Whether a file is an original, by its name or else its type. */
+export const isOriginalFile = (f: File) => isOriginalName(f.name) || f.type === 'application/pdf' || f.type.startsWith('image/');
+
+/** The ending of an original's file name (".pdf", ".jpg"), or "". */
+export const endingOf = (name: string) => ENDING.exec(name)?.[0] ?? '';
+
+/**
+ * The name to keep an added file under: its own, with an ending added if it hasn't one (".pdf",
+ * or for an image, one for its type).
+ */
+export function importName(name: string, type = ''): string {
+  if (isOriginalName(name)) return name;
+  const image = /^image\/(\w+)/.exec(type)?.[1];
+  return name + (image ? '.' + (image === 'jpeg' ? 'jpg' : image) : '.pdf');
+}
 
 /** A name for a new file that no other has (`taken` is lower case): "Mass.pdf", then "Mass (2).pdf". */
 export function freeName(name: string, taken: ReadonlySet<string>): string {
-  const base = titleOf(name);
+  const base = titleOf(name), ending = endingOf(name) || '.pdf';
   for (let n = 1; ; n++) {
-    const next = n === 1 ? `${base}.pdf` : `${base} (${n}).pdf`;
+    const next = n === 1 ? `${base}${ending}` : `${base} (${n})${ending}`;
     if (!taken.has(next.toLowerCase())) return next;
   }
 }

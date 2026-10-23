@@ -2,7 +2,7 @@
 // part's host (the cut editor's, the tools', pointer input's and the close-up's) is this view and
 // the few things that part may ask the reader to do.
 
-import type { PageCache } from '../originals/pdf';
+import type { PageCache } from '../originals/pages';
 import type { Zoom } from '../render/zoom';
 import type { Frame } from '../scores/frames';
 import type { Aspects, State } from '../scores/model';
