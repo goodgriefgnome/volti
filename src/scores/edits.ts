@@ -3,7 +3,7 @@
 // the ink in step. Pure: no DOM, no storage.
 
 import { copyMarking, type Marking } from '../markings/model';
-import { EPS, frameHeight, newCutId, type Aspects, type Cut, type State } from './model';
+import { EPS, newCutId, type Aspects, type Cut, type State } from './model';
 import { claimFirstPass, splitMarkings } from './ownership';
 
 export const MIN_CUT = 0.004;
@@ -47,7 +47,8 @@ export function setEdge(s: State, id: string, edge: 'top' | 'bottom', v: number,
 }
 
 export function setPad(s: State, id: string, pad: number, aspects: Aspects): State {
-  const p = Math.min(MAX_PAD * frameHeight(aspects), Math.max(0, pad));
+  const page = s.score.cuts.find((c) => c.id === id)?.page ?? 0;
+  const p = Math.min(MAX_PAD * aspects[page], Math.max(0, pad));
   return mapCut(s, id, (c) => {
     const { pad: _, ...rest } = c;
     return p > 0.001 ? { ...rest, pad: p } : rest;

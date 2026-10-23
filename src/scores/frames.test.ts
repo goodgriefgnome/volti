@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cutLetter, pack, placeLabel, places, roomBefore } from './frames';
+import { cutLetter, isLandscape, pack, placeLabel, places, roomBefore, sameShape } from './frames';
 import { A4, aspects, cut, sarabande } from './testing';
 
 describe('pack', () => {
@@ -24,12 +24,39 @@ describe('pack', () => {
   });
 });
 
+describe('pack, with pages of different shapes', () => {
+  const LETTER = 11 / 8.5, WIDE = 210 / 297;
+  it('gives each frame the shape of its first cut\'s page', () => {
+    const frames = pack([cut(0), cut(1)], [A4, WIDE]);
+    expect(frames.map((f) => f.aspect)).toEqual([A4, WIDE]);
+    expect(frames.map(isLandscape)).toEqual([false, true]);
+  });
+  it('starts a new frame for a page of another shape, even when there is room', () => {
+    const frames = pack([cut(0, 0, 0.3), cut(1, 0, 0.3)], [A4, WIDE]);
+    expect(frames.map((f) => f.items.length)).toEqual([1, 1]);
+  });
+  it('lets A4 and US Letter share a frame, but not a page and the same page turned', () => {
+    expect(sameShape(A4, LETTER)).toBe(true);
+    expect(sameShape(A4, WIDE)).toBe(false);
+    const frames = pack([cut(0, 0, 0.5), cut(1, 0, 0.5)], [A4, LETTER]);
+    expect(frames).toHaveLength(1);
+  });
+  it('gives a taller page a frame of its own shape rather than clipping it', () => {
+    const frames = pack([cut(0), cut(1)], [LETTER, A4]);
+    expect(frames.map((f) => f.aspect)).toEqual([LETTER, A4]);
+    expect(frames[1].items[0].h).toBeCloseTo(frames[1].aspect);
+  });
+  it('counts a square frame as portrait', () => {
+    expect(isLandscape({ aspect: 1 })).toBe(false);
+  });
+});
+
 describe('roomBefore', () => {
   it('is the room left on the frame before, when that is more than a fifth of a frame', () => {
     const frames = pack(sarabande().score.cuts, aspects);
-    expect(roomBefore(frames, 3, aspects)).toBeCloseTo(A4 / 3);
-    expect(roomBefore(frames, 1, aspects)).toBeNull();
-    expect(roomBefore(frames, 0, aspects)).toBeNull();
+    expect(roomBefore(frames, 3)).toBeCloseTo(A4 / 3);
+    expect(roomBefore(frames, 1)).toBeNull();
+    expect(roomBefore(frames, 0)).toBeNull();
   });
 });
 

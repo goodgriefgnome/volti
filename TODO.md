@@ -13,28 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **Frames take their pages' shape; each screen shows 1 or 2 frames by orientation.**
-  - *Frames:* cuts are stacked into frames as now, but a frame takes the shape of the original
-    pages its cuts come from, not the first page's. A cut from a page whose aspect ratio differs
-    by more than 10% from the frame's starts a new frame (A4 and US Letter in the same
-    orientation share frames). Each cut is drawn at the frame's width, so small differences only
-    scale. A page taller than the first is no longer clipped.
-  - *Orientation:* a frame is landscape when wider than tall, otherwise portrait (square frames:
-    see "more thought" below; for now, portrait). The screen's orientation is the reading area's
-    shape, without the toolbar; rotating the tablet lays the screens out again, keeping the cut
-    at the top of the screen.
-  - *Screens:* a frame whose orientation is the screen's fills the screen alone. One of the other
-    orientation opens a screen of two: side by side for portrait frames, one above the other for
-    landscape ones. Only the screen's first frame decides: the second slot takes the next frame
-    whatever its shape, shrunk to fit its half. Frames of different sizes in one screen (A4 beside
-    Letter) are each fitted to their half.
-  - *Turning:* forward moves on by the frames shown; back, for now, goes back by as many frames
-    as are showing (near the start, to the first frame). A remembered place, or rotating, opens
-    the screen starting at the frame holding the cut.
-  - *Setlists:* each entry still starts on a fresh screen, and a half-empty last screen keeps the
-    "Next" box in its second slot. Exports stay one frame per PDF page.
-  - *Toolbar:* remove the Auto / 1 page / 2 pages setting: it is always this. The score's stored
-    portrait/landscape (`Score.orientation`) goes, as each frame has its own.
 
 ## Manual check
 
@@ -52,6 +30,10 @@ Things to try on the tablet.
   screen wide; zooming the thumbnails makes it scroll as a whole, not the strip.
 - **The excerpt picker's thumbnails** are a quarter of the screen tall: readable without zooming?
 - **Cut tabs** show 40×28 now (were 40×20): tall enough?
+- **Page shapes and orientation:** in landscape, portrait pages two side by side and landscape pages
+  one at a time; in portrait, the reverse (landscape pages stacked); rotating keeps the place. A
+  score mixing A4 and Letter shares frames; one mixing portrait and landscape pages changes frame
+  shape where they change.
 
 ## Confirmed features which require more thought
 

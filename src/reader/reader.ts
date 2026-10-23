@@ -13,7 +13,6 @@ import { loadPosition, loadSetlists, saveLastAddedTo, savePosition as saveSetlis
 import type { PageCache } from '../originals/pdf';
 import { folderState, knownTitles, type Original } from '../originals/originals';
 import type { ExportPart } from '../export/pdf';
-import { savePrefs, type Prefs } from '../storage/prefs';
 import { button, el } from '../ui/dom';
 import { openExcerptPicker, type ExcerptSource } from '../ui/excerpt-picker';
 import { addExcerpt, changeExcerptCuts, deleteExcerpt, renameExcerpt, type ExcerptHost } from '../ui/excerpts';
@@ -29,11 +28,11 @@ import type { Hatches } from './frames';
 import type { Gesture } from './gestures';
 import { History } from './history';
 import { Input } from './input';
-import { pagesPerScreen } from './layout';
+import { framesOnScreen } from './layout';
 import { Saver } from './saver';
 import { blankBox, ScoreCard, showSetlistTitle } from './setlist';
-import { frameSize, paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './spread';
-import { nextLayout, Toolbar, type ToolChoice } from './toolbar';
+import { paintSlot, paintSlotInk, placeBoxes, placeScreen, placeSlots, type FrameSlot } from './spread';
+import { Toolbar, type ToolChoice } from './toolbar';
 import type { ToolName } from './tools/tool';
 import { isZoomed, NO_ZOOM, type Zoom } from './zoom';
 
@@ -55,10 +54,17 @@ export type ToRead =
  */
 type Reading = { kind: 'score' } | { kind: 'excerpt'; span: Span } | { kind: 'setlist'; id: string };
 
-/** Frames take the first page's shape; a score that can't be opened is shown this shape. */
+/** A score that can't be opened is shown this shape. */
 const A4 = 297 / 210;
 
 const dpr = () => window.devicePixelRatio || 1;
+
+/** Each page the frames are cut from, with the widest of their slots it is drawn into (CSS pixels). */
+function pageWidths(frames: Frame[], widths: number[]): Map<number, number> {
+  const out = new Map<number, number>();
+  frames.forEach((f, i) => { for (const p of f.items) out.set(p.cut.page, Math.max(out.get(p.cut.page) ?? 0, widths[i])); });
+  return out;
+}
 
 /** Whether two played orders put the same music in the same places. */
 const sameLayout = (a: readonly Cut[], b: readonly Cut[]) =>
@@ -66,7 +72,7 @@ const sameLayout = (a: readonly Cut[], b: readonly Cut[]) =>
 
 
 /** Open a score, or a setlist as one continuous score. A score that can't be opened throws; a setlist carries on past it. */
-export async function openReader(what: ToRead, prefs: Prefs, onClose: () => void): Promise<void> {
+export async function openReader(what: ToRead, onClose: () => void): Promise<void> {
   const setlists = await loadSetlists();
   if (what.kind !== 'setlist') {
     const { original } = what;
@@ -76,8 +82,8 @@ export async function openReader(what: ToRead, prefs: Prefs, onClose: () => void
     const first: OpenScore = { id: original.id, original, aspects, state, cache };
     const item = { scoreId: original.id, title: original.title, original };
     // An excerpt starts at its start each time: its place isn't kept.
-    if (what.kind === 'excerpt') new Reader([item], { kind: 'excerpt', span: ends(what.excerpt) }, setlists, first, 0, undefined, prefs, onClose);
-    else new Reader([item], { kind: 'score' }, setlists, first, 0, position, prefs, onClose);
+    if (what.kind === 'excerpt') new Reader([item], { kind: 'excerpt', span: ends(what.excerpt) }, setlists, first, 0, undefined, onClose);
+    else new Reader([item], { kind: 'score' }, setlists, first, 0, position, onClose);
     return;
   }
   const setlist = setlists.find((s) => s.id === what.setlistId);
@@ -90,7 +96,7 @@ export async function openReader(what: ToRead, prefs: Prefs, onClose: () => void
   });
   const pos = what.startEntry ? { entry: what.startEntry } : await loadPosition(setlist.id);
   const k = Math.max(0, items.findIndex((it) => it.entryId === pos?.entry));
-  new Reader(items, { kind: 'setlist', id: setlist.id }, setlists, null, k, pos?.cut, prefs, onClose);
+  new Reader(items, { kind: 'setlist', id: setlist.id }, setlists, null, k, pos?.cut, onClose);
 }
 
 /**
@@ -105,7 +111,8 @@ class Reader {
   private toast = new Toast();
   private toolbar: Toolbar;
 
-  private perScreen: 1 | 2 = 1;
+  /** How many frames the screen shows. */
+  private shown = 1;
   /** The item being read. */
   private k = 0;
   /** The first frame on the screen, among the current item's. */
@@ -145,7 +152,6 @@ class Reader {
     first: OpenScore | null,
     k: number,
     position: string | undefined,
-    private prefs: Prefs,
     private onClose: () => void,
   ) {
     this.scores = new OpenScores(items, first);
@@ -187,12 +193,6 @@ class Reader {
       toggleEditing: () => { this.editor.setEnabled(!this.editor.enabled); this.syncBar(); this.decorate(); },
       openArchive: () => this.editor.openArchive(),
       fit: () => this.setZoom(NO_ZOOM),
-      nextLayout: () => {
-        this.prefs.pagesPerScreen = nextLayout(this.prefs.pagesPerScreen);
-        void savePrefs(this.prefs);
-        this.syncBar();
-        void this.show();
-      },
     });
     this.syncBar();
     this.stage.append(this.spreadEl);
@@ -271,7 +271,7 @@ class Reader {
     this.loading = false;
     this.k = k;
     this.frames = this.framesFor(k);
-    const f = at === 'last' ? this.frames.length - 1 : at && at !== 'first' ? frameOf(this.frames, at) : 0;
+    const f = at === 'last' ? this.lastScreen(this.frames) : at && at !== 'first' ? frameOf(this.frames, at) : 0;
     this.frame = Math.max(0, f);
     this.syncBar();
     await this.show();
@@ -294,7 +294,6 @@ class Reader {
       penColor: this.penColor,
       editing: this.editor.enabled,
       archived: cur?.state.score.archived.length ?? 0,
-      layout: this.prefs.pagesPerScreen,
       zoomed: isZoomed(this.zoom),
       canUndo: this.undos.canUndo,
       canRedo: this.undos.canRedo,
@@ -488,8 +487,25 @@ class Reader {
 
   /* ---------- frames ---------- */
 
-  /** The first frame of the screen that holds frame `f`. */
-  private screenOf(f: number) { return Math.floor(f / this.perScreen) * this.perScreen; }
+  /**
+   * The screen starting at frame f of `frames`: the frames on it (as many as f's shape decides,
+   * fewer at the end), how many it wanted, and where they go, a setlist keeping room for the box
+   * after a score's last frame.
+   */
+  private screenAt(frames: Frame[], f: number, W: number, H: number, scale: number) {
+    const first = frames[f];
+    if (!first) return { on: [] as Frame[], wanted: 1, rects: [] as { w: number }[] };
+    const wanted = framesOnScreen(first.aspect, W, H);
+    const on = frames.slice(f, f + wanted);
+    const room = this.setlistId ? wanted - on.length : 0;
+    return { on, wanted, rects: placeScreen([...on.map((x) => x.aspect), ...Array<number>(room).fill(first.aspect)], W, H, scale) };
+  }
+
+  /** Where a score's last screen starts: at its last two frames when the one before last shows two. */
+  private lastScreen(frames: Frame[]): number {
+    const n = frames.length, W = this.stage.clientWidth, H = this.stage.clientHeight;
+    return n >= 2 && framesOnScreen(frames[n - 2].aspect, W, H) === 2 ? n - 2 : n - 1;
+  }
 
   private pageSize(page: number, w: number) { return { w, h: Math.round(w * this.aspects[page]) }; }
 
@@ -503,14 +519,14 @@ class Reader {
     const W = this.stage.clientWidth;
     const H = this.stage.clientHeight;
     if (!W || !H || this.loading) return;
-    this.perScreen = pagesPerScreen(this.prefs.pagesPerScreen, W, H);
     this.showTitle();
     const it = this.items[this.k];
     if (!this.current?.cache) {
       // A score that can't be opened: say so, and carry on with the next one.
       this.slots = [];
-      const boxes = [this.blank(it.title), ...(this.perScreen === 2 ? [this.blank()] : [])];
-      placeBoxes(boxes, frameSize(W, H, this.perScreen, [A4]), W, H, dpr());
+      this.shown = 1;
+      const boxes = [this.blank(it.title), ...(framesOnScreen(A4, W, H) === 2 ? [this.blank()] : [])];
+      placeBoxes(boxes, boxes.map(() => A4), W, H, dpr());
       this.spreadEl.replaceChildren(...boxes);
       this.setZoom(NO_ZOOM);
       this.toolbar.info.textContent = 'Missing';
@@ -518,25 +534,25 @@ class Reader {
       this.saveSpot(undefined);
       return;
     }
-    this.frame = this.screenOf(Math.min(this.frame, this.frames.length - 1));
-    const size = frameSize(W, H, this.perScreen, this.aspects);
+    this.frame = Math.max(0, Math.min(this.frame, this.frames.length - 1));
     const scale = dpr();
-    const on = this.frames.slice(this.frame, this.frame + this.perScreen);
-    const pageNums = [...new Set(on.flatMap((f) => f.items.map((p) => p.cut.page)))];
+    const { on, wanted, rects } = this.screenAt(this.frames, this.frame, W, H, scale);
+    this.shown = on.length;
+    const widths = pageWidths(on, rects.map((r) => r.w));
     let canvases: HTMLCanvasElement[];
     try {
-      canvases = await Promise.all(pageNums.map((p) => this.cache.render(p + 1, size.w, this.pageSize(p, size.w).h, scale)));
+      canvases = await Promise.all([...widths].map(([p, w]) => this.cache.render(p + 1, w, this.pageSize(p, w).h, scale)));
     } catch (e) {
       if (seq === this.seq) this.toolbar.info.textContent = 'Could not draw this page';
       console.error(e);
       return;
     }
     if (seq !== this.seq) return;
-    this.pages = new Map(pageNums.map((p, i) => [p, canvases[i]]));
+    this.pages = new Map([...widths.keys()].map((p, i) => [p, canvases[i]]));
 
     // In a setlist each score starts on a fresh screen, so a score's last screen may have room left.
-    const extra = this.setlistId && on.length < this.perScreen ? [this.blank()] : [];
-    this.slots = placeSlots(on, this.frame, W, H, size, scale, extra);
+    const extra = this.setlistId && on.length < wanted ? [this.blank()] : [];
+    this.slots = placeSlots(on, this.frame, W, H, scale, extra);
     for (const s of this.slots) this.paint(s, this.state);
     this.spreadEl.replaceChildren(...this.slots.map((s) => s.box), ...extra);
     this.setZoom(NO_ZOOM);
@@ -546,8 +562,9 @@ class Reader {
     this.toolbar.info.textContent = on.length > 1 ? `Pages ${this.frame + 1}–${last} of ${this.frames.length}` : `Page ${last} of ${this.frames.length}`;
     this.showCard();
     this.saveSpot(on[0]?.items[0]?.cut.id);
-    void this.predraw(seq, size.w, scale);
+    void this.predraw(seq, widths, scale);
   }
+
 
   /** Remember the first cut on the screen, to come back to; an excerpt always starts at its start. */
   private saveSpot(cut: string | undefined) {
@@ -581,33 +598,39 @@ class Reader {
     this.editor.decorate(this.slots, all, !!frames);
   }
 
-  /** Draw the next and previous screens' pages in the background. */
-  private async predraw(seq: number, w: number, scale: number) {
-    const screens = [this.frame + this.perScreen, this.frame - this.perScreen]
-      .filter((f) => f >= 0 && f < this.frames.length)
-      .map((f) => this.frames.slice(f, f + this.perScreen));
-    const near = new Set([...this.pages.keys(), ...screens.flat().flatMap((f) => f.items.map((p) => p.cut.page))]);
-    this.cache.keepOnly([...near].map((p) => p + 1), (n) => this.pageSize(n - 1, w));
-    for (const p of near) {
+  /** Draw the next and previous screens' pages in the background; `widths` are the current screen's. */
+  private async predraw(seq: number, widths: Map<number, number>, scale: number) {
+    const W = this.stage.clientWidth, H = this.stage.clientHeight;
+    const starts = [this.frame + this.shown, ...(this.frame > 0 ? [Math.max(0, this.frame - this.shown)] : [])].filter((f) => f < this.frames.length);
+    // Each page at one width: the current screen's where it is on it.
+    const near = new Map<number, number>();
+    for (const f of starts) {
+      const { on, rects } = this.screenAt(this.frames, f, W, H, scale);
+      for (const [p, w] of pageWidths(on, rects.map((r) => r.w))) near.set(p, w);
+    }
+    for (const [p, w] of widths) near.set(p, w);
+    this.cache.keepOnly([...near.keys()].map((p) => p + 1), (n) => this.pageSize(n - 1, near.get(n - 1)!));
+    for (const [p, w] of near) {
       if (seq !== this.seq) return;
       await this.cache.render(p + 1, w, this.pageSize(p, w).h, scale).catch(() => {});
     }
     // On a score's last screen in a setlist, draw the next score's first screen too.
-    if (!this.setlistId || this.frame + this.perScreen < this.frames.length || this.k + 1 >= this.items.length) return;
+    if (!this.setlistId || this.frame + this.shown < this.frames.length || this.k + 1 >= this.items.length) return;
     const cur = await this.scores.ensure(this.k + 1);
-    const first = this.framesFor(this.k + 1).slice(0, this.perScreen);
     if (seq !== this.seq || !cur?.cache) return;
-    const nw = frameSize(this.stage.clientWidth, this.stage.clientHeight, this.perScreen, cur.aspects).w;
-    for (const p of new Set(first.flatMap((f) => f.items.map((x) => x.cut.page)))) {
+    const { on, rects } = this.screenAt(this.framesFor(this.k + 1), 0, W, H, scale);
+    for (const [p, w] of pageWidths(on, rects.map((r) => r.w))) {
       if (seq !== this.seq || !cur.cache) return;
-      await cur.cache.render(p + 1, nw, Math.round(nw * cur.aspects[p]), scale).catch(() => {});
+      await cur.cache.render(p + 1, w, Math.round(w * cur.aspects[p]), scale).catch(() => {});
     }
   }
+
 
   /** Turn a screen; in a setlist, past a score's end into the next one, or back into the one before. */
   private turn(dir: 1 | -1) {
     if (this.loading) return;
-    const next = this.frame + dir * this.perScreen;
+    // Forward by the frames shown; back by as many (to the first frame, near the start).
+    const next = dir > 0 ? this.frame + this.shown : this.frame > 0 ? Math.max(0, this.frame - this.shown) : -1;
     // Put the tool away so taps turn pages again. The toolbar stays until you dismiss it.
     this.tool = 'none';
     if (next >= 0 && next < this.frames.length) {
@@ -656,7 +679,8 @@ class Reader {
     this.frames = this.framesFor(this.k);
     const moved = !sameLayout(this.frames.flatMap((f) => f.items.map((p) => p.cut)), shown);
     const f = focus ? frameOf(this.frames, focus) : -1;
-    const target = f >= 0 ? this.screenOf(f) : this.frame;
+    // A cut on this screen stays put; one elsewhere opens the screen starting at its frame.
+    const target = f >= 0 && (f < this.frame || f >= this.frame + this.shown) ? f : this.frame;
     if (!moved && target === this.frame) {
       for (const slot of this.slots) {
         slot.frame = this.frames[slot.index];

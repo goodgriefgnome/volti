@@ -23,8 +23,6 @@ export interface Score {
   title: string;
   /** The musical key, shown in the library. Nothing sets it yet. */
   key: string;
-  /** Not used yet; frames per screen still come from the toolbar's layout setting. */
-  orientation: 'portrait' | 'landscape';
   /** The played order. */
   cuts: Cut[];
   /** Removed cuts that had their own ink; their markings stay in the ink record. */
@@ -45,7 +43,7 @@ export type ScoreInk = Record<string, Marking[]>;
 /** A score and its ink, which every edit to the cuts keeps in step. */
 export interface State { score: Score; ink: ScoreInk }
 
-/** Height / width of each page of the original. Frames take the shape of the first. */
+/** Height / width of each page of the original. A frame takes the shape of its first cut's page. */
 export type Aspects = readonly number[];
 
 /** Tolerance when comparing positions on a page or a frame. */
@@ -53,15 +51,12 @@ export const EPS = 1e-6;
 
 export const newCutId = () => crypto.randomUUID();
 
-export const frameHeight = (aspects: Aspects) => aspects[0];
 export const cutHeight = (c: Cut, aspects: Aspects) => (c.y1 - c.y0) * aspects[c.page];
-export const framesPerScreen = (score: Score) => (score.orientation === 'landscape' ? 2 : 1);
 
-/** The score of an original opened the first time: every page once, in order. Landscape for portrait-shaped pages. */
+/** The score of an original opened the first time: every page once, in order. */
 export function newScore(id: string, title: string, aspects: Aspects): Score {
   return {
     id, title, key: '',
-    orientation: aspects[0] >= 1 ? 'landscape' : 'portrait',
     cuts: aspects.map((_, page) => ({ id: newCutId(), page, y0: 0, y1: 1 })),
     archived: [],
   };

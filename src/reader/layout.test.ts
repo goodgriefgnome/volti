@@ -1,37 +1,49 @@
 import { describe, expect, it } from 'vitest';
-import { fitPages, pagesPerScreen } from './layout';
+import { framesOnScreen, placeFrames, sideBySide } from './layout';
 
-describe('pagesPerScreen', () => {
-  it('shows two pages in landscape and one in portrait on auto', () => {
-    expect(pagesPerScreen('auto', 1280, 800)).toBe(2);
-    expect(pagesPerScreen('auto', 800, 1280)).toBe(1);
+const A4 = 297 / 210, LETTER = 11 / 8.5, WIDE = 1 / A4;
+
+describe('framesOnScreen', () => {
+  it('shows one frame of the screen\'s own orientation, two of the other', () => {
+    expect(framesOnScreen(A4, 800, 1280)).toBe(1);
+    expect(framesOnScreen(A4, 1280, 800)).toBe(2);
+    expect(framesOnScreen(WIDE, 1280, 800)).toBe(1);
+    expect(framesOnScreen(WIDE, 800, 1280)).toBe(2);
   });
-  it('respects a fixed choice', () => {
-    expect(pagesPerScreen(1, 1280, 800)).toBe(1);
-    expect(pagesPerScreen(2, 800, 1280)).toBe(2);
+  it('sets portrait frames side by side, landscape ones one above the other', () => {
+    expect(sideBySide(A4)).toBe(true);
+    expect(sideBySide(WIDE)).toBe(false);
   });
 });
 
-describe('fitPages', () => {
-  const A4 = 297 / 210;
-  it('fills the height when the pages are narrow enough', () => {
-    const [a, b] = fitPages(1280, 800, [A4, A4], 6);
+describe('placeFrames', () => {
+  it('fills the height with one portrait frame on a portrait screen when it is narrow enough', () => {
+    const [a] = placeFrames([A4], 1000, 1280, 6, true);
+    expect(a.h).toBeLessThanOrEqual(1280);
+    expect(a.w).toBe(Math.floor(1280 / A4));
+    expect(a.x).toBe(Math.floor((1000 - a.w) / 2));
+  });
+  it('sets two portrait frames side by side, centred together, within the width', () => {
+    const [a, b] = placeFrames([A4, A4], 1280, 800, 6, true);
     expect(a.h).toBe(800);
-    expect(a.w).toBe(Math.floor(800 / A4));
-    expect(b).toEqual(a);
+    expect(b.x).toBe(a.x + a.w + 6);
+    expect(a.x).toBe(1280 - (b.x + b.w));
   });
-  it('fills the width when the pages would be too wide', () => {
-    const [a] = fitPages(800, 1280, [A4], 0);
-    expect(a.w).toBe(800);
-    expect(a.h).toBeLessThan(1280);
+  it('stacks two landscape frames, each fitted to half the height', () => {
+    const [a, b] = placeFrames([WIDE, WIDE], 800, 1280, 6, false);
+    expect(a.h + 6 + b.h).toBeLessThanOrEqual(1280);
+    expect(b.y).toBe(a.y + a.h + 6);
+    expect(a.w).toBeLessThanOrEqual(800);
   });
-  it('keeps two pages and the gap within the width', () => {
-    const sizes = fitPages(800, 1280, [A4, A4], 6);
-    expect(sizes[0].w + sizes[1].w + 6).toBeLessThanOrEqual(800);
+  it('fits frames of different shapes each to its half', () => {
+    const [a, b] = placeFrames([A4, LETTER], 1280, 800, 6, true);
+    expect(a.h).toBe(800);
+    expect(b.w).toBeLessThanOrEqual((1280 - 6) / 2);
+    expect(b.h).toBeLessThanOrEqual(800);
   });
-  it('gives pages of different shapes the same height', () => {
-    const [a, b] = fitPages(1280, 800, [A4, 0.7], 6);
-    expect(a.h).toBe(b.h);
-    expect(b.w).toBeGreaterThan(a.w);
+  it('shrinks a landscape frame into the half that a portrait frame opened', () => {
+    const [, b] = placeFrames([A4, WIDE], 1280, 800, 6, true);
+    expect(b.w).toBe(Math.floor((1280 - 6) / 2));
+    expect(b.h).toBeLessThan(800);
   });
 });

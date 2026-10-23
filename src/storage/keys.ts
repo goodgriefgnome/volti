@@ -2,8 +2,6 @@
 // Renaming one loses what is stored under it.
 
 export const keys = {
-  /** Prefs (storage/prefs.ts). */
-  prefs: 'prefs',
   /** The linked scores folder's FileSystemDirectoryHandle (originals/originals.ts). */
   folder: 'folder',
   /** The linked folder's PDFs as last read, { path, id }[], listed while access is locked. */

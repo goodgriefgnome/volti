@@ -67,7 +67,7 @@ export class CutEditor {
       const at = (y: number) => y * w + 'px';
 
       // How much of this frame's music would fit on the frame before, when that one is fairly empty.
-      const room = dragging ? null : roomBefore(frames, slot.index, aspects);
+      const room = dragging ? null : roomBefore(frames, slot.index);
       if (room !== null) {
         const band = el('div', 'room');
         band.style.height = at(room);

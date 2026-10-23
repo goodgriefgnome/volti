@@ -26,6 +26,10 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   markings, excerpts and place in setlists, and a setlist's **Missing** score plays again once its
   PDF is back. A PDF changed by another app is a new score. Volti reads a PDF whole the first time
   it sees it (and after it changes), so linking a big folder takes a moment.
+- Each page on the screen takes the shape of the PDF pages it shows. A page of the screen's own
+  orientation fills it; one of the other shares it with the next: portrait pages side by side on a
+  landscape screen, landscape pages one above the other on a portrait one. Rotating the tablet
+  keeps the music at the top of the screen in place.
 - In a score: tap the right side or swipe left for the next page, the left side or swipe right for
   the previous one, and the middle to show the toolbar. Page-turn pedals that send arrow or
   Page Up/Down keys work too.
@@ -75,7 +79,7 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
 
 - **Export PDF…** in the **⋯** menu of a score, a named excerpt or a setlist, or **Export PDF** in
   the reader's toolbar (for what that reader pages through), makes a PDF that
-  reads as the reader does with 1 page on the screen: its cuts, in order, with their markings, and
+  reads as the reader does, one of its pages to a PDF page: its cuts, in order, with their markings, and
   each setlist entry starting on a new page. Name the file; it goes in an **Exports** folder in the
   scores folder (which then shows in the library too), or, with no folder linked, to the share
   sheet.
@@ -106,7 +110,7 @@ its cuts kept only in that setlist.
 
 | Path | What it does |
 | --- | --- |
-| `src/storage/` | IndexedDB key-value store, with every key listed in `keys.ts`; preferences |
+| `src/storage/` | IndexedDB key-value store, with every key listed in `keys.ts` |
 | `src/originals/` | Scores' originals: the PDFs in the linked folder or imported, the shared-file inbox, and reading PDFs with pdf.js |
 | `src/scores/` | A score: its cuts in played order (`model`), editing it (`edits`), laying it out on frames (`frames`), which cut owns a marking (`ownership`), loading and saving (`store`) |
 | `src/setlists/` | Setlists, the excerpt of each score they play, and keeping excerpts in step with cut edits |
@@ -126,7 +130,7 @@ its cuts kept only in that setlist.
 | `src/reader/cuts/` | Editing cuts on the frames: tabs and drags (`editor`), menus, the insert-pages picker, archived cuts |
 | `src/reader/frames.ts` | Drawing a frame's music and ink |
 | `src/reader/gestures.ts` | How taps, swipes and keys turn pages |
-| `src/reader/layout.ts` | Fitting frames to the screen |
+| `src/reader/layout.ts` | How many frames a screen shows, which way, and how large |
 | `src/reader/zoom.ts` | Pinch and pan maths; which part of a page is in view |
 | `src/ui/` | Shared by both screens: opening an original, asking for its password once (`passwords`), DOM helpers (`dom`), menus and dialogs, one at a time (`overlay`), messages (`toast`), the setlist name and add-to menus (`setlists`), choosing an excerpt (`excerpt-picker`), the named excerpt dialogs (`excerpts`), and exporting a PDF (`export-pdf`) |
 | `src/styles/` | Styles, one file per part of the app, imported in order by `main.ts` |

@@ -5,7 +5,7 @@
 import { drawFrame, drawFrameInk } from '../reader/frames';
 import { scrollForPinch, type Pt } from '../reader/zoom';
 import { pack, placeLabel, places, type Frame, type Place } from '../scores/frames';
-import { frameHeight, type Aspects, type Score, type State } from '../scores/model';
+import type { Aspects, Score, State } from '../scores/model';
 import { spanFor, spanLabel, spanOf, type Span } from '../setlists/model';
 import { nameOf, sortedNames } from '../setlists/names';
 import { button, el } from './dom';
@@ -50,8 +50,8 @@ export class ExcerptStrip {
   /** The thumbnails' zoom, 1 to MAX_THUMB_ZOOM. */
   private s = 1;
   private redrawTimer: ReturnType<typeof setTimeout> | undefined;
-  /** The thumbnails' width unzoomed, in CSS pixels. */
-  private w: number;
+  /** Each frame's thumbnail width unzoomed, in CSS pixels: all are the same height, each its frame's shape. */
+  private widths: number[];
 
   /** Called whenever the span chosen changes, or a tap starts choosing a new one. */
   onChange: () => void = () => {};
@@ -64,15 +64,14 @@ export class ExcerptStrip {
     this.hint.setAttribute('aria-live', 'polite');
 
     // Sizes are in --u, a CSS pixel times the zoom, so zooming changes one property.
-    const W = this.w = Math.max(MIN_THUMB_W, Math.round(THUMB_SHARE * window.innerHeight / frameHeight(aspects)));
-    const fh = W * frameHeight(aspects);
     const u = (n: number) => `calc(var(--u) * ${n})`;
     const frames = this.frames = pack(cuts, aspects);
+    const widths = this.widths = frames.map((f) => Math.max(MIN_THUMB_W, Math.round(THUMB_SHARE * window.innerHeight / f.aspect)));
     this.places = places(cuts, aspects);
     this.drawnAt = frames.map(() => 0);
-    this.boxes = frames.map((f) => {
-      const box = el('div', 'thumb-frame');
-      Object.assign(box.style, { width: u(W), height: u(fh) });
+    this.boxes = frames.map((f, i) => {
+      const box = el('div', 'thumb-frame'), W = widths[i];
+      Object.assign(box.style, { width: u(W), height: u(W * f.aspect) });
       for (const p of f.items) {
         const b = el('button', 'band');
         b.type = 'button';
@@ -92,7 +91,7 @@ export class ExcerptStrip {
 
     // Draw the frames one after another, so the strip shows at once.
     void (async () => {
-      for (const i of frames.keys()) if (!(await this.draw(i, W))) return;
+      for (const i of frames.keys()) if (!(await this.draw(i, widths[i]))) return;
     })();
     this.sync();
   }
@@ -152,7 +151,7 @@ export class ExcerptStrip {
     if (!this.el.isConnected) return false;
     const scale = window.devicePixelRatio || 1, W = Math.round(w * scale);
     const byPage = new Map(pages.map((p, k) => [p, canvases[k]]));
-    const music = Object.assign(el('canvas'), { width: W, height: Math.round(w * frameHeight(aspects) * scale) });
+    const music = Object.assign(el('canvas'), { width: W, height: Math.round(w * f.aspect * scale) });
     const ink = Object.assign(el('canvas'), { width: W, height: music.height });
     drawFrame(music.getContext('2d', { alpha: false })!, f, W, (p) => byPage.get(p), aspects);
     drawFrameInk(ink.getContext('2d')!, f, state.ink, aspects, W);
@@ -176,10 +175,10 @@ export class ExcerptStrip {
 
   private async redraw() {
     // Widths go in steps, so small pinches don't redraw, and the pages drawn can be reused.
-    const w = this.w * Math.min(MAX_THUMB_ZOOM, 2 ** Math.ceil(Math.log2(this.s - 0.001)));
+    const step = Math.min(MAX_THUMB_ZOOM, 2 ** Math.ceil(Math.log2(this.s - 0.001)));
     const view = this.el.getBoundingClientRect();
     for (const [i, box] of this.boxes.entries()) {
-      const r = box.getBoundingClientRect();
+      const r = box.getBoundingClientRect(), w = this.widths[i] * step;
       if (r.right < view.left - r.width || r.left > view.right + r.width || this.drawnAt[i] >= w || !this.drawnAt[i]) continue;
       if (!this.el.isConnected || !(await this.draw(i, w))) return;
     }

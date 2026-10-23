@@ -14,7 +14,6 @@ import {
   renameOriginal, unlinkFolder, unlockFolder,
   type FolderState, type Original,
 } from '../originals/originals';
-import type { Prefs } from '../storage/prefs';
 import { button, el, focusHighlighted, plural } from '../ui/dom';
 import type { ExportPart } from '../export/pdf';
 import { openExcerptPicker, type ExcerptSource } from '../ui/excerpt-picker';
@@ -61,7 +60,7 @@ export class Library {
   private fileInput = el('input');
   private toast = new Toast();
 
-  constructor(private prefs: Prefs) {
+  constructor() {
     const header = el('header', 'masthead');
     const brand = el('h1', 'brand', 'Volti');
     const tagline = el('p', 'tagline', 'volti subito · turn the page');
@@ -713,7 +712,7 @@ export class Library {
       void this.loadSetlists().then(() => this.renderList());
     };
     try {
-      await openReader(what, this.prefs, back);
+      await openReader(what, back);
     } catch (e) {
       console.error(e);
       this.root.hidden = false;

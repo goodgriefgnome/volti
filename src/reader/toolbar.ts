@@ -2,18 +2,11 @@
 // call back into the reader; what they do is not here.
 
 import { PEN_COLORS } from '../markings/stroke';
-import type { PagesPerScreen } from '../storage/prefs';
 import { el } from '../ui/dom';
 import type { ToolName } from './tools/tool';
 
 /** The tool selected in the toolbar, if any. */
 export type ToolChoice = 'none' | ToolName;
-
-const LAYOUT_LABEL: Record<string, string> = { auto: 'Auto', 1: '1 page', 2: '2 pages' };
-const LAYOUT_NEXT: Record<string, PagesPerScreen> = { auto: 1, 1: 2, 2: 'auto' };
-
-/** The layout the layout button switches to from `p`. */
-export const nextLayout = (p: PagesPerScreen) => LAYOUT_NEXT[String(p)];
 
 export interface ToolbarActions {
   close(): void;
@@ -35,7 +28,6 @@ export interface ToolbarActions {
   toggleEditing(): void;
   openArchive(): void;
   fit(): void;
-  nextLayout(): void;
 }
 
 /** What the toolbar shows. */
@@ -46,7 +38,6 @@ export interface ToolbarView {
   penColor: string;
   editing: boolean;
   archived: number;
-  layout: PagesPerScreen;
   zoomed: boolean;
   canUndo: boolean;
   canRedo: boolean;
@@ -97,7 +88,6 @@ export class Toolbar {
       this.button('edit', 'Edit cuts', act.toggleEditing),
       this.button('archived', 'Archived', act.openArchive),
       this.button('fit', 'Fit page', act.fit),
-      this.button('layout', '', act.nextLayout),
       this.info,
     );
     this.el.append(left, tools, right);
@@ -124,7 +114,6 @@ export class Toolbar {
     for (const k of ['pen', 'highlighter', 'eraser', 'edit', 'excerpt', 'excerpts']) if (this.buttons[k]) this.buttons[k].disabled = !v.open;
     this.buttons.archived.hidden = !v.editing || !v.archived;
     this.buttons.archived.textContent = `Archived (${v.archived})`;
-    this.buttons.layout.textContent = LAYOUT_LABEL[String(v.layout)];
     this.buttons.fit.hidden = !v.zoomed;
     this.buttons.undo.disabled = !v.canUndo;
     this.buttons.redo.disabled = !v.canRedo;

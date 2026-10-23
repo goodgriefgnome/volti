@@ -3,12 +3,12 @@
 
 import type { Marking } from '../markings/model';
 import type { Frame } from '../scores/frames';
-import { frameHeight, type Aspects, type ScoreInk } from '../scores/model';
+import type { Aspects, ScoreInk } from '../scores/model';
 import { el } from '../ui/dom';
 import { drawFrame, drawFrameInk, type Hatches } from './frames';
-import { fitPages, type Size } from './layout';
+import { placeFrames, sideBySide } from './layout';
 
-/** Space between frames side by side, in CSS pixels. */
+/** Space between frames on one screen, in CSS pixels. */
 const GAP = 6;
 
 /** A frame on the screen. Sizes are CSS pixels in the unzoomed spread. */
@@ -25,35 +25,33 @@ export interface FrameSlot {
   ui?: HTMLElement;
 }
 
-/** The size of each frame when `perScreen` of them share a W x H stage. */
-export function frameSize(W: number, H: number, perScreen: number, aspects: Aspects): Size {
-  return fitPages(W, H, Array(perScreen).fill(frameHeight(aspects)), GAP)[0];
+/** Where boxes for frames of these shapes go on a W x H stage, in CSS pixels, with their size in device pixels. */
+export interface Placed { x: number; y: number; w: number; h: number; fw: number; fh: number }
+
+/**
+ * Where a screen's frames, of these shapes (height / width), go on a W x H stage: as the first one
+ * decides, side by side or one above the other, on whole device pixels so they are shown exactly as
+ * drawn, without resampling.
+ */
+export function placeScreen(aspects: readonly number[], W: number, H: number, scale: number): Placed[] {
+  const rects = placeFrames(aspects, Math.round(W * scale), Math.round(H * scale), Math.round(GAP * scale), sideBySide(aspects[0]));
+  return rects.map((r) => ({ x: r.x / scale, y: r.y / scale, w: r.w / scale, h: r.h / scale, fw: r.w, fh: r.h }));
+}
+
+/** Put boxes where `placeScreen` says, with `aspects` their shapes. */
+export function placeBoxes(boxes: HTMLElement[], aspects: readonly number[], W: number, H: number, scale: number): Placed[] {
+  const rects = placeScreen(aspects, W, H, scale);
+  boxes.forEach((box, i) => Object.assign(box.style, { left: rects[i].x + 'px', top: rects[i].y + 'px', width: rects[i].w + 'px', height: rects[i].h + 'px' }));
+  return rects;
 }
 
 /**
- * Lay out boxes the size of a frame across a W x H stage, centred, on whole screen pixels so
- * they are shown exactly as drawn, without resampling. `fw` and `fh` are in device pixels.
+ * Slots for `frames`, the first being frame number `first`, placed with `after` (boxes shaped like
+ * the first frame, that fill the rest of the screen) following them.
  */
-export function placeBoxes(boxes: HTMLElement[], size: Size, W: number, H: number, scale: number) {
-  const devW = Math.round(W * scale), devH = Math.round(H * scale), devGap = Math.round(GAP * scale);
-  const fw = Math.round(size.w * scale), fh = Math.round(size.h * scale);
-  const total = fw * boxes.length + devGap * (boxes.length - 1);
-  let x = Math.floor((devW - total) / 2);
-  return boxes.map((box) => {
-    const r = { x: x / scale, y: Math.floor((devH - fh) / 2) / scale, w: fw / scale, h: fh / scale, fw, fh };
-    Object.assign(box.style, { left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px' });
-    x += fw + devGap;
-    return r;
-  });
-}
-
-/**
- * Slots for `frames`, the first being frame number `first`, placed with `after` (boxes that
- * fill the rest of the screen) following them.
- */
-export function placeSlots(frames: Frame[], first: number, W: number, H: number, size: Size, scale: number, after: HTMLElement[] = []): FrameSlot[] {
+export function placeSlots(frames: Frame[], first: number, W: number, H: number, scale: number, after: HTMLElement[] = []): FrameSlot[] {
   const boxes = frames.map(() => el('div', 'page'));
-  const rects = placeBoxes([...boxes, ...after], size, W, H, scale);
+  const rects = placeBoxes([...boxes, ...after], [...frames.map((f) => f.aspect), ...after.map(() => frames[0].aspect)], W, H, scale);
   return frames.map((frame, i) => {
     const r = rects[i];
     const slot: FrameSlot = {

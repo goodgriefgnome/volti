@@ -2,21 +2,33 @@
 // questions about that layout (which frame holds a cut, the room left on one). Pure; drawing a
 // frame is reader/frames.ts.
 
-import { cutHeight, EPS, frameHeight, type Aspects, type Cut } from './model';
+import { cutHeight, EPS, type Aspects, type Cut } from './model';
 
 export interface Placed { cut: Cut; index: number; top: number; h: number }
-export interface Frame { items: Placed[]; fill: number }
+/** A frame: cuts stacked down it. `aspect` is its height / width: the shape of its first cut's page. */
+export interface Frame { items: Placed[]; fill: number; aspect: number }
+
+/** Pages whose shapes (height / width) are this far apart or less share frames: A4 and US Letter do. */
+export const SHAPE_TOLERANCE = 0.1;
+
+export const sameShape = (a: number, b: number) => Math.max(a, b) / Math.min(a, b) <= 1 + SHAPE_TOLERANCE + EPS;
+
+/** A frame wider than tall is landscape; any other (a square one too, for now) portrait. */
+export const isLandscape = (f: { aspect: number }) => f.aspect < 1 - EPS;
 
 export const ROOM_CUE = 0.2;
 
-/** Stack cuts onto frames greedily, in played order: a cut that doesn't fit starts a new frame. */
+/**
+ * Stack cuts onto frames greedily, in played order. A cut that doesn't fit starts a new frame, as
+ * does one from a page of another shape; a frame takes the shape of the page its first cut is from.
+ */
 export function pack(cuts: readonly Cut[], aspects: Aspects): Frame[] {
-  const H = frameHeight(aspects), frames: Frame[] = [];
+  const frames: Frame[] = [];
   let open: Frame | null = null;
   cuts.forEach((cut, index) => {
-    const h = cutHeight(cut, aspects);
-    if (!open || open.fill + h > H + EPS) {
-      open = { items: [], fill: Math.max(0, Math.min(cut.pad ?? 0, H - h)) };
+    const h = cutHeight(cut, aspects), a = aspects[cut.page];
+    if (!open || !sameShape(a, open.aspect) || open.fill + h > open.aspect + EPS) {
+      open = { items: [], fill: Math.max(0, Math.min(cut.pad ?? 0, a - h)), aspect: a };
       frames.push(open);
     }
     open.items.push({ cut, index, top: open.fill, h });
@@ -27,7 +39,6 @@ export function pack(cuts: readonly Cut[], aspects: Aspects): Frame[] {
 
 /** Lay cuts out on the frames they were on, without reflowing: how a drag shows while it happens. */
 export function freeze(frames: Frame[], cuts: readonly Cut[], aspects: Aspects): Frame[] {
-  const H = frameHeight(aspects);
   const at = new Map(cuts.map((c, index) => [c.id, index]));
   return frames.map((f) => {
     const items: Placed[] = [];
@@ -36,11 +47,11 @@ export function freeze(frames: Frame[], cuts: readonly Cut[], aspects: Aspects):
       const index = at.get(p.cut.id);
       if (index === undefined) continue;
       const cut = cuts[index], h = cutHeight(cut, aspects);
-      if (!items.length) fill = Math.max(0, Math.min(cut.pad ?? 0, H - h));
+      if (!items.length) fill = Math.max(0, Math.min(cut.pad ?? 0, f.aspect - h));
       items.push({ cut, index, top: fill, h });
       fill += h;
     }
-    return { items, fill };
+    return { items, fill, aspect: f.aspect };
   });
 }
 
@@ -50,10 +61,11 @@ export const frameOf = (frames: Frame[], id: string) => frames.findIndex((f) => 
  * The room left on the frame before frame `n`, in page widths, when it is more than ROOM_CUE
  * of the frame; otherwise null. It is shown as a faint shading at the top of frame n.
  */
-export function roomBefore(frames: Frame[], n: number, aspects: Aspects): number | null {
+export function roomBefore(frames: Frame[], n: number): number | null {
   const prev = frames[n - 1];
-  if (!prev || !frames[n]?.items.length) return null;
-  const H = frameHeight(aspects), room = H - prev.fill;
+  // Music can't move up onto a frame of another shape.
+  if (!prev || !frames[n]?.items.length || !sameShape(prev.aspect, frames[n].aspect)) return null;
+  const H = prev.aspect, room = H - prev.fill;
   return room > ROOM_CUE * H ? room : null;
 }
 

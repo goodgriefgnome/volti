@@ -8,7 +8,7 @@ import type { Original } from '../originals/originals';
 import type { PageCache } from '../originals/pdf';
 import { drawFrame, drawFrameInk } from '../reader/frames';
 import { pack, type Frame } from '../scores/frames';
-import { frameHeight, type Aspects, type State } from '../scores/model';
+import type { Aspects, State } from '../scores/model';
 import { visible } from '../scores/ownership';
 import { loadScore } from '../scores/store';
 import { spanCuts, type Span } from '../setlists/model';
@@ -31,8 +31,8 @@ interface Source {
   aspects: Aspects;
   cache: PageCache;
   doc: PDFDocument | null;
-  /** The width of the exported pages, in points: the original's first page as shown. */
-  width: number;
+  /** Each original page's width as shown, in points: an exported page is as wide as its frame's first. */
+  widths: number[];
   /** Its pages, each embedded in the export once, by 0-based page. */
   embedded: Map<number, Promise<PDFEmbeddedPage>>;
 }
@@ -49,8 +49,8 @@ async function open(lib: PdfLib, o: Original): Promise<Source> {
     const aspects = await cache.allAspects();
     const { state } = await loadScore(o.id, o.title, aspects);
     const doc = await lib.PDFDocument.load(await file.arrayBuffer()).catch((e) => { console.warn('Exporting by drawing the pages:', e); return null; });
-    const width = doc?.getPageCount() ? shownSize(sourcePage(doc.getPage(0))).width : A4_W;
-    return { state, aspects, cache, doc, width, embedded: new Map() };
+    const widths = aspects.map((_, i) => (doc && i < doc.getPageCount() ? shownSize(sourcePage(doc.getPage(i))).width : A4_W));
+    return { state, aspects, cache, doc, widths, embedded: new Map() };
   } catch (e) {
     cache.destroy();
     throw e;
@@ -93,20 +93,20 @@ function drawMusic(lib: PdfLib, out: PDFDocument, page: PDFPage, src: Source & {
 async function drawnMusic(src: Source, frame: Frame): Promise<HTMLCanvasElement> {
   const nums = [...new Set(frame.items.map((p) => p.cut.page))];
   const pages = new Map(await Promise.all(nums.map(async (n) => [n, await src.cache.render(n + 1, RASTER_W, Math.round(RASTER_W * src.aspects[n]), 1)] as const)));
-  const canvas = Object.assign(document.createElement('canvas'), { width: RASTER_W, height: Math.round(RASTER_W * frameHeight(src.aspects)) });
+  const canvas = Object.assign(document.createElement('canvas'), { width: RASTER_W, height: Math.round(RASTER_W * frame.aspect) });
   drawFrame(canvas.getContext('2d')!, frame, RASTER_W, (n) => pages.get(n), src.aspects);
   src.cache.keepOnly([], () => undefined);
   return canvas;
 }
 
 async function addFrame(lib: PdfLib, out: PDFDocument, src: Source, frame: Frame) {
-  const W = src.width, H = W * frameHeight(src.aspects);
+  const W = src.widths[frame.items[0]?.cut.page ?? 0], H = W * frame.aspect;
   const page = out.addPage([W, H]);
   if (src.doc) await drawMusic(lib, out, page, src as Source & { doc: PDFDocument }, frame, W, H);
   else page.drawImage(await out.embedJpg(await pngOrJpeg(await drawnMusic(src, frame), 'image/jpeg')), { x: 0, y: 0, width: W, height: H });
   const ink = src.state.ink;
   if (!frame.items.some((p) => (ink[p.cut.id] ?? []).some((m) => visible(m, p.cut, src.aspects[p.cut.page])))) return;
-  const canvas = Object.assign(document.createElement('canvas'), { width: RASTER_W, height: Math.round(RASTER_W * frameHeight(src.aspects)) });
+  const canvas = Object.assign(document.createElement('canvas'), { width: RASTER_W, height: Math.round(RASTER_W * frame.aspect) });
   drawFrameInk(canvas.getContext('2d')!, frame, ink, src.aspects, RASTER_W);
   page.drawImage(await out.embedPng(await pngOrJpeg(canvas, 'image/png')), { x: 0, y: 0, width: W, height: H });
 }
