@@ -13,18 +13,22 @@ scores.
 
 ## Work for the immediate future
 
-- **Markings exported as vectors:** in an exported PDF, markings are lines in the page's own
-  content, placed exactly as the reader places them (not clipped to their cut), instead of a
-  2000-pixel picture over each page.
-  - Pen strokes: segment by segment with round ends, each segment's width following the pen's
-    pressure, as on screen. Highlighter strokes: one see-through line per stroke, so a stroke
-    doesn't darken where it crosses itself; darken-only ("multiply") over the music, so notes
-    under it stay black, as on paper (on screen it lightens them slightly).
-  - Markings stay part of the page (not PDF annotations, which other apps could remove but which
-    can't follow pen pressure and differ between viewers).
-  - Markings draw through a small drawing interface (move, line, width, colour, transparency)
-    that the screen's canvas and the PDF exporter each implement, so each kind of marking, text
-    or post-its later too, is written once and exports as it shows.
+- **Markings exported as PDF annotations, with their own vector appearances:** in an exported PDF,
+  each marking is an annotation placed exactly as the reader places it (not clipped to its cut),
+  instead of a 2000-pixel picture over each page. Other PDF apps can then hide or delete them,
+  and viewers show them as drawn.
+  - Each annotation carries its appearance (`/AP /N`, a form XObject drawn in vector operators,
+    `/BBox` equal to its `/Rect`), flagged to print (`/F 4`), with a unique `/NM`, listed in its
+    page's `/Annots`.
+  - Pen: an Ink annotation (`/InkList` of the points, `/C`, a nominal `/BS /W`); its appearance draws
+    the stroke segment by segment with round ends, each segment's width from the pen's pressure,
+    as on screen.
+  - Highlighter: an Ink annotation whose appearance is one see-through line per stroke (so it
+    doesn't darken where it crosses itself), darken-only (`/BM /Multiply` in an ExtGState), so
+    notes under it stay black, as on paper.
+  - Markings draw through a small drawing interface (move, line, width, colour, transparency,
+    blending) that the screen's canvas and the PDF appearance writer each implement, so each kind
+    of marking is written once and exports as it shows.
   - The picture of the markings goes. Music pdf-lib can't read (password-protected PDFs) is still
     drawn as a picture.
 
