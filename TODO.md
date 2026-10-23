@@ -15,31 +15,26 @@ scores.
 - **Setlist entry number and title centred in their row:** the number now lines up with the
   title, but both sit high in the row; centre them vertically, as the drag handle and ⋯ are (and
   an excerpt's name in its pill). A title that wraps is centred as a block, the number beside it.
+- **Adding a PDF still doesn't work (bug, seen on the tablet after the fix):** Add PDFs behaves
+  as before. The fix (read each picked file once; drop digits from a name without .pdf) didn't
+  help, so the cause is something else. Not yet investigated.
+- **The dialog with the keyboard open stays a dialog:** today it turns into a full-width sheet,
+  which doesn't look nice. Keep it a dialog (margins, rounded corners), grown to a large share of
+  the screen's width and to the height left above the keyboard; when the thumbnails are zoomed in
+  past that, the dialog scrolls vertically. Keep the thumbnail strip itself from scrolling
+  vertically (that part is liked).
+- **A taller thumbnail strip in the excerpt picker:** by default about 25% of the screen's height,
+  so the pages can be read without zooming every time.
+- **Taller cut tabs:** what shows of a tab can be taller than its 20 pixels now.
 
 ## Manual check
 
 Things to try on the tablet.
 
-- **Renaming a PDF in the scores folder:** it asked for write access, then said "Could not rename
-  it" and left the file as it was. A fallback that copies the file when moving it fails is pushed;
-  check it renames now. If it still fails, the message names the error.
 - **Exporting a score with markings.**
 - **Exporting with no folder linked** (the share sheet). Exporting into the folder works.
-- **Adding a PDF with Add PDFs** (it failed on the tablet: the copy came out empty): it opens,
-  and Come_People_Of_The_Risen_King.pdf is titled without the digits Android added.
-- **Dialogs with the keyboard open** fill the screen above it and scroll as a whole; dragging the
-  excerpt picker's thumbnails scrolls the dialog. (The keyboard is taken to be open when the visible
-  area is under 85% of the page's height, unzoomed.)
-- **Cut tabs** are bigger (64×48 to touch, 40×20 showing, solid enough for 3:1 contrast): easy to
-  hit, and not hiding too much music.
 - **Linking a big folder:** the library shows at once with the scores already known, and the new
   ones appear one by one, with "Reading new scores: n left…".
-- **Updating:** after a change is published, closing and reopening Volti shows the start screen
-  (perhaps "Updating Volti…"), then the new version, never the old one first; with Volti left
-  open, it doesn't reload by itself. The copy installed before this change still updates the old way: close
-  Volti fully once (swipe it away) for the new start-up check to take over.
-- **Tapping into a highlighted name** (Rename…, New setlist, Export PDF…): one tap gives a
-  cursor where it lands, without the cut/copy menu.
 
 ## Confirmed features which require more thought
 
