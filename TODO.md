@@ -3,6 +3,14 @@
 A score is what is shown of its original (a PDF), as cuts; a setlist is a list of excerpts of
 scores.
 
+**How to work through this list** (when asked to work on the immediate features):
+
+- Work on `main` directly: one commit per item, pushed as it is done.
+- Each item's commit takes the item out of this file; what then needs trying on the tablet goes
+  under Manual check.
+- Before each push: `npm test`, `npm run build`, and check the change in the running app.
+- Ideas raised in conversation are filed here, in the right section, not built, unless asked.
+
 ## Work for the immediate future
 
 - **One prompt per session covers reading and writing:** when the linked folder is locked after a
