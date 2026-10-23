@@ -5,16 +5,19 @@
 /* The layer over a frame passes taps through to the music, except on its tabs. */
 .cuts-ui { position: absolute; inset: 0; pointer-events: none; }
 .cuts-ui button { pointer-events: auto; position: absolute; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; touch-action: none; }
-/* A tab's touch area is about 56 x 34; what shows is 30 x 14, flush with the frame's side and the seam. */
-.tab { width: 56px; height: 34px; }
-.tab::after { content: ""; position: absolute; width: 30px; height: 14px; background: var(--cut); opacity: 0.38; }
-.tab.top, .tab.pad { margin-top: -10px; }
+/*
+ * A tab's touch area is 64 x 48 (Material Design's 48 dp at least); what shows is 40 x 20, flush
+ * with the frame's side and the seam, at 3:1 contrast with the white page (WCAG 1.4.11).
+ */
+.tab { width: 64px; height: 48px; }
+.tab::after { content: ""; position: absolute; width: 40px; height: 20px; background: var(--cut); opacity: 0.7; }
+.tab.top, .tab.pad { margin-top: -12px; }
 .tab.top { left: 0; }
-.tab.top::after { left: 0; top: 10px; border-radius: 0 0 6px 0; }
-.tab.bottom { right: 0; margin-top: -24px; }
-.tab.bottom::after { right: 0; bottom: 10px; border-radius: 6px 0 0 0; }
+.tab.top::after { left: 0; top: 12px; border-radius: 0 0 8px 0; }
+.tab.bottom { right: 0; margin-top: -36px; }
+.tab.bottom::after { right: 0; bottom: 12px; border-radius: 8px 0 0 0; }
 .tab.pad { right: 0; }
-.tab.pad::after { right: 0; top: 10px; border-radius: 0 0 0 6px; background: var(--tab-grey); }
+.tab.pad::after { right: 0; top: 12px; border-radius: 0 0 0 8px; background: var(--tab-grey); }
 .tab.dragging::after { background: var(--select); opacity: 1; }
 .tab:focus-visible { outline: none; }
 .tab:focus-visible::after { opacity: 1; outline: 3px solid var(--select); }

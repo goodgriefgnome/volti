@@ -5,12 +5,6 @@ scores.
 
 ## Work for the immediate future
 
-- **Bigger cut tabs, to accessibility guidelines:** the tabs for dragging a cut's edges are a
-  little too small on the tablet (long press works fine). Touch area at least 48×48 CSS px
-  (Material Design's 48 dp, Android being the target; WCAG 2.2 asks 24×24 at AA, 44×44 at AAA),
-  from about 56×34 now. What shows grows from 30×14 to about 40×20, and reaches 3:1 contrast
-  against the white page (WCAG 1.4.11; today's 38% opacity is about 1.8:1), which means it covers
-  the music it sits on more.
 - **Show the library while new PDFs are read:** linking a big folder (each new or changed PDF is
   read whole once to hash it) works but could be faster. Show the library straight away with the
   scores already known, and add the others as each is hashed, in the background, rather than
@@ -66,6 +60,8 @@ Things to try on the tablet.
 - **Dialogs with the keyboard open** fill the screen above it and scroll as a whole; dragging the
   excerpt picker's thumbnails scrolls the dialog. (The keyboard is taken to be open when the visible
   area is under 85% of the page's height, unzoomed.)
+- **Cut tabs** are bigger (64×48 to touch, 40×20 showing, solid enough for 3:1 contrast): easy to
+  hit, and not hiding too much music.
 
 ## Confirmed features which require more thought
 
