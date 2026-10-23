@@ -13,7 +13,21 @@ scores.
 
 ## Work for the immediate future
 
-Nothing at the moment.
+- **The reader's ⋯ menu, as the library's:** the reader's toolbar gets a ⋯ menu for what is being
+  read, with the same items as that thing's ⋯ menu in the library, and the toolbar buttons those
+  items repeat go (Add to setlist, Export PDF), so each action is in one place.
+  - A score: Add to “default”, Add to setlist…, Add excerpt…, Rename…, Export PDF…, and for an
+    added PDF, Move to folder… and Remove from Volti.
+  - A named excerpt: Add to “default”, Add to setlist…, Rename…, Change cuts…, Export PDF…,
+    Delete…. (The Excerpt button, which changes its cuts too, goes into Change cuts….)
+  - A setlist: its own items (Add scores…, Rename…, Duplicate, Export PDF…, Archive, Delete… when
+    archived), then those of the entry being read (Move up, Move down, Change excerpt…, Remove
+    from setlist), not those of the score behind the entry. (The Excerpt button, which changes the
+    entry's excerpt, goes into Change excerpt….)
+  - When what is read goes away: removing the entry being read, or deleting the named excerpt
+    being read, moves on to the next entry or named excerpt (of the setlist, or of the score), or
+    the one before when it was the last; when none is left, back to the library. Removing a score
+    from Volti, or deleting the setlist being read, goes back to the library.
 
 ## Manual check
 
