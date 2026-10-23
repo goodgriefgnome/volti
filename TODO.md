@@ -13,6 +13,7 @@ scores.
 
 ## Work for the immediate future
 
+Nothing queued.
 
 ## Manual check
 
