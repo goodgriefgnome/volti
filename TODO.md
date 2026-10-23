@@ -27,7 +27,8 @@ Things to try on the tablet.
   ones appear one by one, with "Reading new scores: n left…".
 - **Updating:** after a change is published, closing and reopening Volti shows the start screen
   (perhaps "Updating Volti…"), then the new version, never the old one first; with Volti left
-  open, it doesn't reload by itself.
+  open, it doesn't reload by itself. The copy installed before this change still updates the old way: close
+  Volti fully once (swipe it away) for the new start-up check to take over.
 - **Tapping into a highlighted name** (Rename…, New setlist, Export PDF…): one tap gives a
   cursor where it lands, without the cut/copy menu.
 
