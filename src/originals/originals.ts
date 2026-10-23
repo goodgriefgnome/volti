@@ -1,11 +1,13 @@
-// Scores' originals: the PDFs in the linked folder (File System Access) and the copies imported into
-// the app (the origin private file system), listed together, each known by the hash of its
-// contents. Only finding, reading, hashing and removing files; the score made from an original is
-// in scores/.
+// Scores' originals: the PDFs in the linked folder (folder.ts) and the copies imported into the app
+// (imported.ts), listed together, each known by the hash of its contents (hashes.ts), and renamed.
+// Only finding, reading and renaming files; the score made from an original is in scores/, and
+// opening one's pages is open.ts.
 
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
-import { takeInbox } from './inbox';
+import { folderFiles, folderOriginal, placeOf, rememberedListing, saveListing, type FolderState } from './folder';
+import { Hasher, rememberHash } from './hashes';
+import { importedFiles, importsDir, removeImported } from './imported';
 
 /** A score's original: a PDF in the linked folder or imported into the app. */
 export interface Original {
@@ -21,54 +23,6 @@ export interface Original {
   /** Where the file is: its path within the linked folder, or its name among the imported copies. */
   path: string;
   getFile(): Promise<File>;
-}
-
-export type FolderState =
-  | { kind: 'none' }
-  | { kind: 'ready'; name: string }
-  | { kind: 'locked'; name: string }; // linked, but needs a tap to allow access this session
-
-const MAX_DEPTH = 4;
-const titleOf = (name: string) => name.replace(/\.pdf$/i, '');
-
-/* ---------- ids: hashes of the contents ---------- */
-
-/** A file's hash, good while its size and modified time stay the same. */
-interface Hashed { size: number; modified: number; id: string }
-
-/** Hashes by where the file is: "folder/" + path or "imported/" + name. */
-type HashCache = Record<string, Hashed>;
-
-const hex = (b: ArrayBuffer) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
-
-/** The SHA-256 of some contents, in hex. */
-export const hashBytes = async (bytes: ArrayBuffer) => hex(await crypto.subtle.digest('SHA-256', bytes));
-
-/** The SHA-256 of `file`'s contents, in hex. */
-export const hashFile = async (file: Blob) => hashBytes(await file.arrayBuffer());
-
-/** Ids for files, hashing only those that changed since they were last hashed. */
-class Hasher {
-  private constructor(private before: HashCache, readonly now: HashCache) {}
-  static async load() { return new Hasher((await kv.get<HashCache>(keys.hashes)) ?? {}, {}); }
-
-  /** The id worked out before for this file, while it hasn't changed. */
-  known(where: string, file: File): string | undefined {
-    const was = this.before[where];
-    return was && was.size === file.size && was.modified === file.lastModified ? was.id : undefined;
-  }
-
-  async id(where: string, file: File): Promise<string> {
-    const id = this.known(where, file) ?? await hashFile(file);
-    this.now[where] = { size: file.size, modified: file.lastModified, id };
-    return id;
-  }
-
-  /** Remember the files hashed this time, and those under `keep` (places not looked at this time). */
-  save(keep?: string) {
-    const kept = keep ? Object.entries(this.before).filter(([k]) => k.startsWith(keep)) : [];
-    return kv.set(keys.hashes, { ...Object.fromEntries(kept), ...this.now });
-  }
 }
 
 /**
@@ -90,91 +44,6 @@ export function oneEach(folder: readonly Original[], imported: readonly Original
 /** Every original's title as last seen, by id: for a score whose original can't be found. */
 export const knownTitles = async () => (await kv.get<Record<string, string>>(keys.titles)) ?? {};
 
-/* ---------- linked folder ---------- */
-
-let dir: FileSystemDirectoryHandle | undefined;
-
-export const canLinkFolder = () => 'showDirectoryPicker' in window;
-
-export async function folderState(): Promise<FolderState> {
-  dir ??= await kv.get<FileSystemDirectoryHandle>(keys.folder);
-  if (!dir) return { kind: 'none' };
-  const perm = await dir.queryPermission({ mode: 'read' });
-  return perm === 'granted' ? { kind: 'ready', name: dir.name } : { kind: 'locked', name: dir.name };
-}
-
-/** Must be called from a tap. Asks to change files too (renaming, exports), so that's asked once. */
-export async function linkFolder(): Promise<boolean> {
-  try {
-    dir = await window.showDirectoryPicker({ id: 'volti-scores', mode: 'readwrite' });
-  } catch (e) {
-    if ((e as DOMException).name === 'AbortError') return false;
-    throw e;
-  }
-  await kv.set(keys.folder, dir);
-  return true;
-}
-
-/**
- * Must be called from a tap. Asks to change files as well as read them, so renaming and exporting
- * don't ask again this session; when that is refused, asks to read them only.
- */
-export async function unlockFolder(): Promise<boolean> {
-  if (!dir) return false;
-  if ((await dir.requestPermission({ mode: 'readwrite' }).catch(() => 'denied')) === 'granted') return true;
-  return (await dir.requestPermission({ mode: 'read' })) === 'granted';
-}
-
-/** Ask to change files in the linked folder as well as read them. Must be called from a tap. */
-export async function allowWriting(): Promise<boolean> {
-  if (!dir) return false;
-  if ((await dir.queryPermission({ mode: 'readwrite' })) === 'granted') return true;
-  return (await dir.requestPermission({ mode: 'readwrite' })) === 'granted';
-}
-
-export async function unlinkFolder(): Promise<void> {
-  dir = undefined;
-  await kv.del(keys.folder);
-  await kv.del(keys.folderListing);
-}
-
-/** A PDF in the linked folder, as last read: listed from this while access is locked. */
-interface ListingEntry { path: string; id: string }
-
-async function walk(d: FileSystemDirectoryHandle, prefix: string, depth: number, out: [string, FileSystemFileHandle][]) {
-  for await (const [name, h] of d.entries()) {
-    if (name.startsWith('.')) continue;
-    if (h.kind === 'file' && /\.pdf$/i.test(name)) out.push([prefix + name, h as FileSystemFileHandle]);
-    else if (h.kind === 'directory' && depth < MAX_DEPTH) await walk(h as FileSystemDirectoryHandle, `${prefix}${name}/`, depth + 1, out);
-  }
-}
-
-async function fileAt(path: string): Promise<File> {
-  const [d, name] = await placeOf(path);
-  return (await d.getFileHandle(name)).getFile();
-}
-
-/** The folder a path in the linked folder is in, and the file's name. */
-async function placeOf(path: string): Promise<[FileSystemDirectoryHandle, string]> {
-  if (!dir) throw new Error('No folder linked');
-  const parts = path.split('/');
-  let d = dir;
-  for (const p of parts.slice(0, -1)) d = await d.getDirectoryHandle(p);
-  return [d, parts.at(-1)!];
-}
-
-function folderOriginal({ path, id }: ListingEntry): Original {
-  const slash = path.lastIndexOf('/');
-  return {
-    id,
-    title: titleOf(path.slice(slash + 1)),
-    folder: slash < 0 ? '' : path.slice(0, slash),
-    location: 'folder',
-    path,
-    getFile: () => fileAt(path),
-  };
-}
-
 /**
  * Hears the originals known so far while new or changed files are read, and how many are `left`
  * to read.
@@ -182,124 +51,7 @@ function folderOriginal({ path, id }: ListingEntry): Original {
 export type Progress = (originals: Original[], left: number) => void;
 
 /** A file found, and the original it is once its id is known. */
-interface Found { where: string; file: File; make: (id: string) => Original }
-
-/** The PDFs in the linked folder, read now; access must be granted. */
-async function folderFiles(): Promise<Found[]> {
-  const found: [string, FileSystemFileHandle][] = [];
-  await walk(dir!, '', 0, found);
-  return Promise.all(found.map(async ([path, h]) => ({ where: 'folder/' + path, file: await h.getFile(), make: (id: string) => folderOriginal({ path, id }) })));
-}
-
-/* ---------- imported originals (origin private file system) ---------- */
-
-const importsDir = async () => (await navigator.storage.getDirectory()).getDirectoryHandle('imported', { create: true });
-
-/** A name for a new imported file that no other has: "Mass.pdf", then "Mass (2).pdf". */
-function freeName(name: string, taken: ReadonlySet<string>): string {
-  const base = titleOf(name);
-  for (let n = 1; ; n++) {
-    const next = n === 1 ? `${base}.pdf` : `${base} (${n}).pdf`;
-    if (!taken.has(next.toLowerCase())) return next;
-  }
-}
-
-/** The name to keep an added PDF under: its own, with ".pdf" added if it hasn't one. */
-export const importName = (name: string) => (/\.pdf$/i.test(name) ? name : name + '.pdf');
-
-/**
- * Keep copies of PDFs in the app. A file the library already has, in the folder or imported, isn't
- * copied again: `already` has their titles.
- */
-export async function importFiles(files: Iterable<File>): Promise<{ added: number; already: string[] }> {
-  const d = await importsDir();
-  const hasher = await Hasher.load();
-  const imported = await importedOriginals(hasher);
-  const listed = (await kv.get<ListingEntry[]>(keys.folderListing)) ?? [];
-  const have = new Set([...imported.map((o) => o.id), ...listed.map((e) => e.id)]);
-  const taken = new Set(imported.map((o) => o.path.toLowerCase()));
-  let added = 0;
-  const already: string[] = [];
-  for (const f of files) {
-    if (!/\.pdf$/i.test(f.name) && f.type !== 'application/pdf') continue;
-    // Read once: on Android a picked file may not be readable a second time.
-    const bytes = await f.arrayBuffer();
-    const id = await hashBytes(bytes);
-    if (have.has(id)) { already.push(titleOf(importName(f.name))); continue; }
-    const name = freeName(importName(f.name), taken);
-    const h = await d.getFileHandle(name, { create: true });
-    try {
-      const w = await h.createWritable();
-      await w.write(bytes);
-      await w.close();
-    } catch (e) {
-      await d.removeEntry(name).catch(() => {});
-      throw e;
-    }
-    await hasher.id('imported/' + name, await h.getFile());
-    have.add(id);
-    taken.add(name.toLowerCase());
-    added++;
-  }
-  await hasher.save('folder/');
-  return { added, already };
-}
-
-export async function importShared(): Promise<number> {
-  const files = await takeInbox();
-  return files.length ? (await importFiles(files)).added : 0;
-}
-
-export async function removeImported(o: Original): Promise<void> {
-  const d = await importsDir();
-  await d.removeEntry(o.path);
-}
-
-/** A folder path tidied: parts trimmed, empty ones dropped, joined with "/". */
-export const tidyFolder = (path: string) => path.split('/').map((p) => p.trim()).filter(Boolean).join('/');
-
-/**
- * The originals in lists by folder: the top of the folder (with what is filed under no folder)
- * first, then each subfolder, by path. Each list keeps the originals' order.
- */
-export function byFolder(originals: readonly Original[]): { folder: string; originals: Original[] }[] {
-  const lists = new Map<string, Original[]>([['', []]]);
-  for (const o of originals) lists.set(o.folder, [...(lists.get(o.folder) ?? []), o]);
-  return [...lists].map(([folder, originals]) => ({ folder, originals }))
-    .sort((a, b) => (a.folder === '' ? -1 : b.folder === '' ? 1 : a.folder.localeCompare(b.folder, undefined, { numeric: true, sensitivity: 'base' })));
-}
-
-/** File an imported original under a subfolder in the library ('' for none). The file stays where it is. */
-export async function fileAdded(o: Original, folder: string): Promise<void> {
-  const path = tidyFolder(folder);
-  await kv.update<Record<string, string>>(keys.addedFolders, (old) => {
-    const { [o.id]: _, ...rest } = old ?? {};
-    return path ? { ...rest, [o.id]: path } : rest;
-  });
-}
-
-/** The copies imported into the app. Empty ones, which failed to be written as they were added, are deleted. */
-async function importedFiles(): Promise<Found[]> {
-  const filed = (await kv.get<Record<string, string>>(keys.addedFolders)) ?? {};
-  const d = await importsDir();
-  const files: Found[] = [];
-  for await (const [name, h] of d.entries()) {
-    if (h.kind !== 'file') continue;
-    const handle = h as FileSystemFileHandle, file = await handle.getFile();
-    if (!file.size) { await d.removeEntry(name).catch(() => {}); continue; }
-    files.push({
-      where: 'imported/' + name,
-      file,
-      make: (id) => ({ id, title: titleOf(name), folder: filed[id] ?? '', location: 'imported', path: name, getFile: () => handle.getFile() }),
-    });
-  }
-  return files;
-}
-
-/** The imported copies, with their ids. */
-async function importedOriginals(hasher: Hasher): Promise<Original[]> {
-  return Promise.all((await importedFiles()).map(async (f) => f.make(await hasher.id(f.where, f.file))));
-}
+export interface Found { where: string; file: File; make: (id: string) => Original }
 
 const byTitle = (x: Original, y: Original) => x.title.localeCompare(y.title, undefined, { numeric: true, sensitivity: 'base' });
 
@@ -311,7 +63,7 @@ const byTitle = (x: Original, y: Original) => x.title.localeCompare(y.title, und
  */
 export async function allOriginals(state: FolderState, progress?: Progress): Promise<{ originals: Original[]; removed: number }> {
   const hasher = await Hasher.load();
-  const remembered = state.kind === 'locked' ? ((await kv.get<ListingEntry[]>(keys.folderListing)) ?? []).map(folderOriginal) : [];
+  const remembered = state.kind === 'locked' ? (await rememberedListing()).map(folderOriginal) : [];
   const files = [...(state.kind === 'ready' ? await folderFiles() : []), ...await importedFiles()];
   const ids = new Map<Found, string>();
   const known = (deleteCopies: boolean) => {
@@ -327,23 +79,12 @@ export async function allOriginals(state: FolderState, progress?: Progress): Pro
     ids.set(f, await hasher.id(f.where, f.file));
     progress?.(known(false).originals.sort(byTitle), fresh.length - i - 1);
   }
-  if (state.kind === 'ready') await kv.set(keys.folderListing, files.filter((f) => f.where.startsWith('folder/')).map((f) => ({ path: f.where.slice('folder/'.length), id: ids.get(f)! })));
+  if (state.kind === 'ready') await saveListing(files.filter((f) => f.where.startsWith('folder/')).map((f) => ({ path: f.where.slice('folder/'.length), id: ids.get(f)! })));
   await hasher.save(state.kind === 'ready' ? undefined : 'folder/');
   const { originals, copies } = known(state.kind === 'ready');
   for (const c of copies) await removeImported(c);
   await kv.update<Record<string, string>>(keys.titles, (old) => ({ ...old, ...Object.fromEntries(originals.map((o) => [o.id, o.title])) }));
   return { originals: originals.sort(byTitle), removed: copies.length };
-}
-
-/* ---------- renaming ---------- */
-
-/** Why `title` can't be a file name, or null if it can. */
-export function fileNameProblem(title: string): string | null {
-  const t = title.trim();
-  if (!t) return 'Type a name.';
-  if (/[\\/:*?"<>|]/.test(t)) return 'A file name can\'t have any of \\ / : * ? " < > |';
-  if (t.startsWith('.')) return 'A file name can\'t start with a dot.';
-  return null;
 }
 
 /**
@@ -378,28 +119,6 @@ export async function renameOriginal(o: Original, title: string): Promise<string
   // The same contents, so the same id: no need to read it again.
   const file = await (await d.getFileHandle(name)).getFile();
   const where = (o.location === 'folder' ? 'folder/' + o.path.slice(0, o.path.length - old.length) : 'imported/') + name;
-  await kv.update<HashCache>(keys.hashes, (old) => ({ ...old, [where]: { size: file.size, modified: file.lastModified, id: o.id } }));
+  await rememberHash(where, file, o.id);
   return null;
-}
-
-/* ---------- exports ---------- */
-
-/** The folder inside the linked folder that exported PDFs are written to. */
-export const EXPORTS = 'Exports';
-
-const exportsDir = async () => {
-  if (!dir) throw new Error('No folder linked');
-  return dir.getDirectoryHandle(EXPORTS, { create: true });
-};
-
-/** Whether `name`.pdf is in the exports folder. Write access must have been allowed. */
-export async function exportExists(name: string): Promise<boolean> {
-  return (await exportsDir()).getFileHandle(name.trim() + '.pdf').then(() => true, () => false);
-}
-
-/** Write `name`.pdf into the exports folder, replacing one of that name. Write access must have been allowed. */
-export async function saveExport(name: string, data: Blob): Promise<void> {
-  const w = await (await (await exportsDir()).getFileHandle(name.trim() + '.pdf', { create: true })).createWritable();
-  await w.write(data);
-  await w.close();
 }

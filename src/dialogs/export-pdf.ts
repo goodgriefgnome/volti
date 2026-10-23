@@ -3,7 +3,8 @@
 // folder, or sharing it when no folder is linked.
 
 import { drawnOriginals, exportPdf, type ExportPart } from '../export/pdf';
-import { allowWriting, EXPORTS, exportExists, fileNameProblem, saveExport } from '../originals/originals';
+import { allowWriting, exportExists, EXPORTS, saveExport } from '../originals/folder';
+import { fileNameProblem } from '../originals/names';
 import { button, el, focusHighlighted } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog } from '../ui/overlay';
 import { askPassword } from './passwords';

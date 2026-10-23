@@ -4,7 +4,7 @@
 
 import { registerSW } from 'virtual:pwa-register';
 import { Library } from './library/library';
-import { importShared } from './originals/originals';
+import { importShared } from './originals/imported';
 import { el } from './ui/dom';
 import { takeUpdate, watchForUpdates } from './updates';
 // In this order: later files build on the earlier ones.

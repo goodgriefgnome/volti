@@ -7,16 +7,15 @@ import { openExportPdf } from '../dialogs/export-pdf';
 import { askSetlistName, chooseSetlist } from '../dialogs/setlists';
 import { excerptName, sortedNames } from '../excerpts/names';
 import { spanLabel, type Span } from '../excerpts/span';
+import { allowWriting, canLinkFolder, folderState, linkFolder, unlinkFolder, unlockFolder, type FolderState } from '../originals/folder';
+import { fileAdded, importFiles, removeImported } from '../originals/imported';
+import { fileNameProblem, tidyFolder } from '../originals/names';
 import type { Aspects, ExcerptName, Score } from '../scores/model';
 import { loadAspects, loadSavedScore, scoreEntries, scoreEntry } from '../scores/store';
 import { openReader, type ToRead } from '../reader/reader';
 import { addEntries, defaultSetlist, duplicate, moveEntry, newSetlist, setEntrySpan, setlistsWith, withSetlist, type Entry, type Setlist } from '../setlists/model';
 import { deleteSetlist, loadLastAddedTo, loadSetlists, saveChanged, saveLastAddedTo } from '../setlists/store';
-import {
-  allowWriting, allOriginals, byFolder, canLinkFolder, fileAdded, fileNameProblem, folderState, importFiles, knownTitles, linkFolder, removeImported, tidyFolder,
-  renameOriginal, unlinkFolder, unlockFolder,
-  type FolderState, type Original,
-} from '../originals/originals';
+import { allOriginals, knownTitles, renameOriginal, type Original } from '../originals/originals';
 import { askText } from '../ui/ask-text';
 import { button, el, plural } from '../ui/dom';
 import type { ExportPart } from '../export/pdf';
@@ -27,6 +26,7 @@ import { kv } from '../storage/kv';
 import { Toast } from '../ui/toast';
 import { openAddScores } from './add-scores';
 import { makePictures } from '../pictures/maker';
+import { byFolder } from './folders';
 import { openScore, type LibraryScore } from './open-score';
 
 /** The Library screen: setlists, the scores folder, imported scores, and the list to open them from. */

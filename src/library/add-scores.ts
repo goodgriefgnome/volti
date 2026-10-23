@@ -5,11 +5,12 @@
 import { ExcerptStrip, namedExcerptMenu, type ExcerptSource } from '../dialogs/excerpt-picker';
 import { excerptName, nameOf, sortedNames } from '../excerpts/names';
 import { ends, sameSpan, type Span } from '../excerpts/span';
-import { byFolder, type Original } from '../originals/originals';
+import type { Original } from '../originals/originals';
 import type { ExcerptName, Score } from '../scores/model';
 import type { Setlist } from '../setlists/model';
 import { button, el, plural } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog, whenOverlayCloses } from '../ui/overlay';
+import { byFolder } from './folders';
 import type { LibraryScore } from './open-score';
 
 export interface AddScoresHost {
