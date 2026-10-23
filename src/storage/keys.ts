@@ -13,6 +13,10 @@ export const keys = {
   hashes: 'hashes',
   /** Each original's title as last seen, by id: for scores whose original is missing. */
   titles: 'titles',
+  /** The subfolder each imported original is filed under in the library, by id ("Masses/Latin"). */
+  addedFolders: 'added-folders',
+  /** The library's subfolder lists closed by hand, by path. */
+  closedFolders: 'closed-folders',
   /** Files shared into the app, waiting to be imported: File[] (originals/inbox.ts). */
   inbox: 'inbox',
 

@@ -54,6 +54,10 @@
 .pick-row .check input { margin: 2px 0 0; }
 .pick-text { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; overflow-wrap: anywhere; }
 .pick-text .meta { margin-left: auto; }
+/* A subfolder's scores, under a heading that opens and closes them. */
+.pick-folder { border-top: 1px solid var(--line); }
+.pick-folder.open .chev { transform: rotate(45deg); }
+.pick-folder-body { padding-left: 12px; }
 /* A score's named excerpts, indented under it, each with its Preview. */
 .pick-sub { flex-basis: 100%; display: flex; align-items: center; gap: 4px; padding-left: 28px; }
 /* The reader's list of a score's named excerpts: tap one to go to it, ⋯ for the rest. */

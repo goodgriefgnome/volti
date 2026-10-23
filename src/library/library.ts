@@ -10,7 +10,7 @@ import {
 import { ends, excerptName, sortedNames } from '../setlists/names';
 import { deleteSetlist, loadLastAddedTo, loadSetlists, saveChanged, saveLastAddedTo } from '../setlists/store';
 import {
-  allowWriting, allOriginals, canLinkFolder, fileNameProblem, folderState, importFiles, knownTitles, linkFolder, removeImported,
+  allowWriting, allOriginals, byFolder, canLinkFolder, fileAdded, fileNameProblem, folderState, importFiles, knownTitles, linkFolder, removeImported, tidyFolder,
   renameOriginal, unlinkFolder, unlockFolder,
   type FolderState, type Original,
 } from '../originals/originals';
@@ -22,6 +22,8 @@ import { openExportPdf } from '../ui/export-pdf';
 import { PasswordNotGiven } from '../ui/passwords';
 import { buttonRow, closeOverlay, showDialog, showMenu, whenOverlayCloses, type MenuItem } from '../ui/overlay';
 import { askSetlistName, chooseSetlist } from '../ui/setlists';
+import { keys } from '../storage/keys';
+import { kv } from '../storage/kv';
 import { Toast } from '../ui/toast';
 import { openAddScores } from './add-scores';
 import { openScore, type LibraryScore } from './open-score';
@@ -32,6 +34,8 @@ export class Library {
   private originals: Original[] = [];
   /** Every original's title as last seen, for scores whose original is missing. */
   private titles: Record<string, string> = {};
+  /** The subfolder lists closed by hand, by path; the others are open. */
+  private closedFolders: Set<string> | undefined;
   /** The setlist a score was last added to: see `defaultSetlist`. */
   private lastAddedTo: string | undefined;
   /** The refresh running, and whether another was asked for meanwhile. */
@@ -166,6 +170,8 @@ export class Library {
 
   private async loadSetlists() {
     [this.setlists, this.titles, this.lastAddedTo] = await Promise.all([loadSetlists(), knownTitles(), loadLastAddedTo()]);
+    // Read once: after that, the lists opened and closed here are the ones to go by.
+    this.closedFolders ??= new Set((await kv.get<string[]>(keys.closedFolders)) ?? []);
     // Every score's, for its named excerpts, and those of scores in setlists that are missing.
     const ids = [...new Set([...this.originals.map((o) => o.id), ...this.setlists.flatMap((s) => s.entries.map((e) => e.scoreId))])];
     const [saved, shapes] = await Promise.all([Promise.all(ids.map(loadSavedScore)), Promise.all(ids.map(loadAspects))]);
@@ -452,7 +458,6 @@ export class Library {
       const score = this.saved.get(s.id);
       return q && score ? sortedNames(score).filter((x) => x.name.toLowerCase().includes(q)).map((x) => this.excerptHit(s, score, x)) : [];
     };
-    const rows = this.originals.flatMap((s) => [...(matches(s) ? [this.scoreRow(s)] : []), ...hits(s)]);
     this.list.replaceChildren();
     if (!this.originals.length) {
       this.list.append(el('li', 'empty', this.reading ? 'Reading the scores…' : this.folder.kind === 'none'
@@ -460,12 +465,72 @@ export class Library {
         : 'No PDFs found in this folder or its subfolders.'));
       return;
     }
-    if (!rows.length) {
-      this.list.append(el('li', 'empty', `Nothing matches “${this.query}”.`));
-      return;
+    // The top of the folder, then a list for each subfolder; while searching, only lists with matches.
+    let found = false;
+    for (const { folder, originals } of byFolder(this.originals)) {
+      const rows = originals.flatMap((s) => [...(matches(s) ? [this.scoreRow(s)] : []), ...hits(s)]);
+      if (!rows.length && (q || !folder)) continue;
+      found ||= rows.length > 0;
+      if (folder) this.list.append(this.folderList(folder, rows, !!q));
+      else this.list.append(...rows);
     }
-    this.list.append(...rows);
+    if (!found) this.list.append(el('li', 'empty', `Nothing matches “${this.query}”.`));
   }
+
+  /** A subfolder's scores under its heading, which opens and closes the list (remembered); a search opens it. */
+  private folderList(folder: string, rows: HTMLElement[], searching: boolean): HTMLLIElement {
+    const closed = this.closedFolders ??= new Set();
+    const open = searching || !closed.has(folder);
+    const li = el('li', 'folder-list' + (open ? ' open' : ''));
+    const list = el('ul', 'list scores sub');
+    list.id = 'folder-' + ++this.rowSeq;
+    list.hidden = !open;
+    list.append(...rows);
+    const head = button('', () => {
+      const now = Boolean(list.hidden);
+      list.hidden = !now;
+      li.classList.toggle('open', now);
+      head.setAttribute('aria-expanded', String(now));
+      // A search opens lists for the while; what is closed by hand is remembered.
+      if (searching) return;
+      if (now) closed.delete(folder); else closed.add(folder);
+      void kv.set(keys.closedFolders, [...closed]);
+    }, 'folder-head');
+    head.append(el('span', 'chev'), el('span', '', folder.split('/').join(' / ')));
+    head.setAttribute('aria-expanded', String(open));
+    head.setAttribute('aria-controls', list.id);
+    li.append(head, list);
+    return li;
+  }
+
+  /** File an added PDF under a subfolder in the library: one of the folder's, or a new one; None takes it back to the top. */
+  private moveAdded(o: Original) {
+    const d = showDialog(`Move “${o.title}” to a folder`);
+    const input = el('input', 'name');
+    input.type = 'text';
+    input.value = o.folder;
+    input.placeholder = 'For example, Masses/Latin';
+    input.setAttribute('aria-label', 'Folder');
+    // The subfolders there are, offered as you type.
+    const choices = el('datalist');
+    choices.id = 'folder-choices';
+    for (const f of [...new Set(this.originals.map((x) => x.folder).filter(Boolean))].sort()) choices.append(Object.assign(el('option'), { value: f }));
+    input.setAttribute('list', choices.id);
+    const go = async (folder: string) => {
+      closeOverlay();
+      await fileAdded(o, folder);
+      this.toast.say(tidyFolder(folder) ? `Moved “${o.title}” to ${tidyFolder(folder).split('/').join(' / ')}.` : `Moved “${o.title}” to the top of the list.`);
+      await this.refresh();
+    };
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') void go(input.value); });
+    d.append(
+      input, choices,
+      el('p', 'hint', 'Volti lists it under that folder, beside the scores folder’s own PDFs there. The PDF itself stays where it is.'),
+      buttonRow(button('Cancel', closeOverlay), button('None', () => void go(''), 'quiet'), button('Move', () => void go(input.value), 'primary')),
+    );
+    focusHighlighted(input);
+  }
+
 
   /** A named excerpt found by searching: its name, with its score's, as names are only unique within a score. */
   private excerptHit(o: Original, score: Score, x: ExcerptName): HTMLLIElement {
@@ -473,7 +538,7 @@ export class Library {
     const open = button('', () => void this.readExcerpt(o, x), 'open');
     const pages = spanLabel(score.cuts, x, this.shapes.get(score.id));
     open.append(el('span', 'score-title', `${x.name} · ${o.title}`));
-    open.append(el('span', 'score-folder', [pages, o.folder].filter(Boolean).join(' · ')));
+    if (pages) open.append(el('span', 'score-folder', pages));
     open.setAttribute('aria-label', `${x.name}, an excerpt of ${o.title}`);
     li.append(el('span', 'expand'), open);
     return li;
@@ -506,7 +571,7 @@ export class Library {
     const title = button('', () => void this.open(s), 'open');
     title.append(el('span', 'score-title', s.title));
     const n = setlistsWith(this.setlists, s.id).length;
-    const meta = [s.folder, names.length ? plural(names.length, 'excerpt') : '', n ? `in ${plural(n, 'setlist')}` : ''].filter(Boolean).join(' · ');
+    const meta = [names.length ? plural(names.length, 'excerpt') : '', n ? `in ${plural(n, 'setlist')}` : ''].filter(Boolean).join(' · ');
     if (meta) title.append(el('span', 'score-folder', meta));
     if (s.location === 'imported') title.append(el('span', 'badge', 'Added'));
 
@@ -515,6 +580,7 @@ export class Library {
       { label: 'Add excerpt…', run: () => void this.withPages(s, (sc) => addExcerpt(sc, s.title, this.excerptHost(s.id))) },
       { label: 'Rename…', run: () => this.renameFile(s) },
       { label: 'Export PDF…', run: () => this.exportPdf(s.title, [{ scoreId: s.id }]) },
+      s.location === 'imported' && { label: 'Move to folder…', run: () => this.moveAdded(s) },
       s.location === 'imported' && { label: 'Remove from Volti', run: async () => {
         await removeImported(s);
         this.say(`Removed “${s.title}”.`);

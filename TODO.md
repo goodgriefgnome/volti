@@ -13,22 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **Scores grouped by subfolder:** the library's Scores list shows the PDFs at the top of the
-  scores folder (and the added ones), then one list per subfolder, headed with its path ("Masses /
-  Latin"; folders inside subfolders get lists of their own, flat, not nested), sorted by path.
-  - Each subfolder list collapses and opens from its heading, open at first; whether each is open
-    is remembered on the tablet, across restarts. Headings show no count.
-  - Rows lose the folder name from their second line (excerpt and setlist counts stay). Exports
-    is an ordinary subfolder list.
-  - Searching keeps matches under their headings, opens the lists holding matches for the
-    search, and hides lists without any.
-  - Added PDFs sit in the main list, but "Move to folder…" in their ⋯ menu files one under a
-    subfolder path of your choosing, in Volti only. Its dialog has a text field for the path,
-    with the existing subfolders offered as suggestions to pick from as you type (and None). It
-    then shows in that subfolder's list beside the real files there, or in a list of its own when
-    no such subfolder exists. The file itself stays where it is. A "None" choice moves it back to
-    the main list.
-  - Add scores groups the same way, its subfolder lists collapsed at first (not remembered).
 
 ## Manual check
 
@@ -46,6 +30,8 @@ Things to try on the tablet.
   being typed into in view.
 - **The reader's back arrow:** with the toolbar hidden, the small arrow at the top left goes back
   to the library without getting in the way of the music or of turning back a page.
+- **Scores grouped by subfolder:** the lists, closing them (remembered after a restart), searching,
+  Move to folder… for an added PDF, and Add scores' collapsed lists.
 
 ## Confirmed features which require more thought
 

@@ -2,7 +2,7 @@
 // excerpts, or as excerpts chosen in its preview. "New setlist" and a setlist's ⋯ › Add scores
 // both open it.
 
-import type { Original } from '../originals/originals';
+import { byFolder, type Original } from '../originals/originals';
 import type { ExcerptName, Score } from '../scores/model';
 import { newId, type Entry, type Setlist, type Span } from '../setlists/model';
 import { ends, excerptName, nameOf, sameSpan, sortedNames } from '../setlists/names';
@@ -29,7 +29,7 @@ export interface AddScoresHost {
  */
 interface Choice { span: Span; label: string | null; named?: boolean; src?: ExcerptSource }
 
-/** A row's title, with what else it says (its folder, say), wrapping beside its checkbox. */
+/** A row's title, with what else it says ("in this setlist"), wrapping beside its checkbox. */
 function pickText(title: string, meta = ''): HTMLElement {
   const t = el('span', 'pick-text');
   t.append(el('span', 'pick-title', title));
@@ -73,12 +73,34 @@ export function openAddScores(h: AddScoresHost) {
     return !q || `${sc.title} ${sc.folder}`.toLowerCase().includes(q) ? names : names.filter((x) => x.name.toLowerCase().includes(q));
   };
 
+  /** The subfolder lists opened in this dialog; they start closed. */
+  const openFolders = new Set<string>();
   const fill = (search: string) => {
     list.replaceChildren();
     const q = search.trim().toLowerCase();
     const shown = h.originals.filter((x) => `${x.title} ${x.folder}`.toLowerCase().includes(q) || namesShown(x, q).length);
     if (!shown.length) list.append(el('p', 'empty', h.originals.length ? `Nothing matches “${search}”.` : 'No scores yet.'));
-    for (const sc of shown) list.append(row(sc, namesShown(sc, q)));
+    // As in the library: the top of the folder, then a list for each subfolder, opened by its heading.
+    for (const { folder, originals } of byFolder(shown)) {
+      const rows = originals.map((sc) => row(sc, namesShown(sc, q)));
+      if (!folder) { list.append(...rows); continue; }
+      const open = !!q || openFolders.has(folder);
+      const group = el('div', 'pick-folder' + (open ? ' open' : ''));
+      const body = el('div', 'pick-folder-body');
+      body.hidden = !open;
+      body.append(...rows);
+      const head = button('', () => {
+        const now = Boolean(body.hidden);
+        body.hidden = !now;
+        group.classList.toggle('open', now);
+        head.setAttribute('aria-expanded', String(now));
+        if (!q) { if (now) openFolders.add(folder); else openFolders.delete(folder); }
+      }, 'folder-head');
+      head.append(el('span', 'chev'), el('span', '', folder.split('/').join(' / ')));
+      head.setAttribute('aria-expanded', String(open));
+      group.append(head, body);
+      list.append(group);
+    }
   };
 
   /** Tick or untick one choice of a score. */
@@ -103,7 +125,7 @@ export function openAddScores(h: AddScoresHost) {
     });
     const redraw = () => { sync(); r.replaceWith(row(sc, names)); };
     const has = s.entries.filter((e) => e.scoreId === sc.id).length;
-    label.append(box, pickText(sc.title, has ? `in this setlist${has > 1 ? ` ${has}×` : ''}` : sc.folder));
+    label.append(box, pickText(sc.title, has ? `in this setlist${has > 1 ? ` ${has}×` : ''}` : ''));
     const preview = button('Preview', () => void showPreview(sc), 'quiet');
     preview.setAttribute('aria-label', `Preview ${sc.title}`);
     r.append(label, preview);

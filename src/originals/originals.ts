@@ -12,7 +12,10 @@ export interface Original {
   /** The SHA-256 of the file's contents, in hex; also the id of the score made from it. */
   id: string;
   title: string;
-  /** Subfolder within the linked folder, for display. */
+  /**
+   * Subfolder within the linked folder ("Masses/Latin"), '' at its top. An imported original's is
+   * the one it is filed under in the library (`fileAdded`), as it is in no folder.
+   */
   folder: string;
   location: 'folder' | 'imported';
   /** Where the file is: its path within the linked folder, or its name among the imported copies. */
@@ -252,8 +255,32 @@ export async function removeImported(o: Original): Promise<void> {
   await d.removeEntry(o.path);
 }
 
+/** A folder path tidied: parts trimmed, empty ones dropped, joined with "/". */
+export const tidyFolder = (path: string) => path.split('/').map((p) => p.trim()).filter(Boolean).join('/');
+
+/**
+ * The originals in lists by folder: the top of the folder (with what is filed under no folder)
+ * first, then each subfolder, by path. Each list keeps the originals' order.
+ */
+export function byFolder(originals: readonly Original[]): { folder: string; originals: Original[] }[] {
+  const lists = new Map<string, Original[]>([['', []]]);
+  for (const o of originals) lists.set(o.folder, [...(lists.get(o.folder) ?? []), o]);
+  return [...lists].map(([folder, originals]) => ({ folder, originals }))
+    .sort((a, b) => (a.folder === '' ? -1 : b.folder === '' ? 1 : a.folder.localeCompare(b.folder, undefined, { numeric: true, sensitivity: 'base' })));
+}
+
+/** File an imported original under a subfolder in the library ('' for none). The file stays where it is. */
+export async function fileAdded(o: Original, folder: string): Promise<void> {
+  const path = tidyFolder(folder);
+  await kv.update<Record<string, string>>(keys.addedFolders, (old) => {
+    const { [o.id]: _, ...rest } = old ?? {};
+    return path ? { ...rest, [o.id]: path } : rest;
+  });
+}
+
 /** The copies imported into the app. Empty ones, which failed to be written as they were added, are deleted. */
 async function importedFiles(): Promise<Found[]> {
+  const filed = (await kv.get<Record<string, string>>(keys.addedFolders)) ?? {};
   const d = await importsDir();
   const files: Found[] = [];
   for await (const [name, h] of d.entries()) {
@@ -263,7 +290,7 @@ async function importedFiles(): Promise<Found[]> {
     files.push({
       where: 'imported/' + name,
       file,
-      make: (id) => ({ id, title: titleOf(name), folder: '', location: 'imported', path: name, getFile: () => handle.getFile() }),
+      make: (id) => ({ id, title: titleOf(name), folder: filed[id] ?? '', location: 'imported', path: name, getFile: () => handle.getFile() }),
     });
   }
   return files;

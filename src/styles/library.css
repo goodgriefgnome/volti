@@ -46,7 +46,16 @@
 .set.archived .setlist-title, .set.archived .entries .item-title { color: var(--muted); }
 .expand { flex: none; width: 44px; padding: 0; border: 0; background: transparent; color: var(--muted); }
 .chev { display: inline-block; width: 10px; height: 10px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform 200ms ease; }
-.set.open .chev { transform: rotate(45deg); }
+.set.open .chev, .folder-list.open .chev { transform: rotate(45deg); }
+/* A subfolder's scores under its heading, which opens and closes the list. */
+.list > li.folder-list { display: block; }
+.folder-head {
+  width: 100%; display: flex; align-items: center; gap: 14px; min-height: 48px; padding: 10px 4px 10px 17px;
+  border: 0; border-radius: 0; background: transparent; color: var(--muted); text-align: left; font-weight: 600; font-size: 14px;
+}
+.folder-head .chev { width: 8px; height: 8px; flex: none; }
+.list.sub { border-top: 1px solid var(--line); }
+.list.sub > li:last-child { border-bottom: 0; }
 .set-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 220ms ease; }
 .set.open .set-body { grid-template-rows: 1fr; }
 .set-inner { overflow: hidden; min-height: 0; }
