@@ -13,6 +13,7 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "pdf-lib": "1.17.1",
     "pdfjs-dist": "6.4.299",
     "workbox-precaching": "7.4.1",
     "workbox-routing": "7.4.1"

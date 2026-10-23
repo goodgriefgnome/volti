@@ -68,6 +68,12 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
     and every setlist's excerpts follow the change.
   - **Archive** hides a setlist behind **Show archived**; only archived setlists can be deleted.
 
+- **Export PDF…** in the **⋯** menu of a score, a named excerpt or a setlist makes a PDF that
+  reads as the reader does with 1 page on the screen: its cuts, in order, with their markings, and
+  each setlist entry starting on a new page. Name the file; it goes in an **Exports** folder in the
+  scores folder (which then shows in the library too), or, with no folder linked, to the share
+  sheet.
+
 Markings, cuts, setlists and the place you were at are stored in the app. They are not written into
 the PDFs.
 
@@ -96,6 +102,7 @@ its cuts kept only in that setlist.
 | `src/setlists/` | Setlists, the excerpt of each score they play, and keeping excerpts in step with cut edits |
 | `src/markings/` | What can be drawn or placed on the music: each kind's data, geometry and drawing (`stroke` for pen and highlighter) |
 | `src/library/` | The Library screen: setlists and scores |
+| `src/export/` | Exporting scores as PDFs (pdf-lib, loaded only to export): pages laid out as the reader's frames, and where each cut goes on them (`placement`) |
 | `src/reader/reader.ts` | The score screen, for a score or a setlist: turning pages and scores, applying edits, opening and closing |
 | `src/reader/open-scores.ts` | The scores being read, each original open only while near the one being read |
 | `src/reader/saver.ts` | Saving scores and setlists together |

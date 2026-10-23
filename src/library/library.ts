@@ -5,7 +5,7 @@ import type { Aspects, ExcerptName, Score } from '../scores/model';
 import { loadAspects, loadSavedScore, scoreEntries, scoreEntry } from '../scores/store';
 import { openReader, type ToRead } from '../reader/reader';
 import {
-  duplicate, moveEntry, newSetlist, setlistsWith, spanLabel, type Entry, type Setlist,
+  duplicate, moveEntry, newSetlist, setlistsWith, spanLabel, type Entry, type Setlist, type Span,
 } from '../setlists/model';
 import { excerptName, sortedNames } from '../setlists/names';
 import { deleteSetlist, loadSetlists, saveChanged } from '../setlists/store';
@@ -16,12 +16,14 @@ import {
 } from '../originals/originals';
 import type { Prefs } from '../storage/prefs';
 import { button, el, plural } from '../ui/dom';
+import type { ExportPart } from '../export/pdf';
 import { openExcerptPicker, type ExcerptSource } from '../ui/excerpt-picker';
 import { addExcerpt, changeExcerptCuts, deleteExcerpt, renameExcerpt, type ExcerptHost } from '../ui/excerpts';
 import { buttonRow, closeOverlay, showDialog, showMenu, whenOverlayCloses } from '../ui/overlay';
 import { askSetlistName } from '../ui/setlists';
 import { Toast } from '../ui/toast';
 import { openAddScores } from './add-scores';
+import { openExportPdf } from './export-pdf';
 import { openScore, type LibraryScore } from './open-score';
 
 /** The Library screen: setlists, the scores folder, imported scores, and the list to open them from. */
@@ -237,6 +239,7 @@ export class Library {
       { label: 'Add scores…', run: () => this.addScores(s.id) },
       { label: 'Rename…', run: () => askSetlistName('Rename setlist', s.title, 'Rename', (title) => void this.update({ ...this.get(s.id)!, title })) },
       { label: 'Duplicate', run: () => this.duplicate(s) },
+      s.entries.length > 0 && { label: 'Export PDF…', run: () => this.exportPdf(s.title, s.entries) },
       s.archived
         ? { label: 'Unarchive', run: () => { void this.update({ ...this.get(s.id)!, archived: false }); this.toast.say(`Unarchived “${s.title}”.`); } }
         : { label: 'Archive', run: () => { void this.update({ ...this.get(s.id)!, archived: true }); this.toast.say(`Archived “${s.title}”.`); } },
@@ -434,6 +437,7 @@ export class Library {
     const more = button('⋯', () => showMenu(more, s.title, [
       { label: 'Add excerpt…', run: () => void this.withPages(s, (sc) => addExcerpt(sc, s.title, this.excerptHost(s.id))) },
       { label: 'Rename…', run: () => this.renameFile(s) },
+      { label: 'Export PDF…', run: () => this.exportPdf(s.title, [{ scoreId: s.id }]) },
       s.location === 'imported' && { label: 'Remove from Volti', run: async () => {
         await removeImported(s);
         this.say(`Removed “${s.title}”.`);
@@ -468,6 +472,7 @@ export class Library {
     const more = button('⋯', () => showMenu(more, x.name, [
       { label: 'Rename…', run: () => renameExcerpt(score, x, this.excerptHost(o.id)) },
       { label: 'Change cuts…', run: () => void this.withPages(o, (sc) => changeExcerptCuts(sc, x, this.excerptHost(o.id))) },
+      { label: 'Export PDF…', run: () => this.exportPdf(`${o.title} - ${x.name}`, [{ scoreId: o.id, first: x.first, last: x.last }]) },
       { label: 'Delete…', run: () => deleteExcerpt(score, x, this.excerptHost(o.id)) },
     ]), 'quiet more');
     more.setAttribute('aria-label', `More for ${x.name}`);
@@ -510,6 +515,27 @@ export class Library {
     d.append(input, hint, error, buttonRow(button('Cancel', closeOverlay), button('Rename', () => void ok(), 'primary')));
     input.focus();
     input.select();
+  }
+
+  /** Export scores (whole or excerpts of them) as one PDF, named `title` to start with. */
+  private exportPdf(title: string, what: (Span & { scoreId: string })[]) {
+    const parts: ExportPart[] = [], missing: string[] = [];
+    for (const { scoreId, first, last } of what) {
+      const original = this.originalOf(scoreId);
+      if (original) parts.push({ original, span: { first, last } });
+      else missing.push(this.titleOf(scoreId));
+    }
+    if (!parts.length) { this.toast.say('Its scores are all missing.'); return; }
+    openExportPdf({
+      title: title.replace(/[\\/:*?"<>|]/g, '-'),
+      parts,
+      missing,
+      toFolder: this.folder.kind !== 'none',
+      saved: (name) => {
+        this.toast.say(`Saved “${name}.pdf” in Exports, in the scores folder.`);
+        void this.refresh();
+      },
+    });
   }
 
   /* ---------- named excerpts ---------- */

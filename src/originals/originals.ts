@@ -326,3 +326,25 @@ export async function renameOriginal(o: Original, title: string): Promise<string
   await kv.update<HashCache>(keys.hashes, (old) => ({ ...old, [where]: { size: file.size, modified: file.lastModified, id: o.id } }));
   return null;
 }
+
+/* ---------- exports ---------- */
+
+/** The folder inside the linked folder that exported PDFs are written to. */
+export const EXPORTS = 'Exports';
+
+const exportsDir = async () => {
+  if (!dir) throw new Error('No folder linked');
+  return dir.getDirectoryHandle(EXPORTS, { create: true });
+};
+
+/** Whether `name`.pdf is in the exports folder. Write access must have been allowed. */
+export async function exportExists(name: string): Promise<boolean> {
+  return (await exportsDir()).getFileHandle(name.trim() + '.pdf').then(() => true, () => false);
+}
+
+/** Write `name`.pdf into the exports folder, replacing one of that name. Write access must have been allowed. */
+export async function saveExport(name: string, data: Blob): Promise<void> {
+  const w = await (await (await exportsDir()).getFileHandle(name.trim() + '.pdf', { create: true })).createWritable();
+  await w.write(data);
+  await w.close();
+}
