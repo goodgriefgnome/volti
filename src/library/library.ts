@@ -71,8 +71,17 @@ export class Library {
     this.fileInput.multiple = true;
     this.fileInput.hidden = true;
     this.fileInput.addEventListener('change', async () => {
-      const { added, already } = await importFiles(this.fileInput.files ?? []);
-      this.fileInput.value = '';
+      let result;
+      try {
+        result = await importFiles(this.fileInput.files ?? []);
+      } catch (e) {
+        console.error(e);
+        this.say(`Could not add the PDFs (${(e as Error).name}).`);
+        return;
+      } finally {
+        this.fileInput.value = '';
+      }
+      const { added, already } = result;
       const have = already.length === 1 ? `“${already[0]}” is already in the library.` : already.length ? `${already.length} were already in the library.` : '';
       this.say([added ? `Added ${plural(added, 'score')}.` : '', have].filter(Boolean).join(' ') || 'No PDFs were selected.');
       await this.refresh();

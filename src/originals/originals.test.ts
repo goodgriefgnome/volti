@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hashFile, oneEach, type Original } from './originals';
+import { hashFile, importName, oneEach, type Original } from './originals';
 
 const original = (id: string, location: Original['location'], path: string): Original =>
   ({ id, title: path, folder: '', location, path, getFile: () => Promise.reject(new Error('not here')) });
@@ -27,5 +27,18 @@ describe('oneEach', () => {
   it('shows the first of two of the same file in the folder, and deletes neither', () => {
     const a = original('a', 'folder', 'Mass.pdf'), b = original('a', 'folder', 'Old/Mass.pdf');
     expect(oneEach([a, b], [], true)).toEqual({ originals: [a], copies: [] });
+  });
+});
+
+describe('importName', () => {
+  it('keeps a PDF\'s own name', () => {
+    expect(importName('Sonata 3.pdf')).toBe('Sonata 3.pdf');
+    expect(importName('Mass.PDF')).toBe('Mass.PDF');
+  });
+
+  it('takes the digits off a name the browser made up', () => {
+    expect(importName('Come_People_Of_The_Risen_King3420')).toBe('Come_People_Of_The_Risen_King.pdf');
+    expect(importName('Kyrie')).toBe('Kyrie.pdf');
+    expect(importName('1234')).toBe('1234.pdf');
   });
 });

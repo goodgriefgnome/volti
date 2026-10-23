@@ -38,8 +38,11 @@ type HashCache = Record<string, Hashed>;
 
 const hex = (b: ArrayBuffer) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
 
+/** The SHA-256 of some contents, in hex. */
+export const hashBytes = async (bytes: ArrayBuffer) => hex(await crypto.subtle.digest('SHA-256', bytes));
+
 /** The SHA-256 of `file`'s contents, in hex. */
-export const hashFile = async (file: Blob) => hex(await crypto.subtle.digest('SHA-256', await file.arrayBuffer()));
+export const hashFile = async (file: Blob) => hashBytes(await file.arrayBuffer());
 
 /** Ids for files, hashing only those that changed since they were last hashed. */
 class Hasher {
@@ -215,6 +218,16 @@ function freeName(name: string, taken: ReadonlySet<string>): string {
 }
 
 /**
+ * The name to keep an added PDF under. A name without ".pdf" is one the browser made up: on
+ * Android a picked file can come as "Name1234", digits added and the extension gone, so the
+ * digits go too.
+ */
+export function importName(name: string): string {
+  if (/\.pdf$/i.test(name)) return name;
+  return (name.replace(/(\D)\d+$/, '$1') || name) + '.pdf';
+}
+
+/**
  * Keep copies of PDFs in the app. A file the library already has, in the folder or imported, isn't
  * copied again: `already` has their titles.
  */
@@ -229,13 +242,20 @@ export async function importFiles(files: Iterable<File>): Promise<{ added: numbe
   const already: string[] = [];
   for (const f of files) {
     if (!/\.pdf$/i.test(f.name) && f.type !== 'application/pdf') continue;
-    const id = await hashFile(f);
-    if (have.has(id)) { already.push(titleOf(f.name)); continue; }
-    const name = freeName(f.name, taken);
+    // Read once: on Android a picked file may not be readable a second time.
+    const bytes = await f.arrayBuffer();
+    const id = await hashBytes(bytes);
+    if (have.has(id)) { already.push(titleOf(importName(f.name))); continue; }
+    const name = freeName(importName(f.name), taken);
     const h = await d.getFileHandle(name, { create: true });
-    const w = await h.createWritable();
-    await w.write(f);
-    await w.close();
+    try {
+      const w = await h.createWritable();
+      await w.write(bytes);
+      await w.close();
+    } catch (e) {
+      await d.removeEntry(name).catch(() => {});
+      throw e;
+    }
     await hasher.id('imported/' + name, await h.getFile());
     have.add(id);
     taken.add(name.toLowerCase());
@@ -260,10 +280,12 @@ async function importedOriginals(hasher: Hasher, progress?: Progress): Promise<O
   const files: Found<Original>[] = [];
   for await (const [name, h] of d.entries()) {
     if (h.kind !== 'file') continue;
-    const handle = h as FileSystemFileHandle;
+    const handle = h as FileSystemFileHandle, file = await handle.getFile();
+    // An empty file is one that failed to be written while it was added; it can't be opened.
+    if (!file.size) { await d.removeEntry(name).catch(() => {}); continue; }
     files.push({
       where: 'imported/' + name,
-      file: await handle.getFile(),
+      file,
       make: (id) => ({ id, title: titleOf(name), folder: '', location: 'imported', path: name, getFile: () => handle.getFile() }),
     });
   }

@@ -5,10 +5,6 @@ scores.
 
 ## Work for the immediate future
 
-- **Added PDFs don't open (bug, seen on the tablet):** opening one says "Could not open “<title>”.
-  It may have been moved or renamed." Their titles also end in an odd numeric suffix. Not yet
-  investigated. Seen with the first PDF ever added on the tablet, with Add PDFs:
-  Come_People_Of_The_Risen_King.pdf came in titled "Come_People_Of_The_Risen_King3420".
 - **While the keyboard is open, a dialog fills the screen** above it and scrolls as a whole, so the
   excerpt picker's thumbnails don't scroll on their own (today the dialog shrinks to fit above the
   keyboard, and the thumbnails scroll inside it). Checked on the tablet: pinching and panning the
@@ -69,6 +65,8 @@ Things to try on the tablet.
   check it renames now. If it still fails, the message names the error.
 - **Exporting a score with markings.**
 - **Exporting with no folder linked** (the share sheet). Exporting into the folder works.
+- **Adding a PDF with Add PDFs** (it failed on the tablet: the copy came out empty): it opens,
+  and Come_People_Of_The_Risen_King.pdf is titled without the digits Android added.
 
 ## Confirmed features which require more thought
 
