@@ -28,6 +28,16 @@ scores.
     being read, moves on to the next entry or named excerpt (of the setlist, or of the score), or
     the one before when it was the last; when none is left, back to the library. Removing a score
     from Volti, or deleting the setlist being read, goes back to the library.
+- **Turning past a score's end to the next score:** in a score's reader, turning forward from its
+  last screen shows a toast, “Tap again for “Next title””, and turning forward again (while it
+  shows) opens the next score; the same backwards from its first screen, to the score before. No
+  toolbar button.
+  - The next and previous scores are in the library's order: the top of the folder, then each
+    subfolder's list (closed or not), as the scores list shows them without a search.
+  - The next score opens at its start, the score before at its last screen, as a setlist turns
+    between scores; each still remembers its own place for opening from the library.
+  - A score whose PDF has a password asks for it, as opening one does; Cancel stays where it was.
+    At the first or last score of the library, the toast says there is no score before or after.
 
 ## Manual check
 
