@@ -37,11 +37,11 @@ scores.
   music then stays vector instead of being drawn as a JPEG.
   - It handles RC4 and AES-256 but not AES-128 (`/V 4 /R 4`, common from Acrobat 7–9); those, and
     anything else it can't read, still fall back to the JPEG picture.
-  - When any of the music will be a picture, the export dialog (where the file is named) says so,
-    under the name, like the hint for missing scores: e.g. ““Mass A” will be exported as pictures
-    of its pages, not as the original's music, so it will be larger and less sharp when zoomed.”
-    The dialog opens at once and checks the originals in the background (read each one's
-    encryption from its `/Encrypt` dictionary, or try the decrypt), adding the warning when found.
+  - The export dialog (where the file is named) says, under the name, like the hint for missing
+    scores, how the music will come out: “Original quality” when every original can be read, or
+    “Rasterized (unsupported encryption): “Mass A”, …” naming each score that falls back. It
+    opens at once and checks the originals in the background (each one's `/Encrypt` dictionary,
+    or a trial decrypt), showing “Checking quality…” until it knows.
 
 ## Manual check
 
