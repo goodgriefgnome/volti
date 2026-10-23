@@ -18,12 +18,12 @@ scores.
   items repeat go (Add to setlist, Export PDF), so each action is in one place.
   - A score: Add to “default”, Add to setlist…, Add excerpt…, Rename…, Export PDF…, and for an
     added PDF, Move to folder… and Remove from Volti.
-  - A named excerpt: Add to “default”, Add to setlist…, Rename…, Change cuts…, Export PDF…,
-    Delete…. (The Excerpt button, which changes its cuts too, goes into Change cuts….)
+  - A named excerpt: Add to “default”, Add to setlist…, Rename…, Export PDF…, Delete…. Changing
+    its cuts stays a toolbar button (Excerpt), not in the menu.
   - A setlist: its own items (Add scores…, Rename…, Duplicate, Export PDF…, Archive, Delete… when
-    archived), then those of the entry being read (Move up, Move down, Change excerpt…, Remove
-    from setlist), not those of the score behind the entry. (The Excerpt button, which changes the
-    entry's excerpt, goes into Change excerpt….)
+    archived), then those of the entry being read (Move up, Move down, Remove from setlist), not
+    those of the score behind the entry. Changing the entry's excerpt stays a toolbar button
+    (Excerpt), not in the menu.
   - When what is read goes away: removing the entry being read, or deleting the named excerpt
     being read, moves on to the next entry or named excerpt (of the setlist, or of the score), or
     the one before when it was the last; when none is left, back to the library. Removing a score
