@@ -19,8 +19,6 @@ scores.
   read whole once to hash it) works but could be faster. Show the library straight away with the
   scores already known, and add the others as each is hashed, in the background, rather than
   waiting for them all. Don't hash only part of each file: two PDFs could then pass for one.
-- Excerpts of a score whose original hasn't been opened since page shapes were kept are named by
-  original pages ("Original pages 2–3") until it is opened once.
 - **Export PDF from the reader:** a toolbar button (crowding the toolbar is fine for now) that
   exports what that reader pages through: the score, the named excerpt, or the whole setlist.
 - **No old version while a new one loads:** at start-up, show a plain start screen and ask the
