@@ -1,9 +1,9 @@
 // Fixtures for tests that need cuts, scores or strokes. Only tests import this.
 
 import type { Stroke } from '../markings/stroke';
-import type { Cut, State } from './model';
+import { A4, type Cut, type State } from './model';
 
-export const A4 = 297 / 210;
+export { A4 };
 export const aspects = [A4, A4, A4];
 
 let n = 0;

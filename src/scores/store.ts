@@ -3,15 +3,7 @@
 
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
-import { newScore, type Aspects, type Score, type ScoreInk, type State } from './model';
-
-/** Drop cuts of pages the original no longer has; a score left with nothing starts again from the pages. */
-export function forPages(s: State, aspects: Aspects): State {
-  const ok = (c: { page: number }) => c.page < aspects.length;
-  const score: Score = { ...s.score, cuts: s.score.cuts.filter(ok), archived: s.score.archived.filter(ok) };
-  if (!score.cuts.length) score.cuts = newScore(score.id, score.title, aspects).cuts;
-  return { ...s, score };
-}
+import { forPages, newScore, type Aspects, type Score, type ScoreInk, type State } from './model';
 
 /**
  * A score as saved, or a new one for an original opened the first time. The original's page
@@ -41,4 +33,4 @@ export const loadSavedScore = (id: string) => kv.get<Score>(keys.score(id));
 /** The original's page shapes as last opened; undefined if it hasn't been opened since they were kept. */
 export const loadAspects = (id: string) => kv.get<Aspects>(keys.aspects(id));
 
-export const savePosition = (id: string, cutId: string) => kv.set(keys.pos(id), cutId);
+export const saveScorePosition = (id: string, cutId: string) => kv.set(keys.pos(id), cutId);

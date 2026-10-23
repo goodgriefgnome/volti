@@ -2,15 +2,13 @@
 
 import type { Aspects, ScoreInk } from '../scores/model';
 import type { PageCache } from '../originals/pdf';
-import { el } from '../ui/dom';
+import { dpr, el } from '../ui/dom';
 import { drawFrameInk, regionBands } from '../render/paint';
 import type { FrameSlot } from './spread';
 import { isZoomed, visiblePart, type Zoom } from '../render/zoom';
 
 /** Wait this long after a pinch or pan settles before drawing the sharp close-up. */
 const DETAIL_DELAY_MS = 150;
-
-const dpr = () => window.devicePixelRatio || 1;
 
 export interface DetailHost {
   stage: HTMLElement;

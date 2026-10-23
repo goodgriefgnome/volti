@@ -6,6 +6,7 @@ import { askPassword } from '../dialogs/passwords';
 import type { Original } from '../originals/originals';
 import { openOriginal } from '../originals/open';
 import { loadSavedScore, loadScore, saveScore } from '../scores/store';
+import { dpr } from '../ui/dom';
 
 /** A score and its original, open until `close`. */
 export interface LibraryScore extends ExcerptSource {
@@ -23,11 +24,10 @@ export async function openScore(o: Original): Promise<LibraryScore> {
     const fresh = !(await loadSavedScore(o.id));
     const { state } = await loadScore(o.id, o.title, aspects);
     if (fresh) await saveScore(state);
-    const dpr = window.devicePixelRatio || 1;
     return {
       state,
       aspects,
-      page: (p, w) => cache.render(p + 1, w, Math.round(w * aspects[p]), dpr),
+      page: (p, w) => cache.render(p + 1, w, Math.round(w * aspects[p]), dpr()),
       close: () => cache.destroy(),
     };
   } catch (e) {

@@ -12,14 +12,14 @@ import type { Marking } from '../markings/model';
 import { PEN_COLORS } from '../markings/stroke';
 import { folderState } from '../originals/folder';
 import { frameOf, pack, type Frame } from '../scores/frames';
-import type { Aspects, Cut, ExcerptName, State } from '../scores/model';
-import { loadScore, savePosition } from '../scores/store';
+import { A4, type Aspects, type Cut, type ExcerptName, type State } from '../scores/model';
+import { loadScore, saveScorePosition } from '../scores/store';
 import { addEntries, followScore, setEntrySpan, withSetlist, type Entry, type Setlist } from '../setlists/model';
-import { loadPosition, loadSetlists, saveLastAddedTo, savePosition as saveSetlistPosition } from '../setlists/store';
+import { loadSetlistPosition, loadSetlists, saveLastAddedTo, saveSetlistPosition } from '../setlists/store';
 import type { PageCache } from '../originals/pdf';
 import { knownTitles, type Original } from '../originals/originals';
 import type { ExportPart } from '../export/pdf';
-import { button, el } from '../ui/dom';
+import { button, dpr, el } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog, showMenu } from '../ui/overlay';
 import { Toast } from '../ui/toast';
 import type { Hatches } from '../render/paint';
@@ -56,10 +56,6 @@ export type ToRead =
  */
 type Reading = { kind: 'score' } | { kind: 'excerpt'; span: Span } | { kind: 'setlist'; id: string };
 
-/** A score that can't be opened is shown this shape. */
-const A4 = 297 / 210;
-
-const dpr = () => window.devicePixelRatio || 1;
 
 /** Whether two played orders put the same music in the same places. */
 const sameLayout = (a: readonly Cut[], b: readonly Cut[]) =>
@@ -88,7 +84,7 @@ export async function openReader(what: ToRead, onClose: () => void): Promise<voi
     const original = originals.get(e.scoreId);
     return { scoreId: e.scoreId, entryId: e.id, original, title: original?.title ?? titles[e.scoreId] ?? 'Missing score', missing: !original };
   });
-  const pos = what.startEntry ? { entry: what.startEntry } : await loadPosition(setlist.id);
+  const pos = what.startEntry ? { entry: what.startEntry } : await loadSetlistPosition(setlist.id);
   const k = Math.max(0, items.findIndex((it) => it.entryId === pos?.entry));
   new Reader(items, { kind: 'setlist', id: setlist.id }, setlists, null, k, pos?.cut, onClose);
 }
@@ -564,7 +560,7 @@ class Reader {
     const it = this.items[this.k];
     if (this.reading.kind === 'excerpt') return;
     if (this.setlistId && it.entryId) void saveSetlistPosition(this.setlistId, { entry: it.entryId, cut });
-    else if (cut) void savePosition(it.scoreId, cut);
+    else if (cut) void saveScorePosition(it.scoreId, cut);
   }
 
   /** Draw a frame's music and ink at its current layout. */

@@ -8,6 +8,7 @@ import { pack } from '../scores/frames';
 import { loadAspects, loadScore } from '../scores/store';
 import type { Setlist } from '../setlists/model';
 import { openOriginal } from '../originals/open';
+import { dpr } from '../ui/dom';
 import { hasPicture, picturesOf, setWanted, tidyPictures } from './pictures';
 
 /** How long to wait after a change, so a burst of them is worked out once. */
@@ -34,7 +35,7 @@ async function make(mine: number, originals: readonly Original[], setlists: read
   const byId = new Map(originals.map((o) => [o.id, o]));
   const entries = setlists.filter((s) => !s.archived).flatMap((s) => s.entries);
   // The reader fills the screen.
-  const W = document.documentElement.clientWidth, H = document.documentElement.clientHeight, scale = window.devicePixelRatio || 1;
+  const W = document.documentElement.clientWidth, H = document.documentElement.clientHeight, scale = dpr();
   const keep = new Map<string, Set<number>>();
   // Scores whose pages can't be worked out (never opened, and their PDF can't be now): their pictures stay.
   const unsure = new Set<string>();

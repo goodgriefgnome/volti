@@ -8,7 +8,7 @@ import { drawFrame, drawFrameInk } from '../render/paint';
 import { scrollForPinch, type Pt } from '../render/zoom';
 import { pack, placeLabel, places, type Frame, type Place } from '../scores/frames';
 import type { Aspects, Score, State } from '../scores/model';
-import { button, el } from '../ui/dom';
+import { button, dpr, el } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog } from '../ui/overlay';
 
 /** How tall the thumbnails are, unzoomed, as a share of the screen's height; and how narrow they may get. */
@@ -149,7 +149,7 @@ export class ExcerptStrip {
       return false;
     }
     if (!this.el.isConnected) return false;
-    const scale = window.devicePixelRatio || 1, W = Math.round(w * scale);
+    const scale = dpr(), W = Math.round(w * scale);
     const byPage = new Map(pages.map((p, k) => [p, canvases[k]]));
     const music = Object.assign(el('canvas'), { width: W, height: Math.round(w * f.aspect * scale) });
     const ink = Object.assign(el('canvas'), { width: W, height: music.height });

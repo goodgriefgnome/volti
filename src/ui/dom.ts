@@ -14,6 +14,9 @@ export function button(label: string, onClick: () => void, cls = ''): HTMLButton
   return b;
 }
 
+/** Device pixels to a CSS pixel on this screen. */
+export const dpr = () => window.devicePixelRatio || 1;
+
 export const plural = (n: number, word: string, words = word + 's') => `${n} ${n === 1 ? word : words}`;
 
 /**

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { A4 } from '../scores/model';
 import { framesOnScreen, placeFrames, sideBySide } from './layout';
 
-const A4 = 297 / 210, LETTER = 11 / 8.5, WIDE = 1 / A4;
+const LETTER = 11 / 8.5, WIDE = 1 / A4;
 
 describe('framesOnScreen', () => {
   it('shows one frame of the screen\'s own orientation, two of the other', () => {

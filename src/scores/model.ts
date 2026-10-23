@@ -1,5 +1,5 @@
 // The data of a score: its cuts in played order, its archived cuts and its ink, as types, plus
-// making a new score and a few measurements. Pure: no DOM, no storage. Editing is edits.ts, layout
+// making a new score, fitting one to its original's pages, and a few measurements. Pure: no DOM, no storage. Editing is edits.ts, layout
 // frames.ts, storage store.ts. The images the cuts are cut from come from the score's original
 // (originals/).
 
@@ -46,6 +46,9 @@ export interface State { score: Score; ink: ScoreInk }
 /** Height / width of each page of the original. A frame takes the shape of its first cut's page. */
 export type Aspects = readonly number[];
 
+/** Height / width of an A4 page: the shape a score that can't be opened is shown. */
+export const A4 = 297 / 210;
+
 /** Tolerance when comparing positions on a page or a frame. */
 export const EPS = 1e-6;
 
@@ -60,4 +63,12 @@ export function newScore(id: string, title: string, aspects: Aspects): Score {
     cuts: aspects.map((_, page) => ({ id: newCutId(), page, y0: 0, y1: 1 })),
     archived: [],
   };
+}
+
+/** Drop cuts of pages the original no longer has; a score left with nothing starts again from the pages. */
+export function forPages(s: State, aspects: Aspects): State {
+  const ok = (c: { page: number }) => c.page < aspects.length;
+  const score: Score = { ...s.score, cuts: s.score.cuts.filter(ok), archived: s.score.archived.filter(ok) };
+  if (!score.cuts.length) score.cuts = newScore(score.id, score.title, aspects).cuts;
+  return { ...s, score };
 }
