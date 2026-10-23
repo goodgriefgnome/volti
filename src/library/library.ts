@@ -502,7 +502,7 @@ export class Library {
           why = await renameOriginal(o, input.value);
         } catch (e) {
           console.error(e);
-          why = 'Could not rename it. It may have been moved or renamed already.';
+          why = `Could not rename it (${(e as Error).name}). It may have been moved or renamed already.`;
         }
       }
       error.textContent = why ?? '';

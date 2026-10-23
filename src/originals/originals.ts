@@ -311,14 +311,21 @@ export async function renameOriginal(o: Original, title: string): Promise<string
   // Changing only the case finds the file itself where the file system ignores case.
   const caseOnly = name.toLowerCase() === old.toLowerCase();
   if (!caseOnly && (await d.getFileHandle(name).then(() => true, () => false))) return `There is already a file called “${name}” there.`;
-  if (caseOnly && !h.move) return 'This browser can only change the case of a name along with other letters.';
-  if (h.move) await h.move(name);
-  else {
-    // Older browsers: copy it under the new name, then delete the old one.
-    const w = await (await d.getFileHandle(name, { create: true })).createWritable();
-    await w.write(await h.getFile());
-    await w.close();
-    await d.removeEntry(old);
+  // Where it can't be moved (as in some of Android's folders), copy it under the new name, then delete the old one.
+  const moved = h.move ? await h.move(name).then(() => true, (e) => { console.warn('Renaming by copying, as moving failed:', e); return false; }) : false;
+  if (!moved) {
+    if (caseOnly) return 'Only the case changes, and this folder can\'t do that. Change another letter too.';
+    const copy = await d.getFileHandle(name, { create: true });
+    try {
+      const w = await copy.createWritable();
+      await w.write(await h.getFile());
+      await w.close();
+    } catch (e) {
+      await d.removeEntry(name).catch(() => {});
+      throw e;
+    }
+    // Both are the same score now, so one left behind only shows twice in the Files app.
+    if (!(await d.removeEntry(old).then(() => true, () => false))) return `Copied it as “${name}”, but couldn't delete “${old}”. Delete it in the Files app.`;
   }
   // The same contents, so the same id: no need to read it again.
   const file = await (await d.getFileHandle(name)).getFile();
