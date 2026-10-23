@@ -9,12 +9,20 @@ scores.
   excerpt picker's thumbnails don't scroll on their own (today the dialog shrinks to fit above the
   keyboard, and the thumbnails scroll inside it). Checked on the tablet: pinching and panning the
   thumbnails is smooth.
-- **Bigger cut tabs:** the tabs for dragging a cut's edges are a little too small on the tablet
-  (long press works fine).
-- Linking a big folder (each PDF is read whole once to hash it) works but could be faster.
+- **Bigger cut tabs, to accessibility guidelines:** the tabs for dragging a cut's edges are a
+  little too small on the tablet (long press works fine). Touch area at least 48×48 CSS px
+  (Material Design's 48 dp, Android being the target; WCAG 2.2 asks 24×24 at AA, 44×44 at AAA),
+  from about 56×34 now. What shows grows from 30×14 to about 40×20, and reaches 3:1 contrast
+  against the white page (WCAG 1.4.11; today's 38% opacity is about 1.8:1), which means it covers
+  the music it sits on more.
+- **Show the library while new PDFs are read:** linking a big folder (each new or changed PDF is
+  read whole once to hash it) works but could be faster. Show the library straight away with the
+  scores already known, and add the others as each is hashed, in the background, rather than
+  waiting for them all. Don't hash only part of each file: two PDFs could then pass for one.
 - Excerpts of a score whose original hasn't been opened since page shapes were kept are named by
   original pages ("Original pages 2–3") until it is opened once.
-- Export PDF is only in the Library's menus, not the reader's toolbar.
+- **Export PDF from the reader:** a toolbar button (crowding the toolbar is fine for now) that
+  exports what that reader pages through: the score, the named excerpt, or the whole setlist.
 - **No old version while a new one loads:** at start-up, show a plain start screen and ask the
   server for a newer service worker before showing the library. No update (or offline): show the
   library. An update: say "Updating Volti…" until it takes over, then reload into it. Give up
@@ -25,7 +33,9 @@ scores.
   Use ⋯ › Add scores." Show an Add scores button there instead.
 - **Add to setlist… in the Library, and a default setlist:** every score's and named excerpt's ⋯
   menu gets "Add to setlist…", as the reader's toolbar has (an excerpt adds itself, not the whole
-  score), and "Add to <default setlist>". The default setlist is always the last one any score was
+  score), and "Add to <default setlist>"; these are in the menus of the Library's Scores section.
+  "Add to setlist…" shows only when there are setlists besides the default, and lists them; it
+  doesn't make new setlists (that is the Setlists section's New setlist button). The default setlist is always the last one any score was
   added to, however it was added; it can't be set by hand. The only setlist is always the default;
   with no setlists, there is no "Add to <default setlist>" item. Keep only the last one's id: when
   there is none yet, or that setlist is archived or deleted, the first setlist in the list is the
