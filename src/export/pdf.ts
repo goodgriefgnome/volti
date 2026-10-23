@@ -1,5 +1,5 @@
 // Exporting scores as PDFs that read as the reader does in 1-page mode: a page for each frame, the
-// music cut from the original's pages, and the ink over it. The music stays as it is in the
+// music cut from the original's pages, and the markings over it as annotations. The music stays as it is in the
 // original (vectors, or the scan) where pdf-lib can read the original, decrypting an encrypted
 // one first, and is drawn by pdf.js where it can't (an encryption pdf-decrypt doesn't know, say).
 // pdf-lib and pdf-decrypt are only loaded to export.
@@ -7,15 +7,15 @@
 import type { PDFDocument, PDFEmbeddedPage, PDFPage } from 'pdf-lib';
 import type { Original } from '../originals/originals';
 import type { PageCache } from '../originals/pdf';
-import { drawFrame, drawFrameInk } from '../reader/frames';
+import { cutTarget, drawFrame, shownOn } from '../reader/frames';
 import { pack, type Frame } from '../scores/frames';
 import type { Aspects, State } from '../scores/model';
-import { visible } from '../scores/ownership';
 import { loadScore } from '../scores/store';
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
 import { spanCuts, type Span } from '../setlists/model';
 import { openOriginal } from '../ui/passwords';
+import { annotate } from './annotations';
 import { placeCut, shownSize, type SourcePage } from './placement';
 
 /** One part of an export: a score, whole or the excerpt `span` of it. Each starts on a new page. */
@@ -23,7 +23,7 @@ export interface ExportPart { original: Original; span?: Span }
 
 type PdfLib = typeof import('pdf-lib');
 
-/** How many pixels wide ink, and music pdf-lib can't read, are drawn for a page. */
+/** How many pixels wide music pdf-lib can't read is drawn for a page. */
 const RASTER_W = 2000;
 /** The page width, in points, when pdf-lib can't read the original: A4. */
 const A4_W = 595;
@@ -103,8 +103,8 @@ async function open(lib: PdfLib, o: Original): Promise<Source> {
   }
 }
 
-async function pngOrJpeg(canvas: HTMLCanvasElement, type: 'image/png' | 'image/jpeg'): Promise<ArrayBuffer> {
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, 0.92));
+async function jpeg(canvas: HTMLCanvasElement): Promise<ArrayBuffer> {
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
   if (!blob) throw new Error('Could not draw a page');
   return blob.arrayBuffer();
 }
@@ -149,12 +149,11 @@ async function addFrame(lib: PdfLib, out: PDFDocument, src: Source, frame: Frame
   const W = src.widths[frame.items[0]?.cut.page ?? 0], H = W * frame.aspect;
   const page = out.addPage([W, H]);
   if (src.doc) await drawMusic(lib, out, page, src as Source & { doc: PDFDocument }, frame, W, H);
-  else page.drawImage(await out.embedJpg(await pngOrJpeg(await drawnMusic(src, frame), 'image/jpeg')), { x: 0, y: 0, width: W, height: H });
-  const ink = src.state.ink;
-  if (!frame.items.some((p) => (ink[p.cut.id] ?? []).some((m) => visible(m, p.cut, src.aspects[p.cut.page])))) return;
-  const canvas = Object.assign(document.createElement('canvas'), { width: RASTER_W, height: Math.round(RASTER_W * frame.aspect) });
-  drawFrameInk(canvas.getContext('2d')!, frame, ink, src.aspects, RASTER_W);
-  page.drawImage(await out.embedPng(await pngOrJpeg(canvas, 'image/png')), { x: 0, y: 0, width: W, height: H });
+  else page.drawImage(await out.embedJpg(await jpeg(await drawnMusic(src, frame))), { x: 0, y: 0, width: W, height: H });
+  // Each marking as an annotation, placed as the reader places it.
+  for (const p of frame.items) {
+    shownOn(p, src.state.ink, src.aspects).forEach((m, i) => annotate(lib, out, page, m, (draw) => cutTarget(draw, p, W, src.aspects), `${p.cut.id}-${i}`));
+  }
 }
 
 /**

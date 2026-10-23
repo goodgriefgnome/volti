@@ -13,24 +13,7 @@ scores.
 
 ## Work for the immediate future
 
-- **Markings exported as PDF annotations, with their own vector appearances:** in an exported PDF,
-  each marking is an annotation placed exactly as the reader places it (not clipped to its cut),
-  instead of a 2000-pixel picture over each page. Other PDF apps can then hide or delete them,
-  and viewers show them as drawn.
-  - Each annotation carries its appearance (`/AP /N`, a form XObject drawn in vector operators,
-    `/BBox` equal to its `/Rect`), flagged to print (`/F 4`), with a unique `/NM`, listed in its
-    page's `/Annots`.
-  - Pen: an Ink annotation (`/InkList` of the points, `/C`, a nominal `/BS /W`); its appearance draws
-    the stroke segment by segment with round ends, each segment's width from the pen's pressure,
-    as on screen.
-  - Highlighter: an Ink annotation whose appearance is one see-through line per stroke (so it
-    doesn't darken where it crosses itself), darken-only (`/BM /Multiply` in an ExtGState), so
-    notes under it stay black, as on paper.
-  - Markings draw through a small drawing interface (move, line, width, colour, transparency,
-    blending) that the screen's canvas and the PDF appearance writer each implement, so each kind
-    of marking is written once and exports as it shows.
-  - The picture of the markings goes. Music pdf-lib can't read, even decrypted (AES-128), is still
-    drawn as a picture.
+Nothing at the moment.
 
 ## Manual check
 
@@ -54,13 +37,17 @@ Things to try on the tablet.
 - **Setlists open at once:** a while after making or changing a setlist, opening it, and turning
   from one of its scores to the next, shows the music straight away, scans included; zooming in
   still works. Reading with the tablet turned the other way is slow the first time only.
+- **Markings in an exported PDF:** open the export in another PDF app (Acrobat, Xodo, the
+  browser): the pen (thicker where pressed harder) and highlighter (notes under it still black)
+  look as in Volti, and the app lists them as annotations it can hide or delete.
 - **Reader opens with the toolbar hidden:** a score, excerpt or setlist shows only the music and
   the back arrow; a tap in the middle brings up the toolbar.
 
 ## Confirmed features which require more thought
 
 - **Text and symbol markings**, beside the pen and highlighter, each exported as a PDF annotation
-  with its own vector appearance (see the immediate item on exported markings):
+  with its own vector appearance, as they are (`export/annotations.ts`; the drawing interface in
+  `markings/draw.ts` would need fills, and text or glyph outlines):
   - *Text:* typed on the music ("rit.", cues, bar numbers), with an optional shape behind it: a
     plain rectangle with a see-through fill, or a rectangle pointing left or right (a tag). A
     FreeText annotation, its appearance drawing the shape, then the text.

@@ -90,7 +90,9 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
 - **Export PDF…** in the **⋯** menu of a score, a named excerpt or a setlist, or **Export PDF** in
   the reader's toolbar (for what that reader pages through), makes a PDF that
   reads as the reader does, one of its pages to a PDF page: its cuts, in order, with their markings, and
-  each setlist entry starting on a new page. Name the file; it goes in an **Exports** folder in the
+  each setlist entry starting on a new page. Markings go in as PDF annotations that look as they
+  do in Volti (pen pressure, see-through highlighter and all), so other PDF apps can hide or
+  delete them. Name the file; it goes in an **Exports** folder in the
   scores folder (which then shows in the library too), or, with no folder linked, to the share
   sheet. The music is the original's own, password-protected PDFs included; the dialog says
   **Rasterized** for a score whose encryption Volti can't undo (AES-128), whose pages then go in
@@ -127,10 +129,10 @@ its cuts kept only in that setlist.
 | `src/originals/` | Scores' originals: the PDFs in the linked folder or imported, the shared-file inbox, and reading PDFs with pdf.js |
 | `src/scores/` | A score: its cuts in played order (`model`), editing it (`edits`), laying it out on frames (`frames`), which cut owns a marking (`ownership`), loading and saving (`store`) |
 | `src/setlists/` | Setlists, the excerpt of each score they play, and keeping excerpts in step with cut edits |
-| `src/markings/` | What can be drawn or placed on the music: each kind's data, geometry and drawing (`stroke` for pen and highlighter) |
+| `src/markings/` | What can be drawn or placed on the music: each kind's data, geometry and drawing (`stroke` for pen and highlighter), through a small drawing interface (`draw`) the screen and exported PDFs share |
 | `src/library/` | The Library screen: setlists and scores |
 | `src/pictures/` | Saved pictures of the pages setlists play (`pictures`), and making them in the background (`maker`) |
-| `src/export/` | Exporting scores as PDFs (pdf-lib, loaded only to export): pages laid out as the reader's frames, and where each cut goes on them (`placement`) |
+| `src/export/` | Exporting scores as PDFs (pdf-lib, loaded only to export): pages laid out as the reader's frames, where each cut goes on them (`placement`), and markings as annotations (`annotations`) |
 | `src/reader/reader.ts` | The score screen, for a score or a setlist: turning pages and scores, applying edits, opening and closing |
 | `src/reader/open-scores.ts` | The scores being read, each original open only while near the one being read |
 | `src/reader/saver.ts` | Saving scores and setlists together |

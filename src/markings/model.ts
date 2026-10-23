@@ -5,6 +5,7 @@
 // kind, such as a post-it or text: add it to the Marking union, give its behaviour in a new file,
 // pick it out in behaviour(), and add a tool to make it in reader/tools/.
 
+import type { Drawing } from './draw';
 import { strokes, type Stroke } from './stroke';
 
 /** x and y as fractions of the page width and height, so ink survives any zoom; then pen pressure 0..1. */
@@ -13,10 +14,16 @@ export type Point = [x: number, y: number, pressure: number];
 export type Marking = Stroke;
 
 /**
- * A canvas that markings are drawn on. It shows a page drawn `w` x `h` pixels in size; when it
- * covers only part of the page (a zoomed-in close-up), (ox, oy) is where that part starts.
+ * What markings are drawn on: a page drawn `w` x `h` in size (pixels on a canvas, points in a PDF);
+ * when it covers only part of the page (a zoomed-in close-up), (ox, oy) is where that part starts.
  */
-export interface DrawTarget { ctx: CanvasRenderingContext2D; w: number; h: number; ox: number; oy: number }
+export interface DrawTarget { draw: Drawing; w: number; h: number; ox: number; oy: number }
+
+/**
+ * A marking's PDF annotation, besides its appearance: an Ink annotation's paths (in the target's
+ * units, y downwards), colour, and a width for apps that draw it themselves.
+ */
+export interface Annotation { subtype: 'Ink'; paths: (readonly [number, number])[][]; color: string; width: number }
 
 /** What each kind of marking does. Lengths are in page widths; `aspect` is the page's height / width. */
 export interface KindBehaviour<M> {
@@ -29,6 +36,8 @@ export interface KindBehaviour<M> {
   /** Whether an eraser of `radius` at p touches it. */
   hits(m: M, p: Point, aspect: number, radius: number): boolean;
   draw(t: DrawTarget, m: M): void;
+  /** What its PDF annotation says besides its appearance (which `draw` makes), placed on `t`. */
+  annotation(t: DrawTarget, m: M): Annotation;
   /** Rounded, to keep what is stored small. */
   compact(m: M): M;
   /** A copy that shares nothing with it. */
@@ -44,6 +53,8 @@ export const mapMarking = (m: Marking, f: (p: Point) => Point) => behaviour(m).m
 export const hits = (m: Marking, p: Point, aspect: number, radius: number) => behaviour(m).hits(m, p, aspect, radius);
 export const compactMarking = (m: Marking) => behaviour(m).compact(m);
 export const copyMarking = (m: Marking) => behaviour(m).copy(m);
+
+export const annotationOf = (t: DrawTarget, m: Marking) => behaviour(m).annotation(t, m);
 
 export function drawMarkings(t: DrawTarget, list: readonly Marking[]) {
   for (const m of list) behaviour(m).draw(t, m);

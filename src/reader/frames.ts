@@ -1,6 +1,7 @@
 // Drawing one frame onto a canvas: its music, cut from page canvases, its ink, and the hatching
 // shown while a cut is dragged. Canvas drawing only; where frames sit on the screen is spread.ts.
 
+import { canvasDrawing, type Drawing } from '../markings/draw';
 import { drawMarkings, type DrawTarget, type Marking } from '../markings/model';
 import type { Frame, Placed } from '../scores/frames';
 import type { Aspects, ScoreInk } from '../scores/model';
@@ -52,22 +53,23 @@ export function hatch(ctx: CanvasRenderingContext2D, W: number, y: number, h: nu
   ctx.restore();
 }
 
-/** Where a cut's markings go on a frame drawn W pixels wide, offset by (ox, oy) for a close-up. */
-export function cutTarget(ctx: CanvasRenderingContext2D, p: Placed, W: number, aspects: Aspects, ox = 0, oy = 0): DrawTarget {
+/** Where a cut's markings go on a frame drawn W wide, offset by (ox, oy) for a close-up. */
+export function cutTarget(draw: Drawing, p: Placed, W: number, aspects: Aspects, ox = 0, oy = 0): DrawTarget {
   const h = W * aspects[p.cut.page];
-  return { ctx, w: W, h, ox, oy: oy + p.cut.y0 * h - p.top * W };
+  return { draw, w: W, h, ox, oy: oy + p.cut.y0 * h - p.top * W };
 }
 
 /** A target for a marking still being made, whose points are in frame coordinates. */
-export const frameTarget = (ctx: CanvasRenderingContext2D, W: number, ox = 0, oy = 0): DrawTarget => ({ ctx, w: W, h: W, ox, oy });
+export const frameTarget = (ctx: CanvasRenderingContext2D, W: number, ox = 0, oy = 0): DrawTarget => ({ draw: canvasDrawing(ctx), w: W, h: W, ox, oy });
 
-/** The markings each cut on the frame shows: whole, when most of the marking lies within the cut. */
+/** The markings a cut shows: whole, when most of the marking lies within the cut. */
+export const shownOn = (p: Placed, ink: ScoreInk, aspects: Aspects) => (ink[p.cut.id] ?? []).filter((m) => visible(m, p.cut, aspects[p.cut.page]));
+
+/** Draw the markings each cut on the frame shows. */
 export function drawFrameInk(ctx: CanvasRenderingContext2D, frame: Frame, ink: ScoreInk, aspects: Aspects, W: number, ox = 0, oy = 0, extra?: Marking) {
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  for (const p of frame.items) {
-    const shown = (ink[p.cut.id] ?? []).filter((m) => visible(m, p.cut, aspects[p.cut.page]));
-    drawMarkings(cutTarget(ctx, p, W, aspects, ox, oy), shown);
-  }
+  const draw = canvasDrawing(ctx);
+  for (const p of frame.items) drawMarkings(cutTarget(draw, p, W, aspects, ox, oy), shownOn(p, ink, aspects));
   if (extra) drawMarkings(frameTarget(ctx, W, ox, oy), [extra]);
 }
 

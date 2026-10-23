@@ -1,6 +1,7 @@
 // Pen and highlighter strokes: their data, sizes and colours, geometry and drawing. Only what is
 // particular to strokes; what all markings share is in model.ts.
 
+import { SOLID } from './draw';
 import type { DrawTarget, KindBehaviour, Point } from './model';
 
 export type InkTool = 'pen' | 'highlighter';
@@ -73,46 +74,27 @@ export function share(points: readonly Point[], lo: number, hi: number, aspect: 
 
 /* ---------- drawing ---------- */
 
-function seg(t: DrawTarget, s: Stroke, a: Point, b: Point) {
-  const { ctx } = t;
-  ctx.lineWidth = widthPx(s, (a[2] + b[2]) / 2, t.w);
-  ctx.beginPath();
-  ctx.moveTo(a[0] * t.w - t.ox, a[1] * t.h - t.oy);
-  ctx.lineTo(b[0] * t.w - t.ox, b[1] * t.h - t.oy);
-  ctx.stroke();
-}
+/** Where a point of the page is on the target. */
+const at = (t: DrawTarget, p: Point) => [p[0] * t.w - t.ox, p[1] * t.h - t.oy] as const;
 
-function style(ctx: CanvasRenderingContext2D, s: Stroke) {
-  ctx.strokeStyle = s.color;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-}
+/** Highlighter is see-through and only darkens, so the notes under it stay black. */
+const highlight = (color: string) => ({ color, opacity: 0.35, multiply: true });
 
 /** Draw the newest segment of a pen stroke while it is being written. */
 export function drawPenSegment(t: DrawTarget, s: Stroke, a: Point, b: Point) {
-  style(t.ctx, s);
-  seg(t, s, a, b);
+  t.draw.path([at(t, a), at(t, b)], widthPx(s, (a[2] + b[2]) / 2, t.w), SOLID(s.color));
 }
 
 function drawStroke(t: DrawTarget, s: Stroke) {
-  const { ctx } = t;
-  style(ctx, s);
   const pts = s.points;
   if (s.tool === 'highlighter') {
     // One path, so overlapping parts of the same stroke don't darken.
-    ctx.save();
-    ctx.globalAlpha = 0.35;
-    ctx.globalCompositeOperation = 'multiply';
-    ctx.lineWidth = widthPx(s, 1, t.w);
-    ctx.beginPath();
-    ctx.moveTo(pts[0][0] * t.w - t.ox, pts[0][1] * t.h - t.oy);
-    for (const p of pts.length > 1 ? pts.slice(1) : pts) ctx.lineTo(p[0] * t.w - t.ox, p[1] * t.h - t.oy);
-    ctx.stroke();
-    ctx.restore();
+    t.draw.path(pts.map((p) => at(t, p)), widthPx(s, 1, t.w), highlight(s.color));
     return;
   }
-  if (pts.length === 1) seg(t, s, pts[0], pts[0]);
-  for (let i = 1; i < pts.length; i++) seg(t, s, pts[i - 1], pts[i]);
+  // Segment by segment, each as wide as the pen's pressure there.
+  if (pts.length === 1) drawPenSegment(t, s, pts[0], pts[0]);
+  for (let i = 1; i < pts.length; i++) drawPenSegment(t, s, pts[i - 1], pts[i]);
 }
 
 /** What markings/model.ts needs to know about strokes. */
@@ -122,6 +104,7 @@ export const strokes: KindBehaviour<Stroke> = {
   map: (s, f) => ({ ...s, points: s.points.map(f) }),
   hits: touches,
   draw: drawStroke,
+  annotation: (t, s) => ({ subtype: 'Ink', paths: [s.points.map((p) => at(t, p))], color: s.color, width: widthPx(s, 0.5, t.w) }),
   compact: (s) => ({ ...s, points: compact(s.points) }),
   copy: (s) => ({ ...s, points: s.points.map((p) => [...p]) }),
 };
