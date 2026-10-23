@@ -54,6 +54,9 @@ export class OpenScores {
 
   get(scoreId: string): OpenScore | undefined { return this.scores.get(scoreId); }
 
+  /** Take a score opened elsewhere, as when the reader turns to another score. */
+  adopt(s: OpenScore) { this.scores.set(s.id, s); }
+
   /**
    * Open item k's score, or find that it can't be. Only with `ask` (the score is being turned to,
    * not opened ahead of time) is a PDF's password asked for; one that can't be opened without it

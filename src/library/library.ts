@@ -23,6 +23,7 @@ import { el, plural } from '../ui/dom';
 import { closeOverlay, whenOverlayCloses, type MenuItem } from '../ui/overlay';
 import { Toast } from '../ui/toast';
 import { FolderBanner } from './folder-banner';
+import { byFolder } from './folders';
 import type { LibraryHost } from './host';
 import { openScore, type LibraryScore } from './open-score';
 import { ScoresSection } from './scores-section';
@@ -314,7 +315,9 @@ export class Library implements LibraryHost {
   /* ---------- opening the reader ---------- */
 
   open(s: Original) {
-    void this.read({ kind: 'score', original: s }, [s], `Could not open “${s.title}”. It may have been moved or renamed.`);
+    // In the library's order, to turn on to the next score from this one's end.
+    const library = byFolder(this.originals).flatMap((l) => l.originals);
+    void this.read({ kind: 'score', original: s, library }, [s], `Could not open “${s.title}”. It may have been moved or renamed.`);
   }
 
   /** Read a named excerpt, as a setlist entry playing it is read: only its cuts, always from its start. */

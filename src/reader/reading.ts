@@ -18,7 +18,7 @@ export type ReadingKind = { kind: 'score' } | { kind: 'excerpt'; span: Span } | 
 export interface ReadingSnapshot { what: ReadingKind; setlists: readonly Setlist[] }
 
 export class Reading {
-  constructor(readonly items: readonly Item[], public what: ReadingKind, public setlists: readonly Setlist[]) {}
+  constructor(readonly items: Item[], public what: ReadingKind, public setlists: readonly Setlist[]) {}
 
   get setlistId(): string | null { return this.what.kind === 'setlist' ? this.what.id : null; }
   get setlist(): Setlist | undefined { return this.setlists.find((s) => s.id === this.setlistId); }
@@ -71,6 +71,11 @@ export class Reading {
   /** Add what is read (a score, or the excerpt read) to the end of `setlist`, which may be new. */
   addTo(setlist: Setlist) {
     this.setlists = withSetlist(this.setlists, addEntries(setlist, [{ scoreId: this.items[0].scoreId, span: this.span(0) }]));
+  }
+
+  /** In a score's own reader: read another score instead. */
+  turnTo(it: Item) {
+    if (this.what.kind === 'score') this.items[0] = it;
   }
 
   snapshot(): ReadingSnapshot { return { what: this.what, setlists: this.setlists }; }

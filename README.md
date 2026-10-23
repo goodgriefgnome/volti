@@ -40,9 +40,10 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   keeps the music at the top of the screen in place.
 - A score, excerpt or setlist opens ready to play, with the toolbar hidden. Tap the right side or
   swipe left for the next page, the left side or swipe right for the previous one, and the middle
-  to show the toolbar. The back arrow at the top left, there with
-  the toolbar hidden too, goes back to the library. Page-turn pedals that send arrow or
-  Page Up/Down keys work too.
+  to show the toolbar. The back arrow at the top left, there with the toolbar hidden too, goes
+  back to the library. Page-turn pedals that send arrow or Page Up/Down keys work too.
+- In a score (not a setlist), turning on past its end says which score comes next in the library;
+  turning on again opens it. The same back, from a score's start, opens the one before at its end.
 - While the toolbar shows, pinch with two fingers to zoom in and drag to move around; **Fit page**
   zooms back out. Turning the page or hiding the toolbar also zooms out.
 - **Pen**, **Highlight** and **Erase** work with the stylus or one finger; two fingers still zoom

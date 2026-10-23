@@ -24,6 +24,15 @@ describe('Reading', () => {
     expect(new Reading([item], { kind: 'score' }, []).playedCuts(0, s.score.cuts)).toHaveLength(3);
   });
 
+  it('turns to another score only in a score\'s own reader', () => {
+    const r = new Reading([item], { kind: 'score' }, []);
+    r.turnTo({ scoreId: 'q', title: 'Requiem' });
+    expect(r.items.map((x) => x.title)).toEqual(['Requiem']);
+    const x = new Reading([item], { kind: 'excerpt', span: {} }, []);
+    x.turnTo({ scoreId: 'q', title: 'Requiem' });
+    expect(x.items.map((it) => it.title)).toEqual(['Mass']);
+  });
+
   it('carries an edit to the excerpt read, the score\'s names and every setlist', () => {
     const { s, b } = mass();
     const other: Setlist = { ...newSetlist('Autumn'), entries: [{ ...newEntry('p'), last: b.id }] };

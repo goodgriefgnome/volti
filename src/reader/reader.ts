@@ -6,6 +6,7 @@
 import { ends } from '../excerpts/span';
 import type { Marking } from '../markings/model';
 import { PEN_COLORS } from '../markings/stroke';
+import { PasswordNotGiven } from '../originals/open';
 import { knownTitles, type Original } from '../originals/originals';
 import type { PageCache } from '../originals/pages';
 import { framesOnScreen } from '../render/layout';
@@ -43,9 +44,13 @@ interface Undo { open: OpenScore; state: State; reading: ReadingSnapshot; k: num
 
 /** What the reader opens: a score on its own, a named excerpt of one, or a setlist. */
 export type ToRead =
-  | { kind: 'score'; original: Original }
+  /** A score, with the library's scores in its order, to turn to past this one's ends. */
+  | { kind: 'score'; original: Original; library: readonly Original[] }
   | { kind: 'excerpt'; original: Original; excerpt: ExcerptName }
   | { kind: 'setlist'; setlistId: string; originals: readonly Original[]; startEntry?: string };
+
+/** How long the next score is offered after turning past a score's end: as long as the toast saying so shows. */
+const OFFER_MS = 3500;
 
 /** Whether two played orders put the same music in the same places. */
 const sameLayout = (a: readonly Cut[], b: readonly Cut[]) =>
@@ -63,7 +68,7 @@ export async function openReader(what: ToRead, onClose: () => void): Promise<voi
     const item = { scoreId: original.id, title: original.title, original };
     // An excerpt starts at its start each time: its place isn't kept.
     if (what.kind === 'excerpt') new Reader([item], { kind: 'excerpt', span: ends(what.excerpt) }, setlists, first, 0, undefined, onClose);
-    else new Reader([item], { kind: 'score' }, setlists, first, 0, position, onClose);
+    else new Reader([item], { kind: 'score' }, setlists, first, 0, position, onClose, what.library);
     return;
   }
   const setlist = setlists.find((s) => s.id === what.setlistId);
@@ -128,6 +133,8 @@ class Reader {
 
   private reading: Reading;
   private menus: ReaderMenus;
+  /** The score offered by turning past this one's end: turning that way again while it is offered opens it. */
+  private offered: { dir: 1 | -1; id: string; until: number } | null = null;
 
   constructor(
     items: Item[],
@@ -137,6 +144,8 @@ class Reader {
     k: number,
     position: string | undefined,
     private onClose: () => void,
+    /** In a score's own reader, the library's scores in its order, to turn to. */
+    private library: readonly Original[] = [],
   ) {
     this.reading = new Reading(items, what, setlists);
     this.scores = new OpenScores(items, first);
@@ -450,15 +459,62 @@ class Reader {
     // Put the tool away so taps turn pages again. The toolbar stays until you dismiss it.
     this.tool = 'none';
     if (next >= 0 && next < this.frames.length) {
+      this.offered = null;
       this.frame = next;
       this.syncBar();
       void this.show();
       return;
     }
+    if (this.reading.what.kind === 'score') { this.offerScore(dir); return; }
     const k = this.k + dir;
     if (k < 0 || k >= this.items.length) return;
     this.syncBar();
     void this.goTo(k, dir > 0 ? 'first' : 'last');
+  }
+
+  /**
+   * Past a score's end (or before its start), in its own reader: offer the library's next score (or
+   * the one before), and open it when turned that way again while the offer shows.
+   */
+  private offerScore(dir: 1 | -1) {
+    const here = this.library.findIndex((o) => o.id === this.items[0].scoreId);
+    const o = here < 0 ? undefined : this.library[here + dir];
+    if (!o) { this.offered = null; this.say(dir > 0 ? 'This is the last score.' : 'This is the first score.'); return; }
+    const was = this.offered;
+    if (was?.dir === dir && was.id === o.id && Date.now() < was.until) {
+      this.offered = null;
+      this.toast.hide();
+      void this.turnToScore(o, dir);
+      return;
+    }
+    this.offered = { dir, id: o.id, until: Date.now() + OFFER_MS };
+    this.say(`Tap again for “${o.title}”`);
+  }
+
+  /** Read score `o` instead: from its start going forward, from its last screen going back. */
+  private async turnToScore(o: Original, dir: 1 | -1) {
+    this.loading = true;
+    this.editor.dismiss();
+    this.toolbar.info.textContent = 'Opening…';
+    let open: OpenScore;
+    try {
+      const { cache, aspects } = await openPages(o, true);
+      if (this.scores.closed) { cache.destroy(); return; }
+      const { state } = await loadScore(o.id, o.title, aspects);
+      open = { id: o.id, original: o, aspects, state, cache };
+    } catch (e) {
+      // Not opened (its password not given, say): stay where you were.
+      this.loading = false;
+      this.syncBar();
+      void this.show();
+      this.say(e instanceof PasswordNotGiven ? `“${o.title}” needs its password to open.` : `Could not open “${o.title}”. It may have been moved or renamed.`);
+      if (!(e instanceof PasswordNotGiven)) console.error(e);
+      return;
+    }
+    this.scores.adopt(open);
+    this.reading.turnTo({ scoreId: o.id, title: o.title, original: o });
+    this.loading = false;
+    await this.goTo(0, dir > 0 ? 'first' : 'last');
   }
 
   private act(g: Gesture) {
