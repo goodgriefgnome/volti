@@ -4,7 +4,7 @@ import { insertArchived, insertPages, joinNext, remove, setEdge, split } from '.
 import type { State } from '../scores/model';
 import { A4, cut, state } from '../scores/testing';
 import {
-  duplicate, followEdit, followScore, moveEntry, newEntry, spanCuts, spanFor, spanLabel, spanOf, type Setlist, type Span,
+  defaultSetlist, duplicate, followEdit, followScore, moveEntry, newEntry, newSetlist, spanCuts, spanFor, spanLabel, spanOf, type Setlist, type Span,
 } from './model';
 
 const aspects = [A4, A4, A4, A4];
@@ -223,5 +223,24 @@ describe('setlist edits', () => {
     expect(d.archived).toBe(false);
     expect(d.entries.map((e) => [e.scoreId, e.last])).toEqual([['a', undefined], ['b', 'x'], ['c', undefined]]);
     expect(d.entries.some((e, i) => e.id === s.entries[i].id)).toBe(false);
+  });
+});
+
+describe('defaultSetlist', () => {
+  const a = newSetlist('A'), b = newSetlist('B'), old = { ...newSetlist('Old'), archived: true };
+
+  it('is the setlist a score was last added to', () => {
+    expect(defaultSetlist([a, b], b.id)).toBe(b);
+  });
+
+  it('is the first setlist not archived when that one is gone or archived, or there is none yet', () => {
+    expect(defaultSetlist([a, b], 'deleted')).toBe(a);
+    expect(defaultSetlist([old, a, b], old.id)).toBe(a);
+    expect(defaultSetlist([a, b], undefined)).toBe(a);
+  });
+
+  it('is none without a setlist that isn\'t archived', () => {
+    expect(defaultSetlist([], undefined)).toBeUndefined();
+    expect(defaultSetlist([old], old.id)).toBeUndefined();
   });
 });

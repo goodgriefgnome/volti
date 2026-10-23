@@ -38,4 +38,6 @@ export const keys = {
   setlist: (id: string) => 'setlist:' + id,
   /** { entry, cut }: the entry, and the first cut on the screen, you were reading. */
   setlistPos: (id: string) => 'pos:set:' + id,
+  /** The id of the setlist a score was last added to, which scores are added to by default. */
+  lastAddedTo: 'last-added-to',
 };

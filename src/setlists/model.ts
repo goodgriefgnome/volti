@@ -36,6 +36,15 @@ export const newEntry = (scoreId: string): Entry => ({ id: newId(), scoreId });
 
 export const newSetlist = (title: string): Setlist => ({ id: newId(), title, archived: false, entries: [] });
 
+/**
+ * The setlist scores are added to by default: the one a score was last added to (`last`), or,
+ * when there is none or it is archived or deleted, the first setlist not archived.
+ */
+export function defaultSetlist(setlists: readonly Setlist[], last: string | undefined): Setlist | undefined {
+  const active = setlists.filter((s) => !s.archived);
+  return active.find((s) => s.id === last) ?? active[0];
+}
+
 /** The indexes i0..i1 of the cuts a span plays. An end that can't be found falls back to the score's start or end. */
 export function spanOf(cuts: readonly { id: string }[], span: Span): { i0: number; i1: number; whole: boolean } {
   const n = cuts.length;

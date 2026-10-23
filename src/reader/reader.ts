@@ -9,7 +9,7 @@ import type { Aspects, Cut, ExcerptName, State } from '../scores/model';
 import { loadScore, savePosition } from '../scores/store';
 import { followEdit, followScore, newEntry, spanCuts, spanLabel, spanOf, type Entry, type Setlist, type Span } from '../setlists/model';
 import { ends, excerptName, followNames, nameOf, sortedNames } from '../setlists/names';
-import { loadPosition, loadSetlists, savePosition as saveSetlistPosition } from '../setlists/store';
+import { loadPosition, loadSetlists, saveLastAddedTo, savePosition as saveSetlistPosition } from '../setlists/store';
 import { openPdf, type PageCache } from '../originals/pdf';
 import { folderState, knownTitles, type Original } from '../originals/originals';
 import type { ExportPart } from '../export/pdf';
@@ -351,6 +351,7 @@ class Reader {
     chooseSetlist(this.toolbar.anchor('addTo'), `Add “${what}” to`, this.setlists, (s, isNew) => {
       const added = { ...s, entries: [...s.entries, { ...newEntry(it.scoreId), ...(span ? ends(span) : {}) }] };
       this.setlists = isNew ? [added, ...this.setlists] : this.setlists.map((x) => (x.id === s.id ? added : x));
+      void saveLastAddedTo(s.id);
       this.saver.soon();
       this.say(`Added to the end of “${s.title}”.`);
     }, it.scoreId);

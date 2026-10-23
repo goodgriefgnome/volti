@@ -5,10 +5,10 @@ import type { Aspects, ExcerptName, Score } from '../scores/model';
 import { loadAspects, loadSavedScore, scoreEntries, scoreEntry } from '../scores/store';
 import { openReader, type ToRead } from '../reader/reader';
 import {
-  duplicate, moveEntry, newSetlist, setlistsWith, spanLabel, type Entry, type Setlist, type Span,
+  defaultSetlist, duplicate, moveEntry, newEntry, newSetlist, setlistsWith, spanLabel, type Entry, type Setlist, type Span,
 } from '../setlists/model';
-import { excerptName, sortedNames } from '../setlists/names';
-import { deleteSetlist, loadSetlists, saveChanged } from '../setlists/store';
+import { ends, excerptName, sortedNames } from '../setlists/names';
+import { deleteSetlist, loadLastAddedTo, loadSetlists, saveChanged, saveLastAddedTo } from '../setlists/store';
 import {
   allowWriting, allOriginals, canLinkFolder, fileNameProblem, folderState, importFiles, knownTitles, linkFolder, removeImported,
   renameOriginal, unlinkFolder, unlockFolder,
@@ -20,8 +20,8 @@ import type { ExportPart } from '../export/pdf';
 import { openExcerptPicker, type ExcerptSource } from '../ui/excerpt-picker';
 import { addExcerpt, changeExcerptCuts, deleteExcerpt, renameExcerpt, type ExcerptHost } from '../ui/excerpts';
 import { openExportPdf } from '../ui/export-pdf';
-import { buttonRow, closeOverlay, showDialog, showMenu, whenOverlayCloses } from '../ui/overlay';
-import { askSetlistName } from '../ui/setlists';
+import { buttonRow, closeOverlay, showDialog, showMenu, whenOverlayCloses, type MenuItem } from '../ui/overlay';
+import { askSetlistName, chooseSetlist } from '../ui/setlists';
 import { Toast } from '../ui/toast';
 import { openAddScores } from './add-scores';
 import { openScore, type LibraryScore } from './open-score';
@@ -32,6 +32,8 @@ export class Library {
   private originals: Original[] = [];
   /** Every original's title as last seen, for scores whose original is missing. */
   private titles: Record<string, string> = {};
+  /** The setlist a score was last added to: see `defaultSetlist`. */
+  private lastAddedTo: string | undefined;
   /** The refresh running, and whether another was asked for meanwhile. */
   private refreshing: Promise<void> | null = null;
   private refreshAgain = false;
@@ -150,7 +152,7 @@ export class Library {
   }
 
   private async loadSetlists() {
-    [this.setlists, this.titles] = await Promise.all([loadSetlists(), knownTitles()]);
+    [this.setlists, this.titles, this.lastAddedTo] = await Promise.all([loadSetlists(), knownTitles(), loadLastAddedTo()]);
     // Every score's, for its named excerpts, and those of scores in setlists that are missing.
     const ids = [...new Set([...this.originals.map((o) => o.id), ...this.setlists.flatMap((s) => s.entries.map((e) => e.scoreId))])];
     const [saved, shapes] = await Promise.all([Promise.all(ids.map(loadSavedScore)), Promise.all(ids.map(loadAspects))]);
@@ -397,12 +399,38 @@ export class Library {
         const now = this.get(id);
         if (!now) return;
         this.openRows.add(id);
+        this.addedTo(id);
         for (const x of scores) this.remember(x);
         // The scores excerpts were chosen from too, so the spans and the cuts they name agree.
         void this.change(this.setlists.map((x) => (x.id === id ? { ...now, entries: [...now.entries, ...entries] } : x)), scores.flatMap((x) => scoreEntries(x.state)));
         this.toast.say(`Added ${plural(entries.length, 'score')} to “${now.title}”.`);
       },
     });
+  }
+
+  /** Note the setlist scores were just added to, which is the default from now on. */
+  private addedTo(id: string) {
+    this.lastAddedTo = id;
+    void saveLastAddedTo(id);
+  }
+
+  /**
+   * "Add to <default setlist>" and "Add to setlist…" for a score, or the excerpt `span` of it, called
+   * `what`; the second opens a menu of setlists below `anchor`, with New setlist….
+   */
+  private addToItems(anchor: Element, scoreId: string, what: string, span: Span = {}): MenuItem[] {
+    const add = (s: Setlist, isNew: boolean) => {
+      const added = { ...s, entries: [...s.entries, { ...newEntry(scoreId), ...ends(span) }] };
+      this.openRows.add(s.id);
+      this.addedTo(s.id);
+      void this.change(isNew ? [added, ...this.setlists] : this.setlists.map((x) => (x.id === s.id ? added : x)));
+      this.toast.say(`Added “${what}” to “${s.title}”.`);
+    };
+    const d = defaultSetlist(this.setlists, this.lastAddedTo);
+    return [
+      ...(d ? [{ label: `Add to “${d.title}”`, run: () => add(this.get(d.id) ?? d, false) }] : []),
+      { label: 'Add to setlist…', run: () => chooseSetlist(anchor, `Add “${what}” to`, this.setlists, add, scoreId) },
+    ];
   }
 
   private renderList() {
@@ -472,6 +500,7 @@ export class Library {
     if (s.location === 'imported') title.append(el('span', 'badge', 'Added'));
 
     const more = button('⋯', () => showMenu(more, s.title, [
+      ...this.addToItems(more, s.id, s.title),
       { label: 'Add excerpt…', run: () => void this.withPages(s, (sc) => addExcerpt(sc, s.title, this.excerptHost(s.id))) },
       { label: 'Rename…', run: () => this.renameFile(s) },
       { label: 'Export PDF…', run: () => this.exportPdf(s.title, [{ scoreId: s.id }]) },
@@ -507,6 +536,7 @@ export class Library {
     open.append(el('span', 'item-title', x.name));
     if (pages) open.append(el('span', 'meta', pages));
     const more = button('⋯', () => showMenu(more, x.name, [
+      ...this.addToItems(more, o.id, x.name, x),
       { label: 'Rename…', run: () => renameExcerpt(score, x, this.excerptHost(o.id)) },
       { label: 'Change cuts…', run: () => void this.withPages(o, (sc) => changeExcerptCuts(sc, x, this.excerptHost(o.id))) },
       { label: 'Export PDF…', run: () => this.exportPdf(`${o.title} - ${x.name}`, [{ scoreId: o.id, first: x.first, last: x.last }]) },

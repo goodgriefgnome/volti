@@ -5,15 +5,6 @@ scores.
 
 ## Work for the immediate future
 
-- **Add to setlist… in the Library, and a default setlist:** every score's and named excerpt's ⋯
-  menu gets "Add to setlist…", as the reader's toolbar has (an excerpt adds itself, not the whole
-  score), and "Add to <default setlist>"; these are in the menus of the Library's Scores section.
-  "Add to setlist…" always shows, as the reader's does: it lists the setlists and ends with "New
-  setlist…", so a score can go into a new setlist from its menu. The default setlist is always the
-  last one any score was added to, however it was added; it can't be set by hand. The only setlist
-  is always the default; with no setlists, there is no "Add to <default setlist>" item. Keep only
-  the last one's id: when there is none yet, or that setlist is archived or deleted, the first
-  setlist in the list is the default. The reader's toolbar keeps only its "Add to setlist".
 - **Tapping a highlighted name places the cursor:** renaming opens with the name highlighted (fine:
   typing replaces it), but on the tablet the first tap in the field brings up the cut/copy menu,
   and only a second tap gives a cursor. Clear the highlight as the first tap starts, so it places

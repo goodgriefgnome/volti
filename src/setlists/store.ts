@@ -33,4 +33,8 @@ export async function deleteSetlist(all: readonly Setlist[], id: string): Promis
 }
 
 export const loadPosition = (id: string) => kv.get<SetlistPosition>(keys.setlistPos(id));
+
+/** The setlist a score was last added to (see `defaultSetlist`). */
+export const loadLastAddedTo = () => kv.get<string>(keys.lastAddedTo);
+export const saveLastAddedTo = (id: string) => kv.set(keys.lastAddedTo, id);
 export const savePosition = (id: string, p: SetlistPosition) => kv.set(keys.setlistPos(id), p);
