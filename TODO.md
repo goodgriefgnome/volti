@@ -5,8 +5,6 @@ scores.
 
 ## Work for the immediate future
 
-- **An empty setlist offers Add scores:** expanding a setlist with no scores shows "No scores yet.
-  Use ⋯ › Add scores." Show an Add scores button there instead.
 - **Add to setlist… in the Library, and a default setlist:** every score's and named excerpt's ⋯
   menu gets "Add to setlist…", as the reader's toolbar has (an excerpt adds itself, not the whole
   score), and "Add to <default setlist>"; these are in the menus of the Library's Scores section.

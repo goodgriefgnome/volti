@@ -284,7 +284,11 @@ export class Library {
     const entries = el('ol', 'entries');
     entries.setAttribute('aria-label', `Scores in ${s.title}`);
     s.entries.forEach((e, i) => entries.append(this.entryRow(s, e, i, entries)));
-    if (!s.entries.length) entries.append(el('li', 'empty', 'No scores yet. Use ⋯ › Add scores.'));
+    if (!s.entries.length) {
+      const li = el('li', 'empty-set');
+      li.append(button('Add scores', () => this.addScores(s.id)));
+      entries.append(li);
+    }
     const inner = el('div', 'set-inner');
     inner.append(entries);
     body.append(inner);
