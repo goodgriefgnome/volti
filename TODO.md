@@ -71,6 +71,5 @@ Things to try on the tablet.
 - **Synthetic pages** (systems arranged by hand), **jump markers** (D.S., coda) that generate the
   played order, and **tags** for search.
 - **Named excerpts from the PDF's bookmarks** (outline), made the first time a score is opened.
-- **Whiteout** tool, for hiding a 1st ending on the 2nd time through (an annotation, not a cut).
 - **A new edition of an original:** replacing a score's PDF isn't supported, as cuts and ink refer
   to page positions.
