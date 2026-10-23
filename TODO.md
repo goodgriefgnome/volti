@@ -13,11 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **The dialog with the keyboard open stays a dialog:** today it turns into a full-width sheet,
-  which doesn't look nice. Keep it a dialog (margins, rounded corners), grown to a large share of
-  the screen's width and to the height left above the keyboard; when the thumbnails are zoomed in
-  past that, the dialog scrolls vertically. Keep the thumbnail strip itself from scrolling
-  vertically (that part is liked).
 - **A taller thumbnail strip in the excerpt picker:** by default about 25% of the screen's height,
   so the pages can be read without zooming every time.
 - **Taller cut tabs:** what shows of a tab can be taller than its 20 pixels now.
@@ -56,6 +51,8 @@ Things to try on the tablet.
   folder) asks once, to edit files; Rename… and Export PDF… then don't ask again.
 - **A password-protected PDF** (Come_People_Of_The_Risen_King3420.pdf): opening it asks for the
   password once; after a restart it opens without asking.
+- **A dialog with the keyboard open** stays a dialog (margins, rounded corners), most of the
+  screen wide; zooming the thumbnails makes it scroll as a whole, not the strip.
 
 ## Confirmed features which require more thought
 
