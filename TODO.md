@@ -43,6 +43,9 @@ scores.
   and only a second tap gives a cursor. Clear the highlight as the first tap starts, so it places
   the cursor where it lands. For every name field that opens highlighted (files, excerpts,
   setlists).
+- **Preview a named excerpt in Add scores:** each named excerpt listed under its score gets a
+  Preview button, like the score's. It opens the score's preview with the excerpt chosen (the
+  dropdown set to its name), so Add this excerpt adds it as it is, or other cuts once changed.
 
 ## Manual check
 
