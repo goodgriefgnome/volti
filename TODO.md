@@ -48,8 +48,9 @@ scores.
   dropdown set to its name), so Add this excerpt adds it as it is, or other cuts once changed.
 - **Add scores: checkboxes in a column, titles beside them:** a long title wraps badly today (the
   checkbox, a line break, then the title). Lay each row out as a checkbox column and a title column,
-  so a long title wraps within its own column, beside its checkbox. Named excerpts keep their
-  indent.
+  so a long title wraps within its own column, beside its checkbox. Named excerpts are laid out
+  the same way, indented: their checkboxes in a column a step in from the scores', and a long
+  excerpt name wraps beside its checkbox too.
 
 ## Manual check
 
