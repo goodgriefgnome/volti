@@ -36,9 +36,8 @@ describe('importName', () => {
     expect(importName('Mass.PDF')).toBe('Mass.PDF');
   });
 
-  it('takes the digits off a name the browser made up', () => {
-    expect(importName('Come_People_Of_The_Risen_King3420')).toBe('Come_People_Of_The_Risen_King.pdf');
-    expect(importName('Kyrie')).toBe('Kyrie.pdf');
-    expect(importName('1234')).toBe('1234.pdf');
+  it('keeps digits a name ends in, adding .pdf to a name without it', () => {
+    expect(importName('Come_People_Of_The_Risen_King3420.pdf')).toBe('Come_People_Of_The_Risen_King3420.pdf');
+    expect(importName('Come_People_Of_The_Risen_King3420')).toBe('Come_People_Of_The_Risen_King3420.pdf');
   });
 });

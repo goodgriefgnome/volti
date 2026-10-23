@@ -13,10 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **Undo the guess about made-up names:** adding a PDF drops trailing digits from a name without
-  ".pdf" (importName), on the theory that Android had added "3420" to that name. It hadn't: the
-  file is called that, and the picker only clipped it. Keep a name as it comes (adding ".pdf"), and
-  keep reading each added file once.
 - **The dialog with the keyboard open stays a dialog:** today it turns into a full-width sheet,
   which doesn't look nice. Keep it a dialog (margins, rounded corners), grown to a large share of
   the screen's width and to the height left above the keyboard; when the thumbnails are zoomed in

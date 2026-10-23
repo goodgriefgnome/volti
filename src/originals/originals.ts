@@ -201,15 +201,8 @@ function freeName(name: string, taken: ReadonlySet<string>): string {
   }
 }
 
-/**
- * The name to keep an added PDF under. A name without ".pdf" is one the browser made up: on
- * Android a picked file can come as "Name1234", digits added and the extension gone, so the
- * digits go too.
- */
-export function importName(name: string): string {
-  if (/\.pdf$/i.test(name)) return name;
-  return (name.replace(/(\D)\d+$/, '$1') || name) + '.pdf';
-}
+/** The name to keep an added PDF under: its own, with ".pdf" added if it hasn't one. */
+export const importName = (name: string) => (/\.pdf$/i.test(name) ? name : name + '.pdf');
 
 /**
  * Keep copies of PDFs in the app. A file the library already has, in the folder or imported, isn't
