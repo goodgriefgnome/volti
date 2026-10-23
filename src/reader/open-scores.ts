@@ -2,12 +2,12 @@
 // first needed and closed when far from the score being read.
 
 import { askPassword } from '../dialogs/passwords';
-import { PageCache } from '../originals/pdf';
+import { openOriginal, PasswordNotGiven } from '../originals/open';
 import type { Original } from '../originals/originals';
+import { PageCache } from '../originals/pdf';
 import { hasPictures, picturesOf } from '../pictures/pictures';
 import type { Aspects, State } from '../scores/model';
 import { loadAspects, loadScore } from '../scores/store';
-import { openOriginal, PasswordNotGiven } from '../originals/open';
 
 /**
  * An original's pages, to read: at once where its pages are saved as pictures and their shapes are

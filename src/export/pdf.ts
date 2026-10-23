@@ -6,13 +6,13 @@
 
 import type { PDFDocument, PDFEmbeddedPage, PDFPage } from 'pdf-lib';
 import { spanCuts, type Span } from '../excerpts/span';
+import { openOriginal, savedPassword, type AskPassword } from '../originals/open';
 import type { Original } from '../originals/originals';
 import type { PageCache } from '../originals/pdf';
 import { cutTarget, drawFrame, shownOn } from '../render/paint';
 import { pack, type Frame } from '../scores/frames';
 import type { Aspects, State } from '../scores/model';
 import { loadScore } from '../scores/store';
-import { openOriginal, savedPassword, type AskPassword } from '../originals/open';
 import { annotate } from './annotations';
 import { placeCut, shownSize, type SourcePage } from './placement';
 

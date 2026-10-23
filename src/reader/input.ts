@@ -3,6 +3,7 @@
 // is in tools/.
 
 import type { Point } from '../markings/model';
+import { isZoomed, pan, pinch, type Pt, type Zoom } from '../render/zoom';
 import { closeOverlay, overlayOpen } from '../ui/overlay';
 import type { CutEditor } from './cuts/editor';
 import { gestureFor, gestureForKey, type Gesture } from './gestures';
@@ -10,7 +11,6 @@ import type { FrameSlot } from './spread';
 import type { ToolChoice } from './toolbar';
 import { TOOLS } from './tools';
 import type { ToolHost, ToolPointer } from './tools/tool';
-import { isZoomed, pan, pinch, type Pt, type Zoom } from '../render/zoom';
 
 /** After the pen lifts, finger touches are ignored this long, as they are probably the writing hand. */
 const PALM_GUARD_MS = 600;

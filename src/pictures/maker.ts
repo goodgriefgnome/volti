@@ -2,12 +2,12 @@
 // the widths this screen shows them, drawing those not saved yet, and deleting the rest.
 
 import { spanCuts } from '../excerpts/span';
+import { openOriginal } from '../originals/open';
 import type { Original } from '../originals/originals';
 import { readPageWidths } from '../render/screen';
 import { pack } from '../scores/frames';
 import { loadAspects, loadScore } from '../scores/store';
 import type { Setlist } from '../setlists/model';
-import { openOriginal } from '../originals/open';
 import { dpr } from '../ui/dom';
 import { hasPicture, picturesOf, setWanted, tidyPictures } from './pictures';
 

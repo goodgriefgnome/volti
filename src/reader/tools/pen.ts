@@ -3,9 +3,9 @@
 
 import type { Point } from '../../markings/model';
 import { compact, drawPenSegment, HIGHLIGHT_COLOR, HIGHLIGHT_SIZE, PEN_SIZE, type Stroke } from '../../markings/stroke';
+import { frameTarget } from '../../render/paint';
 import { setInk } from '../../scores/edits';
 import { claimMarking } from '../../scores/ownership';
-import { frameTarget } from '../../render/paint';
 import type { FrameSlot } from '../spread';
 import type { Tool, ToolHost } from './tool';
 

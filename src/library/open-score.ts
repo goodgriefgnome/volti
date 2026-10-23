@@ -3,8 +3,8 @@
 
 import type { ExcerptSource } from '../dialogs/excerpt-picker';
 import { askPassword } from '../dialogs/passwords';
-import type { Original } from '../originals/originals';
 import { openOriginal } from '../originals/open';
+import type { Original } from '../originals/originals';
 import { loadSavedScore, loadScore, saveScore } from '../scores/store';
 import { dpr } from '../ui/dom';
 
