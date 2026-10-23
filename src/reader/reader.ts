@@ -1,6 +1,6 @@
 // The centre of the score screen: the frames on the screen, turning pages and scores, taking edits
 // (commit, undo, redo), and opening and closing. It joins the other reader files together: what is
-// read and how edits carry to setlists is reading.ts, the toolbar's menus and dialogs menus.ts.
+// read and how edits carry to setlists is reading.ts, the toolbar's menus and dialogs toolbar-menus.ts.
 // Code that can stand on its own goes in one of them.
 
 import { ends } from '../excerpts/span';
@@ -25,13 +25,13 @@ import { Detail } from './detail';
 import type { Gesture } from './gestures';
 import { History } from './history';
 import { Input } from './input';
-import { ReaderMenus } from './menus';
 import { OpenScores, openPages, type Item, type OpenScore } from './open-scores';
 import { Reading, type ReadingKind, type ReadingSnapshot } from './reading';
 import { Saver } from './saver';
 import { blankBox, ScoreCard, showSetlistTitle } from './setlist';
 import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './spread';
 import { backIcon, Toolbar, type ToolChoice } from './toolbar';
+import { ReaderMenus } from './toolbar-menus';
 import type { ToolName } from './tools';
 import type { ReaderView } from './view';
 
