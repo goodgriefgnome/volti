@@ -47,11 +47,9 @@ scores.
     landscape ones. Only the screen's first frame decides: the second slot takes the next frame
     whatever its shape, shrunk to fit its half. Frames of different sizes in one screen (A4 beside
     Letter) are each fitted to their half.
-  - *Turning:* forward moves on by the frames shown. Back shows the screen that turning forward
-    from would come back to the current one: with the first frame on screen f, frames f−2 and f−1
-    when f−2 would open a screen of two; otherwise f−1 alone (also when f−1 would open a screen of
-    two, which would then take in f). Near the start, the screen from the first frame. A
-    remembered place, or rotating, opens the screen starting at the frame holding the cut.
+  - *Turning:* forward moves on by the frames shown; back, for now, goes back by as many frames
+    as are showing (near the start, to the first frame). A remembered place, or rotating, opens
+    the screen starting at the frame holding the cut.
   - *Setlists:* each entry still starts on a fresh screen, and a half-empty last screen keeps the
     "Next" box in its second slot. Exports stay one frame per PDF page.
   - *Toolbar:* remove the Auto / 1 page / 2 pages setting: it is always this. The score's stored
@@ -68,6 +66,10 @@ Things to try on the tablet.
 
 ## Confirmed features which require more thought
 
+- **Turning back so forward restores the screen:** turning back should show the screen that
+  turning forward from would come back to the current one. With the first frame on screen f:
+  frames f−2 and f−1 when f−2 would open a screen of two; otherwise f−1 alone (also when f−1 would
+  open a screen of two, which would take in f). For now it goes back by as many frames as show.
 - **Square frames:** a frame neither wider nor taller is both portrait and landscape; decide how
   it lays out on the screen (for now, as portrait).
 - **Images as an original**: a set of images ordered by file name, scaled to a common width,
