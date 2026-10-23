@@ -32,7 +32,8 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   landscape screen, landscape pages one above the other on a portrait one. Rotating the tablet
   keeps the music at the top of the screen in place.
 - In a score: tap the right side or swipe left for the next page, the left side or swipe right for
-  the previous one, and the middle to show the toolbar. Page-turn pedals that send arrow or
+  the previous one, and the middle to show the toolbar. The back arrow at the top left, there with
+  the toolbar hidden too, goes back to the library. Page-turn pedals that send arrow or
   Page Up/Down keys work too.
 - While the toolbar shows, pinch with two fingers to zoom in and drag to move around; **Fit page**
   zooms back out. Turning the page or hiding the toolbar also zooms out.

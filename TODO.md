@@ -13,11 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **A back button always in the reader:** with the toolbar hidden, a small back icon at the top
-  left goes back to the library. With the toolbar showing, its "Library" button becomes the same
-  icon (still labelled Library for screen readers). The icon is a tap target of its own, so taps
-  next to it still turn back a page; it sits over the corner of the music, so keep it small and
-  unobtrusive.
 - **Scores grouped by subfolder:** the library's Scores list shows the PDFs at the top of the
   scores folder (and the added ones), then one list per subfolder, headed with its path ("Masses /
   Latin"; folders inside subfolders get lists of their own, flat, not nested), sorted by path.
@@ -49,6 +44,8 @@ Things to try on the tablet.
   within half an hour) shows Update in the library's banner; tapping it loads the new version.
 - **A dialog with the keyboard open** sits centred in the space above the keyboard, with the field
   being typed into in view.
+- **The reader's back arrow:** with the toolbar hidden, the small arrow at the top left goes back
+  to the library without getting in the way of the music or of turning back a page.
 
 ## Confirmed features which require more thought
 

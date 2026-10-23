@@ -5,6 +5,18 @@ import { PEN_COLORS } from '../markings/stroke';
 import { el } from '../ui/dom';
 import type { ToolName } from './tools/tool';
 
+/** The back arrow that leaves the reader for the library, on the toolbar and when it is hidden. */
+export function backIcon(): SVGSVGElement {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.classList.add('back-icon');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M15 5 8 12l7 7');
+  svg.append(path);
+  return svg;
+}
+
 /** The tool selected in the toolbar, if any. */
 export type ToolChoice = 'none' | ToolName;
 
@@ -52,7 +64,11 @@ export class Toolbar {
   /** `reading` is what the reader reads, which decides the buttons on the right. */
   constructor(reading: 'score' | 'excerpt' | 'setlist', act: ToolbarActions) {
     const left = el('div', 'group');
-    left.append(this.button('close', 'Library', act.close), this.title);
+    const back = this.button('close', '', act.close);
+    back.append(backIcon());
+    back.setAttribute('aria-label', 'Library');
+    back.title = 'Library';
+    left.append(back, this.title);
 
     const tools = el('div', 'group');
     tools.append(

@@ -32,7 +32,7 @@ import { framesOnScreen } from './layout';
 import { Saver } from './saver';
 import { blankBox, ScoreCard, showSetlistTitle } from './setlist';
 import { paintSlot, paintSlotInk, placeBoxes, placeScreen, placeSlots, type FrameSlot } from './spread';
-import { Toolbar, type ToolChoice } from './toolbar';
+import { backIcon, Toolbar, type ToolChoice } from './toolbar';
 import type { ToolName } from './tools/tool';
 import { isZoomed, NO_ZOOM, type Zoom } from './zoom';
 
@@ -197,7 +197,13 @@ class Reader {
     this.syncBar();
     this.stage.append(this.spreadEl);
     this.scope.hidden = true;
-    this.root.append(this.stage, this.toolbar.el, this.scope, this.toast.el);
+    // While the toolbar is hidden, a small back arrow at the top left still leads to the library.
+    const back = el('button', 'back');
+    back.type = 'button';
+    back.append(backIcon());
+    back.setAttribute('aria-label', 'Library');
+    back.addEventListener('click', () => history.back());
+    this.root.append(this.stage, back, this.toolbar.el, this.scope, this.toast.el);
     document.body.append(this.root);
     document.body.classList.add('reading');
 
