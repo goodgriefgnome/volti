@@ -23,6 +23,8 @@ scores.
   seconds later once the new one has downloaded, which can happen mid-read.
 - **An empty setlist offers Add scores:** expanding a setlist with no scores shows "No scores yet.
   Use ⋯ › Add scores." Show an Add scores button there instead.
+- **Add to setlist… in the Library:** every score's and named excerpt's ⋯ menu gets "Add to
+  setlist…", as the reader's toolbar has (an excerpt adds itself, not the whole score).
 
 ## Manual check
 
