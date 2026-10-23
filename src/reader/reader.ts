@@ -36,7 +36,7 @@ import { Saver } from './saver';
 import { blankBox, ScoreCard, showSetlistTitle } from './setlist';
 import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './spread';
 import { backIcon, Toolbar, type ToolChoice } from './toolbar';
-import type { ToolName } from './tools/tool';
+import type { ToolName } from './tools';
 
 /**
  * Undo keeps whole states: each entry is a score's state before an edit, the setlists (whose

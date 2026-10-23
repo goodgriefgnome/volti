@@ -25,6 +25,7 @@ function eraseAt(host: ToolHost, slot: FrameSlot, p: Point) {
 
 /** The eraser: markings go as it touches them, and the whole sweep is one undo step. */
 export const eraserTool: Tool = {
+  label: 'Erase',
   start(host, slot, p) {
     const before = host.state();
     eraseAt(host, slot, p);

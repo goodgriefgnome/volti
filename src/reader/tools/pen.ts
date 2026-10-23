@@ -19,6 +19,7 @@ function drawLive(host: ToolHost, slot: FrameSlot, s: Stroke, a: Point, b: Point
 
 /** The pen, in the chosen colour, or the highlighter. A finished stroke goes to the cut that holds most of it. */
 export const penTool = (kind: 'pen' | 'highlighter'): Tool => ({
+  label: kind === 'pen' ? 'Pen' : 'Highlight',
   start(host, slot, p) {
     const hl = kind === 'highlighter';
     const stroke: Stroke = {

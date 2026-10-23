@@ -1,11 +1,9 @@
-// What every tool is: the Tool interface, what a tool may ask of the reader, and the tools' names.
-// A tool acts on the frames with a pointer; each tool has its own file here.
+// What every tool is: the Tool interface, and what a tool may ask of the reader. A tool acts on the
+// frames with a pointer; each tool has its own file here, and index.ts lists them.
 
 import type { Marking, Point } from '../../markings/model';
 import type { Aspects, State } from '../../scores/model';
 import type { FrameSlot } from '../spread';
-
-export type ToolName = 'pen' | 'highlighter' | 'eraser';
 
 /** What a tool needs from the reader. */
 export interface ToolHost {
@@ -40,5 +38,7 @@ export interface ToolPointer {
 }
 
 export interface Tool {
+  /** Its button in the toolbar. */
+  label: string;
   start(host: ToolHost, slot: FrameSlot, p: Point): ToolPointer;
 }

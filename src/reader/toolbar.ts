@@ -3,7 +3,7 @@
 
 import { PEN_COLORS } from '../markings/stroke';
 import { el } from '../ui/dom';
-import type { ToolName } from './tools/tool';
+import { TOOL_NAMES, TOOLS, type ToolName } from './tools';
 
 /** The back arrow that leaves the reader for the library, on the toolbar and when it is hidden. */
 export function backIcon(): SVGSVGElement {
@@ -71,11 +71,7 @@ export class Toolbar {
     left.append(back, this.title);
 
     const tools = el('div', 'group');
-    tools.append(
-      this.button('pen', 'Pen', () => act.tool('pen')),
-      this.button('highlighter', 'Highlight', () => act.tool('highlighter')),
-      this.button('eraser', 'Erase', () => act.tool('eraser')),
-    );
+    tools.append(...TOOL_NAMES.map((t) => this.button(t, TOOLS[t].label, () => act.tool(t))));
     const swatches = el('div', 'group swatches');
     for (const c of PEN_COLORS) {
       const b = this.button('color' + c, '', () => act.penColor(c), 'swatch');
@@ -122,12 +118,10 @@ export class Toolbar {
 
   sync(v: ToolbarView) {
     const pressed = (k: string, on: boolean) => this.buttons[k].setAttribute('aria-pressed', String(on));
-    pressed('pen', v.tool === 'pen');
-    pressed('highlighter', v.tool === 'highlighter');
-    pressed('eraser', v.tool === 'eraser');
+    for (const t of TOOL_NAMES) pressed(t, v.tool === t);
     pressed('edit', v.editing);
     for (const c of PEN_COLORS) pressed('color' + c, v.tool === 'pen' && v.penColor === c);
-    for (const k of ['pen', 'highlighter', 'eraser', 'edit', 'excerpt', 'excerpts']) if (this.buttons[k]) this.buttons[k].disabled = !v.open;
+    for (const k of [...TOOL_NAMES, 'edit', 'excerpt', 'excerpts']) if (this.buttons[k]) this.buttons[k].disabled = !v.open;
     this.buttons.archived.hidden = !v.editing || !v.archived;
     this.buttons.archived.textContent = `Archived (${v.archived})`;
     this.buttons.fit.hidden = !v.zoomed;
