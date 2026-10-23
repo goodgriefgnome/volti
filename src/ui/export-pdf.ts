@@ -4,7 +4,7 @@
 
 import { exportPdf, type ExportPart } from '../export/pdf';
 import { allowWriting, EXPORTS, exportExists, fileNameProblem, saveExport } from '../originals/originals';
-import { button, el } from './dom';
+import { button, el, focusHighlighted } from './dom';
 import { buttonRow, closeOverlay, showDialog } from './overlay';
 
 export interface ExportHost {
@@ -99,6 +99,5 @@ export function openExportPdf(h: ExportHost) {
   };
 
   d.append(input, where, ...(left ? [left] : []), error, buttonRow(cancel, go));
-  input.focus();
-  input.select();
+  focusHighlighted(input);
 }

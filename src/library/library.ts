@@ -15,7 +15,7 @@ import {
   type FolderState, type Original,
 } from '../originals/originals';
 import type { Prefs } from '../storage/prefs';
-import { button, el, plural } from '../ui/dom';
+import { button, el, focusHighlighted, plural } from '../ui/dom';
 import type { ExportPart } from '../export/pdf';
 import { openExcerptPicker, type ExcerptSource } from '../ui/excerpt-picker';
 import { addExcerpt, changeExcerptCuts, deleteExcerpt, renameExcerpt, type ExcerptHost } from '../ui/excerpts';
@@ -580,8 +580,7 @@ export class Library {
     };
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') void ok(); });
     d.append(input, hint, error, buttonRow(button('Cancel', closeOverlay), button('Rename', () => void ok(), 'primary')));
-    input.focus();
-    input.select();
+    focusHighlighted(input);
   }
 
   /** Export scores (whole or excerpts of them) as one PDF, named `title` to start with. */

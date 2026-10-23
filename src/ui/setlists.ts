@@ -2,7 +2,7 @@
 // uses live with that screen.
 
 import { newSetlist, type Setlist } from '../setlists/model';
-import { button, el } from './dom';
+import { button, el, focusHighlighted } from './dom';
 import { buttonRow, closeOverlay, showDialog, showMenu } from './overlay';
 
 /** Ask for a setlist's name. */
@@ -21,8 +21,7 @@ export function askSetlistName(heading: string, value: string, okLabel: string, 
   };
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok(); });
   d.append(input, buttonRow(button('Cancel', closeOverlay), button(okLabel, ok, 'primary')));
-  input.focus();
-  input.select();
+  focusHighlighted(input);
 }
 
 /**

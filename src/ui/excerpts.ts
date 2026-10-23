@@ -4,7 +4,7 @@
 import type { Aspects, ExcerptName, Score } from '../scores/model';
 import { spanLabel, type Setlist, type Span } from '../setlists/model';
 import { moveExcerpt, nameProblem, removeName, sameSpan, setName } from '../setlists/names';
-import { button, el, plural } from './dom';
+import { button, el, focusHighlighted, plural } from './dom';
 import { openExcerptPicker, type ExcerptSource } from './excerpt-picker';
 import { buttonRow, closeOverlay, showDialog } from './overlay';
 
@@ -57,8 +57,7 @@ export function renameExcerpt(score: Score, x: ExcerptName, h: ExcerptHost) {
   };
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok(); });
   d.append(input, error, buttonRow(button('Cancel', closeOverlay), button('Rename', ok, 'primary')));
-  input.focus();
-  input.select();
+  focusHighlighted(input);
 }
 
 /**

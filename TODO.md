@@ -5,11 +5,6 @@ scores.
 
 ## Work for the immediate future
 
-- **Tapping a highlighted name places the cursor:** renaming opens with the name highlighted (fine:
-  typing replaces it), but on the tablet the first tap in the field brings up the cut/copy menu,
-  and only a second tap gives a cursor. Clear the highlight as the first tap starts, so it places
-  the cursor where it lands. For every name field that opens highlighted (files, excerpts,
-  setlists).
 - **Preview a named excerpt in Add scores:** each named excerpt listed under its score gets a
   Preview button, like the score's. It opens the score's preview with the excerpt chosen (the
   dropdown set to its name), so Add this excerpt adds it as it is, or other cuts once changed.
@@ -44,6 +39,8 @@ Things to try on the tablet.
 - **Updating:** after a change is published, closing and reopening Volti shows the start screen
   (perhaps "Updating Volti…"), then the new version, never the old one first; with Volti left
   open, it doesn't reload by itself.
+- **Tapping into a highlighted name** (Rename…, New setlist, Export PDF…): one tap gives a
+  cursor where it lands, without the cut/copy menu.
 
 ## Confirmed features which require more thought
 

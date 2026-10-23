@@ -15,3 +15,13 @@ export function button(label: string, onClick: () => void, cls = ''): HTMLButton
 }
 
 export const plural = (n: number, word: string, words = word + 's') => `${n} ${n === 1 ? word : words}`;
+
+/**
+ * Focus a text field with its text highlighted, so typing replaces it. The first tap in it puts
+ * the cursor where it lands instead: on Android, a tap on highlighted text offers cut and copy.
+ */
+export function focusHighlighted(input: HTMLInputElement) {
+  input.focus();
+  input.select();
+  input.addEventListener('pointerdown', () => input.setSelectionRange(input.selectionEnd, input.selectionEnd), { once: true });
+}
