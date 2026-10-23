@@ -5,7 +5,13 @@ scores.
 
 ## Work for the immediate future
 
-Nothing queued.
+- **One prompt per session covers reading and writing:** when the linked folder is locked after a
+  restart, the tap that unlocks it ("Allow access", or opening a score from the folder) asks for
+  read and write access together, so Rename… and Export PDF… don't ask again. (Chrome only shows a
+  permission prompt from a tap, so Volti can't ask on load.)
+- **The scores folder up in the banner:** move the scores folder panel (its name, Allow access,
+  Change, Unlink, or Link scores folder) up into the masthead row beside "Volti", so Allow access
+  is in plain sight when the library opens locked.
 
 ## Manual check
 
