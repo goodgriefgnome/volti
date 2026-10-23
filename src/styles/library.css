@@ -64,8 +64,8 @@
 .entries button.open { min-height: 48px; padding: 8px 4px; }
 .entries .item-title { font-size: 16px; overflow-wrap: anywhere; }
 .entry .num { width: 1.6em; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
-/* The number sits on the title's first line, however tall the row is. */
-.entry > .num, .entry > .open { align-self: baseline; }
+/* The title, however many lines it takes, is centred in its row, as the number beside it is. */
+.entries button.open { align-content: center; }
 .entry .handle {
   flex: none; width: 36px; min-height: 48px; padding: 0; border: 0; background: transparent; color: var(--muted);
   cursor: grab; touch-action: none; font-size: 16px; letter-spacing: -2px;

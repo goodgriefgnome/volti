@@ -13,9 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **Setlist entry number and title centred in their row:** the number now lines up with the
-  title, but both sit high in the row; centre them vertically, as the drag handle and ⋯ are (and
-  an excerpt's name in its pill). A title that wraps is centred as a block, the number beside it.
 - **Password-protected PDFs:** one (Come_People_Of_The_Risen_King3420.pdf) is added but can't be
   opened ("Could not open … It may have been moved or renamed"); other PDFs work. Ask for its
   password when it is first opened, and only once: remember it on the tablet, by the score's id,
