@@ -21,6 +21,10 @@ scores.
   and then (when it comes back to the front, and every 30 minutes or so; not while offline). Once
   one has downloaded, show "Update" in the library's banner row, never in the reader; tapping it
   switches to the new version and reloads. Untapped, the next start takes it anyway, as now.
+- **A dialog with the keyboard open is centred:** it now sits at the top of the space above the
+  keyboard; centre it there instead, as long as the field being typed into stays in view (when the
+  dialog is taller than the space, keep that field visible rather than centring).
+- **The excerpt picker's thumbnails a third of the screen tall** by default (now a quarter).
 
 ## Manual check
 
@@ -32,16 +36,6 @@ Things to try on the tablet.
   ones appear one by one, with "Reading new scores: n left…".
 - **One access prompt per session:** after a restart, Allow access (or opening a score from the
   folder) asks once, to edit files; Rename… and Export PDF… then don't ask again.
-- **A password-protected PDF** (Come_People_Of_The_Risen_King3420.pdf): opening it asks for the
-  password once; after a restart it opens without asking.
-- **A dialog with the keyboard open** stays a dialog (margins, rounded corners), most of the
-  screen wide; zooming the thumbnails makes it scroll as a whole, not the strip.
-- **The excerpt picker's thumbnails** are a quarter of the screen tall: readable without zooming?
-- **Cut tabs** show 40×28 now (were 40×20): tall enough?
-- **Page shapes and orientation:** in landscape, portrait pages two side by side and landscape pages
-  one at a time; in portrait, the reverse (landscape pages stacked); rotating keeps the place. A
-  score mixing A4 and Letter shares frames; one mixing portrait and landscape pages changes frame
-  shape where they change.
 
 ## Confirmed features which require more thought
 
