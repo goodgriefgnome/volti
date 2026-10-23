@@ -38,6 +38,11 @@ scores.
   is always the default; with no setlists, there is no "Add to <default setlist>" item. Keep only
   the last one's id: when there is none yet, or that setlist is archived or deleted, the first
   setlist in the list is the default. The reader's toolbar keeps only its "Add to setlist".
+- **Tapping a highlighted name places the cursor:** renaming opens with the name highlighted (fine:
+  typing replaces it), but on the tablet the first tap in the field brings up the cut/copy menu,
+  and only a second tap gives a cursor. Clear the highlight as the first tap starts, so it places
+  the cursor where it lands. For every name field that opens highlighted (files, excerpts,
+  setlists).
 
 ## Manual check
 
