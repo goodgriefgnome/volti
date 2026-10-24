@@ -13,10 +13,7 @@ scores.
 
 ## Work for the immediate future
 
-- **A named excerpt found by searching has its ⋯ menu:** search results for a named excerpt
-  (`excerptHit` in scores-section.ts) are built without the ⋯ button that the same excerpt has
-  under its opened score. Give them the same menu (Add to…, Rename…, Change cuts…, Export PDF…,
-  Delete…), built once for both rows.
+Nothing at the moment.
 
 ## Manual check
 

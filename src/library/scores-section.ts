@@ -131,7 +131,7 @@ export class ScoresSection {
     open.append(el('span', 'score-title', `${x.name} · ${o.title}`));
     if (pages) open.append(el('span', 'score-folder', pages));
     open.setAttribute('aria-label', `${x.name}, an excerpt of ${o.title}`);
-    li.append(el('span', 'expand'), open);
+    li.append(el('span', 'expand'), open, this.excerptMore(o, score, x));
     return li;
   }
 
@@ -185,14 +185,19 @@ export class ScoresSection {
     const open = button('', () => lib.readExcerpt(o, x), 'open');
     open.append(el('span', 'item-title', x.name));
     if (pages) open.append(el('span', 'meta', pages));
-    const more = moreButton(x.name, (at) => showMenu(at, x.name, [
+    li.append(open, this.excerptMore(o, score, x));
+    return li;
+  }
+
+  /** A named excerpt's ⋯ menu, under its score and in search results alike. */
+  private excerptMore(o: Original, score: Score, x: ExcerptName): HTMLButtonElement {
+    const { lib } = this;
+    return moreButton(x.name, (at) => showMenu(at, x.name, [
       ...lib.addToItems(at, o.id, x.name, x),
       { label: 'Rename…', run: () => renameExcerpt(score, x, lib.excerptHost(o.id)) },
       { label: 'Change cuts…', run: () => void lib.withPages(o, (sc) => changeExcerptCuts(sc, x, lib.excerptHost(o.id))) },
       { label: 'Export PDF…', run: () => lib.exportPdf(`${o.title} - ${x.name}`, [{ scoreId: o.id, first: x.first, last: x.last }]) },
       { label: 'Delete…', run: () => deleteExcerpt(score, x, lib.excerptHost(o.id)) },
     ]));
-    li.append(open, more);
-    return li;
   }
 }
