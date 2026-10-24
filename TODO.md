@@ -22,7 +22,7 @@ scores.
     - **Metadata**: cuts, markings, named excerpts, setlists, positions, passwords (IndexedDB;
       shared files waiting to be added count here too).
     - **Added scores**: the copies in `imported/` (OPFS), summed from the files' sizes.
-    - **Saved pictures**: `page-pictures/` (OPFS), summed from the files' sizes.
+    - **Setlist cache**: the saved pictures in `page-pictures/` (OPFS), summed from the files' sizes.
     - **Offline binary**: the app and pdf.js kept for offline use (Cache Storage).
     IndexedDB and Cache Storage come from `navigator.storage.estimate()`'s `usageDetails`
     (Chrome); worked out each time the menu opens, showing “Working out…” meanwhile. No delete
