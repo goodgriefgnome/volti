@@ -13,6 +13,20 @@ scores.
 
 ## Work for the immediate future
 
+- **What metadata holds, in the storage view:** tapping the Metadata line opens what it holds, as a
+  small stacked bar of its own (as the main bar is) with its parts as labelled chips under it
+  (option 3 in https://claude.ai/artifact/Bt8AySBf7E2dZC13NQcqF7):
+  - **Markings** (`ink:` records), **Cuts and excerpts** (`score:` records), **Setlists**
+    (`setlist:` records and their order), **File metadata** (hashes, titles, page shapes, the
+    remembered folder listing, passwords, locks, filed folders, closed folder lists, reading
+    places), **Unprocessed added files** (the `inbox`: files shared to Volti not yet added, by
+    their sizes).
+  - Each worked out by Volti from its own records (the size of each written out, as JSON), so
+    close to what is stored but not exact; **Unaccounted** is what is left of the browser's
+    figure for the database (old copies of changed records Chrome hasn't cleared yet, and its
+    own bookkeeping), never below nothing.
+  - The kv store gets a way to go through all its records (keys and values) for this; `keys.ts`
+    groups each key into one of the parts.
 - **The library keeps its place while reading:** going back from the reader shows the library
   scrolled where it was, not at the top. The library hides itself while the reader is open
   (`root.hidden`), which leaves the page with nothing to scroll, so its scroll position is lost:
