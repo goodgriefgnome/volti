@@ -5,7 +5,7 @@
 
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
-import { folderFiles, folderOriginal, placeOf, relist, rememberedListing, saveListing, type FolderState } from './folder';
+import { folderFiles, folderOriginal, makeFolder, placeOf, relist, rememberedListing, saveListing, type FolderState } from './folder';
 import { Hasher, rememberHash } from './hashes';
 import { importedFiles, importsDir, removeImported } from './imported';
 import { endingOf, titleOf } from './names';
@@ -87,6 +87,43 @@ export async function allOriginals(state: FolderState, progress?: Progress): Pro
   for (const c of copies) await removeImported(c);
   await kv.update<Record<string, string>>(keys.titles, (old) => ({ ...old, ...Object.fromEntries(originals.map((o) => [o.id, o.title])) }));
   return { originals: originals.sort(byTitle), removed: copies.length };
+}
+
+/** A scores-folder original as it is once moved into subfolder `folder` (by moveOriginal). */
+export const movedOriginal = (o: Original, folder: string): Original =>
+  folderOriginal({ path: (folder ? folder + '/' : '') + o.path.slice(o.path.lastIndexOf('/') + 1), id: o.id });
+
+/**
+ * Move a scores-folder original's file into subfolder `folder` of the scores folder ('' for the
+ * top), making the folders that aren't there yet; its score stays, as its contents haven't
+ * changed. Write access must have been allowed. Says why when it can't (a file of that name is
+ * there already).
+ */
+export async function moveOriginal(o: Original, folder: string): Promise<string | null> {
+  const [from, name] = await placeOf(o.path);
+  const to = await makeFolder(folder);
+  if (await to.isSameEntry(from)) return null;
+  if (await to.getFileHandle(name).then(() => true, () => false)) return `There is already a file called “${name}” in ${folder ? folder.split('/').join(' / ') : 'the top of the scores folder'}.`;
+  const h = await from.getFileHandle(name);
+  // Where it can't be moved (as in some of Android's folders), copy it there, then delete it here.
+  const moved = h.move ? await h.move(to).then(() => true, (e) => { console.warn('Moving by copying, as moving failed:', e); return false; }) : false;
+  if (!moved) {
+    const copy = await to.getFileHandle(name, { create: true });
+    try {
+      const w = await copy.createWritable();
+      await w.write(await h.getFile());
+      await w.close();
+    } catch (e) {
+      await to.removeEntry(name).catch(() => {});
+      throw e;
+    }
+    if (!(await from.removeEntry(name).then(() => true, () => false))) return `Copied it into ${folder || 'the top of the scores folder'}, but couldn't delete it here. Delete it in the Files app.`;
+  }
+  // The same contents, so the same id: no need to read it again.
+  const path = movedOriginal(o, folder).path;
+  await rememberHash('folder/' + path, await (await to.getFileHandle(name)).getFile(), o.id);
+  await relist(o.id, path);
+  return null;
 }
 
 /** The file name `title` gives an original: with its ending, ".pdf" or an image's. */

@@ -24,6 +24,9 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   A copy of a PDF that is also in the scores folder is deleted; the score stays.
   **Move to folder…** in its **⋯** menu lists it under a subfolder (one there is, or a new one);
   the PDF itself stays in Volti, and **None** takes it back to the top.
+- **Move to folder…** for a score in the scores folder moves its file into that subfolder of the
+  scores folder, making the folder if it isn't there yet; **None** moves it to the top. Its
+  cuts, markings and setlists stay with it. A folder it leaves empty stays.
 - A PDF protected by a password asks for it the first time it is opened. Volti remembers it on
   this tablet, so it asks only once. An exported PDF of it has no password. Until its password is
   given, it shows a lock in the library, and adding it to a setlist asks for the password first.

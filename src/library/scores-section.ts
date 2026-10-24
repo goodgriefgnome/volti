@@ -10,7 +10,7 @@ import type { ExcerptName, Score } from '../scores/model';
 import { setlistsWith } from '../setlists/model';
 import { button, el, lockIcon, plural } from '../ui/dom';
 import { showMenu } from '../ui/overlay';
-import { moveAdded, renameFile, type ScoreFileHost } from '../dialogs/score-files';
+import { moveToFolder, renameFile, type ScoreFileHost } from '../dialogs/score-files';
 import { byFolder, subfolders } from '../originals/by-folder';
 import type { LibraryHost } from './host';
 import { expandableRow, moreButton } from './rows';
@@ -153,7 +153,7 @@ export class ScoresSection {
       { label: 'Add excerpt…', run: () => void lib.withPages(s, (sc) => addExcerpt(sc, s.title, lib.excerptHost(s.id))) },
       { label: 'Rename…', run: () => renameFile(this.files, s) },
       { label: 'Export PDF…', run: () => lib.exportPdf(s.title, [{ scoreId: s.id }]) },
-      s.location === 'imported' && { label: 'Move to folder…', run: () => moveAdded(this.files, s, subfolders(lib.originals)) },
+      { label: 'Move to folder…', run: () => moveToFolder(this.files, s, subfolders(lib.originals)) },
       s.location === 'imported' && { label: 'Remove from Volti', run: async () => {
         await removeImported(s);
         lib.say(`Removed “${s.title}”.`);

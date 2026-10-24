@@ -35,18 +35,6 @@ scores.
   allowed, it reads the folder again quietly, so a PDF added in the Files app shows without
   asking (only “Reading new scores: n left…” when there are new ones). Not while the reader is
   open, and not after less than half a minute away, so quick switches don't each read it.
-- **Move to folder… for scores in the scores folder too:** a score from the scores folder gets
-  Move to folder… in its ⋯ menu (in the library and the reader), with the same dialog as an
-  added score's (a list of the subfolders there are, or a new path typed in; None for the top of
-  the folder), but it moves the file itself: it makes the folders on the path that aren't there
-  yet (`getDirectoryHandle(part, { create: true })`) and moves the file into the last one
-  (`move(dir)`, or copying then deleting where moving fails, as renaming does). The same write
-  permission renaming asks for covers it, as it is granted for the whole folder and everything
-  in it. Its hint says so (“Moves “Mass.pdf” into Masses/Latin in the scores folder”); a file of
-  that name already there is refused, saying so. The score keeps its id, so its hash is noted at
-  the new path and it shows in its new list at once (as a rename will). A folder left empty
-  stays, as Volti doesn't delete your folders.
-
 ## Manual check
 
 Things to try on the tablet.
@@ -94,6 +82,8 @@ Things to try on the tablet.
   of it; tapping one of its scores opens that one.
 - **Renames show at once:** renaming a score in the scores folder (from the library or the
   reader) shows the new name straight away; a moment later the list is still right.
+- **Moving a score in the scores folder:** Move to folder… on one of the folder's own scores
+  moves its file (check in the Files app), into a new folder too, and None back to the top.
 - **Reader opens with the toolbar hidden:** a score, excerpt or setlist shows only the music and
   the back arrow; a tap in the middle brings up the toolbar.
 

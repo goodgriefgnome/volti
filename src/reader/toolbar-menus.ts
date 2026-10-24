@@ -9,7 +9,7 @@ import { addExcerpt, changeExcerptCuts, deleteExcerpt, renameExcerpt, type Excer
 import { openExportPdf } from '../dialogs/export-pdf';
 import { openScore } from '../dialogs/open-score';
 import { givePassword } from '../dialogs/passwords';
-import { moveAdded, renameFile, type FileChange, type ScoreFileHost } from '../dialogs/score-files';
+import { moveToFolder, renameFile, type FileChange, type ScoreFileHost } from '../dialogs/score-files';
 import { askSetlistName, chooseSetlist } from '../dialogs/setlists';
 import { nameOf, sortedNames } from '../excerpts/names';
 import { ends, spanLabel, spanOf, type Span } from '../excerpts/span';
@@ -112,7 +112,7 @@ export class ReaderMenus {
       ...add,
       o && { label: 'Rename…', run: () => renameFile(this.files(), o) },
       { label: 'Export PDF…', run: () => void this.exportPdf() },
-      o?.location === 'imported' && { label: 'Move to folder…', run: () => moveAdded(this.files(), o, subfolders(this.h.library)) },
+      o && { label: 'Move to folder…', run: () => moveToFolder(this.files(), o, subfolders(this.h.library)) },
       o?.location === 'imported' && { label: 'Remove from Volti', run: () => void this.remove(o) },
     ]);
   }

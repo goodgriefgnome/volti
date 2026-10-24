@@ -9,8 +9,9 @@ interface FileSystemHandle {
 }
 
 interface FileSystemFileHandle {
-  /** Renames the file in its folder. Missing in older browsers. */
+  /** Renames the file in its folder, or moves it into another (and names it). Missing in older browsers. */
   move?(newName: string): Promise<void>;
+  move?(destination: FileSystemDirectoryHandle, newName?: string): Promise<void>;
 }
 
 interface FileSystemDirectoryHandle {

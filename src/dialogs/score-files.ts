@@ -1,10 +1,10 @@
 // Dialogs about a score's file, from the library's score rows and a score's reader: renaming its
-// PDF (or image), and filing an added one under a subfolder.
+// PDF (or image), and moving it to a subfolder (an added one is only listed there).
 
 import { allowWriting } from '../originals/folder';
 import { fileAdded } from '../originals/imported';
 import { fileNameProblem, tidyFolder } from '../originals/names';
-import { renamedOriginal, renameOriginal, type Original } from '../originals/originals';
+import { movedOriginal, moveOriginal, renamedOriginal, renameOriginal, type Original } from '../originals/originals';
 import { askText } from '../ui/ask-text';
 import { el } from '../ui/dom';
 
@@ -48,10 +48,12 @@ export function renameFile(h: ScoreFileHost, o: Original) {
 }
 
 /**
- * File an added PDF under a subfolder in the library: one of `folders` (the library's subfolders),
- * or a new one; None takes it back to the top.
+ * Move a score to a subfolder: one of `folders` (the library's subfolders), or a new one; None
+ * takes it back to the top. An added score is only listed there (the PDF stays in Volti); a score
+ * from the scores folder has its file moved there, making the folders that aren't there yet.
  */
-export function moveAdded(h: ScoreFileHost, o: Original, folders: readonly string[]) {
+export function moveToFolder(h: ScoreFileHost, o: Original, folders: readonly string[]) {
+  const file = o.path.slice(o.path.lastIndexOf('/') + 1);
   askText({
     title: `Move “${o.title}” to a folder`,
     value: o.folder,
@@ -60,12 +62,25 @@ export function moveAdded(h: ScoreFileHost, o: Original, folders: readonly strin
     okLabel: 'Move',
     // The subfolders there are.
     choices: [...folders],
-    below: [el('p', 'hint', 'Volti lists it under that folder, beside the scores folder’s own PDFs there. The PDF itself stays where it is.')],
+    below: [el('p', 'hint', o.location === 'folder'
+      ? `Moves “${file}” into that folder in the scores folder, making it if it isn’t there yet.`
+      : 'Volti lists it under that folder, beside the scores folder’s own PDFs there. The PDF itself stays where it is.')],
     alt: { label: 'None', text: '' },
+    check: o.location === 'folder' ? async (folder) => {
+      // Asked from this tap, which a request for access needs.
+      if (!(await allowWriting())) return 'Volti needs permission to change files in the scores folder to move one.';
+      try {
+        return await moveOriginal(o, tidyFolder(folder));
+      } catch (e) {
+        console.error(e);
+        return `Could not move it (${(e as Error).name}). It may have been moved or renamed already.`;
+      }
+    } : undefined,
     done: async (folder) => {
-      await fileAdded(o, folder);
-      h.say(tidyFolder(folder) ? `Moved “${o.title}” to ${tidyFolder(folder).split('/').join(' / ')}.` : `Moved “${o.title}” to the top of the list.`);
-      h.changed({ now: { ...o, folder: tidyFolder(folder) } });
+      const to = tidyFolder(folder);
+      if (o.location === 'imported') await fileAdded(o, to);
+      h.say(to ? `Moved “${o.title}” to ${to.split('/').join(' / ')}.` : `Moved “${o.title}” to the top of the list.`);
+      h.changed({ now: o.location === 'folder' ? movedOriginal(o, to) : { ...o, folder: to } });
     },
   });
 }

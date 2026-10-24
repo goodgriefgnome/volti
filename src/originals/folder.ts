@@ -85,6 +85,17 @@ export async function placeOf(path: string): Promise<[FileSystemDirectoryHandle,
   return [d, parts.at(-1)!];
 }
 
+/**
+ * The subfolder `path` of the linked folder ('' for the folder itself), making the folders on it
+ * that aren't there yet. Write access must have been allowed.
+ */
+export async function makeFolder(path: string): Promise<FileSystemDirectoryHandle> {
+  if (!dir) throw new Error('No folder linked');
+  let d = dir;
+  for (const p of path ? path.split('/') : []) d = await d.getDirectoryHandle(p, { create: true });
+  return d;
+}
+
 export function folderOriginal({ path, id }: ListingEntry): Original {
   const slash = path.lastIndexOf('/');
   return {
