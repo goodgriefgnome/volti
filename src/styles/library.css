@@ -81,8 +81,17 @@
 .empty { padding: 24px 4px; color: var(--muted); }
 /* An empty setlist, opened: a button to add its first scores. */
 .empty-set { padding: 8px 4px 12px; }
-/* A named excerpt found by searching, lined up with the scores. */
+/* A named excerpt found by searching, set in on a rail as under its score. */
 .list > li.hit { gap: 4px; }
+.list > li.hit .open { margin-left: 14px; padding-left: 10px; border-left: 2px solid var(--line); }
+.list > li.hit .score-title { font-size: 15px; }
+
+/* A score's named excerpts, opened: set in further than the scores, on a thin rail down from the
+   score, a size smaller, so they read as parts of it rather than more scores. */
+.entries.excerpts { margin: 0 0 10px 62px; padding-left: 10px; border-top: 0; border-left: 2px solid var(--line); }
+.entries.excerpts > li { border-bottom: 0; }
+.entries.excerpts button.open { min-height: 44px; padding: 6px 4px; }
+.entries.excerpts .item-title { font-size: 15px; }
 
 /* The storage used, in the library's ⋯ menu: the total, one stacked bar, and each part's size. */
 .storage { display: grid; gap: 8px; padding: 2px 10px 8px; min-width: 260px; }

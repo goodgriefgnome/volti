@@ -13,12 +13,7 @@ scores.
 
 ## Work for the immediate future
 
-- **Named excerpts set apart from scores:** in the library, a score's named excerpts (opened with
-  its arrow) sit further in than the scores' titles, on a thin line running down from the score,
-  in a slightly smaller size (15px against the score's 17px), so they read as parts of it, not
-  more scores (option A in https://claude.ai/artifact/EFwWexwpo56ANpHKy7VL1h). Only
-  `.entries.excerpts` in library.css changes; setlists' entries stay as they are. The same in
-  search results, where an excerpt is shown under its score.
+Nothing at the moment.
 
 ## Manual check
 
