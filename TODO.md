@@ -37,6 +37,11 @@ scores.
   folder is then read again in the background, quietly (no “Reading new scores” unless something
   new turns up), so anything that went wrong is picked up. The same on going back from a rename
   in the reader: show the new name, then read the folder again quietly.
+- **Reading the folder again on coming back to Volti:** when Volti comes back into view
+  (`visibilitychange` to `visible`) with the library showing and a scores folder linked and
+  allowed, it reads the folder again quietly, so a PDF added in the Files app shows without
+  asking (only “Reading new scores: n left…” when there are new ones). Not while the reader is
+  open, and not after less than half a minute away, so quick switches don't each read it.
 
 ## Manual check
 
