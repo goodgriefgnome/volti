@@ -369,13 +369,17 @@ export class Library implements LibraryHost {
     this.say('');
     closeOverlay();
     this.toast.hide();
+    // Hidden, the library leaves nothing to scroll and its place is lost: note it, to go back to.
+    const scrolled = window.scrollY;
     this.root.hidden = true;
     const back = (fileChanges: FileChange[]) => {
       this.root.hidden = false;
       this.scoresSection.search.blur();
+      window.scrollTo(0, scrolled);
       // A score renamed, moved or removed in the reader: show it, then read the scores again.
-      if (fileChanges.length) this.filesChanged(fileChanges);
-      else void this.loadSetlists().then(() => this.scoresSection.render());
+      if (fileChanges.length) { this.filesChanged(fileChanges); window.scrollTo(0, scrolled); }
+      // Redrawn with what may have changed in the reader, then back where it was.
+      else void this.loadSetlists().then(() => { this.scoresSection.render(); window.scrollTo(0, scrolled); });
     };
     try {
       await openReader(what, back);

@@ -13,16 +13,14 @@ scores.
 
 ## Work for the immediate future
 
-- **The library keeps its place while reading:** going back from the reader shows the library
-  scrolled where it was, not at the top. The library hides itself while the reader is open
-  (`root.hidden`), which leaves the page with nothing to scroll, so its scroll position is lost:
-  note `scrollY` before hiding, and scroll back to it once the library is shown and redrawn
-  (after `loadSetlists` and the list's render, as rows can open or change height meanwhile).
+Nothing at the moment.
 
 ## Manual check
 
 Things to try on the tablet.
 
+- **The library keeps its place:** scroll down the library, open a score, go back: the library
+  is where it was (also after renaming the score in the reader).
 - **After the code was reorganised** (no change meant to what it does): writing with the pen and
   erasing, zoomed in and out, with the palm resting; editing cuts by long press and by dragging
   tabs; opening a password-protected score; exporting into the scores folder; Allow access after a

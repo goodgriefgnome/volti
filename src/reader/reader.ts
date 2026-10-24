@@ -656,7 +656,8 @@ class Reader {
     this.card.stop();
     await this.saver.flush();
     void this.wake?.release().catch(() => {});
-    if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+    // Leaving full screen settles before the library is shown, so it doesn't undo the library's scroll.
+    if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
     this.scores.destroy();
     this.root.remove();
     document.body.classList.remove('reading');
