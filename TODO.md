@@ -13,20 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **What metadata holds, in the storage view:** tapping the Metadata line opens what it holds, as a
-  small stacked bar of its own (as the main bar is) with its parts as labelled chips under it
-  (option 3 in https://claude.ai/artifact/Bt8AySBf7E2dZC13NQcqF7):
-  - **Markings** (`ink:` records), **Cuts and excerpts** (`score:` records), **Setlists**
-    (`setlist:` records and their order), **Library index** (hashes, titles, page shapes, the
-    remembered folder listing, passwords, locks, filed folders, closed folder lists, reading
-    places), **Waiting to be added** (the `inbox`: files shared to Volti not yet added, by
-    their sizes).
-  - Each worked out by Volti from its own records (the size of each written out, as JSON), so
-    close to what is stored but not exact; **Unaccounted** is what is left of the browser's
-    figure for the database (old copies of changed records Chrome hasn't cleared yet, and its
-    own bookkeeping), never below nothing.
-  - The kv store gets a way to go through all its records (keys and values) for this; `keys.ts`
-    groups each key into one of the parts.
 - **The library keeps its place while reading:** going back from the reader shows the library
   scrolled where it was, not at the top. The library hides itself while the reader is open
   (`root.hidden`), which leaves the page with nothing to scroll, so its scroll position is lost:
@@ -55,6 +41,25 @@ Things to try on the tablet.
 
 ## Confirmed features which require more thought
 
+- **What metadata holds, in the storage view:** tapping the Metadata line opens what it holds, as a
+  small stacked bar of its own (as the main bar is) with its parts as labelled chips under it
+  (option 3 in https://claude.ai/artifact/Bt8AySBf7E2dZC13NQcqF7):
+  - **Markings** (`ink:` records), **Cuts and excerpts** (`score:` records), **Setlists**
+    (`setlist:` records and their order), **Library index** (hashes, titles, page shapes, the
+    remembered folder listing, passwords, locks, filed folders, closed folder lists, reading
+    places), **Waiting to be added** (the `inbox`: files shared to Volti not yet added, by
+    their sizes).
+  - Each worked out by Volti from its own records (the size of each written out, as JSON), so
+    close to what is stored but not exact; **Unaccounted** is what is left of the browser's
+    figure for the database (old copies of changed records Chrome hasn't cleared yet, and its
+    own bookkeeping), never below nothing.
+  - The kv store gets a way to go through all its records (keys and values) for this; `keys.ts`
+    groups each key into one of the parts.
+  - To think through: how to group the records. Passwords may be a part of their own; much of the
+    “Library index” is a cache that can be rebuilt from the files (`hashes`, `folder-files`,
+    `aspects:`, `locks`, `titles`), while `added-folders`, `closed-folders`, `last-added-to` and
+    `pos:` are choices that can't. One split: your work (`score:`, `ink:`, setlists), settings,
+    passwords, file metadata cache, waiting to be added.
 - **Text and symbol markings**, beside the pen and highlighter, each exported as a PDF annotation
   with its own vector appearance, as they are (`export/annotations.ts`; the drawing interface in
   `markings/draw.ts` would need fills, and text or glyph outlines):
