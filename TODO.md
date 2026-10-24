@@ -122,6 +122,11 @@ Things to try on the tablet.
 
 ## Speculative future ideas
 
+- **Watching the scores folder:** with the File System Observer API (`FileSystemObserver`, a
+  Chrome origin trial from version 129, not yet a standard), Volti would hear of PDFs added,
+  removed, renamed or changed in the scores folder (recursively) as it happens, and update the
+  list quietly, reading only what changed. Feature-detected (`'FileSystemObserver' in self`),
+  with reading the folder again as the fallback. Waiting for it to be standardised.
 - **Read only the parts of a PDF that are needed:** open originals through a range transport
   (`PDFDataRangeTransport`, slices of the File) instead of copying the whole file to pdf.js;
   saves some of the ~0.65 s pdf.js spends copying and parsing a 42 MB scan.
