@@ -30,6 +30,13 @@ scores.
     IndexedDB and Cache Storage come from `navigator.storage.estimate()`'s `usageDetails`
     (Chrome); worked out each time the menu opens, showing “Working out…” meanwhile. No delete
     button. As in https://claude.ai/artifact/Bt8AySBf7E2dZC13NQcqF7 (option A).
+- **Renaming shows at once:** once a rename's file call has succeeded, the library shows the new
+  name straight away instead of waiting for the folder to be read again: the original is swapped
+  in place (`renamedOriginal`, as the reader already does), the list redrawn, and the remembered
+  folder listing updated with the new path (its hash is already noted by `rememberHash`). The
+  folder is then read again in the background, quietly (no “Reading new scores” unless something
+  new turns up), so anything that went wrong is picked up. The same on going back from a rename
+  in the reader: show the new name, then read the folder again quietly.
 
 ## Manual check
 
