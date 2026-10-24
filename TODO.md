@@ -13,7 +13,11 @@ scores.
 
 ## Work for the immediate future
 
-Nothing at the moment.
+- **The library keeps its place while reading:** going back from the reader shows the library
+  scrolled where it was, not at the top. The library hides itself while the reader is open
+  (`root.hidden`), which leaves the page with nothing to scroll, so its scroll position is lost:
+  note `scrollY` before hiding, and scroll back to it once the library is shown and redrawn
+  (after `loadSetlists` and the list's render, as rows can open or change height meanwhile).
 
 ## Manual check
 
