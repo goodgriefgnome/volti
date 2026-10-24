@@ -13,7 +13,20 @@ scores.
 
 ## Work for the immediate future
 
-Nothing at the moment.
+- **The library's ⋯ menu, with storage:** the scores folder's ⋯ beside the name becomes the
+  library's general menu, there whether or not a folder is linked (Link scores folder and Allow
+  access stay buttons beside it, as now).
+  - A “Scores folder: <name>” section, when one is linked: Change folder…, Unlink.
+  - A “Storage used on this tablet” section: the total, one stacked bar of the parts in
+    proportion, and each part's size listed under it (Metadata is too thin to see in the bar):
+    - **Metadata**: cuts, markings, named excerpts, setlists, positions, passwords (IndexedDB;
+      shared files waiting to be added count here too).
+    - **Added scores**: the copies in `imported/` (OPFS), summed from the files' sizes.
+    - **Saved pictures**: `page-pictures/` (OPFS), summed from the files' sizes.
+    - **Offline binary**: the app and pdf.js kept for offline use (Cache Storage).
+    IndexedDB and Cache Storage come from `navigator.storage.estimate()`'s `usageDetails`
+    (Chrome); worked out each time the menu opens, showing “Working out…” meanwhile. No delete
+    button. As in https://claude.ai/artifact/Bt8AySBf7E2dZC13NQcqF7 (option A).
 
 ## Manual check
 
