@@ -36,8 +36,6 @@ Things to try on the tablet.
 - **Locked scores:** a password-protected PDF whose password hasn't been given shows a lock in
   the library and in Add scores (one that only stops printing or copying doesn't); adding it to a
   setlist asks for the password, Cancel leaves it out, and once given the lock goes.
-- **Renames show at once:** renaming a score in the scores folder (from the library or the
-  reader) shows the new name straight away; a moment later the list is still right.
 - **New PDFs appear on coming back:** add a PDF to the scores folder in the Files app, switch
   back to Volti after half a minute or more: it appears in the library without asking.
 
