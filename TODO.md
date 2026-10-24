@@ -30,11 +30,7 @@ scores.
     IndexedDB and Cache Storage come from `navigator.storage.estimate()`'s `usageDetails`
     (Chrome); worked out each time the menu opens, showing “Working out…” meanwhile. No delete
     button. As in https://claude.ai/artifact/Bt8AySBf7E2dZC13NQcqF7 (option A).
-- **Reading the folder again on coming back to Volti:** when Volti comes back into view
-  (`visibilitychange` to `visible`) with the library showing and a scores folder linked and
-  allowed, it reads the folder again quietly, so a PDF added in the Files app shows without
-  asking (only “Reading new scores: n left…” when there are new ones). Not while the reader is
-  open, and not after less than half a minute away, so quick switches don't each read it.
+
 ## Manual check
 
 Things to try on the tablet.
@@ -84,6 +80,8 @@ Things to try on the tablet.
   reader) shows the new name straight away; a moment later the list is still right.
 - **Moving a score in the scores folder:** Move to folder… on one of the folder's own scores
   moves its file (check in the Files app), into a new folder too, and None back to the top.
+- **New PDFs appear on coming back:** add a PDF to the scores folder in the Files app, switch
+  back to Volti after half a minute or more: it appears in the library without asking.
 - **Reader opens with the toolbar hidden:** a score, excerpt or setlist shows only the music and
   the back arrow; a tap in the middle brings up the toolbar.
 

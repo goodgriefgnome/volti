@@ -30,6 +30,9 @@ import { openScore, type LibraryScore } from '../dialogs/open-score';
 import { ScoresSection } from './scores-section';
 import { SetlistsSection } from './setlists-section';
 
+/** How long Volti has to be out of view before the scores folder is read again on coming back. */
+const AWAY_MS = 30_000;
+
 /** The Library screen: setlists, the scores folder, imported scores, and the list to open them from. */
 export class Library implements LibraryHost {
   folder: FolderState = { kind: 'none' };
@@ -71,6 +74,7 @@ export class Library implements LibraryHost {
     this.root.append(header, this.status, setlistsHead, this.setlistsSection.list, scoresHead, this.scoresSection.tools, this.scoresSection.list);
     document.body.append(this.root, this.toast.el);
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !this.root.hidden) closeOverlay(); });
+    document.addEventListener('visibilitychange', this.onVisible);
   }
 
   /** A new version of the app is ready: offer it, beside the scores folder's tools. `take` switches to it. */
@@ -83,6 +87,19 @@ export class Library implements LibraryHost {
   }
 
   /* ---------- reading what there is ---------- */
+
+  /** When Volti went out of view, to read the scores folder again on coming back after a while. */
+  private hiddenAt = 0;
+
+  /**
+   * Coming back to Volti, after PDFs may have been added in the Files app: read the scores folder
+   * again, quietly, with the library showing; not after a quick switch.
+   */
+  private onVisible = () => {
+    if (document.visibilityState === 'hidden') { this.hiddenAt = Date.now(); return; }
+    if (this.root.hidden || this.folder.kind !== 'ready' || Date.now() - this.hiddenAt < AWAY_MS) return;
+    void this.refresh();
+  };
 
   refresh(): Promise<void> {
     if (this.refreshing) {

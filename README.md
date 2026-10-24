@@ -14,7 +14,8 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
 - **Link scores folder** reads every PDF and image in that folder and its subfolders. Android does not let
   apps link the Download folder itself or the top of internal storage; use a folder inside them,
   such as `Download/Scores` or `Documents/Scores`. After a restart, the first score you open asks
-  for access again with one tap (**Allow access**, beside the name). The **⋯** there changes or
+  for access again with one tap (**Allow access**, beside the name). Coming back to Volti after a while (say, from
+  the Files app) reads the folder again, so PDFs added meanwhile appear. The **⋯** there changes or
   unlinks the folder.
 - The scores at the top of the folder come first, then a list for each subfolder ("Masses /
   Latin"), which its heading opens and closes; Volti remembers which are closed.
