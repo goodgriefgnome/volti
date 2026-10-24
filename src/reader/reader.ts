@@ -7,6 +7,7 @@ import type { FileChange } from '../dialogs/score-files';
 import { ends } from '../excerpts/span';
 import type { Marking } from '../markings/model';
 import { PEN_COLORS } from '../markings/stroke';
+import { folderState, unlockFolder } from '../originals/folder';
 import { PasswordNotGiven } from '../originals/open';
 import { knownTitles, type Original } from '../originals/originals';
 import type { PageCache } from '../originals/pages';
@@ -130,6 +131,8 @@ class Reader {
 
   private reading: Reading;
   private menus: ReaderMenus;
+  /** The toast asking for access to the scores folder shows, until a page is drawn. */
+  private askingAccess = false;
   /** Scores' files renamed, moved or removed here, for the library to show on going back. */
   private fileChanges: FileChange[] = [];
   /** The score offered by turning past this one's end: turning that way again while it is offered opens it. */
@@ -172,14 +175,14 @@ class Reader {
     this.toolbar = new Toolbar(what.kind, {
       close: () => history.back(),
       scores: () => this.menus.scores(),
-      excerpt: () => this.menus.excerpt(),
+      excerpt: () => void this.withAccess(() => this.menus.excerpt()),
       excerpts: () => this.menus.excerpts(),
       more: () => void this.menus.more(),
       tool: (t) => this.setTool(t),
       penColor: (c) => { this.penColor = c; this.tool = 'pen'; this.syncBar(); },
       undo: () => this.undo(),
       redo: () => this.redo(),
-      toggleEditing: () => { this.editor.setEnabled(!this.editor.enabled); this.syncBar(); this.decorate(); },
+      toggleEditing: () => void this.withAccess(() => { this.editor.setEnabled(!this.editor.enabled); this.syncBar(); this.decorate(); }),
       openArchive: () => this.editor.openArchive(),
       fit: () => this.setZoom(NO_ZOOM),
     });
@@ -207,6 +210,7 @@ class Reader {
         void this.show();
       },
       leave: () => history.back(),
+      access: () => this.allowAccess(),
       filesChanged: (change) => { this.fileChanges.push(change); },
     });
     this.syncBar();
@@ -381,15 +385,7 @@ class Reader {
     const it = this.items[this.k];
     if (!this.current?.cache) {
       // A score that can't be opened: say so, and carry on with the next one.
-      this.slots = [];
-      this.shown = 1;
-      const boxes = [this.blank(it.title), ...(framesOnScreen(A4, W, H) === 2 ? [this.blank()] : [])];
-      placeBoxes(boxes, boxes.map(() => A4), W, H, dpr());
-      this.spreadEl.replaceChildren(...boxes);
-      this.setZoom(NO_ZOOM);
-      this.toolbar.info.textContent = 'Missing';
-      this.showCard();
-      this.saveSpot(undefined);
+      this.showUnread(it.title, !!it.needsAccess, W, H);
       return;
     }
     this.frame = Math.max(0, Math.min(this.frame, this.frames.length - 1));
@@ -401,11 +397,15 @@ class Reader {
     try {
       canvases = await Promise.all([...widths].map(([p, w]) => this.cache.render(p + 1, w, this.pageSize(p, w).h, scale, 'now', true)));
     } catch (e) {
-      if (seq === this.seq) this.toolbar.info.textContent = 'Could not draw this page';
+      if (seq !== this.seq) return;
+      // A page not saved as a picture, of a PDF that can't be read until access is allowed.
+      if (await this.lockedOut()) { this.showUnread(it.title, true, W, H); return; }
+      this.toolbar.info.textContent = 'Could not draw this page';
       console.error(e);
       return;
     }
     if (seq !== this.seq) return;
+    if (this.askingAccess) { this.askingAccess = false; this.toast.hide(); }
     this.pages = new Map([...widths.keys()].map((p, i) => [p, canvases[i]]));
 
     // In a setlist each score starts on a fresh screen, so a score's last screen may have room left.
@@ -423,6 +423,49 @@ class Reader {
     void this.predraw(seq, widths, scale);
   }
 
+
+  /**
+   * In place of the screen, a score that can't be read: missing, or (`needsAccess`) in the scores
+   * folder, which Volti may not read until access is allowed, offered from a tap.
+   */
+  private showUnread(title: string, needsAccess: boolean, W: number, H: number) {
+    this.slots = [];
+    this.shown = 1;
+    const boxes = [blankBox(undefined, title, needsAccess), ...(framesOnScreen(A4, W, H) === 2 ? [this.blank()] : [])];
+    placeBoxes(boxes, boxes.map(() => A4), W, H, dpr());
+    this.spreadEl.replaceChildren(...boxes);
+    this.setZoom(NO_ZOOM);
+    this.toolbar.info.textContent = needsAccess ? 'Needs access' : 'Missing';
+    this.showCard();
+    // Offered until the screen shows something else, as the page can't be read without it.
+    if (needsAccess) {
+      this.toast.say('Volti needs access to the scores folder to show this.', ['Allow access', () => void this.allowAccess()], true);
+      this.askingAccess = true;
+    } else this.saveSpot(undefined);
+  }
+
+  /** Whether the scores folder, which some of what is read comes from, can't be read until access is allowed. */
+  private async lockedOut(): Promise<boolean> {
+    return this.items.some((it) => it.original?.location === 'folder') && (await folderState()).kind === 'locked';
+  }
+
+  /**
+   * Ask for access to the scores folder, from a tap, when what is read needs it: then read the
+   * scores from their PDFs too, and show the screen again. False when it isn't allowed.
+   */
+  private async allowAccess(): Promise<boolean> {
+    if (!(await this.lockedOut())) return true;
+    if (!(await unlockFolder())) { this.say('Volti can’t read the scores folder without access.'); return false; }
+    this.toast.hide();
+    this.scores.accessAllowed();
+    void this.goTo(this.k, this.slots[0]?.frame.items[0]?.cut.id);
+    return true;
+  }
+
+  /** Do something that needs the PDFs (editing cuts, choosing an excerpt), asking for access first if need be. */
+  private async withAccess(f: () => void) {
+    if (await this.allowAccess()) f();
+  }
 
   /**
    * In a score's own reader, remember the first cut on the screen, to come back to; an excerpt and

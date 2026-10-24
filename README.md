@@ -14,8 +14,9 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
 - **Link scores folder** reads every PDF and image in that folder and its subfolders. Android does
   not let apps link the Download folder itself or the top of internal storage; use a folder inside
   them, such as `Download/Scores` or `Documents/Scores`. After a restart, the first score you open
-  asks for access again with one tap (**Allow access**, beside the name). Coming back to Volti
-  after a while (say, from the Files app) reads the folder again, so PDFs added meanwhile appear.
+  asks for access again with one tap (**Allow access**, beside the name); a setlist whose pages
+  are saved plays without it, asking only for a page that isn't. Coming back to Volti after a
+  while (say, from the Files app) reads the folder again, so PDFs added meanwhile appear.
 - The **⋯** beside the name has the scores folder's **Check for new scores**, **Change folder…**
   and **Unlink**, and the storage Volti uses on the tablet: metadata (cuts, markings, setlists),
   added scores, the setlist cache (pictures of the pages setlists play) and the offline binary

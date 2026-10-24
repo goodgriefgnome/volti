@@ -12,13 +12,14 @@ export class Toast {
     this.el.hidden = true;
   }
 
-  say(text: string, action?: [label: string, run: () => void]) {
+  /** Show `text`, for a few seconds, or (`stay`) until hidden or another is shown. */
+  say(text: string, action?: [label: string, run: () => void], stay = false) {
     this.el.replaceChildren(el('span', '', text));
     this.el.classList.toggle('act', !!action);
     if (action) this.el.append(button(action[0], () => { this.hide(); action[1](); }));
     this.el.hidden = false;
     clearTimeout(this.timer);
-    this.timer = setTimeout(() => this.hide(), action ? 6000 : 3500);
+    if (!stay) this.timer = setTimeout(() => this.hide(), action ? 6000 : 3500);
   }
 
   hide() {

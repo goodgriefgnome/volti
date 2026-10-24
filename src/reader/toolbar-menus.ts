@@ -61,6 +61,8 @@ export interface MenusHost {
   readSpan(span: Span): void;
   /** Leave the reader for the library. */
   leave(): void;
+  /** Ask for access to the scores folder, from a tap, when what is read needs it; false when not allowed. */
+  access(): Promise<boolean>;
   /** A score's file changed (renamed, moved or removed): the library shows it on going back. */
   filesChanged(change: FileChange): void;
 }
@@ -272,6 +274,8 @@ export class ReaderMenus {
   /** Export what the reader pages through: the score, the excerpt, or the whole setlist. */
   async exportPdf() {
     const { reading } = this.h;
+    // Exporting reads the PDFs.
+    if (!(await this.h.access())) return;
     this.h.dismiss();
     // The export reads the scores as saved.
     await this.h.saver.flush();

@@ -2,6 +2,7 @@
 // first needed and closed when far from the score being read.
 
 import { askPassword } from '../dialogs/passwords';
+import { folderState } from '../originals/folder';
 import { openOriginal, PasswordNotGiven } from '../originals/open';
 import type { Original } from '../originals/originals';
 import { PageCache } from '../originals/pages';
@@ -39,6 +40,8 @@ export interface Item {
   original?: Original;
   entryId?: string;
   missing?: boolean;
+  /** Its file is in the scores folder, which Volti may not read until access is allowed again. */
+  needsAccess?: boolean;
 }
 
 /** The scores being read, each opened when first needed, with its original open only near the one being read. */
@@ -64,15 +67,18 @@ export class OpenScores {
    */
   ensure(k: number, ask = false): Promise<OpenScore | null> {
     const it = this.items[k];
-    if (!it || it.missing || !it.original) return Promise.resolve(null);
+    if (!it || it.missing || it.needsAccess || !it.original) return Promise.resolve(null);
     const have = this.scores.get(it.scoreId);
     if (have?.cache) return Promise.resolve(have);
     let p = this.opening.get(it.scoreId);
     if (!p) {
-      p = this.open(it, it.original, ask).catch((e) => {
+      const original = it.original;
+      p = this.open(it, original, ask).catch(async (e) => {
         if (e instanceof PasswordNotGiven && !ask) return null;
-        console.error(e);
-        for (const x of this.items) if (x.scoreId === it.scoreId) x.missing = true;
+        // Not lost, only not readable until access to the scores folder is allowed again.
+        const locked = original.location === 'folder' && (await folderState()).kind === 'locked';
+        if (!locked) console.error(e);
+        for (const x of this.items) if (x.scoreId === it.scoreId) x[locked ? 'needsAccess' : 'missing'] = true;
         return null;
       }).finally(() => this.opening.delete(it.scoreId));
       this.opening.set(it.scoreId, p);
@@ -90,6 +96,15 @@ export class OpenScores {
     const s: OpenScore = { id: it.scoreId, original, aspects, state, cache };
     this.scores.set(s.id, s);
     return s;
+  }
+
+  /** Access to the scores folder was allowed: open the scores again, now from their PDFs too. */
+  accessAllowed() {
+    for (const it of this.items) it.needsAccess = false;
+    for (const s of this.scores.values()) {
+      s.cache?.destroy();
+      s.cache = undefined;
+    }
   }
 
   /** Open the score after item k ahead of time, and close the originals of scores further away. */

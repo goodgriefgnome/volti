@@ -13,22 +13,15 @@ scores.
 
 ## Work for the immediate future
 
-- **Playing a setlist without folder access, from its saved pictures:** opening a setlist (or one
-  of its entries) no longer asks for access to the scores folder first when every page it plays
-  is saved as a picture at this screen's size; it opens from the pictures, as it already can.
-  Access is asked for only when a page that isn't saved is needed, then from a tap: such a page
-  shows “Tap to allow access to the scores folder” in its place (turning the tablet, which wants
-  pictures at another width, or a score added since the pictures were made). A score's own
-  reader and a named excerpt's still ask on opening, as their pages aren't kept as pictures.
-  - Without access: zooming in shows the saved picture enlarged rather than a sharp close-up;
-    Edit cuts, Excerpt and Export PDF need the PDF, so they ask for access first (they are taps).
-  - Today `Library.read` asks for access for any score from the folder before opening, and a
-    page without a picture fails to draw while the PDF can't be opened.
+Nothing at the moment.
 
 ## Manual check
 
 Things to try on the tablet.
 
+- **Setlists without folder access:** after a restart, before tapping Allow access, play a
+  setlist whose pages are saved: it opens without asking. Turn the tablet (pages not saved at
+  that size): the page asks for access, and Allow access shows it.
 - **The library keeps its place:** scroll down the library, open a score, go back: the library
   is where it was (also after renaming the score in the reader).
 - **After the code was reorganised** (no change meant to what it does): writing with the pen and

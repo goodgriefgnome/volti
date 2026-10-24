@@ -7,11 +7,13 @@ const SCORE_CARD_MS = 2200;
 
 /**
  * What fills the rest of a score's last screen: the next score's title, or the end of the
- * setlist. With `missing`, the title of a score that can't be opened.
+ * setlist. With `missing`, the title of a score that can't be opened; with `needsAccess` too,
+ * one that can't be read until access to the scores folder is allowed.
  */
-export function blankBox(next: string | undefined, missing?: string): HTMLElement {
+export function blankBox(next: string | undefined, missing?: string, needsAccess = false): HTMLElement {
   const box = el('div', 'page blank');
-  if (missing) box.append(el('span', 'label', 'Can’t find'), el('span', 't', `“${missing}”`));
+  if (missing && needsAccess) box.append(el('span', 'label', 'Needs access to the scores folder'), el('span', 't', `“${missing}”`));
+  else if (missing) box.append(el('span', 'label', 'Can’t find'), el('span', 't', `“${missing}”`));
   else if (next) box.append(el('span', 'label', 'Next'), el('span', 't', next));
   else box.append(el('span', 'label', 'End of the setlist'));
   return box;

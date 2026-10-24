@@ -15,6 +15,7 @@ import { lockedOriginals } from '../originals/locks';
 import { PasswordNotGiven } from '../originals/open';
 import { allOriginals, byTitle, knownTitles, type Original } from '../originals/originals';
 import { makePictures } from '../pictures/maker';
+import { hasPictures } from '../pictures/pictures';
 import { openReader, type ToRead } from '../reader/reader';
 import type { Aspects, ExcerptName, Score } from '../scores/model';
 import { loadAspects, loadSavedScore, scoreEntry } from '../scores/store';
@@ -365,7 +366,10 @@ export class Library implements LibraryHost {
 
   private async read(what: ToRead, originals: Original[], failed: string) {
     // Opening is a tap, so it can also grant folder access for this session.
-    if (originals.some((s) => s.location === 'folder') && this.folder.kind === 'locked' && !(await this.unlock())) return;
+    // A setlist whose pages are saved as pictures plays without it, asking only for a page that isn't.
+    const folderScores = originals.filter((s) => s.location === 'folder');
+    const saved = what.kind === 'setlist' && (await Promise.all(folderScores.map(async (o) => (await hasPictures(o.id)) && !!(await loadAspects(o.id))))).every(Boolean);
+    if (folderScores.length && this.folder.kind === 'locked' && !saved && !(await this.unlock())) return;
     this.say('');
     closeOverlay();
     this.toast.hide();
@@ -374,6 +378,8 @@ export class Library implements LibraryHost {
     this.root.hidden = true;
     const back = (fileChanges: FileChange[]) => {
       this.root.hidden = false;
+      // Access allowed in the reader: read the scores folder now it can be.
+      void folderState().then((f) => { if (f.kind !== this.folder.kind) void this.refresh(); });
       this.scoresSection.search.blur();
       window.scrollTo(0, scrolled);
       // A score renamed, moved or removed in the reader: show it, then read the scores again.
