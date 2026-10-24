@@ -113,6 +113,13 @@ export class Library implements LibraryHost {
     return this.refreshing;
   }
 
+  async checkFolder() {
+    const before = new Set(this.originals.map((o) => o.id));
+    if (this.folder.kind === 'locked') { if (!(await this.unlock())) return; } else await this.refresh();
+    const found = this.originals.filter((o) => !before.has(o.id)).length;
+    this.toast.say(found ? `Found ${plural(found, 'new score')}.` : 'No new scores.');
+  }
+
   filesChanged(changes: readonly FileChange[]) {
     if (!changes.length) return;
     const now = new Map(changes.flatMap((c) => ('now' in c ? [[c.now.id, c.now] as const] : [])));

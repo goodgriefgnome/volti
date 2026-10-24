@@ -1,10 +1,12 @@
-// The tools at the top of the library, beside the name: the scores folder's (Link scores folder,
-// Allow access, and ⋯ for the rest), and Update when a new version of the app is ready.
+// The tools at the top of the library, beside the name: the scores folder's buttons (Link scores
+// folder, Allow access), the library's ⋯ menu (the scores folder, and the storage used), and
+// Update when a new version of the app is ready.
 
 import { canLinkFolder } from '../originals/folder';
 import { button, el } from '../ui/dom';
 import { showMenu } from '../ui/overlay';
 import type { LibraryHost } from './host';
+import { storageView } from './storage';
 import { moreButton } from './rows';
 
 export class FolderBanner {
@@ -18,20 +20,22 @@ export class FolderBanner {
 
   /**
    * The scores folder's tools, for a folder that is set and forget: the one button that needs a
-   * tap (Link scores folder while none is linked, Allow access while locked), and ⋯ for the rest.
+   * tap (Link scores folder while none is linked, Allow access while locked), then the library's
+   * ⋯ menu: the scores folder's items, and the storage Volti uses on the tablet.
    */
   render() {
     const { lib } = this, p = this.folderTools, f = lib.folder;
     p.replaceChildren();
-    if (f.kind === 'none') {
-      if (canLinkFolder()) p.append(button('Link scores folder', () => void lib.link(), 'primary'));
-      return;
-    }
+    if (f.kind === 'none' && canLinkFolder()) p.append(button('Link scores folder', () => void lib.link(), 'primary'));
     if (f.kind === 'locked') p.append(button('Allow access', () => void lib.unlock(), 'primary'));
-    p.append(moreButton(f.name, (at) => showMenu(at, `Scores folder: ${f.name}`, [
-      { label: 'Change folder…', run: () => void lib.link() },
-      { label: 'Unlink', run: () => void lib.unlink() },
-    ]), 'Scores folder'));
+    p.append(moreButton('Volti', (at) => showMenu(at, 'Volti', [
+      f.kind !== 'none' && `Scores folder: ${f.name}`,
+      f.kind !== 'none' && { label: 'Check for new scores', run: () => void lib.checkFolder() },
+      f.kind !== 'none' && { label: 'Change folder…', run: () => void lib.link() },
+      f.kind !== 'none' && { label: 'Unlink', run: () => void lib.unlink() },
+      'Storage used on this tablet',
+      storageView(),
+    ]), 'More'));
   }
 
   /** A new version of the app is ready: offer it. `take` switches to it. */

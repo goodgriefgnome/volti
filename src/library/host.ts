@@ -45,6 +45,8 @@ export interface LibraryHost {
   addedTo(id: string): void;
   /** Read the folder and the imported copies again, and show them. */
   refresh(): Promise<void>;
+  /** Read the scores folder again when asked to, asking for access first if need be, and say what was found. */
+  checkFolder(): Promise<void>;
   /** Scores' files changed here or in the reader: show the changes at once, then read the scores again. */
   filesChanged(changes: readonly FileChange[]): void;
   /** Show the setlists and the scores again. */

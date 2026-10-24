@@ -72,6 +72,13 @@ export function picturesOf(id: string): PagePictures {
   };
 }
 
+/** How much room the saved pictures take, in bytes. */
+export async function picturesBytes(): Promise<number> {
+  let n = 0;
+  for await (const [, h] of (await dir()).entries()) if (h.kind === 'file') n += (await (h as FileSystemFileHandle).getFile()).size;
+  return n;
+}
+
 /** Delete the pictures of pages no setlist plays, but not those of the scores in `unsure`. */
 export async function tidyPictures(keep: Map<string, Set<number>>, unsure: Set<string>) {
   const all = await names();

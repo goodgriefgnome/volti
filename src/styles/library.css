@@ -83,3 +83,19 @@
 .empty-set { padding: 8px 4px 12px; }
 /* A named excerpt found by searching, lined up with the scores. */
 .list > li.hit { gap: 4px; }
+
+/* The storage used, in the library's ⋯ menu: the total, one stacked bar, and each part's size. */
+.storage { display: grid; gap: 8px; padding: 2px 10px 8px; min-width: 260px; }
+.storage-total { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.storage-bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--line); }
+.storage-bar i { display: block; height: 100%; }
+.storage-bar i + i { box-shadow: inset 2px 0 0 var(--surface); }
+.storage-parts { display: grid; gap: 4px; font-size: 14px; }
+.storage-part { display: grid; grid-template-columns: 12px 1fr auto; gap: 8px; align-items: center; }
+.storage-part .swatch { width: 10px; height: 10px; border-radius: 3px; }
+.storage-part .size { color: var(--muted); font-variant-numeric: tabular-nums; }
+.part-meta { background: var(--part-meta); }
+.part-added { background: var(--part-added); }
+.part-cache { background: var(--part-cache); }
+.part-app { background: var(--part-app); }
+.part-other { background: var(--muted); }

@@ -55,6 +55,13 @@ export async function importShared(): Promise<number> {
   return files.length ? (await importFiles(files)).added : 0;
 }
 
+/** How much room the imported copies take, in bytes. */
+export async function importedBytes(): Promise<number> {
+  let n = 0;
+  for await (const [, h] of (await importsDir()).entries()) if (h.kind === 'file') n += (await (h as FileSystemFileHandle).getFile()).size;
+  return n;
+}
+
 export async function removeImported(o: Original): Promise<void> {
   const d = await importsDir();
   await d.removeEntry(o.path);

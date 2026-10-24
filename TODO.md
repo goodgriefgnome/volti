@@ -13,23 +13,7 @@ scores.
 
 ## Work for the immediate future
 
-- **The library's ⋯ menu, with storage:** the scores folder's ⋯ beside the name becomes the
-  library's general menu, there whether or not a folder is linked (Link scores folder and Allow
-  access stay buttons beside it, as now).
-  - A “Scores folder: <name>” section, when one is linked: Check for new scores (reads the folder
-    again, as the library does on opening: new and changed PDFs are read, with “Reading new
-    scores: n left…”, and ones gone are dropped; it asks for access first if it isn't allowed
-    yet), Change folder…, Unlink.
-  - A “Storage used on this tablet” section: the total, one stacked bar of the parts in
-    proportion, and each part's size listed under it (Metadata is too thin to see in the bar):
-    - **Metadata**: cuts, markings, named excerpts, setlists, positions, passwords (IndexedDB;
-      shared files waiting to be added count here too).
-    - **Added scores**: the copies in `imported/` (OPFS), summed from the files' sizes.
-    - **Setlist cache**: the saved pictures in `page-pictures/` (OPFS), summed from the files' sizes.
-    - **Offline binary**: the app and pdf.js kept for offline use (Cache Storage).
-    IndexedDB and Cache Storage come from `navigator.storage.estimate()`'s `usageDetails`
-    (Chrome); worked out each time the menu opens, showing “Working out…” meanwhile. No delete
-    button. As in https://claude.ai/artifact/Bt8AySBf7E2dZC13NQcqF7 (option A).
+Nothing at the moment.
 
 ## Manual check
 
@@ -82,6 +66,8 @@ Things to try on the tablet.
   moves its file (check in the Files app), into a new folder too, and None back to the top.
 - **New PDFs appear on coming back:** add a PDF to the scores folder in the Files app, switch
   back to Volti after half a minute or more: it appears in the library without asking.
+- **The library's ⋯ menu:** Check for new scores (after adding a PDF in the Files app),
+  Change folder…, Unlink, and the storage used, with sizes that look right for your library.
 - **Reader opens with the toolbar hidden:** a score, excerpt or setlist shows only the music and
   the back arrow; a tap in the middle brings up the toolbar.
 

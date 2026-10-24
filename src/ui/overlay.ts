@@ -47,7 +47,7 @@ function tapToClose(cls: string): HTMLElement {
  * A menu below `at`, kept on the screen; or, when `at` is a point, at that point, kept inside
  * `bounds`. Falsy items are left out.
  */
-export function showMenu(at: Element | { x: number; y: number }, title: string, items: (MenuItem | string | false | null | undefined)[], bounds?: DOMRect) {
+export function showMenu(at: Element | { x: number; y: number }, title: string, items: (MenuItem | string | HTMLElement | false | null | undefined)[], bounds?: DOMRect) {
   closeOverlay();
   const catcher = tapToClose('catcher');
   const menu = el('div', 'menu');
@@ -55,14 +55,15 @@ export function showMenu(at: Element | { x: number; y: number }, title: string, 
   menu.append(el('div', 'label', title));
   for (const it of items) {
     if (!it) continue;
-    // A string heads the items after it.
+    // A string heads the items after it; an element shows as it is.
     if (typeof it === 'string') { menu.append(el('div', 'label', it)); continue; }
+    if (it instanceof HTMLElement) { menu.append(it); continue; }
     const b = button(it.label, () => { closeOverlay(); it.run(); });
     b.setAttribute('role', it.checked === undefined ? 'menuitem' : 'menuitemradio');
     if (it.checked !== undefined) b.setAttribute('aria-checked', String(it.checked));
     menu.append(b);
   }
-  if (!menu.querySelector('button')) menu.append(el('div', 'label', 'Nothing to do here.'));
+  if (menu.childElementCount === 1) menu.append(el('div', 'label', 'Nothing to do here.'));
   document.body.append(catcher, menu);
   open = [catcher, menu];
   let left: number, top: number;
