@@ -16,7 +16,10 @@ scores.
 - **The library's ⋯ menu, with storage:** the scores folder's ⋯ beside the name becomes the
   library's general menu, there whether or not a folder is linked (Link scores folder and Allow
   access stay buttons beside it, as now).
-  - A “Scores folder: <name>” section, when one is linked: Change folder…, Unlink.
+  - A “Scores folder: <name>” section, when one is linked: Check for new scores (reads the folder
+    again, as the library does on opening: new and changed PDFs are read, with “Reading new
+    scores: n left…”, and ones gone are dropped; it asks for access first if it isn't allowed
+    yet), Change folder…, Unlink.
   - A “Storage used on this tablet” section: the total, one stacked bar of the parts in
     proportion, and each part's size listed under it (Metadata is too thin to see in the bar):
     - **Metadata**: cuts, markings, named excerpts, setlists, positions, passwords (IndexedDB;
