@@ -4,6 +4,7 @@
 
 import type { ExcerptSource } from '../dialogs/excerpt-picker';
 import type { ExcerptHost } from '../dialogs/excerpts';
+import type { FileChange } from '../dialogs/score-files';
 import type { Span } from '../excerpts/span';
 import type { FolderState } from '../originals/folder';
 import type { Original } from '../originals/originals';
@@ -44,6 +45,8 @@ export interface LibraryHost {
   addedTo(id: string): void;
   /** Read the folder and the imported copies again, and show them. */
   refresh(): Promise<void>;
+  /** Scores' files changed here or in the reader: show the changes at once, then read the scores again. */
+  filesChanged(changes: readonly FileChange[]): void;
   /** Show the setlists and the scores again. */
   render(): void;
 

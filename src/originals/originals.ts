@@ -5,7 +5,7 @@
 
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
-import { folderFiles, folderOriginal, placeOf, rememberedListing, saveListing, type FolderState } from './folder';
+import { folderFiles, folderOriginal, placeOf, relist, rememberedListing, saveListing, type FolderState } from './folder';
 import { Hasher, rememberHash } from './hashes';
 import { importedFiles, importsDir, removeImported } from './imported';
 import { endingOf, titleOf } from './names';
@@ -54,7 +54,8 @@ export type Progress = (originals: Original[], left: number) => void;
 /** A file found, and the original it is once its id is known. */
 export interface Found { where: string; file: File; make: (id: string) => Original }
 
-const byTitle = (x: Original, y: Original) => x.title.localeCompare(y.title, undefined, { numeric: true, sensitivity: 'base' });
+/** In the library's order: by title, numbers by value. */
+export const byTitle = (x: Original, y: Original) => x.title.localeCompare(y.title, undefined, { numeric: true, sensitivity: 'base' });
 
 /**
  * Every original, each file once, sorted by title. Files new or changed since last time are
@@ -131,5 +132,6 @@ export async function renameOriginal(o: Original, title: string): Promise<string
   const file = await (await d.getFileHandle(name)).getFile();
   const where = (o.location === 'folder' ? 'folder/' + o.path.slice(0, o.path.length - old.length) : 'imported/') + name;
   await rememberHash(where, file, o.id);
+  if (o.location === 'folder') await relist(o.id, where.slice('folder/'.length));
   return null;
 }

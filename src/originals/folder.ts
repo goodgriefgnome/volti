@@ -130,3 +130,7 @@ export async function saveExport(name: string, data: Blob): Promise<void> {
 export const rememberedListing = async () => (await kv.get<ListingEntry[]>(keys.folderListing)) ?? [];
 
 export const saveListing = (listing: ListingEntry[]) => kv.set(keys.folderListing, listing);
+
+/** Note in the remembered listing that score `id`'s file is at `path` now (renamed or moved). */
+export const relist = (id: string, path: string) =>
+  kv.update<ListingEntry[]>(keys.folderListing, (old) => (old ?? []).map((e) => (e.id === id ? { ...e, path } : e)));

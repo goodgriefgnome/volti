@@ -6,13 +6,14 @@ import type { ExcerptSource } from '../dialogs/excerpt-picker';
 import type { ExcerptHost } from '../dialogs/excerpts';
 import { openExportPdf } from '../dialogs/export-pdf';
 import { givePassword } from '../dialogs/passwords';
+import type { FileChange } from '../dialogs/score-files';
 import { chooseSetlist } from '../dialogs/setlists';
 import type { Span } from '../excerpts/span';
 import type { ExportPart } from '../export/pdf';
 import { folderState, linkFolder, unlinkFolder, unlockFolder, type FolderState } from '../originals/folder';
 import { lockedOriginals } from '../originals/locks';
 import { PasswordNotGiven } from '../originals/open';
-import { allOriginals, knownTitles, type Original } from '../originals/originals';
+import { allOriginals, byTitle, knownTitles, type Original } from '../originals/originals';
 import { makePictures } from '../pictures/maker';
 import { openReader, type ToRead } from '../reader/reader';
 import type { Aspects, ExcerptName, Score } from '../scores/model';
@@ -93,6 +94,16 @@ export class Library implements LibraryHost {
       if (this.refreshAgain) { this.refreshAgain = false; void this.refresh(); }
     });
     return this.refreshing;
+  }
+
+  filesChanged(changes: readonly FileChange[]) {
+    if (!changes.length) return;
+    const now = new Map(changes.flatMap((c) => ('now' in c ? [[c.now.id, c.now] as const] : [])));
+    const gone = new Set(changes.flatMap((c) => ('gone' in c ? [c.gone] : [])));
+    this.originals = this.originals.filter((o) => !gone.has(o.id)).map((o) => now.get(o.id) ?? o).sort(byTitle);
+    this.render();
+    // Then read them again, in case anything else changed or went wrong.
+    void this.refresh();
   }
 
   private async readOriginals() {
@@ -335,11 +346,11 @@ export class Library implements LibraryHost {
     closeOverlay();
     this.toast.hide();
     this.root.hidden = true;
-    const back = (filesChanged: boolean) => {
+    const back = (fileChanges: FileChange[]) => {
       this.root.hidden = false;
       this.scoresSection.search.blur();
-      // A score renamed, moved or removed in the reader: read the scores again.
-      if (filesChanged) void this.refresh();
+      // A score renamed, moved or removed in the reader: show it, then read the scores again.
+      if (fileChanges.length) this.filesChanged(fileChanges);
       else void this.loadSetlists().then(() => this.scoresSection.render());
     };
     try {

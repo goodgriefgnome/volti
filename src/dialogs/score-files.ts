@@ -4,15 +4,18 @@
 import { allowWriting } from '../originals/folder';
 import { fileAdded } from '../originals/imported';
 import { fileNameProblem, tidyFolder } from '../originals/names';
-import { renameOriginal, type Original } from '../originals/originals';
+import { renamedOriginal, renameOriginal, type Original } from '../originals/originals';
 import { askText } from '../ui/ask-text';
 import { el } from '../ui/dom';
+
+/** A score's file changed: it is `now` that original (renamed or moved), or it is `gone`. */
+export type FileChange = { now: Original } | { gone: string };
 
 /** What the dialogs need from the screen that opens them. */
 export interface ScoreFileHost {
   say(text: string): void;
-  /** The file changed: read the scores again, or show the change. `renamed` is its new title, when renamed. */
-  changed(renamed?: string): void | Promise<void>;
+  /** The file changed: show the change at once (the scores can be read again after). */
+  changed(change: FileChange): void;
 }
 
 /** Rename a score's PDF. Its cuts, markings and setlists stay with it, as its contents don't change. */
@@ -39,7 +42,7 @@ export function renameFile(h: ScoreFileHost, o: Original) {
     },
     done: async (title) => {
       h.say(`Renamed to “${title.trim()}”.`);
-      await h.changed(title.trim());
+      h.changed({ now: renamedOriginal(o, title) });
     },
   });
 }
@@ -62,7 +65,7 @@ export function moveAdded(h: ScoreFileHost, o: Original, folders: readonly strin
     done: async (folder) => {
       await fileAdded(o, folder);
       h.say(tidyFolder(folder) ? `Moved “${o.title}” to ${tidyFolder(folder).split('/').join(' / ')}.` : `Moved “${o.title}” to the top of the list.`);
-      await h.changed();
+      h.changed({ now: { ...o, folder: tidyFolder(folder) } });
     },
   });
 }

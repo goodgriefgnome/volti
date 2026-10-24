@@ -9,7 +9,7 @@ import { addExcerpt, changeExcerptCuts, deleteExcerpt, renameExcerpt, type Excer
 import { openExportPdf } from '../dialogs/export-pdf';
 import { openScore } from '../dialogs/open-score';
 import { givePassword } from '../dialogs/passwords';
-import { moveAdded, renameFile, type ScoreFileHost } from '../dialogs/score-files';
+import { moveAdded, renameFile, type FileChange, type ScoreFileHost } from '../dialogs/score-files';
 import { askSetlistName, chooseSetlist } from '../dialogs/setlists';
 import { nameOf, sortedNames } from '../excerpts/names';
 import { ends, spanLabel, spanOf, type Span } from '../excerpts/span';
@@ -19,7 +19,7 @@ import { folderState } from '../originals/folder';
 import { removeImported } from '../originals/imported';
 import { lockedOriginals } from '../originals/locks';
 import { PasswordNotGiven } from '../originals/open';
-import { renamedOriginal, type Original } from '../originals/originals';
+import type { Original } from '../originals/originals';
 import type { PageCache } from '../originals/pages';
 import type { ExcerptName, Score } from '../scores/model';
 import { loadSavedScore, saveScore } from '../scores/store';
@@ -61,8 +61,8 @@ export interface MenusHost {
   readSpan(span: Span): void;
   /** Leave the reader for the library. */
   leave(): void;
-  /** A score's file changed (renamed, moved or removed): the library reads its scores again. */
-  filesChanged(): void;
+  /** A score's file changed (renamed, moved or removed): the library shows it on going back. */
+  filesChanged(change: FileChange): void;
 }
 
 export class ReaderMenus {
@@ -110,9 +110,9 @@ export class ReaderMenus {
     }
     showMenu(anchor, it.title, [
       ...add,
-      o && { label: 'Rename…', run: () => renameFile(this.files(o), o) },
+      o && { label: 'Rename…', run: () => renameFile(this.files(), o) },
       { label: 'Export PDF…', run: () => void this.exportPdf() },
-      o?.location === 'imported' && { label: 'Move to folder…', run: () => moveAdded(this.files(o), o, subfolders(this.h.library)) },
+      o?.location === 'imported' && { label: 'Move to folder…', run: () => moveAdded(this.files(), o, subfolders(this.h.library)) },
       o?.location === 'imported' && { label: 'Remove from Volti', run: () => void this.remove(o) },
     ]);
   }
@@ -134,16 +134,16 @@ export class ReaderMenus {
     ];
   }
 
-  /** The score's file dialogs, from here: what changes is shown here, and the library reads its scores again. */
-  private files(o: Original): ScoreFileHost {
+  /** The score's file dialogs, from here: what changes is shown here, and told to the library. */
+  private files(): ScoreFileHost {
     return {
       say: (t) => this.h.say(t),
-      changed: (renamed) => {
-        this.h.filesChanged();
-        if (renamed === undefined) return;
-        const now = renamedOriginal(o, renamed), cur = this.h.open(this.h.k());
-        this.h.reading.renamed(now);
-        if (cur?.id === now.id) cur.original = now;
+      changed: (change) => {
+        this.h.filesChanged(change);
+        if (!('now' in change)) return;
+        const cur = this.h.open(this.h.k());
+        this.h.reading.renamed(change.now);
+        if (cur?.id === change.now.id) cur.original = change.now;
         this.h.retitle();
       },
     };
@@ -152,7 +152,7 @@ export class ReaderMenus {
   /** Take an added PDF out of Volti, and go back to the library. */
   private async remove(o: Original) {
     await removeImported(o);
-    this.h.filesChanged();
+    this.h.filesChanged({ gone: o.id });
     this.h.leave();
   }
 

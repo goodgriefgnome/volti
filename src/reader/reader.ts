@@ -3,6 +3,7 @@
 // read, and how edits carry to setlists, is reading.ts; the toolbar's menus and dialogs are
 // toolbar-menus.ts. Code that can stand on its own goes in one of them.
 
+import type { FileChange } from '../dialogs/score-files';
 import { ends } from '../excerpts/span';
 import type { Marking } from '../markings/model';
 import { PEN_COLORS } from '../markings/stroke';
@@ -59,7 +60,7 @@ const sameLayout = (a: readonly Cut[], b: readonly Cut[]) =>
 
 
 /** Open a score, or a setlist as one continuous score. A score that can't be opened throws; a setlist carries on past it. */
-export async function openReader(what: ToRead, onClose: (filesChanged: boolean) => void): Promise<void> {
+export async function openReader(what: ToRead, onClose: (fileChanges: FileChange[]) => void): Promise<void> {
   const setlists = await loadSetlists();
   if (what.kind !== 'setlist') {
     const { original } = what;
@@ -129,8 +130,8 @@ class Reader {
 
   private reading: Reading;
   private menus: ReaderMenus;
-  /** A score's file was renamed, moved or removed here: the library reads its scores again. */
-  private filesChanged = false;
+  /** Scores' files renamed, moved or removed here, for the library to show on going back. */
+  private fileChanges: FileChange[] = [];
   /** The score offered by turning past this one's end: turning that way again while it is offered opens it. */
   private offered: Offer | null = null;
 
@@ -141,7 +142,7 @@ class Reader {
     first: OpenScore | null,
     k: number,
     position: string | undefined,
-    private onClose: (filesChanged: boolean) => void,
+    private onClose: (fileChanges: FileChange[]) => void,
     /** The library's scores; in a score's own reader, in the library's order, to turn to. */
     private library: readonly Original[] = [],
   ) {
@@ -206,7 +207,7 @@ class Reader {
         void this.show();
       },
       leave: () => history.back(),
-      filesChanged: () => { this.filesChanged = true; },
+      filesChanged: (change) => { this.fileChanges.push(change); },
     });
     this.syncBar();
     this.stage.append(this.spreadEl);
@@ -659,6 +660,6 @@ class Reader {
     this.scores.destroy();
     this.root.remove();
     document.body.classList.remove('reading');
-    this.onClose(this.filesChanged);
+    this.onClose(this.fileChanges);
   }
 }

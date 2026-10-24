@@ -30,13 +30,6 @@ scores.
     IndexedDB and Cache Storage come from `navigator.storage.estimate()`'s `usageDetails`
     (Chrome); worked out each time the menu opens, showing “Working out…” meanwhile. No delete
     button. As in https://claude.ai/artifact/Bt8AySBf7E2dZC13NQcqF7 (option A).
-- **Renaming shows at once:** once a rename's file call has succeeded, the library shows the new
-  name straight away instead of waiting for the folder to be read again: the original is swapped
-  in place (`renamedOriginal`, as the reader already does), the list redrawn, and the remembered
-  folder listing updated with the new path (its hash is already noted by `rememberHash`). The
-  folder is then read again in the background, quietly (no “Reading new scores” unless something
-  new turns up), so anything that went wrong is picked up. The same on going back from a rename
-  in the reader: show the new name, then read the folder again quietly.
 - **Reading the folder again on coming back to Volti:** when Volti comes back into view
   (`visibilitychange` to `visible`) with the library showing and a scores folder linked and
   allowed, it reads the folder again quietly, so a PDF added in the Files app shows without
@@ -99,6 +92,8 @@ Things to try on the tablet.
   deleting the named excerpt being read, goes on to the next.
 - **Setlists start at the top:** tapping a setlist opens its first score even after reading part
   of it; tapping one of its scores opens that one.
+- **Renames show at once:** renaming a score in the scores folder (from the library or the
+  reader) shows the new name straight away; a moment later the list is still right.
 - **Reader opens with the toolbar hidden:** a score, excerpt or setlist shows only the music and
   the back arrow; a tap in the middle brings up the toolbar.
 
