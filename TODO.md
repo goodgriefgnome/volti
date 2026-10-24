@@ -26,50 +26,18 @@ Things to try on the tablet.
 - **Exporting with no folder linked** (the share sheet). Exporting into the folder works.
 - **Linking a big folder:** the library shows at once with the scores already known, and the new
   ones appear one by one, with "Reading new scores: n left…".
-- **One access prompt per session:** after a restart, Allow access (or opening a score from the
-  folder) asks once, to edit files; Rename… and Export PDF… then don't ask again.
-- **The Update button:** with Volti left open after a change is published, coming back to it (or
-  within half an hour) shows Update in the library's banner; tapping it loads the new version.
-- **A dialog with the keyboard open** sits centred in the space above the keyboard, with the field
-  being typed into in view.
-- **The reader's back arrow:** with the toolbar hidden, the small arrow at the top left goes back
-  to the library without getting in the way of the music or of turning back a page.
-- **Scores grouped by subfolder:** the lists, closing them (remembered after a restart), searching,
-  Move to folder… for an added PDF, and Add scores' collapsed lists.
-- **Exporting a password-protected score:** its music comes out sharp when zoomed (vectors, or the
-  scan as it was), and the dialog says “Original quality”.
-- **Setlists open at once:** a while after making or changing a setlist, opening it, and turning
-  from one of its scores to the next, shows the music straight away, scans included; zooming in
-  still works. Reading with the tablet turned the other way is slow the first time only.
 - **Markings in an exported PDF:** open the export in another PDF app (Acrobat, Xodo, the
   browser): the pen (thicker where pressed harder) and highlighter (notes under it still black)
   look as in Volti, and the app lists them as annotations it can hide or delete.
 - **Locked scores:** a password-protected PDF whose password hasn't been given shows a lock in
   the library and in Add scores (one that only stops printing or copying doesn't); adding it to a
   setlist asks for the password, Cancel leaves it out, and once given the lock goes.
-- **Images as scores:** a photo of a page taken on the tablet, in the scores folder and added
-  with Add PDFs (or shared from the Gallery): it shows the right way up, zooms in sharply, takes
-  markings, and exports as the photo itself (“Original quality”). HEIC photos may not open, if the
-  tablet's browser can't show them.
-- **Turning on to the next score:** in a score's reader (not a setlist), turning past the last
-  page says “Tap again for …”, and turning again opens the library's next score at its start;
-  back from the first page opens the one before at its end. Try it with the pedal too.
-- **The reader's ⋯ menu:** in a score, a named excerpt and a setlist, its items do what the
-  library's do (renaming a score's file in the scores folder, Move to folder…, Add scores…,
-  Archive), and the library shows the changes on going back. Removing the entry being read, or
-  deleting the named excerpt being read, goes on to the next.
-- **Setlists start at the top:** tapping a setlist opens its first score even after reading part
-  of it; tapping one of its scores opens that one.
 - **Renames show at once:** renaming a score in the scores folder (from the library or the
   reader) shows the new name straight away; a moment later the list is still right.
 - **Moving a score in the scores folder:** Move to folder… on one of the folder's own scores
   moves its file (check in the Files app), into a new folder too, and None back to the top.
 - **New PDFs appear on coming back:** add a PDF to the scores folder in the Files app, switch
   back to Volti after half a minute or more: it appears in the library without asking.
-- **The library's ⋯ menu:** Check for new scores (after adding a PDF in the Files app),
-  Change folder…, Unlink, and the storage used, with sizes that look right for your library.
-- **Reader opens with the toolbar hidden:** a score, excerpt or setlist shows only the music and
-  the back arrow; a tap in the middle brings up the toolbar.
 
 ## Confirmed features which require more thought
 
