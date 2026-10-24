@@ -38,8 +38,6 @@ Things to try on the tablet.
   setlist asks for the password, Cancel leaves it out, and once given the lock goes.
 - **Renames show at once:** renaming a score in the scores folder (from the library or the
   reader) shows the new name straight away; a moment later the list is still right.
-- **Moving a score in the scores folder:** Move to folder… on one of the folder's own scores
-  moves its file (check in the Files app), into a new folder too, and None back to the top.
 - **New PDFs appear on coming back:** add a PDF to the scores folder in the Files app, switch
   back to Volti after half a minute or more: it appears in the library without asking.
 
