@@ -17,9 +17,9 @@ scores.
   small stacked bar of its own (as the main bar is) with its parts as labelled chips under it
   (option 3 in https://claude.ai/artifact/Bt8AySBf7E2dZC13NQcqF7):
   - **Markings** (`ink:` records), **Cuts and excerpts** (`score:` records), **Setlists**
-    (`setlist:` records and their order), **File metadata** (hashes, titles, page shapes, the
+    (`setlist:` records and their order), **Library index** (hashes, titles, page shapes, the
     remembered folder listing, passwords, locks, filed folders, closed folder lists, reading
-    places), **Unprocessed added files** (the `inbox`: files shared to Volti not yet added, by
+    places), **Waiting to be added** (the `inbox`: files shared to Volti not yet added, by
     their sizes).
   - Each worked out by Volti from its own records (the size of each written out, as JSON), so
     close to what is stored but not exact; **Unaccounted** is what is left of the browser's
