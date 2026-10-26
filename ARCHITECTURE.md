@@ -45,12 +45,12 @@ keep it true, and do any start-up work from `main.ts`.
 | 10 | `src/*.ts` | Start-up (`main.ts`), taking new versions (`updates.ts`), the service worker (`sw.ts`) |
 | 9 | `library/` | The Library screen |
 | 8 | `reader/` | The score screen: reading a score, an excerpt or a setlist, writing on it, editing its cuts |
-| 7 | `dialogs/` | Dialogs both screens open: choosing an excerpt, the named excerpt dialogs, adding scores to a setlist, renaming and filing a score's file, exporting, setlist names and menus, a PDF's password |
+| 7 | `dialogs/` | Dialogs both screens open: choosing an excerpt (over a strip of a score's frames, `thumb-strip`), the named excerpt dialogs, adding scores to a setlist, renaming and filing a score's file, exporting, setlist names and menus, a PDF's password |
 | 6 | `export/`, `pictures/` | Exporting PDFs (with pdf-lib); saving pictures of the pages setlists play |
 | 5 | `render/` | What is on a screen: fitting frames to it (`layout`, `screen`), zoom maths (`zoom`), drawing a frame on a canvas (`paint`) |
 | 4 | `setlists/` | Setlists and their entries, and keeping them on the same music when a score's cuts change |
 | 3 | `excerpts/` | Spans of a score's cuts (`span`) and the names on them (`names`) |
-| 2 | `scores/`, `originals/` | A score: its data (`model`), edits (`edits`), frames (`frames`), which cut owns a marking (`ownership`), storage (`store`). Originals: an original (`original`), what one holds as a PDF (`contents`, told by `file-kind`), listing them (`originals`), the library's root, the linked folder or the app's own (`folder`), adding files to it (`adding`), Recently removed (`removed`), hashes, file names, opening one's pages and passwords (`open`), drawing them through the page cache (`pages`) with pdf.js (`pdf`) |
+| 2 | `scores/`, `originals/` | A score: its data (`model`), edits (`edits`), frames (`frames`), which cut owns a marking (`ownership`), storage (`store`). Originals: an original (`original`), what one holds as a PDF (`contents`, told by `file-kind`), listing them (`originals`), the library's root, the linked folder or the app's own (`folder`), files coming into it (`adding`, and what happens to each: `arrivals`), Recently removed (`removed`), hashes, file names, opening one's pages and passwords (`open`), drawing them through the page cache (`pages`) with pdf.js (`pdf`) |
 | 1 | `markings/`, `ui/` | What can be drawn on the music, and how (`draw`); generic pieces of the interface: elements (`dom`), menus and dialogs one at a time (`overlay`), asking for a line of text (`ask-text`), toasts |
 | 0 | `storage/`, `types/` | The IndexedDB key-value store, with every key in `keys.ts`; missing DOM types |
 

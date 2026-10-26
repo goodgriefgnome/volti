@@ -29,15 +29,19 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   Latin"), which its heading opens and closes; Volti remembers which are closed.
 - An image (a photo or scan: JPEG, PNG, WebP, or HEIC where the tablet can show it) is a score of
   one page, just like a PDF; a photo shows the way up the camera held it.
-- **Add PDFs** (images too), or **Share** a PDF or image to Volti from Files, Gmail or Drive, puts
-  it at the top of the library: into the scores folder, or Volti's own while none is linked. A
-  file the library already has isn't added again. Shared files wait until Volti may write in the
-  scores folder.
+- **Add PDFs** (images too), or **Share** a PDF or image to Volti from Files, Gmail or Drive, opens
+  a screen with a row for each file: its pages, its name (to change one such as `IMG_2041.jpg`),
+  its folder (or one for every file at once), and what happens to it. A file the library already
+  has is left out, saying where it is; one whose name is taken there needs another name or
+  folder, or to replace that file (which goes to Recently removed). **Add** puts them into the
+  scores folder, or Volti's own while none is linked; **Leave out** or **Cancel** drops them.
+  Shared files wait until access to the scores folder is allowed.
 - **Move to folder…** in a score's **⋯** menu moves its file into a subfolder (one there is, or a
   new one), making the folder if it isn't there yet; **None** moves it to the top. Its cuts,
   markings and setlists stay with it. A folder it leaves empty stays.
 - **Remove** in a score's **⋯** menu moves its file into **Recently removed** for a week, then it
-  is deleted for good; **Put back** there puts it back where it was. Its cuts, markings and
+  is deleted for good; **Put back** there puts it back where it was (through the same screen,
+  when another file is there now). Its cuts, markings and
   excerpts stay, as for any score whose file is missing.
 - A PDF protected by a password asks for it the first time it is opened. Volti remembers it on
   this tablet, so it asks only once. An exported PDF of it has no password. Until its password is

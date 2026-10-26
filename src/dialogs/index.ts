@@ -1,7 +1,8 @@
 // The dialogs both screens open. Other directories import dialogs/ only from here.
 
 export { openAddScores } from './add-scores';
-export { openExcerptPicker, type ExcerptSource } from './excerpt-picker';
+export { openExcerptPicker } from './excerpt-picker';
+export { ThumbStrip, type ExcerptSource } from './thumb-strip';
 export { addExcerpt, changeExcerptCuts, deleteExcerpt, renameExcerpt, type ExcerptHost } from './excerpts';
 export { openExportPdf } from './export-pdf';
 export { openScore, type LibraryScore } from './open-score';

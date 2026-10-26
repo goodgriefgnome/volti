@@ -11,6 +11,9 @@ import { folderOf, isOriginalName, tidyPath } from './names';
 import type { AskPassword } from './open';
 import { removeFile } from './removed';
 
+/** What names an original: its id, and where it is. A file coming into the library has them too. */
+export type Named = Pick<Original, 'id' | 'path'>;
+
 /** A score's original: a PDF or an image in the library. */
 export interface Original {
   /** The SHA-256 of the file's contents, in hex; also the id of the score made from it. */

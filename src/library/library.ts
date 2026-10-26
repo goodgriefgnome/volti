@@ -5,7 +5,7 @@
 import { chooseSetlist, givePassword, openExportPdf, openScore, type ExcerptHost, type ExcerptSource, type FileChange, type LibraryScore } from '../dialogs';
 import type { Span } from '../excerpts';
 import type { ExportPart } from '../export';
-import { addShared, allOriginals, byFolder, byTitle, folderState, knownTitles, linkFolder, lockedOriginals, NoAccess, PasswordNotGiven, titleOf, unlinkFolder, unlockFolder, type FolderState, type Original } from '../originals';
+import { allOriginals, byFolder, dropInbox, byTitle, folderState, knownTitles, linkFolder, lockedOriginals, NoAccess, PasswordNotGiven, peekInbox, titleOf, unlinkFolder, unlockFolder, type FolderState, type Original } from '../originals';
 import { makePictures } from '../pictures';
 import { openReader, type ToRead } from '../reader';
 import { loadAspects, loadSavedScore, scoreEntry, type Aspects, type ExcerptName, type Score } from '../scores';
@@ -13,6 +13,7 @@ import { addEntries, defaultSetlist, deleteSetlist, loadLastAddedTo, loadSetlist
 import { closeOverlay, el, plural, Toast, whenOverlayCloses, type MenuItem } from '../ui';
 import { FolderBanner } from './folder-banner';
 import type { LibraryHost } from './host';
+import { openIncoming } from './incoming';
 import { ScoresSection } from './scores-section';
 import { SetlistsSection } from './setlists-section';
 
@@ -181,18 +182,15 @@ export class Library implements LibraryHost {
   }
 
   /**
-   * Add the files shared to Volti, saying how many; they wait while the scores folder can't be
-   * written to, and that is said too.
+   * Open the files shared to Volti, waiting in the inbox, in the screen for incoming files, which
+   * drops them from the inbox as it closes. They wait while access to the scores folder isn't
+   * allowed, and that is said.
    */
   async addShared() {
-    try {
-      const n = await addShared();
-      if (n) { this.say(`Added ${plural(n, 'score')}.`); await this.refresh(); }
-    } catch (e) {
-      if (e instanceof NoAccess) { this.say('Files shared to Volti are added once it has access to the scores folder.'); return; }
-      console.error(e);
-      this.say('Could not add the files shared to Volti.');
-    }
+    const files = await peekInbox();
+    if (!files.length) return;
+    if ((await folderState()).kind === 'locked') { this.say('Files shared to Volti open here once access to the scores folder is allowed.'); return; }
+    void openIncoming(this, files.map((file) => ({ file })), () => void dropInbox(files.length));
   }
 
   async unlink() {

@@ -18,10 +18,14 @@ export interface Removed { key: string; id: string; path: string; at: number }
 
 type Records = Record<string, Removed>;
 const load = async () => (await kv.get<Records>(keys.removed)) ?? {};
-const forget = (key: string) => kv.update<Records>(keys.removed, (old) => {
-  const { [key]: _, ...rest } = old ?? {};
-  return rest;
-});
+/** Forget a removed file, and delete what was kept of it, as when it has been put back. */
+export async function forgetRemoved(key: string) {
+  await kv.update<Records>(keys.removed, (old) => {
+    const { [key]: _, ...rest } = old ?? {};
+    return rest;
+  });
+  await (await removedDir()).removeEntry(key).catch(() => {});
+}
 
 /**
  * Move score `id`'s file, at `path` in the library's root, into Recently removed. Write access to
@@ -37,8 +41,7 @@ export async function removeFile(id: string, path: string): Promise<void> {
     await d.removeEntry(name);
   } catch (e) {
     // Still in the library: not removed after all.
-    await forget(key);
-    await kept.removeEntry(key).catch(() => {});
+    await forgetRemoved(key);
     throw e;
   }
 }
@@ -50,22 +53,24 @@ export async function recentlyRemoved(): Promise<Removed[]> {
 
 /**
  * Put a removed file back where it was in the library's root, making its folders if they aren't
- * there. Says why when it can't be (another file is there now); asks for write access to the root
- * (from a tap), or throws NoAccess.
+ * there; 'taken' when another file is there now. Asks for write access to the root (from a tap),
+ * or throws NoAccess.
  */
-export async function restoreRemoved(r: Removed): Promise<string | null> {
+export async function restoreRemoved(r: Removed): Promise<'taken' | null> {
   await needAccess('readwrite');
   const file = await (await (await removedDir()).getFileHandle(r.key)).getFile();
   const d = await makeFolder(folderOf(r.path));
   const name = r.path.slice(r.path.lastIndexOf('/') + 1);
-  if (await d.getFileHandle(name).then(() => true, () => false)) return `There is another file called “${name}” there now.`;
+  if (await d.getFileHandle(name).then(() => true, () => false)) return 'taken';
   await writeFile(d, name, file);
   // The same contents, so the same id: no need to read it again.
   await rememberHash(await whereIs(r.path), await (await d.getFileHandle(name)).getFile(), r.id);
-  await forget(r.key);
-  await (await removedDir()).removeEntry(r.key).catch(() => {});
+  await forgetRemoved(r.key);
   return null;
 }
+
+/** A removed file's file, as it was. */
+export const removedFile = async (r: Removed) => (await (await removedDir()).getFileHandle(r.key)).getFile();
 
 /** Delete for good the files removed a week ago or more, and any kept that nothing says where it was. */
 export async function purgeRemoved(now = Date.now()): Promise<void> {

@@ -1,7 +1,7 @@
 // Opening a score in the library, for a dialog that shows its pages (choosing an excerpt) without
 // the reader. The reader opens scores its own way, in reader/open-scores.ts.
 
-import type { ExcerptSource } from '../dialogs/excerpt-picker';
+import type { ExcerptSource } from './thumb-strip';
 import { askPassword } from '../dialogs/passwords';
 import { openOriginal, titleOf, type Original } from '../originals';
 import { loadSavedScore, loadScore, saveScore } from '../scores';

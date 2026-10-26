@@ -5,7 +5,7 @@
 
 import { keys, kv } from '../storage';
 import { titleOf } from './names';
-import type { Original } from './original';
+import type { Named, Original } from './original';
 import type { PageCache } from './pages';
 import { openPdf } from './pdf';
 
@@ -28,9 +28,9 @@ export class Passwords {
   private tried?: string;
   refused = false;
 
-  private constructor(private o: Original, private saved: string | undefined, private ask?: AskPassword) {}
+  private constructor(private o: Named, private saved: string | undefined, private ask?: AskPassword) {}
 
-  static async for(o: Original, ask?: AskPassword) { return new Passwords(o, await savedPassword(o.id), ask); }
+  static async for(o: Named, ask?: AskPassword) { return new Passwords(o, await savedPassword(o.id), ask); }
 
   /** The next password to try, after one that was `wrong`: null when there is none. */
   async next(wrong: boolean): Promise<string | null> {
@@ -61,3 +61,4 @@ export class Passwords {
 export async function openOriginal(o: Original, ask?: AskPassword): Promise<PageCache> {
   return openPdf((await o.pdf(ask)).bytes);
 }
+

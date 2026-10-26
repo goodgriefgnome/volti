@@ -7,7 +7,8 @@ import { byFolder, folderOf, titleOf, type Original } from '../originals';
 import type { ExcerptName, Score } from '../scores';
 import type { Setlist } from '../setlists';
 import { button, buttonRow, closeOverlay, el, lockIcon, plural, showDialog, whenOverlayCloses } from '../ui';
-import { ExcerptStrip, namedExcerptMenu, type ExcerptSource } from './excerpt-picker';
+import { ExcerptStrip, namedExcerptMenu } from './excerpt-picker';
+import type { ExcerptSource } from './thumb-strip';
 import type { LibraryScore } from './open-score';
 
 export interface AddScoresHost {

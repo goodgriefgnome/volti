@@ -3,11 +3,12 @@
 
 import { addExcerpt, changeExcerptCuts, deleteExcerpt, moveToFolder, renameExcerpt, renameFile, type ScoreFileHost } from '../dialogs';
 import { sortedNames, spanLabel } from '../excerpts';
-import { addFiles, byFolder, folderOf, NoAccess, putInbox, subfolders, titleOf, type Original } from '../originals';
+import { byFolder, folderOf, NoAccess, subfolders, titleOf, type Original } from '../originals';
 import type { ExcerptName, Score } from '../scores';
 import { setlistsWith } from '../setlists';
 import { button, el, lockIcon, plural, showMenu } from '../ui';
 import type { LibraryHost } from './host';
+import { openIncoming } from './incoming';
 import { expandableRow, moreButton } from './rows';
 import { loadClosedFolders, saveClosedFolders } from './store';
 
@@ -46,29 +47,11 @@ export class ScoresSection {
     this.closedFolders ??= new Set(await loadClosedFolders());
   }
 
-  private async addPdfs() {
-    const { lib } = this;
+  /** The files picked, in the screen for incoming files. */
+  private addPdfs() {
     const files = [...(this.fileInput.files ?? [])];
-    let result;
-    try {
-      result = await addFiles(files);
-    } catch (e) {
-      if (e instanceof NoAccess) {
-        // Kept, as files shared to Volti are, until it may write in the scores folder.
-        await putInbox(files);
-        lib.say('Volti needs access to the scores folder to add them: they are added once it is allowed.');
-        return;
-      }
-      console.error(e);
-      lib.say(`Could not add them (${(e as Error).name}).`);
-      return;
-    } finally {
-      this.fileInput.value = '';
-    }
-    const { added, already } = result;
-    const have = already.length === 1 ? `“${already[0]}” is already in the library.` : already.length ? `${already.length} were already in the library.` : '';
-    lib.say([added ? `Added ${plural(added, 'score')}.` : '', have].filter(Boolean).join(' ') || 'No PDFs or images were selected.');
-    await lib.refresh();
+    this.fileInput.value = '';
+    if (files.length) void openIncoming(this.lib, files.map((file) => ({ file })));
   }
 
   render() {

@@ -114,3 +114,17 @@
 .removed-list { list-style: none; margin: 0; padding: 0; display: grid; max-height: calc(var(--seen-height, 100vh) * 0.5); overflow: auto; border-block: 1px solid var(--line); }
 .removed-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
 .removed-row + .removed-row { border-top: 1px solid var(--line); }
+
+/* Files coming into the library: a row each, its pages beside its name, folder and what happens to it. */
+.incoming-all { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.incoming-all .folder { flex: 1 1 200px; }
+.incoming-list { list-style: none; margin: 0; padding: 0; display: grid; max-height: calc(var(--seen-height, 100vh) * 0.65); overflow: auto; border-block: 1px solid var(--line); }
+.incoming-row { display: grid; grid-template-columns: minmax(0, 3fr) minmax(200px, 2fr); gap: 12px; padding: 10px 0; align-items: start; }
+.incoming-row + .incoming-row { border-top: 1px solid var(--line); }
+.incoming-row.have .incoming-preview { opacity: 0.5; }
+.incoming-preview { min-width: 0; }
+.incoming-preview .thumbs.excerpt { max-height: min(calc(var(--seen-height, 100vh) * 0.35), 320px); }
+.incoming-fields { display: grid; gap: 6px; align-content: start; }
+.incoming-fields .hint { margin: 0; }
+.incoming-fields > button { justify-self: start; }
+@media (max-width: 600px) { .incoming-row { grid-template-columns: minmax(0, 1fr); } }

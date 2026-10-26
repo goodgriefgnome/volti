@@ -15,19 +15,6 @@ scores.
 
 In this order:
 
-- **Incoming files:** a screen for files coming into the library, shared from another app or
-  from Add PDFs, which always opens for them: shared files wait in the inbox until access to the
-  folder is allowed, then open in it. Each file is a row with:
-  - a preview: the excerpt picker's zoomable strip (`dialogs/excerpt-picker.ts`), split out of
-    it and used read-only, showing the file's pages as a new score starts (each page one cut);
-    a locked PDF asks for its password when previewed;
-  - its name, which can be changed (often a phone's or a download's: IMG_2041.jpg);
-  - its folder, the top by default, chosen from the library's subfolders or a new one, and one
-    for every row at once;
-  - what happens to it: new; already in the library (the same file, by hash, perhaps under
-    another name: left out, saying where it is); or its path taken by a different file, which
-    needs a new name or folder, or replacing that file (which then goes to Recently removed).
-  Changing a name or folder checks again. Leaving a file out, or cancelling, drops it.
 - **Linking a folder with scores in OPFS:** they move into the folder at their paths, without
   overwriting anything. One the folder already has (the same hash) is dropped from OPFS. Those
   whose path the folder has for a different file are listed in the same screen, to rename, put
@@ -38,6 +25,11 @@ In this order:
 
 Things to try on the tablet.
 
+- **Incoming files:** Add PDFs, and sharing from another app, open the screen: each file's pages
+  (pinch and drag), its name and folder (and one folder for all), and New, Already in the library
+  (left out, saying where), or a path taken (another name or folder, or Replace). A locked PDF
+  shows its pages once its password is given. Shared files before Allow access open after it.
+  Putting back a removed file whose place is taken opens the screen for it.
 - **One root for the library:** with no folder linked, Add PDFs and sharing put files at the top
   of Volti's own folder; moving and renaming them; linking a folder shows only its scores (those
   in Volti's own folder come back on unlinking, until linking moves them in), and unlinking

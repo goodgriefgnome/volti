@@ -1,51 +1,50 @@
-// Adding files to the library, from Add PDFs or shared from other apps (the inbox): each goes into
-// the library's root, at its top, under its own name, or another where that is taken. A file the
-// library already has (the same contents, perhaps under another name) isn't added again.
+// Files coming into the library, from Add PDFs, shared from other apps (the inbox), or put back
+// from Recently removed: each read once and known by its id, previewed, and put at the path chosen
+// for it in the library's root (arrivals.ts says what happens to each there).
 
-import { folderState, makeFolder, needAccess, whereIs, writeFile } from './folder';
+import { pdfOf } from './contents';
+import { makeFolder, needAccess, whereIs, writeFile } from './folder';
 import { hashBytes, rememberHash } from './hashes';
-import { dropInbox, peekInbox } from './inbox';
-import { freeName, importName, isOriginalFile, titleOf } from './names';
-import { allOriginals } from './originals';
+import { folderOf, importName } from './names';
+import type { AskPassword } from './open';
+import { originalOf, type Named } from './original';
+import type { PageCache } from './pages';
+import { openPdf } from './pdf';
+
+/** A file coming into the library: its contents, read once, and its id. */
+export interface Incoming { id: string; file: File }
 
 /**
- * Add PDFs and images to the top of the library's root; `already` has the titles of those it has.
- * Asks for write access to a linked folder (from a tap), or throws NoAccess.
+ * Read a file coming in, once (on Android a picked file may not be readable a second time), with
+ * an ending its name says it is a PDF or an image by.
  */
-export async function addFiles(files: Iterable<File>): Promise<{ added: number; already: string[] }> {
-  await needAccess('readwrite');
-  const have = new Set((await allOriginals(await folderState())).map((o) => o.id));
-  const top = await makeFolder('');
-  const taken = new Set<string>();
-  for await (const [name] of top.entries()) taken.add(name.toLowerCase());
-  let added = 0;
-  const already: string[] = [];
-  for (const f of files) {
-    if (!isOriginalFile(f)) continue;
-    // Read once: on Android a picked file may not be readable a second time.
-    const bytes = await f.arrayBuffer();
-    const id = await hashBytes(bytes);
-    const name = importName(f.name, f.type);
-    if (have.has(id)) { already.push(titleOf(name)); continue; }
-    const path = freeName(name, taken);
-    await writeFile(top, path, bytes);
-    // Its contents are known: no need to read it again.
-    await rememberHash(await whereIs(path), await (await top.getFileHandle(path)).getFile(), id);
-    have.add(id);
-    taken.add(path.toLowerCase());
-    added++;
-  }
-  return { added, already };
+export async function readIncoming(f: File): Promise<Incoming> {
+  const bytes = await f.arrayBuffer();
+  const file = new File([bytes], importName(f.name, f.type), { type: f.type, lastModified: f.lastModified });
+  return { id: await hashBytes(bytes), file };
 }
 
 /**
- * Add the files shared to Volti, waiting in the inbox: how many were added. They wait there while
- * the linked folder can't be written to (NoAccess), until access is allowed.
+ * Open the pages of a file coming in, to preview; `at` is where it would go. Its password, as an
+ * original's, is remembered by its id, asked of `ask`: without one, it throws PasswordNotGiven.
  */
-export async function addShared(): Promise<number> {
-  const files = await peekInbox();
-  if (!files.length) return 0;
-  const { added } = await addFiles(files);
-  await dropInbox(files.length);
-  return added;
+export async function previewIncoming(at: Named, file: File, ask?: AskPassword): Promise<PageCache> {
+  return openPdf((await pdfOf(at, file, ask)).bytes);
+}
+
+/**
+ * Put a file coming in at `path` in the library's root, making the folders that aren't there; with
+ * `replacing`, the file there now, that one goes to Recently removed first. Says why when
+ * it can't (another file is there); asks for write access (from a tap), or throws NoAccess.
+ */
+export async function putIncoming(f: Incoming, path: string, replacing?: Named): Promise<string | null> {
+  await needAccess('readwrite');
+  const d = await makeFolder(folderOf(path));
+  const name = path.slice(path.lastIndexOf('/') + 1);
+  if (replacing) await originalOf(replacing.id, replacing.path).remove();
+  if (await d.getFileHandle(name).then(() => true, () => false)) return `There is another file called “${name}” there.`;
+  await writeFile(d, name, f.file);
+  // Its contents are known: no need to read it again.
+  await rememberHash(await whereIs(path), await (await d.getFileHandle(name)).getFile(), f.id);
+  return null;
 }

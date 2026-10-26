@@ -7,7 +7,7 @@
 
 import { isEncryptedPdf, isJpeg, isPdf, isPng, jpegOrientation } from './file-kind';
 import { Passwords, type AskPassword } from './open';
-import type { Original } from './original';
+import type { Named } from './original';
 import { openPdf } from './pdf';
 
 /**
@@ -35,7 +35,7 @@ const A4_W = 595;
  * for it, then asks `ask` (with none, it gives up: PasswordNotGiven), and remembers the one that
  * opens it. Throws when the file is neither a PDF nor an image the browser can read.
  */
-export async function pdfOf(o: Original, file: File, ask?: AskPassword): Promise<OriginalPdf> {
+export async function pdfOf(o: Named, file: File, ask?: AskPassword): Promise<OriginalPdf> {
   const bytes = new Uint8Array(await file.arrayBuffer());
   if (!isPdf(bytes)) return imagePdf(file, bytes);
   const lib = await import('pdf-lib');
@@ -83,7 +83,7 @@ export async function pdfOf(o: Original, file: File, ask?: AskPassword): Promise
 }
 
 /** A PDF of each page of `bytes` drawn by pdf.js, with the password if it needs one. */
-async function pagesDrawn(o: Original, bytes: Uint8Array, ask: AskPassword | undefined, why: 'encryption' | 'unreadable'): Promise<OriginalPdf> {
+async function pagesDrawn(o: Named, bytes: Uint8Array, ask: AskPassword | undefined, why: 'encryption' | 'unreadable'): Promise<OriginalPdf> {
   const passwords = await Passwords.for(o, ask);
   const cache = await openPdf(bytes, (wrong) => passwords.next(wrong)).catch((e: unknown) => { throw passwords.failure(e); });
   try {

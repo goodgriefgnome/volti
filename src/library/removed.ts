@@ -1,9 +1,11 @@
 // Recently removed, from the library's ⋯ menu: the files removed in the last week, the latest
-// first, each with where it was and when, and a button that puts it back there.
+// first, each with where it was and when, and a button that puts it back there, through the screen
+// for incoming files when another file is there now.
 
-import { folderOf, NoAccess, recentlyRemoved, restoreRemoved, titleOf, type Removed } from '../originals';
+import { folderOf, forgetRemoved, NoAccess, recentlyRemoved, removedFile, restoreRemoved, titleOf, type Removed } from '../originals';
 import { button, buttonRow, closeOverlay, el, showDialog } from '../ui';
 import type { LibraryHost } from './host';
+import { openIncoming } from './incoming';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -39,7 +41,13 @@ export async function openRecentlyRemoved(lib: LibraryHost) {
       let why: string | null;
       try {
         // From this tap, which asking for access to the scores folder needs.
-        why = await restoreRemoved(r);
+        if ((await restoreRemoved(r)) === 'taken') {
+          // Another file is there now: a new name or folder, or replacing it.
+          const file = await removedFile(r);
+          void openIncoming(lib, [{ file, path: r.path }], (added) => { if (added.length) void forgetRemoved(r.key); });
+          return;
+        }
+        why = null;
       } catch (e) {
         if (!(e instanceof NoAccess)) console.error(e);
         why = e instanceof NoAccess ? 'Volti needs permission to change files in the scores folder to put one back.' : `Could not put it back (${(e as Error).name}).`;

@@ -5,7 +5,8 @@ import { nameProblem, removeName, sameSpan, setName, spanLabel, type Span } from
 import type { Aspects, ExcerptName, Score } from '../scores';
 import { moveExcerpt, type Setlist } from '../setlists';
 import { askText, button, buttonRow, closeOverlay, el, plural, showDialog } from '../ui';
-import { openExcerptPicker, type ExcerptSource } from './excerpt-picker';
+import { openExcerptPicker } from './excerpt-picker';
+import type { ExcerptSource } from './thumb-strip';
 
 /** Where a score's named excerpts are changed. */
 export interface ExcerptHost {

@@ -3,13 +3,14 @@
 // removed, passwords, and opening their pages. Other directories import originals/ only from here.
 
 export { byFolder, subfolders } from './by-folder';
-export { addFiles, addShared } from './adding';
+export { previewIncoming, putIncoming, readIncoming, type Incoming } from './adding';
+export { arrivals, type Arrival } from './arrivals';
 export { appRootBytes, canLinkFolder, exportExists, EXPORTS, folderState, linkFolder, NoAccess, saveExport, unlinkFolder, unlockFolder, type FolderState } from './folder';
-export { putInbox } from './inbox';
+export { dropInbox, peekInbox, putInbox } from './inbox';
 export { lockedOriginals } from './locks';
 export { fileNameProblem, folderOf, pathInFolder, pathWithTitle, titleOf } from './names';
 export { openOriginal, PasswordNotGiven, type AskPassword } from './open';
 export type { Original } from './original';
 export { allOriginals, byTitle, knownTitles } from './originals';
 export { PageCache, type PagePictures } from './pages';
-export { purgeRemoved, recentlyRemoved, removedBytes, restoreRemoved, type Removed } from './removed';
+export { forgetRemoved, purgeRemoved, recentlyRemoved, removedBytes, removedFile, restoreRemoved, type Removed } from './removed';
