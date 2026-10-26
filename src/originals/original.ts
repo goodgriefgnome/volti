@@ -161,9 +161,8 @@ async function readAs(f: Readable, ask?: AskPassword): Promise<Original> {
 }
 
 /** An original: its file's id, path, moving and removing, and itself as what reading it gives. */
-abstract class Read implements Original, Readable {
+abstract class BaseOriginal implements Original {
   constructor(protected f: Readable) {}
-  file() { return this.f.file(); }
   get id() { return this.f.id; }
   get path() { return this.f.path; }
   move(path: string) { return this.f.move(path); }
@@ -173,7 +172,7 @@ abstract class Read implements Original, Readable {
   abstract pdf(): Promise<OriginalPdf>;
 }
 
-class PdfOriginal extends Read {
+class PdfOriginal extends BaseOriginal {
   /** Its music, worked out when it was read, until its pages or its PDF take it. */
   constructor(f: Readable, private held?: OriginalPdf) { super(f); }
 
@@ -188,7 +187,7 @@ class PdfOriginal extends Read {
   }
 }
 
-class ImageOriginal extends Read {
+class ImageOriginal extends BaseOriginal {
   async pdf(): Promise<OriginalPdf> { return imagePdf(await this.f.file()); }
   async pages(): Promise<PageCache> { return openImage(await this.f.file()); }
 }
