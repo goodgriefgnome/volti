@@ -55,7 +55,9 @@ async function musicOf(lib: PdfLib, o: Original): Promise<PDFDocument | Unread> 
     if (e instanceof PasswordNotGiven) return 'password';
     throw e;
   }
-  if (pdf.drawn) return pdf.drawn;
+  // Pages that had to be drawn are drawn again here, frame by frame, as the reader draws them; a
+  // recompressed image goes in as it is.
+  if (pdf.lossyReason === 'encryption' || pdf.lossyReason === 'unreadable') return pdf.lossyReason;
   try {
     return await lib.PDFDocument.load(pdf.bytes);
   } catch (e) {

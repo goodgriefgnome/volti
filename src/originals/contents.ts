@@ -1,20 +1,28 @@
 // What an original holds, as a PDF, whatever its file is (told by its contents, not its name): a PDF
 // as it is; an encrypted one decrypted, with its password (by our fork of pdf-decrypt); an image as
 // a one-page PDF; and where the music can't be had as it is (an encryption pdf-decrypt doesn't
-// know, or a PDF pdf-lib can't read), its pages drawn by pdf.js into a PDF of pictures. pdf-lib and
-// pdf-decrypt are only loaded when needed.
+// know, or a PDF pdf-lib can't read), its pages drawn by pdf.js into a PDF of pictures. Each says
+// why, where its music lost something on the way. pdf-lib and pdf-decrypt are only loaded when
+// needed.
 
 import { isEncryptedPdf, isJpeg, isPdf, isPng, jpegOrientation } from './file-kind';
 import { Passwords, type AskPassword } from './open';
 import type { Original } from './original';
 import { openPdf } from './pdf';
 
+/**
+ * Why an original as a PDF has lost something of its music: its pages were drawn by pdf.js, as
+ * its encryption isn't one pdf-decrypt knows (`encryption`) or pdf-lib can't read it
+ * (`unreadable`); or, an image, it was put in as a JPEG of its own (`recompressed`).
+ */
+export type LossyReason = 'encryption' | 'unreadable' | 'recompressed';
+
 /** An original as a PDF. */
 export interface OriginalPdf {
   /** An unencrypted PDF that pdf-lib can read, new each time: pdf.js takes the bytes it is given. */
   bytes: Uint8Array;
-  /** Why its pages had to be drawn, as its music couldn't be had as it is; false when it could. */
-  drawn: false | 'encryption' | 'unreadable';
+  /** Why its music isn't as the file has it; none when it is. */
+  lossyReason?: LossyReason;
 }
 
 /** How many pixels wide a page is drawn when its music can't be had as it is. */
@@ -29,7 +37,7 @@ const A4_W = 595;
  */
 export async function pdfOf(o: Original, file: File, ask?: AskPassword): Promise<OriginalPdf> {
   const bytes = new Uint8Array(await file.arrayBuffer());
-  if (!isPdf(bytes)) return { bytes: await imagePdf(file, bytes), drawn: false };
+  if (!isPdf(bytes)) return imagePdf(file, bytes);
   const lib = await import('pdf-lib');
   /** The PDF as it is, where pdf-lib can read it. */
   const asItIs = async (): Promise<OriginalPdf> => {
@@ -37,9 +45,9 @@ export async function pdfOf(o: Original, file: File, ask?: AskPassword): Promise
       await lib.PDFDocument.load(bytes);
     } catch (e) {
       console.warn('Drawing the pages, as pdf-lib can\'t read them:', e);
-      return drawn(o, bytes, ask, 'unreadable');
+      return pagesDrawn(o, bytes, ask, 'unreadable');
     }
-    return { bytes, drawn: false };
+    return { bytes };
   };
   if (!isEncryptedPdf(bytes)) return asItIs();
   const { decryptPDF } = await import('@pdfsmaller/pdf-decrypt');
@@ -61,21 +69,21 @@ export async function pdfOf(o: Original, file: File, ask?: AskPassword): Promise
         continue;
       }
       console.warn('Drawing the pages, as they can\'t be decrypted:', e);
-      return drawn(o, bytes, ask, message.includes('Unsupported encryption') ? 'encryption' : 'unreadable');
+      return pagesDrawn(o, bytes, ask, message.includes('Unsupported encryption') ? 'encryption' : 'unreadable');
     }
     await passwords.keep();
     try {
       await lib.PDFDocument.load(decrypted);
     } catch (e) {
       console.warn('Drawing the pages, as pdf-lib can\'t read them decrypted:', e);
-      return drawn(o, bytes, ask, 'unreadable');
+      return pagesDrawn(o, bytes, ask, 'unreadable');
     }
-    return { bytes: decrypted, drawn: false };
+    return { bytes: decrypted };
   }
 }
 
 /** A PDF of each page of `bytes` drawn by pdf.js, with the password if it needs one. */
-async function drawn(o: Original, bytes: Uint8Array, ask: AskPassword | undefined, why: 'encryption' | 'unreadable'): Promise<OriginalPdf> {
+async function pagesDrawn(o: Original, bytes: Uint8Array, ask: AskPassword | undefined, why: 'encryption' | 'unreadable'): Promise<OriginalPdf> {
   const passwords = await Passwords.for(o, ask);
   const cache = await openPdf(bytes, (wrong) => passwords.next(wrong)).catch((e: unknown) => { throw passwords.failure(e); });
   try {
@@ -89,7 +97,7 @@ async function drawn(o: Original, bytes: Uint8Array, ask: AskPassword | undefine
       canvas.width = canvas.height = 0; // free its memory now rather than at garbage collection
       out.addPage([A4_W, A4_W * aspect]).drawImage(image, { x: 0, y: 0, width: A4_W, height: A4_W * aspect });
     }
-    return { bytes: await out.save(), drawn: why };
+    return { bytes: await out.save(), lossyReason: why };
   } finally {
     cache.destroy();
   }
@@ -97,22 +105,24 @@ async function drawn(o: Original, bytes: Uint8Array, ask: AskPassword | undefine
 
 /**
  * An image as a one-page PDF, upright: a JPEG or PNG put in as it is; a JPEG that has to be turned
- * to be upright, or another kind of image, drawn upright and put in as a JPEG (a photo) or a PNG.
+ * to be upright, or another kind of image, drawn upright and put in as a JPEG (a photo:
+ * `recompressed`, as JPEG loses some of it again) or a PNG (which loses nothing).
  */
-async function imagePdf(file: File, bytes: Uint8Array): Promise<Uint8Array> {
+async function imagePdf(file: File, bytes: Uint8Array): Promise<OriginalPdf> {
   const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
     .catch((e: unknown) => { throw new Error('Neither a PDF nor an image this browser can read', { cause: e }); });
   try {
     const lib = await import('pdf-lib');
     const out = await lib.PDFDocument.create();
+    const asItIs = (isJpeg(bytes) && jpegOrientation(bytes) === 1) || isPng(bytes);
     const photo = isJpeg(bytes) || file.type === 'image/jpeg';
-    const image = isJpeg(bytes) && jpegOrientation(bytes) === 1 ? await out.embedJpg(bytes)
+    const image = isJpeg(bytes) && asItIs ? await out.embedJpg(bytes)
       : isPng(bytes) ? await out.embedPng(bytes)
       : photo ? await out.embedJpg(await encode(drawUpright(bitmap), 'image/jpeg'))
       : await out.embedPng(await encode(drawUpright(bitmap), 'image/png'));
     const height = A4_W * (bitmap.height / bitmap.width);
     out.addPage([A4_W, height]).drawImage(image, { x: 0, y: 0, width: A4_W, height });
-    return await out.save();
+    return { bytes: await out.save(), lossyReason: !asItIs && photo ? 'recompressed' : undefined };
   } finally {
     bitmap.close();
   }
