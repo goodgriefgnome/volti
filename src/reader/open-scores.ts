@@ -1,19 +1,20 @@
-// Opening and closing the scores being read: each score's saved state and its original, opened when
-// first needed and closed when far from the score being read.
+// Opening and closing the scores being read: each score's saved state and its original's pages,
+// opened when first needed and closed when far from the score being read.
 
 import { askPassword } from '../dialogs';
-import { NoAccess, openOriginal, PageCache, PasswordNotGiven, type Original } from '../originals';
+import { NoAccess, PageCache, PasswordNotGiven, type SourceFile } from '../originals';
 import { hasPictures, picturesOf } from '../pictures';
 import { loadAspects, loadScore, type Aspects, type State } from '../scores';
 
 /**
- * An original's pages, to read: at once where its pages are saved as pictures and their shapes are
- * known, the PDF opening behind them (for pages not saved, and close-ups); otherwise once it is
- * open. Only with `ask` is its password asked for.
+ * A file's pages, to read: at once where its pages are saved as pictures and their shapes are
+ * known, the file read behind them (for pages not saved, and close-ups); otherwise once it is
+ * read. Only with `ask` is its password asked for.
  */
-export async function openPages(o: Original, ask: boolean): Promise<{ cache: PageCache; aspects: Aspects }> {
+export async function openPages(o: SourceFile, ask: boolean): Promise<{ cache: PageCache; aspects: Aspects }> {
   const [shapes, saved] = await Promise.all([loadAspects(o.id), hasPictures(o.id)]);
-  const cache = shapes && saved ? PageCache.opening(openOriginal(o, ask ? askPassword : undefined)) : await openOriginal(o, ask ? askPassword : undefined);
+  const pages = o.read(ask ? askPassword : undefined).then((r) => r.pages());
+  const cache = shapes && saved ? PageCache.opening(pages) : await pages;
   cache.pictures = picturesOf(o.id);
   return { cache, aspects: shapes && saved ? shapes : await cache.allAspects() };
 }
@@ -21,7 +22,7 @@ export async function openPages(o: Original, ask: boolean): Promise<{ cache: Pag
 /** A score open in the reader. Every entry of a setlist that plays the score shares it. */
 export interface OpenScore {
   id: string;
-  original: Original;
+  original: SourceFile;
   aspects: Aspects;
   state: State;
   /** Closed while the score is far from the one being read, and opened again when needed. */
@@ -33,7 +34,7 @@ export interface Item {
   scoreId: string;
   title: string;
   /** Not in the library, or its file can't be read. */
-  original?: Original;
+  original?: SourceFile;
   entryId?: string;
   missing?: boolean;
   /** Its file is in the scores folder, which Volti may not read until access is allowed again. */
@@ -83,7 +84,7 @@ export class OpenScores {
     return ask ? p.then((s) => s ?? (it.missing ? null : this.ensure(k, true))) : p;
   }
 
-  private async open(it: Item, original: Original, ask: boolean): Promise<OpenScore> {
+  private async open(it: Item, original: SourceFile, ask: boolean): Promise<OpenScore> {
     const { cache, aspects } = await openPages(original, ask);
     if (this.closed) { cache.destroy(); throw new Error('Closed'); }
     const have = this.scores.get(it.scoreId);

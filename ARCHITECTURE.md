@@ -10,10 +10,11 @@ The code uses these words, always in these senses.
 
 | Word | Means | Type |
 | --- | --- | --- |
-| **original** | A PDF, or an image read as one page, at its path in the library's **root**: the linked scores folder, or the app's own folder (OPFS) while none is linked. Its id is the SHA-256 of its contents, so renaming or moving it keeps everything made from it. It is read only as a PDF, whatever the file is. There is one `Original` for each id. | `Original` (`originals/original.ts`) |
+| **source file** | A PDF, or an image, that Volti can read as music: at its path in the library's **root** (the linked scores folder, or the app's own folder in OPFS while none is linked), or held outside it (coming in, or left in the app's folder). Its id is the SHA-256 of its contents, so renaming or moving it keeps everything made from it. There is one for each id in the root. | `SourceFile` (`originals/original.ts`) |
+| **original** | A source file Volti has read: its pages to draw (a PDF's by pdf.js, an image's from its bitmap) and its music as a PDF, for export. Reading a PDF asks for its password the first time it needs one. | `Original` (`originals/original.ts`) |
 | **original page** | One page of an original. 0-based in the code (`cut.page`), 1-based to pdf.js and to the user. | |
 | **aspects** | Each original page's shape, height / width. Lengths on a page are in page widths. | `Aspects` (`scores/model.ts`) |
-| **score** | What is shown of an original: its cuts in played order, its archived cuts and its named excerpts. Its id is its original's. | `Score` |
+| **score** | What is shown of an original: its cuts in played order, its archived cuts and its named excerpts. Its id is its file's. It stays when its file is gone. | `Score` |
 | **cut** | A horizontal band of one original page (`y0`..`y1`, fractions of its height). A score is its cuts, stacked in the order they are played. | `Cut` |
 | **ink**, **marking** | A marking is one thing drawn on the music (so far, pen and highlighter strokes); a score's ink is its markings, kept by the cut that holds most of each. | `Marking`, `ScoreInk` |
 | **state** | A score and its ink, which every edit keeps in step. | `State` |
@@ -50,7 +51,7 @@ keep it true, and do any start-up work from `main.ts`.
 | 5 | `render/` | What is on a screen: fitting frames to it (`layout`, `screen`), zoom maths (`zoom`), drawing a frame on a canvas (`paint`) |
 | 4 | `setlists/` | Setlists and their entries, and keeping them on the same music when a score's cuts change |
 | 3 | `excerpts/` | Spans of a score's cuts (`span`) and the names on them (`names`) |
-| 2 | `scores/`, `originals/` | A score: its data (`model`), edits (`edits`), frames (`frames`), which cut owns a marking (`ownership`), storage (`store`). Originals: an original (`original`), what one holds as a PDF (`contents`, told by `file-kind`), listing them (`originals`), the library's root, the linked folder or the app's own (`folder`), files coming into it (`adding`, and what happens to each: `arrivals`), Recently removed (`removed`), hashes, file names, opening one's pages and passwords (`open`), drawing them through the page cache (`pages`) with pdf.js (`pdf`) |
+| 2 | `scores/`, `originals/` | A score: its data (`model`), edits (`edits`), frames (`frames`), which cut owns a marking (`ownership`), storage (`store`). Originals: a source file and the original reading it gives (`original`), a PDF's music (`contents`, told by `file-kind`), an image's page (`image`), listing them (`originals`), the library's root, the linked folder or the app's own (`folder`), files coming into it (`adding`, and what happens to each: `arrivals`), Recently removed (`removed`), hashes, file names, opening one's pages and passwords (`open`), drawing them through the page cache (`pages`) with pdf.js (`pdf`) |
 | 1 | `markings/`, `ui/` | What can be drawn on the music, and how (`draw`); generic pieces of the interface: elements (`dom`), menus and dialogs one at a time (`overlay`), asking for a line of text (`ask-text`), toasts |
 | 0 | `storage/`, `types/` | The IndexedDB key-value store, with every key in `keys.ts`; missing DOM types |
 
@@ -78,13 +79,13 @@ Other rules, the first also tested:
   (`cuts/host.ts`), the tools (`tools/tool.ts`), pointer input (`input.ts`) and the close-up
   (`detail.ts`) each get the view plus the few things they may ask the reader to do.
 - `toolbar.ts` builds the toolbar; `toolbar-menus.ts` holds what its menus and dialogs do.
-- `open-scores.ts` opens each score's original when it is near the one read, `saver.ts` saves
+- `open-scores.ts` reads each score's file and opens its pages when it is near the one read, `saver.ts` saves
   scores and setlists together, `history.ts` keeps undo.
 - An edit is a function from `State` to `State` (`scores/edits.ts`); whatever makes it calls
   `commit(state, focus)`, which records undo, carries the edit through `Reading`, saves and
   redraws.
 
-**The library** (`library/library.ts`) holds what it has read (the folder, originals, setlists,
+**The library** (`library/library.ts`) holds what it has read (the folder, its files, setlists,
 saved scores) and opens the reader. It is the `LibraryHost` (`host.ts`) for the parts that show
 it: `folder-banner.ts`, `setlists-section.ts` and `scores-section.ts`, which only show the data and
 ask the Library to change it (`change`, `update`, `refresh`).

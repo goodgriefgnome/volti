@@ -3,7 +3,7 @@ import { nameOf, setName } from '../excerpts';
 import { insertPages, remove } from '../scores';
 import { aspects, cut, state } from '../scores/testing';
 import { newEntry, newSetlist, type Setlist } from '../setlists/model';
-import type { Original } from '../originals';
+import type { SourceFile } from '../originals';
 import { Reading, setlistItems } from './reading';
 
 /** Three whole pages, the Kyrie being the first two. */
@@ -28,7 +28,7 @@ describe('Reading', () => {
   it('lists a setlist\'s entries again in place, keeping a score found missing', () => {
     const a = newEntry('p'), b = newEntry('q');
     const set: Setlist = { ...newSetlist('Spring'), entries: [a, b] };
-    const originals = new Map([['p', { id: 'p', path: 'Mass.pdf' } as Original]]);
+    const originals = new Map([['p', { id: 'p', path: 'Mass.pdf' } as SourceFile]]);
     const items = setlistItems(set, originals, { q: 'Requiem' });
     expect(items.map((it) => [it.title, !!it.missing])).toEqual([['Mass', false], ['Requiem', true]]);
     const r = new Reading(items, { kind: 'setlist', id: set.id }, [set]);

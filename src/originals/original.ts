@@ -1,38 +1,52 @@
-// An original: a score's file, at its path in the library's root (the linked scores folder, or the
-// app's own), known by the hash of its contents. What it holds is read only as a PDF (contents.ts),
-// whatever the file is; it can be moved (renamed, or into another folder) and removed (into Recently
-// removed), asking for the access to the scores folder that needs. There is one Original for each
-// id, so a move shows wherever it is held.
+// Source files and originals. A source file is bytes Volti can read as music, known by the hash of
+// its contents: a file at its path in the library's root (the linked scores folder, or the app's
+// own), which can be moved (renamed, or into another folder) and removed (into Recently removed),
+// asking for the access to the scores folder that needs; or a file Volti holds outside the library
+// (coming in, or left in its own folder while one is linked). Reading one gives its original: its
+// pages to draw, and its music as a PDF for export. A PDF is read with pdf.js (contents.ts), asking
+// for its password the first time it needs one; an image is drawn from its decoded bitmap
+// (image.ts). There is one source file for each id in the root, so a move shows wherever it is held.
 
-import { pdfOf, type OriginalPdf } from './contents';
+import { encrypted, imagePdf, pdfOf, type OriginalPdf } from './contents';
+import { isPdf } from './file-kind';
 import { fileAt, makeFolder, needAccess, placeOf, relist, whereIs } from './folder';
 import { rememberHash } from './hashes';
+import { openImage } from './image';
 import { folderOf, isOriginalName, tidyPath } from './names';
-import type { AskPassword } from './open';
+import { savedPassword, type AskPassword } from './open';
+import type { PageCache } from './pages';
+import { openPdf } from './pdf';
 import { removeFile } from './removed';
 
-/** What names an original: its id, and where it is. A file coming into the library has them too. */
-export type Named = Pick<Original, 'id' | 'path'>;
-
-/** A score's original: a PDF or an image in the library. */
-export interface Original {
+/** Bytes Volti can read as music: a PDF or an image. */
+export interface SourceFile {
   /** The SHA-256 of the file's contents, in hex; also the id of the score made from it. */
   readonly id: string;
-  /** Where it is in the library's root: "Masses/Latin/Mass in G.pdf". */
+  /** Where it is in the library's root ("Masses/Latin/Mass in G.pdf"), or would go. */
   readonly path: string;
-  /**
-   * What it holds, as a PDF (contents.ts): a password it needs is asked of `ask`. Throws
-   * PasswordNotGiven when it isn't given, and NoAccess when the scores folder can't be read.
-   */
-  pdf(ask?: AskPassword): Promise<OriginalPdf>;
   /**
    * Rename it, or move it into another folder ('' at the top), or both, making the folders that
    * aren't there yet; its score stays, as its contents don't change. Says why when it can't (a file
-   * of that name is there already); throws NoAccess when the scores folder can't be changed.
+   * of that name is there already, or it isn't in the library); throws NoAccess when the scores
+   * folder can't be changed.
    */
   move(path: string): Promise<string | null>;
-  /** Move its file into Recently removed. Throws NoAccess when the scores folder can't be changed. */
+  /** Move it out of the library, into Recently removed; or drop one held outside it. Throws NoAccess when the scores folder can't be changed. */
   remove(): Promise<void>;
+  /**
+   * Read it as music: its original. A PDF with a password not known yet asks `ask` for it, and
+   * remembers it (without `ask`, it throws PasswordNotGiven); throws NoAccess when the scores
+   * folder can't be read.
+   */
+  read(ask?: AskPassword): Promise<Original>;
+}
+
+/** A source file Volti has read: what a score is made from. */
+export interface Original extends SourceFile {
+  /** Its pages, to draw. */
+  pages(): Promise<PageCache>;
+  /** Its music as a PDF, for export (contents.ts). */
+  pdf(): Promise<OriginalPdf>;
 }
 
 /** The name at the end of a path. */
@@ -41,17 +55,20 @@ const nameOf = (path: string) => path.slice(path.lastIndexOf('/') + 1);
 /** A folder as the user reads it, for saying where a file is. */
 const shown = (folder: string) => (folder ? folder.split('/').join(' / ') : 'the top of the library');
 
-class FileOriginal implements Original {
+/** A source file's bytes, for reading what only originals/ reads from it. */
+interface Readable extends SourceFile { file(): Promise<File> }
+
+/** A file at its path in the library's root. */
+class RootFile implements Readable {
   constructor(readonly id: string, public path: string) {}
 
-  /** Its file. */
   async file(): Promise<File> {
     await needAccess('read');
     return fileAt(this.path);
   }
 
-  async pdf(ask?: AskPassword): Promise<OriginalPdf> {
-    return pdfOf(this, await this.file(), ask);
+  read(ask?: AskPassword): Promise<Original> {
+    return readAs(this, ask);
   }
 
   async move(path: string): Promise<string | null> {
@@ -114,16 +131,75 @@ class FileOriginal implements Original {
   }
 }
 
-/** Each id's Original. */
-const made = new Map<string, FileOriginal>();
+/** A file Volti holds outside the library: coming in, or left in its own folder. It can't be moved. */
+class HeldFile implements Readable {
+  constructor(readonly id: string, readonly path: string, private bytes: File, private drop: () => Promise<void>) {}
 
-/** The Original with id `id` at `path`: the one already made for it, brought up to date. */
-export function originalOf(id: string, path: string): Original {
+  async file() { return this.bytes; }
+  async move() { return 'It isn’t in the library yet.'; }
+  remove() { return this.drop(); }
+  read(ask?: AskPassword): Promise<Original> { return readAs(this, ask); }
+}
+
+/** A file Volti holds outside the library, `bytes`, at `path` (where it would go); `drop` is what removing it does. */
+export const heldFile = (id: string, path: string, bytes: File, drop: () => Promise<void> = async () => {}): SourceFile =>
+  new HeldFile(id, path, bytes, drop);
+
+/** A source file's bytes. */
+export const fileOf = (f: SourceFile) => (f as Readable).file();
+
+/**
+ * Read a source file: an image as it is; a PDF asks for its password now if it has one Volti
+ * doesn't know yet (its music, worked out to try it, is kept for its pages), and otherwise reads
+ * its music only when its pages or its PDF are wanted.
+ */
+async function readAs(f: Readable, ask?: AskPassword): Promise<Original> {
+  const file = await f.file();
+  if (!isPdf(new Uint8Array(await file.slice(0, 2048).arrayBuffer()))) return new ImageOriginal(f);
+  const known = !(await encrypted(file)) || (await savedPassword(f.id)) !== undefined;
+  return new PdfOriginal(f, known ? undefined : await pdfOf(f, file, ask));
+}
+
+/** An original: its file's id, path, moving and removing, and itself as what reading it gives. */
+abstract class Read implements Original, Readable {
+  constructor(protected f: Readable) {}
+  file() { return this.f.file(); }
+  get id() { return this.f.id; }
+  get path() { return this.f.path; }
+  move(path: string) { return this.f.move(path); }
+  remove() { return this.f.remove(); }
+  async read() { return this; }
+  abstract pages(): Promise<PageCache>;
+  abstract pdf(): Promise<OriginalPdf>;
+}
+
+class PdfOriginal extends Read {
+  /** Its music, worked out when it was read, until its pages or its PDF take it. */
+  constructor(f: Readable, private held?: OriginalPdf) { super(f); }
+
+  async pdf(): Promise<OriginalPdf> {
+    const held = this.held;
+    this.held = undefined; // pdf.js takes the bytes it is given
+    return held ?? pdfOf(this.f, await this.f.file());
+  }
+
+  async pages(): Promise<PageCache> {
+    return openPdf((await this.pdf()).bytes);
+  }
+}
+
+class ImageOriginal extends Read {
+  async pdf(): Promise<OriginalPdf> { return imagePdf(await this.f.file()); }
+  async pages(): Promise<PageCache> { return openImage(await this.f.file()); }
+}
+
+/** Each id's file in the root. */
+const made = new Map<string, RootFile>();
+
+/** The file in the root with id `id` at `path`: the one already made for it, brought up to date. */
+export function sourceFileOf(id: string, path: string): SourceFile {
   let o = made.get(id);
-  if (!o) made.set(id, (o = new FileOriginal(id, path)));
+  if (!o) made.set(id, (o = new RootFile(id, path)));
   else o.path = path;
   return o;
 }
-
-/** An original's file, for reading what only originals/ reads from it. */
-export const fileOf = (o: Original) => (o as FileOriginal).file();

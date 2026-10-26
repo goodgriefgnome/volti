@@ -3,10 +3,10 @@
 // scores) and a setlist's reader (⋯ › Add scores) both open it.
 
 import { ends, excerptName, nameOf, sameSpan, sortedNames, type Span } from '../excerpts';
-import { byFolder, folderOf, titleOf, type Original } from '../originals';
+import { byFolder, folderOf, titleOf, type SourceFile } from '../originals';
 import type { ExcerptName, Score } from '../scores';
 import type { Setlist } from '../setlists';
-import { button, buttonRow, closeOverlay, el, lockIcon, plural, showDialog, whenOverlayCloses } from '../ui';
+import { button, buttonRow, closeOverlay, el, plural, showDialog, whenOverlayCloses } from '../ui';
 import { ExcerptStrip, namedExcerptMenu } from './excerpt-picker';
 import type { ExcerptSource } from './thumb-strip';
 import type { LibraryScore } from './open-score';
@@ -14,15 +14,13 @@ import type { LibraryScore } from './open-score';
 export interface AddScoresHost {
   setlist: Setlist;
   /** The library's scores, in the order shown. */
-  originals: readonly Original[];
+  originals: readonly SourceFile[];
   /** Scores as last saved, for their named excerpts. */
   saved: ReadonlyMap<string, Score>;
   /** Open a score to preview; null if it can't be (having said why). */
-  open(o: Original): Promise<LibraryScore | null>;
-  /** The scores whose PDF needs a password not given yet, by id. */
-  locked: ReadonlySet<string>;
-  /** Ask for a locked score's password; false when it isn't given. */
-  givePassword(o: Original): Promise<boolean>;
+  open(o: SourceFile): Promise<LibraryScore | null>;
+  /** Make sure a score's file can be read, asking for its password if need be; false when it isn't given. */
+  givePassword(o: SourceFile): Promise<boolean>;
   /** Add entries playing these to the end of the setlist; `scores` are the ones they choose excerpts of. */
   add(entries: { scoreId: string; span: Span }[], scores: ExcerptSource[]): void;
 }
@@ -34,11 +32,9 @@ export interface AddScoresHost {
 interface Choice { span: Span; label: string | null; named?: boolean; src?: ExcerptSource }
 
 /** A row's title, with what else it says ("in this setlist"), wrapping beside its checkbox. */
-function pickText(title: string, meta = '', locked = false): HTMLElement {
+function pickText(title: string, meta = ''): HTMLElement {
   const t = el('span', 'pick-text');
-  const name = el('span', 'pick-title', title);
-  if (locked) name.append(lockIcon('Needs its password'));
-  t.append(name);
+  t.append(el('span', 'pick-title', title));
   if (meta) t.append(el('span', 'meta', meta));
   return t;
 }
@@ -60,9 +56,9 @@ export function openAddScores(h: AddScoresHost) {
   const list = el('div', 'picklist');
   const add = button('Add', () => void addChosen(), 'primary');
   const addChosen = async () => {
-    // A locked score goes in only once its password is given.
+    // A score goes in only once its file can be read: one with a password not known yet asks for it now.
     for (const o of h.originals) {
-      if (chosen.has(o.id) && h.locked.has(o.id) && !(await h.givePassword(o))) chosen.delete(o.id);
+      if (chosen.has(o.id) && !(await h.givePassword(o))) chosen.delete(o.id);
     }
     if (!count()) { sync(); fill(find.value); return; }
     closeOverlay();
@@ -80,7 +76,7 @@ export function openAddScores(h: AddScoresHost) {
   sync();
 
   /** The score's named excerpts to list: all of them, or when searching, those that match unless the score does. */
-  const namesShown = (sc: Original, q: string) => {
+  const namesShown = (sc: SourceFile, q: string) => {
     const score = h.saved.get(sc.id), names = score ? sortedNames(score) : [];
     return !q || `${titleOf(sc.path)} ${folderOf(sc.path)}`.toLowerCase().includes(q) ? names : names.filter((x) => x.name.toLowerCase().includes(q));
   };
@@ -122,7 +118,7 @@ export function openAddScores(h: AddScoresHost) {
     if (next.length) chosen.set(scoreId, next); else chosen.delete(scoreId);
   };
 
-  const row = (sc: Original, names: ExcerptName[]): HTMLElement => {
+  const row = (sc: SourceFile, names: ExcerptName[]): HTMLElement => {
     const r = el('div', 'pick-row');
     const label = el('label', 'check');
     const box = el('input');
@@ -137,7 +133,7 @@ export function openAddScores(h: AddScoresHost) {
     });
     const redraw = () => { sync(); r.replaceWith(row(sc, names)); };
     const has = s.entries.filter((e) => e.scoreId === sc.id).length;
-    label.append(box, pickText(titleOf(sc.path), has ? `in this setlist${has > 1 ? ` ${has}×` : ''}` : '', h.locked.has(sc.id)));
+    label.append(box, pickText(titleOf(sc.path), has ? `in this setlist${has > 1 ? ` ${has}×` : ''}` : ''));
     const preview = button('Preview', () => void showPreview(sc), 'quiet');
     preview.setAttribute('aria-label', `Preview ${titleOf(sc.path)}`);
     r.append(label, preview);
@@ -191,7 +187,7 @@ export function openAddScores(h: AddScoresHost) {
     fill(find.value);
   };
   /** Show a score's pages to choose an excerpt of it, starting from `span` (a named excerpt, say). */
-  const showPreview = async (o: Original, span: Span = {}) => {
+  const showPreview = async (o: SourceFile, span: Span = {}) => {
     const sc = await h.open(o);
     if (!sc || !d.isConnected) { sc?.close(); return; }
     closePreview();

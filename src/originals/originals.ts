@@ -1,32 +1,32 @@
-// The library's originals: the PDFs and images in its root (folder.ts: the linked folder, or the
-// app's own), known by the hash of their contents (hashes.ts). Only finding them; an original
-// itself is original.ts, and the score made from one is in scores/.
+// The library's files: the PDFs and images in its root (folder.ts: the linked folder, or the app's
+// own), known by the hash of their contents (hashes.ts). Only finding them; a file itself, and the
+// original reading it gives, are original.ts, and the score made from one is in scores/.
 
 import { keys, kv } from '../storage';
 import { folderFiles, rememberedListing, saveListing, whereIs, type FolderState } from './folder';
 import { Hasher } from './hashes';
 import { titleOf } from './names';
-import { originalOf, type Original } from './original';
+import { sourceFileOf, type SourceFile } from './original';
 
-/** Every original's title as last seen, by id: for a score whose original can't be found. */
+/** Every file's title as last seen, by id: for a score whose file can't be found. */
 export const knownTitles = async () => (await kv.get<Record<string, string>>(keys.titles)) ?? {};
 
 /**
- * Hears the originals known so far while new or changed files are read, and how many are `left`
+ * Hears the files known so far while new or changed files are read, and how many are `left`
  * to read.
  */
-export type Progress = (originals: Original[], left: number) => void;
+export type Progress = (originals: SourceFile[], left: number) => void;
 
 /** In the library's order: by title, numbers by value. */
-export const byTitle = (x: Original, y: Original) => titleOf(x.path).localeCompare(titleOf(y.path), undefined, { numeric: true, sensitivity: 'base' });
+export const byTitle = (x: SourceFile, y: SourceFile) => titleOf(x.path).localeCompare(titleOf(y.path), undefined, { numeric: true, sensitivity: 'base' });
 
 /**
- * Every original, sorted by title: the same Original for an id as before; two of the same file show
+ * The library's files, sorted by title: the same SourceFile for an id as before; two of the same file show
  * the first. Files new or changed since last time are hashed, which reads them whole, one at a
- * time; `progress` hears the originals known so far before the first and after each. While the
+ * time; `progress` hears the files known so far before the first and after each. While the
  * linked folder is locked, its PDFs are the ones remembered.
  */
-export async function allOriginals(state: FolderState, progress?: Progress): Promise<Original[]> {
+export async function libraryFiles(state: FolderState, progress?: Progress): Promise<SourceFile[]> {
   const hasher = await Hasher.load();
   const locked = state.kind === 'locked';
   const remembered = locked ? await rememberedListing() : [];
@@ -36,7 +36,7 @@ export async function allOriginals(state: FolderState, progress?: Progress): Pro
   const known = () => {
     const seen = new Map<string, string>();
     for (const e of [...remembered, ...files.filter((f) => ids.has(f.path)).map((f) => ({ id: ids.get(f.path)!, path: f.path }))]) if (!seen.has(e.id)) seen.set(e.id, e.path);
-    return [...seen].map(([id, path]) => originalOf(id, path)).sort(byTitle);
+    return [...seen].map(([id, path]) => sourceFileOf(id, path)).sort(byTitle);
   };
   const fresh: number[] = [];
   for (const [i, f] of files.entries()) {
@@ -50,7 +50,7 @@ export async function allOriginals(state: FolderState, progress?: Progress): Pro
   if (!locked) await saveListing(files.map((f) => ({ path: f.path, id: ids.get(f.path)! })));
   // The hashes of the root not read this time are kept: the app's while a folder is linked, and the other way round.
   await hasher.save(locked ? ['folder/', 'app/'] : [state.kind === 'none' ? 'folder/' : 'app/']);
-  const originals = known();
-  await kv.update<Record<string, string>>(keys.titles, (old) => ({ ...old, ...Object.fromEntries(originals.map((o) => [o.id, titleOf(o.path)])) }));
-  return originals;
+  const found = known();
+  await kv.update<Record<string, string>>(keys.titles, (old) => ({ ...old, ...Object.fromEntries(found.map((f) => [f.id, titleOf(f.path)])) }));
+  return found;
 }

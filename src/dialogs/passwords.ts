@@ -1,7 +1,7 @@
-// Asking for a PDF's password, over whatever is open, and making sure a locked score's is known.
+// Asking for a PDF's password, over whatever is open, and making sure a file's is known before it is needed.
 // Opening the PDF, and remembering the password, is originals/.
 
-import { PasswordNotGiven, type AskPassword, type Original } from '../originals';
+import { NoAccess, PasswordNotGiven, type AskPassword, type SourceFile } from '../originals';
 import { button, buttonRow, el, showOnTop } from '../ui';
 
 /** Ask for a PDF's password, over whatever is open; null when it isn't given. */
@@ -19,16 +19,18 @@ export const askPassword: AskPassword = (title, wrong) => new Promise((resolve) 
 });
 
 /**
- * Make sure a PDF's password is known, asking for it if it isn't (as adding a locked score to a
- * setlist does); false when it isn't given. Throws when the PDF can't be opened at all.
+ * Make sure a file can be read, asking for its password if it has one Volti doesn't know yet (as
+ * adding a score to a setlist does, so its pages can be saved and it never asks while playing);
+ * false when it isn't given. Throws when the file can't be read at all.
  */
-export async function givePassword(o: Original): Promise<boolean> {
+export async function givePassword(f: SourceFile): Promise<boolean> {
   try {
-    // Uses the password remembered for it, if there is one, without asking.
-    await o.pdf(askPassword);
+    await f.read(askPassword);
     return true;
   } catch (e) {
     if (e instanceof PasswordNotGiven) return false;
+    // Not readable until access to the scores folder is allowed: it asks when it is first read.
+    if (e instanceof NoAccess) return true;
     throw e;
   }
 }

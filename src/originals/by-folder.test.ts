@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { byFolder } from './by-folder';
-import type { Original } from './original';
+import type { SourceFile } from './original';
 
 /** An original `id` in `folder`, only for listing. */
-const at = (id: string, folder: string) => ({ id, path: (folder ? folder + '/' : '') + id + '.pdf' }) as Original;
+const at = (id: string, folder: string) => ({ id, path: (folder ? folder + '/' : '') + id + '.pdf' }) as SourceFile;
 
 describe('byFolder', () => {
   it('lists the top of the folder first, then each subfolder by path, keeping the order within', () => {

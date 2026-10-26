@@ -2,7 +2,7 @@
 // the widths this screen shows them, drawing those not saved yet, and deleting the rest.
 
 import { spanCuts } from '../excerpts';
-import { openOriginal, titleOf, type Original } from '../originals';
+import { titleOf, type SourceFile } from '../originals';
 import { readPageWidths } from '../render';
 import { loadAspects, loadScore, pack } from '../scores';
 import type { Setlist } from '../setlists';
@@ -13,7 +13,7 @@ import { hasPicture, picturesOf, setWanted, tidyPictures } from './pictures';
 const SETTLE_MS = 2000;
 
 /** A score whose pages are to be drawn: each at a width in CSS pixels, and its height. */
-interface Job { original: Original; pages: { num: number; w: number; h: number }[] }
+interface Job { original: SourceFile; pages: { num: number; w: number; h: number }[] }
 
 let timer: ReturnType<typeof setTimeout> | undefined;
 /** Bumped by each new start, which stops the one before. */
@@ -23,13 +23,13 @@ let run = 0;
  * Bring the saved pictures up to date with these setlists, in the background: after a setlist
  * changes, or the scores do, and at start-up.
  */
-export function makePictures(originals: readonly Original[], setlists: readonly Setlist[]) {
+export function makePictures(originals: readonly SourceFile[], setlists: readonly Setlist[]) {
   clearTimeout(timer);
   const mine = ++run;
   timer = setTimeout(() => void make(mine, originals, setlists).catch((e) => console.warn('Saving pictures stopped:', e)), SETTLE_MS);
 }
 
-async function make(mine: number, originals: readonly Original[], setlists: readonly Setlist[]) {
+async function make(mine: number, originals: readonly SourceFile[], setlists: readonly Setlist[]) {
   const byId = new Map(originals.map((o) => [o.id, o]));
   const entries = setlists.filter((s) => !s.archived).flatMap((s) => s.entries);
   // The reader fills the screen.
@@ -43,7 +43,7 @@ async function make(mine: number, originals: readonly Original[], setlists: read
     const original = byId.get(id);
     let aspects = await loadAspects(id);
     if (!aspects) {
-      const cache = original && (await openOriginal(original).catch(() => null));
+      const cache = original && (await original.read().then((o) => o.pages()).catch(() => null));
       if (!cache) { unsure.add(id); continue; }
       try { aspects = await cache.allAspects(); } finally { cache.destroy(); }
     }
@@ -70,7 +70,7 @@ async function make(mine: number, originals: readonly Original[], setlists: read
     for (let job = jobs.shift(); job && mine === run; job = jobs.shift()) await draw(job);
   };
   const draw = async ({ original, pages }: Job) => {
-    const cache = await openOriginal(original).catch(() => null);
+    const cache = await original.read().then((o) => o.pages()).catch(() => null);
     if (!cache) return;
     cache.pictures = picturesOf(original.id);
     try {

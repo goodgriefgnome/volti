@@ -1,13 +1,12 @@
-// What an original holds, as a PDF, whatever its file is (told by its contents, not its name): a PDF
-// as it is; an encrypted one decrypted, with its password (by our fork of pdf-decrypt); an image as
-// a one-page PDF; and where the music can't be had as it is (an encryption pdf-decrypt doesn't
-// know, or a PDF pdf-lib can't read), its pages drawn by pdf.js into a PDF of pictures. Each says
-// why, where its music lost something on the way. pdf-lib and pdf-decrypt are only loaded when
-// needed.
+// An original's music as a PDF: a PDF as it is; an encrypted one decrypted, with its password (by
+// our fork of pdf-decrypt); where the music can't be had as it is (an encryption pdf-decrypt doesn't
+// know, or a PDF pdf-lib can't read), its pages drawn by pdf.js into a PDF of pictures; and, for
+// export, an image as a one-page PDF. Each says why, where its music lost something on the way.
+// pdf-lib and pdf-decrypt are only loaded when needed.
 
-import { isEncryptedPdf, isJpeg, isPdf, isPng, jpegOrientation } from './file-kind';
+import { isEncryptedPdf, isJpeg, isPng, jpegOrientation, namesEncrypt, PDF_ENDS } from './file-kind';
 import { Passwords, type AskPassword } from './open';
-import type { Named } from './original';
+import type { SourceFile } from './original';
 import { openPdf } from './pdf';
 
 /**
@@ -30,14 +29,20 @@ const DRAWN_W = 2000;
 /** The width, in points, of a page made for an image, or of a drawn page: A4's. */
 const A4_W = 595;
 
+/** Whether a PDF is encrypted, reading only its ends (file-kind.ts). */
+export async function encrypted(file: File): Promise<boolean> {
+  const ends = file.size <= 2 * PDF_ENDS ? [file] : [file.slice(0, PDF_ENDS), file.slice(file.size - PDF_ENDS)];
+  for (const part of ends) if (namesEncrypt(new Uint8Array(await part.arrayBuffer()))) return true;
+  return false;
+}
+
 /**
- * Original `o`, whose file is `file`, as a PDF. An encrypted one tries the password remembered
- * for it, then asks `ask` (with none, it gives up: PasswordNotGiven), and remembers the one that
- * opens it. Throws when the file is neither a PDF nor an image the browser can read.
+ * The PDF `o`, whose bytes are `file`, as a PDF pdf-lib and pdf.js can read. An encrypted one
+ * tries the password remembered for it, then asks `ask` (with none, it gives up:
+ * PasswordNotGiven), and remembers the one that opens it.
  */
-export async function pdfOf(o: Named, file: File, ask?: AskPassword): Promise<OriginalPdf> {
+export async function pdfOf(o: SourceFile, file: File, ask?: AskPassword): Promise<OriginalPdf> {
   const bytes = new Uint8Array(await file.arrayBuffer());
-  if (!isPdf(bytes)) return imagePdf(file, bytes);
   const lib = await import('pdf-lib');
   /** The PDF as it is, where pdf-lib can read it. */
   const asItIs = async (): Promise<OriginalPdf> => {
@@ -83,7 +88,7 @@ export async function pdfOf(o: Named, file: File, ask?: AskPassword): Promise<Or
 }
 
 /** A PDF of each page of `bytes` drawn by pdf.js, with the password if it needs one. */
-async function pagesDrawn(o: Named, bytes: Uint8Array, ask: AskPassword | undefined, why: 'encryption' | 'unreadable'): Promise<OriginalPdf> {
+async function pagesDrawn(o: SourceFile, bytes: Uint8Array, ask: AskPassword | undefined, why: 'encryption' | 'unreadable'): Promise<OriginalPdf> {
   const passwords = await Passwords.for(o, ask);
   const cache = await openPdf(bytes, (wrong) => passwords.next(wrong)).catch((e: unknown) => { throw passwords.failure(e); });
   try {
@@ -104,11 +109,12 @@ async function pagesDrawn(o: Named, bytes: Uint8Array, ask: AskPassword | undefi
 }
 
 /**
- * An image as a one-page PDF, upright: a JPEG or PNG put in as it is; a JPEG that has to be turned
- * to be upright, or another kind of image, drawn upright and put in as a JPEG (a photo:
- * `recompressed`, as JPEG loses some of it again) or a PNG (which loses nothing).
+ * An image as a one-page PDF, upright, for export: a JPEG or PNG put in as it is; a JPEG that has
+ * to be turned to be upright, or another kind of image, drawn upright and put in as a JPEG (a
+ * photo: `recompressed`, as JPEG loses some of it again) or a PNG (which loses nothing).
  */
-async function imagePdf(file: File, bytes: Uint8Array): Promise<OriginalPdf> {
+export async function imagePdf(file: File): Promise<OriginalPdf> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
   const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
     .catch((e: unknown) => { throw new Error('Neither a PDF nor an image this browser can read', { cause: e }); });
   try {

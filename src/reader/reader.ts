@@ -6,7 +6,7 @@
 import type { FileChange } from '../dialogs';
 import { ends } from '../excerpts';
 import { PEN_COLORS, type Marking } from '../markings';
-import { knownTitles, NoAccess, PasswordNotGiven, titleOf, type Original, type PageCache } from '../originals';
+import { knownTitles, NoAccess, PasswordNotGiven, titleOf, type SourceFile, type PageCache } from '../originals';
 import { framesOnScreen, isZoomed, NO_ZOOM, pageWidths, screenAt, type Hatches, type Zoom } from '../render';
 import { A4, frameOf, loadScore, pack, saveScorePosition, type Aspects, type Cut, type ExcerptName, type Frame, type State } from '../scores';
 import { loadSetlists, type Setlist } from '../setlists';
@@ -36,9 +36,9 @@ interface Undo { open: OpenScore; state: State; reading: ReadingSnapshot; k: num
 /** What the reader opens: a score on its own, a named excerpt of one, or a setlist. */
 export type ToRead =
   /** A score, with the library's scores in its order, to turn to past this one's ends. */
-  | { kind: 'score'; original: Original; library: readonly Original[] }
-  | { kind: 'excerpt'; original: Original; excerpt: ExcerptName }
-  | { kind: 'setlist'; setlistId: string; originals: readonly Original[]; startEntry?: string };
+  | { kind: 'score'; original: SourceFile; library: readonly SourceFile[] }
+  | { kind: 'excerpt'; original: SourceFile; excerpt: ExcerptName }
+  | { kind: 'setlist'; setlistId: string; originals: readonly SourceFile[]; startEntry?: string };
 
 /** How long the next score is offered after turning past a score's end: as long as the toast saying so shows. */
 const OFFER_MS = 3500;
@@ -135,7 +135,7 @@ class Reader {
     position: string | undefined,
     private onClose: (fileChanges: FileChange[]) => void,
     /** The library's scores; in a score's own reader, in the library's order, to turn to. */
-    private library: readonly Original[] = [],
+    private library: readonly SourceFile[] = [],
   ) {
     this.reading = new Reading(items, what, setlists);
     this.scores = new OpenScores(items, first);
@@ -562,7 +562,7 @@ class Reader {
   }
 
   /** Read score `o` instead: from its start going forward, from its last screen going back. */
-  private async turnToScore(o: Original, dir: 1 | -1) {
+  private async turnToScore(o: SourceFile, dir: 1 | -1) {
     this.loading = true;
     this.editor.dismiss();
     this.toolbar.info.textContent = 'Opening…';

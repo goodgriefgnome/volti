@@ -6,7 +6,7 @@
 import { addExcerpt, askSetlistName, changeExcerptCuts, chooseSetlist, deleteExcerpt, givePassword, moveToFolder, openAddScores, openExcerptPicker, openExportPdf, openScore, renameExcerpt, renameFile, type ExcerptHost, type ExcerptSource, type FileChange, type ScoreFileHost } from '../dialogs';
 import { ends, nameOf, sortedNames, spanLabel, spanOf, type Span } from '../excerpts';
 import type { ExportPart } from '../export';
-import { folderState, lockedOriginals, NoAccess, PasswordNotGiven, subfolders, titleOf, type Original, type PageCache } from '../originals';
+import { folderState, NoAccess, PasswordNotGiven, subfolders, titleOf, type SourceFile, type PageCache } from '../originals';
 import { loadSavedScore, saveScore, type ExcerptName, type Score } from '../scores';
 import { addEntries, defaultSetlist, deleteSetlist, duplicate, loadLastAddedTo, moveEntry, saveLastAddedTo, withSetlist, type Entry, type Setlist } from '../setlists';
 import { button, buttonRow, closeOverlay, dpr, el, plural, showDialog, showMenu, type MenuItem } from '../ui';
@@ -21,7 +21,7 @@ export interface MenusHost {
   toolbar: Toolbar;
   saver: Saver;
   /** The library's scores: for Add scores, and the subfolders to move a score to. */
-  library: readonly Original[];
+  library: readonly SourceFile[];
   /** The item being read. */
   k(): number;
   /** Item k's score, once open. */
@@ -135,7 +135,7 @@ export class ReaderMenus {
   }
 
   /** Move the score's file into Recently removed, and go back to the library. */
-  private async remove(o: Original) {
+  private async remove(o: SourceFile) {
     try {
       await o.remove();
     } catch (e) {
@@ -228,18 +228,13 @@ export class ReaderMenus {
     const { reading } = this.h, originals = this.h.library;
     // The scores as saved: a preview opens them from there.
     await this.h.saver.flush();
-    const readable = (await folderState()).kind !== 'locked';
-    const [saved, locked] = await Promise.all([
-      Promise.all(originals.map((o) => loadSavedScore(o.id))),
-      lockedOriginals(originals, () => readable),
-    ]);
+    const saved = await Promise.all(originals.map((o) => loadSavedScore(o.id)));
     const s = reading.setlist;
     if (!s) return;
     openAddScores({
       setlist: s,
       originals,
       saved: new Map(saved.filter((x): x is Score => !!x).map((x) => [x.id, x])),
-      locked,
       givePassword: (o) => givePassword(o).catch((e) => { console.error(e); this.h.say(`Could not open “${titleOf(o.path)}”.`); return false; }),
       open: (o) => openScore(o).catch((e) => {
         console.error(e);

@@ -1,24 +1,24 @@
-// The screen for files coming into the library: from Add PDFs, shared from another app, or put back
-// from Recently removed. Each file is a row: a preview of its pages as a new score starts, its
+// The screen for files coming into the library: from Add PDFs, shared from another app, put back
+// from Recently removed, or left in Volti's own folder when a folder is linked. Each file is a row: a preview of its pages as a new score starts, its
 // name, its folder, and what happens to it (new; already in the library, so left out; or its path
 // taken, so it needs a new name or folder, or to replace the file there). Adding puts each in the
 // library's root; leaving one out, or cancelling, drops it.
 
 import { askPassword, ThumbStrip } from '../dialogs';
 import {
-  arrivals, fileNameProblem, folderOf, NoAccess, pathInFolder, pathWithTitle, PasswordNotGiven, previewIncoming, putIncoming,
-  readIncoming, subfolders, titleOf, type Arrival, type Incoming, type PageCache,
+  arrivals, fileNameProblem, folderOf, NoAccess, pathInFolder, pathWithTitle, PasswordNotGiven, putIncoming, readIncoming,
+  subfolders, titleOf, type Arrival, type PageCache, type SourceFile,
 } from '../originals';
 import { newScore } from '../scores';
 import { button, buttonRow, closeOverlay, dpr, el, plural, showDialog, whenOverlayCloses } from '../ui';
 import type { LibraryHost } from './host';
 
-/** A file coming in, and where it goes to start with (its own name at the top, by default). */
-export interface Arriving { file: File; path?: string }
+/** A file coming in, and where it goes to start with (its own name at the top, by default); or one already read. */
+export type Arriving = { file: File; path?: string } | SourceFile;
 
 /** A row: a file coming in, and the name and folder chosen for it. */
 interface Row {
-  incoming: Incoming;
+  source: SourceFile;
   /** Its file name to start with, whose ending (".pdf", ".jpg") the name typed doesn't change. */
   base: string;
   title: HTMLInputElement;
@@ -26,7 +26,7 @@ interface Row {
   replace: HTMLInputElement;
   status: HTMLElement;
   li: HTMLElement;
-  arrival: Arrival;
+  arrival: Arrival<SourceFile>;
 }
 
 /** Each row's datalist of the library's subfolders shares this id. */
@@ -36,13 +36,13 @@ const FOLDERS_ID = 'incoming-folders';
  * Open the screen for files coming in. `done` hears, once it closes, which were added (none when
  * it was cancelled).
  */
-export async function openIncoming(lib: LibraryHost, files: readonly Arriving[], done?: (added: Arriving[]) => void) {
+export async function openIncoming(lib: LibraryHost, files: readonly Arriving[], done?: (added: SourceFile[]) => void) {
   const d = showDialog(files.length === 1 ? 'Add a file' : `Add ${files.length} files`, 'wide incoming');
   const reading = el('p', 'hint', 'Reading…');
   d.append(reading);
   const caches: PageCache[] = [];
   /** The files added so far. */
-  const added: Arriving[] = [];
+  const added: SourceFile[] = [];
   let finished = false;
   whenOverlayCloses(() => {
     finished = true;
@@ -51,14 +51,14 @@ export async function openIncoming(lib: LibraryHost, files: readonly Arriving[],
   });
 
   // Read once each, and the same file only once.
-  const read: { arriving: Arriving; incoming: Incoming }[] = [];
-  for (const arriving of files) {
+  const read: SourceFile[] = [];
+  for (const a of files) {
     try {
-      const incoming = await readIncoming(arriving.file);
-      if (!read.some((r) => r.incoming.id === incoming.id)) read.push({ arriving, incoming });
+      const source = 'read' in a ? a : await readIncoming(a.file, a.path);
+      if (!read.some((r) => r.id === source.id)) read.push(source);
     } catch (e) {
       console.error(e);
-      lib.say(`Could not read “${arriving.file.name}”.`);
+      lib.say(`Could not read “${'read' in a ? a.path : a.file.name}”.`);
     }
   }
   if (!d.isConnected) return;
@@ -70,8 +70,7 @@ export async function openIncoming(lib: LibraryHost, files: readonly Arriving[],
   const error = el('p', 'hint error');
   error.setAttribute('aria-live', 'polite');
   const add = button('Add', () => void addAll(), 'primary');
-  const rows: Row[] = read.map(({ arriving, incoming }) => row(arriving, incoming));
-  const by = new Map(rows.map((r, i) => [r, read[i].arriving]));
+  const rows: Row[] = read.map(row);
 
   // One folder for every row at once.
   const allFolder = folderField('Folder for every file');
@@ -92,8 +91,8 @@ export async function openIncoming(lib: LibraryHost, files: readonly Arriving[],
     return f;
   }
 
-  function row(arriving: Arriving, incoming: Incoming): Row {
-    const name = incoming.file.name, path = arriving.path ?? name;
+  function row(source: SourceFile): Row {
+    const path = source.path;
     const li = el('li', 'incoming-row');
     const title = el('input', 'name');
     title.type = 'text';
@@ -115,7 +114,7 @@ export async function openIncoming(lib: LibraryHost, files: readonly Arriving[],
     list.append(li);
     for (const f of [title, folder]) f.addEventListener('input', check);
     replace.addEventListener('change', check);
-    const r: Row = { incoming, base: path.slice(path.lastIndexOf('/') + 1), title, folder, replace, status, li, arrival: { kind: 'new' } };
+    const r: Row = { source, base: path.slice(path.lastIndexOf('/') + 1), title, folder, replace, status, li, arrival: { kind: 'new' } };
     void showPreview(r, preview);
     return r;
   }
@@ -130,7 +129,7 @@ export async function openIncoming(lib: LibraryHost, files: readonly Arriving[],
     box.replaceChildren(el('p', 'hint', 'Opening…'));
     let cache: PageCache;
     try {
-      cache = await previewIncoming({ id: r.incoming.id, path: pathOf(r) }, r.incoming.file, ask ? askPassword : undefined);
+      cache = await (await r.source.read(ask ? askPassword : undefined)).pages();
     } catch (e) {
       if (e instanceof PasswordNotGiven) {
         box.replaceChildren(button('Show: it has a password', () => void showPreview(r, box, true)));
@@ -143,15 +142,14 @@ export async function openIncoming(lib: LibraryHost, files: readonly Arriving[],
     if (finished) { cache.destroy(); return; }
     caches.push(cache);
     const aspects = await cache.allAspects();
-    const state = { score: newScore(r.incoming.id, r.title.value, aspects), ink: {} };
+    const state = { score: newScore(r.source.id, r.title.value, aspects), ink: {} };
     const strip = new ThumbStrip({ state, aspects, page: (p, w) => cache.render(p + 1, w, Math.round(w * aspects[p]), dpr()) });
     box.replaceChildren(strip.el);
   }
 
   /** Work out again what happens to each file, and say so. */
   function check() {
-    const library = lib.originals.map((o) => ({ id: o.id, path: o.path }));
-    const now = arrivals(rows.map((r) => ({ id: r.incoming.id, path: pathOf(r) })), library);
+    const now = arrivals(rows.map((r) => ({ id: r.source.id, path: pathOf(r) })), lib.originals);
     let ready = 0, blocked = false;
     rows.forEach((r, i) => {
       const a = r.arrival = now[i];
@@ -180,7 +178,7 @@ export async function openIncoming(lib: LibraryHost, files: readonly Arriving[],
       let why: string | null;
       try {
         // From this tap, which asking for access to the scores folder needs.
-        why = await putIncoming(r.incoming, pathOf(r), a.kind === 'taken' ? a.by : undefined);
+        why = await putIncoming(r.source, pathOf(r), a.kind === 'taken' ? a.by : undefined);
       } catch (e) {
         if (!(e instanceof NoAccess)) console.error(e);
         why = e instanceof NoAccess ? 'Volti needs permission to write in the scores folder to add files.' : `Could not add it (${(e as Error).name}).`;
@@ -194,7 +192,7 @@ export async function openIncoming(lib: LibraryHost, files: readonly Arriving[],
         add.disabled = false;
         return;
       }
-      added.push(by.get(r)!);
+      added.push(r.source);
       r.li.remove();
       rows.splice(rows.indexOf(r), 1);
     }

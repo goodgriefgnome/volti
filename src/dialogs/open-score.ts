@@ -3,21 +3,21 @@
 
 import type { ExcerptSource } from './thumb-strip';
 import { askPassword } from '../dialogs/passwords';
-import { openOriginal, titleOf, type Original } from '../originals';
+import { titleOf, type SourceFile } from '../originals';
 import { loadSavedScore, loadScore, saveScore } from '../scores';
 import { dpr } from '../ui';
 
-/** A score and its original, open until `close`. */
+/** A score and its original's pages, open until `close`. */
 export interface LibraryScore extends ExcerptSource {
   close(): void;
 }
 
 /**
- * Open a score and its original. A score opened for the first time is saved straight away, so
- * the cut ids an excerpt chosen now names are the ones the score keeps.
+ * Open a score and read its file, asking for its password if need be. A score opened for the first
+ * time is saved straight away, so the cut ids an excerpt chosen now names are the ones the score keeps.
  */
-export async function openScore(o: Original): Promise<LibraryScore> {
-  const cache = await openOriginal(o, askPassword);
+export async function openScore(o: SourceFile): Promise<LibraryScore> {
+  const cache = await (await o.read(askPassword)).pages();
   try {
     const aspects = await cache.allAspects();
     const fresh = !(await loadSavedScore(o.id));

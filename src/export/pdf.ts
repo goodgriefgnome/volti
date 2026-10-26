@@ -6,14 +6,14 @@
 
 import type { PDFDocument, PDFEmbeddedPage, PDFPage } from 'pdf-lib';
 import { spanCuts, type Span } from '../excerpts';
-import { NoAccess, openOriginal, PasswordNotGiven, titleOf, type AskPassword, type Original, type PageCache } from '../originals';
+import { NoAccess, PasswordNotGiven, titleOf, type AskPassword, type Original, type PageCache, type SourceFile } from '../originals';
 import { cutTarget, drawFrame, shownOn } from '../render';
 import { loadScore, pack, type Aspects, type Frame, type State } from '../scores';
 import { annotate } from './annotations';
 import { placeCut, shownSize, type SourcePage } from './placement';
 
 /** One part of an export: a score, whole or the excerpt `span` of it. Each starts on a new page. */
-export interface ExportPart { original: Original; span?: Span }
+export interface ExportPart { original: SourceFile; span?: Span }
 
 type PdfLib = typeof import('pdf-lib');
 
@@ -44,13 +44,13 @@ const sourcePage = (page: PDFPage): SourcePage => {
 type Unread = 'password' | 'encryption' | 'unreadable';
 
 /**
- * pdf-lib's copy of an original as a PDF, decrypted with its remembered password (or none, for a
- * PDF that only limits what may be done with it) where it is encrypted; or why there can't be one.
+ * pdf-lib's copy of a file's music as a PDF, decrypted with its remembered password (or none, for
+ * a PDF that only limits what may be done with it) where it is encrypted; or why there can't be one.
  */
-async function musicOf(lib: PdfLib, o: Original): Promise<PDFDocument | Unread> {
+async function musicOf(lib: PdfLib, f: SourceFile): Promise<PDFDocument | Unread> {
   let pdf: Awaited<ReturnType<Original['pdf']>>;
   try {
-    pdf = await o.pdf();
+    pdf = await (await f.read()).pdf();
   } catch (e) {
     if (e instanceof PasswordNotGiven) return 'password';
     throw e;
@@ -70,9 +70,9 @@ async function musicOf(lib: PdfLib, o: Original): Promise<PDFDocument | Unread> 
  * The originals whose music would be exported as pictures of their pages, and why. One whose
  * password isn't known yet isn't among them: exporting asks for it.
  */
-export async function drawnOriginals(originals: readonly Original[]): Promise<{ original: Original; why: 'encryption' | 'unreadable' }[]> {
+export async function drawnOriginals(originals: readonly SourceFile[]): Promise<{ original: SourceFile; why: 'encryption' | 'unreadable' }[]> {
   const lib = await import('pdf-lib');
-  const out: { original: Original; why: 'encryption' | 'unreadable' }[] = [];
+  const out: { original: SourceFile; why: 'encryption' | 'unreadable' }[] = [];
   // One at a time: a long setlist of scans would otherwise hold every one in memory at once.
   for (const o of new Map(originals.map((o) => [o.id, o])).values()) {
     const music = await musicOf(lib, o).catch((e) => {
@@ -84,9 +84,10 @@ export async function drawnOriginals(originals: readonly Original[]): Promise<{ 
   return out;
 }
 
-async function open(lib: PdfLib, o: Original, ask?: AskPassword): Promise<Source> {
+async function open(lib: PdfLib, f: SourceFile, ask?: AskPassword): Promise<Source> {
   // Asks for the password, if it isn't known yet, which decrypting the music then uses.
-  const cache = await openOriginal(o, ask);
+  const o = await f.read(ask);
+  const cache = await o.pages();
   try {
     const aspects = await cache.allAspects();
     const { state } = await loadScore(o.id, titleOf(o.path), aspects);

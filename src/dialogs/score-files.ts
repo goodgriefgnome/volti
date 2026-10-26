@@ -1,11 +1,11 @@
 // Dialogs about a score's file, from the library's score rows and a score's reader: renaming its
 // PDF (or image), and moving it to a subfolder.
 
-import { fileNameProblem, NoAccess, folderOf, pathInFolder, pathWithTitle, titleOf, type Original } from '../originals';
+import { fileNameProblem, NoAccess, folderOf, pathInFolder, pathWithTitle, titleOf, type SourceFile } from '../originals';
 import { askText, el } from '../ui';
 
 /** A score's file changed: it is `now` that original (renamed or moved), or it is `gone`. */
-export type FileChange = { now: Original } | { gone: string };
+export type FileChange = { now: SourceFile } | { gone: string };
 
 /** What the dialogs need from the screen that opens them. */
 export interface ScoreFileHost {
@@ -15,7 +15,7 @@ export interface ScoreFileHost {
 }
 
 /** Rename a score's PDF. Its cuts, markings and setlists stay with it, as its contents don't change. */
-export function renameFile(h: ScoreFileHost, o: Original) {
+export function renameFile(h: ScoreFileHost, o: SourceFile) {
   askText({
     title: `Rename “${titleOf(o.path)}”`,
     value: titleOf(o.path),
@@ -45,7 +45,7 @@ export function renameFile(h: ScoreFileHost, o: Original) {
  * Move a score to a subfolder: one of `folders` (the library's subfolders), or a new one; None
  * takes it back to the top. Its file is moved there, making the folders that aren't there yet.
  */
-export function moveToFolder(h: ScoreFileHost, o: Original, folders: readonly string[]) {
+export function moveToFolder(h: ScoreFileHost, o: SourceFile, folders: readonly string[]) {
   const file = o.path.slice(o.path.lastIndexOf('/') + 1);
   askText({
     title: `Move “${titleOf(o.path)}” to a folder`,

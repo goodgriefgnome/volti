@@ -3,10 +3,10 @@
 
 import { addExcerpt, changeExcerptCuts, deleteExcerpt, moveToFolder, renameExcerpt, renameFile, type ScoreFileHost } from '../dialogs';
 import { sortedNames, spanLabel } from '../excerpts';
-import { byFolder, folderOf, NoAccess, subfolders, titleOf, type Original } from '../originals';
+import { byFolder, folderOf, NoAccess, subfolders, titleOf, type SourceFile } from '../originals';
 import type { ExcerptName, Score } from '../scores';
 import { setlistsWith } from '../setlists';
-import { button, el, lockIcon, plural, showMenu } from '../ui';
+import { button, el, plural, showMenu } from '../ui';
 import type { LibraryHost } from './host';
 import { openIncoming } from './incoming';
 import { expandableRow, moreButton } from './rows';
@@ -57,9 +57,9 @@ export class ScoresSection {
   render() {
     const { lib } = this;
     const q = this.query.trim().toLowerCase();
-    const matches = (s: Original) => !q || `${titleOf(s.path)} ${folderOf(s.path)}`.toLowerCase().includes(q);
+    const matches = (s: SourceFile) => !q || `${titleOf(s.path)} ${folderOf(s.path)}`.toLowerCase().includes(q);
     // Named excerpts whose names match, found under their scores.
-    const hits = (s: Original) => {
+    const hits = (s: SourceFile) => {
       const score = lib.saved.get(s.id);
       return q && score ? sortedNames(score).filter((x) => x.name.toLowerCase().includes(q)).map((x) => this.excerptHit(s, score, x)) : [];
     };
@@ -109,7 +109,7 @@ export class ScoresSection {
   }
 
   /** A named excerpt found by searching: its name, with its score's, as names are only unique within a score. */
-  private excerptHit(o: Original, score: Score, x: ExcerptName): HTMLLIElement {
+  private excerptHit(o: SourceFile, score: Score, x: ExcerptName): HTMLLIElement {
     const li = el('li', 'score hit');
     const open = button('', () => this.lib.readExcerpt(o, x), 'open');
     const pages = spanLabel(score.cuts, x, this.lib.shapes.get(score.id));
@@ -121,12 +121,11 @@ export class ScoresSection {
   }
 
   /** A score: tap to open it; the arrow slides its named excerpts open; ⋯ for the rest. */
-  private scoreRow(s: Original): HTMLLIElement {
+  private scoreRow(s: SourceFile): HTMLLIElement {
     const { lib } = this;
     const score = lib.saved.get(s.id), names = score ? sortedNames(score) : [];
     const title = button('', () => lib.open(s), 'open');
     const name = el('span', 'score-title', titleOf(s.path));
-    if (lib.locked.has(s.id)) name.append(lockIcon('Needs its password'));
     title.append(name);
     const n = setlistsWith(lib.setlists, s.id).length;
     const meta = [names.length ? plural(names.length, 'excerpt') : '', n ? `in ${plural(n, 'setlist')}` : ''].filter(Boolean).join(' · ');
@@ -168,7 +167,7 @@ export class ScoresSection {
   }
 
   /** A named excerpt of a score: tap to read it; ⋯ to rename, change or delete it. */
-  private excerptRow(o: Original, score: Score, x: ExcerptName): HTMLLIElement {
+  private excerptRow(o: SourceFile, score: Score, x: ExcerptName): HTMLLIElement {
     const { lib } = this;
     const li = el('li', 'excerpt');
     const pages = spanLabel(score.cuts, x, lib.shapes.get(score.id));
@@ -180,7 +179,7 @@ export class ScoresSection {
   }
 
   /** A named excerpt's ⋯ menu, under its score and in search results alike. */
-  private excerptMore(o: Original, score: Score, x: ExcerptName): HTMLButtonElement {
+  private excerptMore(o: SourceFile, score: Score, x: ExcerptName): HTMLButtonElement {
     const { lib } = this;
     return moreButton(x.name, (at) => showMenu(at, x.name, [
       ...lib.addToItems(at, o.id, x.name, x),

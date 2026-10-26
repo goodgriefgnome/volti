@@ -1,13 +1,10 @@
-// Opening an original's pages, and its password. Its pages are those of the PDF its contents read as
-// (contents.ts), drawn by pdf.js. The password that opened a PDF is remembered on the tablet by the
-// score's id, so it is asked for only once, even after a restart. Asking is the caller's
+// A PDF's password. The password that opened a PDF is remembered on the tablet by its file's id,
+// so it is asked for only once, even after a restart, and never forgotten. Asking is the caller's
 // (dialogs/passwords.ts); without a way to ask, a PDF whose password isn't remembered doesn't open.
 
 import { keys, kv } from '../storage';
 import { titleOf } from './names';
-import type { Named, Original } from './original';
-import type { PageCache } from './pages';
-import { openPdf } from './pdf';
+import type { SourceFile } from './original';
 
 /** Ask for a PDF's password, saying whether the last one tried was wrong; null when it isn't given. */
 export type AskPassword = (title: string, wrong: boolean) => Promise<string | null>;
@@ -17,7 +14,7 @@ export class PasswordNotGiven extends Error {
   name = 'PasswordNotGiven';
 }
 
-/** The password remembered for an original, if it has needed one. */
+/** The password remembered for a file, if it has needed one. */
 export const savedPassword = (id: string) => kv.get<string>(keys.password(id));
 
 /**
@@ -28,9 +25,9 @@ export class Passwords {
   private tried?: string;
   refused = false;
 
-  private constructor(private o: Named, private saved: string | undefined, private ask?: AskPassword) {}
+  private constructor(private o: SourceFile, private saved: string | undefined, private ask?: AskPassword) {}
 
-  static async for(o: Named, ask?: AskPassword) { return new Passwords(o, await savedPassword(o.id), ask); }
+  static async for(o: SourceFile, ask?: AskPassword) { return new Passwords(o, await savedPassword(o.id), ask); }
 
   /** The next password to try, after one that was `wrong`: null when there is none. */
   async next(wrong: boolean): Promise<string | null> {
@@ -50,15 +47,5 @@ export class Passwords {
   failure(e: unknown) {
     return this.refused ? new PasswordNotGiven(`“${titleOf(this.o.path)}” needs its password`) : e;
   }
-}
-
-/**
- * Open an original's pages. One protected by a password tries the password remembered for it,
- * then asks `ask` for it (with none, as when opening ahead of time, it gives up), and remembers the
- * one that opens it. Throws PasswordNotGiven when it isn't given, and NoAccess when the scores
- * folder can't be read.
- */
-export async function openOriginal(o: Original, ask?: AskPassword): Promise<PageCache> {
-  return openPdf((await o.pdf(ask)).bytes);
 }
 

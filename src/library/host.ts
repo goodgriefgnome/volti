@@ -4,7 +4,7 @@
 
 import type { ExcerptHost, ExcerptSource, FileChange, LibraryScore } from '../dialogs';
 import type { Span } from '../excerpts';
-import type { FolderState, Original } from '../originals';
+import type { FolderState, SourceFile } from '../originals';
 import type { Aspects, ExcerptName, Score } from '../scores';
 import type { Setlist } from '../setlists';
 import type { MenuItem, Toast } from '../ui';
@@ -14,7 +14,7 @@ export interface LibraryHost {
   /** How many scores are left in Volti's own folder while a folder is linked. */
   readonly leftIn: number;
   /** The library's scores' originals, by title. */
-  readonly originals: readonly Original[];
+  readonly originals: readonly SourceFile[];
   /** New PDFs are still being read. */
   readonly reading: boolean;
   readonly setlists: readonly Setlist[];
@@ -22,14 +22,13 @@ export interface LibraryHost {
   readonly saved: ReadonlyMap<string, Score>;
   readonly shapes: ReadonlyMap<string, Aspects>;
   /** The scores whose PDF needs a password not given yet, by id. */
-  readonly locked: ReadonlySet<string>;
   /** The rows opened (a setlist's scores, a score's named excerpts), by id, while the app runs. */
   readonly openRows: Set<string>;
   readonly toast: Toast;
 
   /** Say something in the status line under the name. */
   say(text: string): void;
-  originalOf(scoreId: string): Original | undefined;
+  originalOf(scoreId: string): SourceFile | undefined;
   /** A score's title, even when its original is missing. */
   titleOf(scoreId: string): string;
   setlist(id: string): Setlist | undefined;
@@ -63,22 +62,22 @@ export interface LibraryHost {
   /** Changing a score's named excerpts here, saving them as they change. */
   excerptHost(scoreId: string): ExcerptHost;
   /** Open a score's original for a dialog over the library; null, having said why, when it can't be. */
-  openForDialog(o: Original): Promise<LibraryScore | null>;
+  openForDialog(o: SourceFile): Promise<LibraryScore | null>;
   /** Open the score for a dialog, then `pick` from it; it closes with the dialog. */
-  withPages(o: Original, pick: (sc: LibraryScore) => void): Promise<void>;
+  withPages(o: SourceFile, pick: (sc: LibraryScore) => void): Promise<void>;
   /** Keep a score opened for a dialog, for naming the excerpts entries play. */
   remember(sc: ExcerptSource): void;
 
   /**
-   * Ask for a locked score's password (true at once for one not locked), as adding it to a setlist
-   * does; false when it isn't given.
+   * Make sure a score's file can be read, asking for its password if it has one Volti doesn't know
+   * yet, as adding it to a setlist does; false when it isn't given.
    */
-  givePassword(o: Original): Promise<boolean>;
+  givePassword(o: SourceFile): Promise<boolean>;
 
   /** Read a score from where it was left. */
-  open(o: Original): void;
+  open(o: SourceFile): void;
   /** Read a named excerpt, from its start. */
-  readExcerpt(o: Original, x: ExcerptName): void;
+  readExcerpt(o: SourceFile, x: ExcerptName): void;
   /** Play a setlist from its first entry, or from one of its entries. */
   play(s: Setlist, startEntry?: string): void;
 }

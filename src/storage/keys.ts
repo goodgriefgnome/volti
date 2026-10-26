@@ -22,11 +22,6 @@ export const keys = {
   removed: 'removed',
   /** The library's subfolder lists closed by hand, by path (library/store.ts). */
   closedFolders: 'closed-folders',
-  /**
-   * Whether each original needs a password to open, by id: false for one that isn't encrypted or
-   * only limits what may be done with it. Worked out once (originals/locks.ts).
-   */
-  locks: 'locks',
   /** Files shared into the app, waiting to be added to the library: File[] (originals/inbox.ts). */
   inbox: 'inbox',
 
@@ -42,7 +37,7 @@ export const keys = {
   pos: (id: string) => 'pos:' + id,
   /** Aspects, the original's page shapes as last opened: for laying out pages without opening it. */
   aspects: (id: string) => 'aspects:' + id,
-  /** The password that opened the original, for a PDF protected by one (originals/open.ts). */
+  /** The password that opened a PDF protected by one, by its file's id (originals/open.ts). */
   password: (id: string) => 'password:' + id,
 
   /* Setlists (setlists/store.ts). Cuts and markings are only ever stored in the score. */

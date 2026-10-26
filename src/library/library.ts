@@ -5,7 +5,7 @@
 import { chooseSetlist, givePassword, openExportPdf, openScore, type ExcerptHost, type ExcerptSource, type FileChange, type LibraryScore } from '../dialogs';
 import type { Span } from '../excerpts';
 import type { ExportPart } from '../export';
-import { allOriginals, arrivals, byFolder, dropInbox, dropLeftInApp, leftInApp, byTitle, folderState, knownTitles, linkFolder, lockedOriginals, NoAccess, PasswordNotGiven, peekInbox, putIncoming, titleOf, unlinkFolder, unlockFolder, type FolderState, type LeftInApp, type Original } from '../originals';
+import { arrivals, byFolder, byTitle, dropInbox, folderState, knownTitles, leftInApp, libraryFiles, linkFolder, NoAccess, PasswordNotGiven, peekInbox, putIncoming, titleOf, unlinkFolder, unlockFolder, type FolderState, type SourceFile } from '../originals';
 import { makePictures } from '../pictures';
 import { openReader, type ToRead } from '../reader';
 import { loadAspects, loadSavedScore, scoreEntry, type Aspects, type ExcerptName, type Score } from '../scores';
@@ -13,7 +13,7 @@ import { addEntries, defaultSetlist, deleteSetlist, loadLastAddedTo, loadSetlist
 import { closeOverlay, el, plural, Toast, whenOverlayCloses, type MenuItem } from '../ui';
 import { FolderBanner } from './folder-banner';
 import type { LibraryHost } from './host';
-import { openIncoming, type Arriving } from './incoming';
+import { openIncoming } from './incoming';
 import { ScoresSection } from './scores-section';
 import { SetlistsSection } from './setlists-section';
 
@@ -25,7 +25,7 @@ const NO_ACCESS = 'Volti needs access to the folder to open its scores.';
 /** The Library screen: setlists, the scores in its root (the scores folder, or the app's own), and the list to open them from. */
 export class Library implements LibraryHost {
   folder: FolderState = { kind: 'none' };
-  originals: Original[] = [];
+  originals: SourceFile[] = [];
   reading = false;
   /** How many scores are left in Volti's own folder while a folder is linked. */
   leftIn = 0;
@@ -33,7 +33,6 @@ export class Library implements LibraryHost {
   saved = new Map<string, Score>();
   shapes = new Map<string, Aspects>();
   openRows = new Set<string>();
-  locked = new Set<string>();
   toast = new Toast();
   /** Every original's title as last seen, for scores whose original is missing. */
   private titles: Record<string, string> = {};
@@ -129,7 +128,7 @@ export class Library implements LibraryHost {
     let shown = false;
     try {
       // New PDFs are read whole to know them: show the others meanwhile, and each as it is read.
-      const originals = await allOriginals(this.folder, (originals, left) => {
+      const originals = await libraryFiles(this.folder, (originals, left) => {
         this.originals = originals;
         this.reading = left > 0;
         this.say(left ? `Reading new scores: ${left} left…` : before ?? '');
@@ -155,16 +154,6 @@ export class Library implements LibraryHost {
     this.saved = new Map(saved.filter((x): x is Score => !!x).map((x) => [x.id, x]));
     this.shapes = new Map(ids.flatMap((id, i) => (shapes[i] ? [[id, shapes[i]] as const] : [])));
     this.renderSetlists();
-    void this.findLocked();
-  }
-
-  /** Work out which scores are locked, in the background (new PDFs are looked at once), and show them. */
-  private async findLocked() {
-    const readable = () => this.folder.kind !== 'locked';
-    const locked = await lockedOriginals(this.originals, readable).catch((e) => { console.warn(e); return this.locked; });
-    if ([...locked].join() === [...this.locked].join()) return;
-    this.locked = locked;
-    this.scoresSection.render();
   }
 
   /* ---------- the scores folder ---------- */
@@ -190,8 +179,8 @@ export class Library implements LibraryHost {
   async moveLeftIn() {
     const left = await leftInApp();
     if (!left.length) return;
-    const what = arrivals(left, this.originals.map((o) => ({ id: o.id, path: o.path })));
-    const taken: LeftInApp[] = [];
+    const what = arrivals(left, this.originals);
+    const taken: SourceFile[] = [];
     let moved = 0;
     if (left.length > 1) this.say(`Moving ${plural(left.length, 'score')} into the scores folder…`);
     try {
@@ -203,7 +192,7 @@ export class Library implements LibraryHost {
           if (await putIncoming(f, f.path)) { taken.push(f); continue; }
           moved++;
         }
-        await dropLeftInApp(f);
+        await f.remove();
       }
     } catch (e) {
       if (!(e instanceof NoAccess)) console.error(e);
@@ -214,9 +203,9 @@ export class Library implements LibraryHost {
     this.say(moved ? `Moved ${plural(moved, 'score')} into the scores folder.` : '');
     await this.refresh();
     if (!taken.length) return;
-    const arriving = new Map<Arriving, LeftInApp>(taken.map((f) => [{ file: f.file, path: f.path }, f]));
-    void openIncoming(this, [...arriving.keys()], (added) => {
-      void Promise.all(added.map((a) => dropLeftInApp(arriving.get(a)!))).then(() => this.refresh());
+    // Removing one added from Volti's folder deletes it there.
+    void openIncoming(this, taken, (added) => {
+      void Promise.all(added.map((f) => f.remove())).then(() => this.refresh());
     });
   }
 
@@ -342,7 +331,7 @@ export class Library implements LibraryHost {
     };
   }
 
-  async withPages(o: Original, pick: (sc: LibraryScore) => void) {
+  async withPages(o: SourceFile, pick: (sc: LibraryScore) => void) {
     const sc = await this.openForDialog(o);
     if (!sc) return;
     this.remember(sc);
@@ -355,7 +344,7 @@ export class Library implements LibraryHost {
     this.shapes.set(sc.state.score.id, sc.aspects);
   }
 
-  async openForDialog(o: Original): Promise<LibraryScore | null> {
+  async openForDialog(o: SourceFile): Promise<LibraryScore | null> {
     this.toast.say(`Opening “${titleOf(o.path)}”…`);
     try {
       // Opening is a tap, so it can also allow access to the scores folder for this session.
@@ -371,18 +360,16 @@ export class Library implements LibraryHost {
     }
   }
 
-  async givePassword(o: Original): Promise<boolean> {
-    if (!this.locked.has(o.id)) return true;
+  async givePassword(o: SourceFile): Promise<boolean> {
     try {
       if (!(await givePassword(o))) return false;
     } catch (e) {
-      if (e instanceof NoAccess) { this.toast.say(NO_ACCESS); return false; }
       console.error(e);
       this.toast.say(`Could not open “${titleOf(o.path)}”. It may have been moved or renamed.`);
       return false;
     }
     this.accessAllowed();
-    return this.unlocked(o);
+    return true;
   }
 
   /** A score was read from the scores folder, so access to it may just have been allowed: then read it again. */
@@ -390,21 +377,16 @@ export class Library implements LibraryHost {
     if (this.folder.kind === 'locked') void this.refresh();
   }
 
-  private unlocked(o: Original) {
-    if (this.locked.delete(o.id)) this.scoresSection.render();
-    return true;
-  }
-
   /* ---------- opening the reader ---------- */
 
-  open(s: Original) {
+  open(s: SourceFile) {
     // In the library's order, to turn on to the next score from this one's end.
     const library = byFolder(this.originals).flatMap((l) => l.originals);
     void this.read({ kind: 'score', original: s, library }, `Could not open “${titleOf(s.path)}”. It may have been moved or renamed.`);
   }
 
   /** Read a named excerpt, as a setlist entry playing it is read: only its cuts, always from its start. */
-  readExcerpt(o: Original, excerpt: ExcerptName) {
+  readExcerpt(o: SourceFile, excerpt: ExcerptName) {
     void this.read({ kind: 'excerpt', original: o, excerpt }, `Could not open “${titleOf(o.path)}”. It may have been moved or renamed.`);
   }
 
