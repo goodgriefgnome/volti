@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { endingOf, folderOf, importName, isOriginalName, pathInFolder, pathWithTitle, tidyFolder, tidyPath, titleOf } from './names';
+import { endingOf, folderOf, importName, isOriginalName, pathInFolder, pathWithTitle, shownFolder, tidyFolder, tidyPath, titleOf, unfoundName } from './names';
 
 describe('importName', () => {
   it('keeps a PDF\'s own name', () => {
@@ -51,5 +51,20 @@ describe('paths', () => {
   });
   it('tidies a path\'s folders', () => {
     expect(tidyPath(' Masses //Latin /Mass.pdf')).toBe('Masses/Latin/Mass.pdf');
+  });
+});
+
+describe('unfoundName', () => {
+  it('takes a PDF or image name, and says why Volti wouldn\'t find any other', () => {
+    expect(unfoundName('Masses/Mass.pdf')).toBeNull();
+    expect(unfoundName('Ave verum.HEIC')).toBeNull();
+    expect(unfoundName('Masses/Mass.txt')).toBe('“Mass.txt” doesn’t end in .pdf or an image’s ending, so Volti wouldn’t find it.');
+  });
+});
+
+describe('shownFolder', () => {
+  it('reads a folder as the user would, and the top as the top', () => {
+    expect(shownFolder('Masses/Latin')).toBe('Masses / Latin');
+    expect(shownFolder('')).toBe('the top of the library');
   });
 });

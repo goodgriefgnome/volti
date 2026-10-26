@@ -2,18 +2,18 @@
 // its contents: a file at its path in the library's root (the linked scores folder, or the app's
 // own), which can be moved (renamed, or into another folder) and removed (into Recently removed),
 // asking for the access to the scores folder that needs; or a file Volti holds outside the library
-// (coming in, left in its own folder while one is linked, or in Recently removed), which moving puts
-// into the library. Reading one gives its original: its
+// (coming in, left in its own folder while one is linked, or in Recently removed: adding.ts), which
+// moving puts into the library. Reading one gives its original: its
 // pages to draw, and its music as a PDF for export. A PDF is read with pdf.js (contents.ts), asking
 // for its password the first time it needs one; an image is drawn from its decoded bitmap
 // (image.ts). There is one source file for each id in the root, so a move shows wherever it is held.
 
 import { imagePdf, pdfOf, savedPassword, type AskPassword, type OriginalPdf } from './contents';
 import { isPdf, namesEncrypt, PDF_ENDS } from './file-kind';
-import { fileAt, makeFolder, needAccess, placeOf, relist, whereIs, writeFile } from './folder';
+import { fileAt, makeFolder, needAccess, placeOf, relist, whereIs } from './folder';
 import { rememberHash } from './hashes';
 import { openImage } from './image';
-import { folderOf, isOriginalName, tidyPath } from './names';
+import { folderOf, nameOf, shownFolder, tidyPath, unfoundName } from './names';
 import type { PageCache } from './pages';
 import { openPdf } from './pdf';
 import { removeFile } from './removed';
@@ -49,14 +49,8 @@ export interface Original extends SourceFile {
   pdf(): Promise<OriginalPdf>;
 }
 
-/** The name at the end of a path. */
-const nameOf = (path: string) => path.slice(path.lastIndexOf('/') + 1);
-
-/** A folder as the user reads it, for saying where a file is. */
-const shown = (folder: string) => (folder ? folder.split('/').join(' / ') : 'the top of the library');
-
 /** A source file's bytes, for reading what only originals/ reads from it. */
-interface Readable extends SourceFile { file(): Promise<File> }
+export interface Readable extends SourceFile { file(): Promise<File> }
 
 /** A file at its path in the library's root. */
 class RootFile implements Readable {
@@ -74,13 +68,14 @@ class RootFile implements Readable {
   async move(path: string): Promise<string | null> {
     const to = tidyPath(path);
     if (to === this.path) return null;
-    if (!isOriginalName(to)) return `“${nameOf(to)}” doesn’t end in .pdf or an image’s ending, so Volti wouldn’t find it.`;
+    const unfound = unfoundName(to);
+    if (unfound) return unfound;
     return this.moveInRoot(to);
   }
 
   /** There is a file called `name` where it is being moved. */
   private taken(name: string, folder: string) {
-    return folder === folderOf(this.path) ? `There is already a file called “${name}” there.` : `There is already a file called “${name}” in ${shown(folder)}.`;
+    return folder === folderOf(this.path) ? `There is already a file called “${name}” there.` : `There is already a file called “${name}” in ${shownFolder(folder)}.`;
   }
 
   private async moveInRoot(to: string): Promise<string | null> {
@@ -114,7 +109,7 @@ class RootFile implements Readable {
       // Both are the same score now, so one left behind only shows twice in the Files app.
       if (!(await from.removeEntry(old).then(() => true, () => false))) {
         return same ? `Copied it as “${name}”, but couldn't delete “${old}”. Delete it in the Files app.`
-          : `Copied it into ${shown(folder)}, but couldn't delete it here. Delete it in the Files app.`;
+          : `Copied it into ${shownFolder(folder)}, but couldn't delete it here. Delete it in the Files app.`;
       }
     }
     // The same contents, so the same id: no need to read it again.
@@ -131,45 +126,6 @@ class RootFile implements Readable {
   }
 }
 
-/**
- * A file Volti holds outside the library: coming in, left in its own folder, or in Recently
- * removed. Moving it puts it into the library, and drops it from where it was held; from then on
- * it is the library's file there.
- */
-class HeldFile implements Readable {
-  /** Once moved into the library, the file there, which does the rest. */
-  private moved?: SourceFile;
-
-  constructor(readonly id: string, private at: string, private bytes: File, private drop: () => Promise<void>) {}
-
-  get path() { return this.moved?.path ?? this.at; }
-  async file() { return this.bytes; }
-  read(ask?: AskPassword): Promise<Original> { return this.moved ? this.moved.read(ask) : readAs(this, ask); }
-  remove() { return this.moved ? this.moved.remove() : this.drop(); }
-
-  async move(path: string): Promise<string | null> {
-    if (this.moved) return this.moved.move(path);
-    const to = tidyPath(path), folder = folderOf(to), name = nameOf(to);
-    if (!isOriginalName(to)) return `“${name}” doesn’t end in .pdf or an image’s ending, so Volti wouldn’t find it.`;
-    await needAccess('readwrite');
-    const d = await makeFolder(folder);
-    if (await d.getFileHandle(name).then(() => true, () => false)) return `There is already a file called “${name}” in ${shown(folder)}.`;
-    await writeFile(d, name, this.bytes);
-    // Its contents are known: no need to read it again.
-    await rememberHash(await whereIs(to), await (await d.getFileHandle(name)).getFile(), this.id);
-    this.moved = sourceFileOf(this.id, to);
-    await this.drop();
-    return null;
-  }
-}
-
-/**
- * A file Volti holds outside the library, `bytes`, at `path` (where it would go); `drop` is what
- * removing it does, and what moving it into the library does once it is there.
- */
-export const heldFile = (id: string, path: string, bytes: File, drop: () => Promise<void> = async () => {}): SourceFile =>
-  new HeldFile(id, path, bytes, drop);
-
 /** Whether a PDF is encrypted, reading only its ends (file-kind.ts). */
 async function encrypted(file: File): Promise<boolean> {
   const ends = file.size <= 2 * PDF_ENDS ? [file] : [file.slice(0, PDF_ENDS), file.slice(file.size - PDF_ENDS)];
@@ -182,7 +138,7 @@ async function encrypted(file: File): Promise<boolean> {
  * doesn't know yet (its music, worked out to try it, is kept for its pages), and otherwise reads
  * its music only when its pages or its PDF are wanted.
  */
-async function readAs(f: Readable, ask?: AskPassword): Promise<Original> {
+export async function readAs(f: Readable, ask?: AskPassword): Promise<Original> {
   const file = await f.file();
   if (!isPdf(new Uint8Array(await file.slice(0, 2048).arrayBuffer()))) return new ImageOriginal(f);
   const known = !(await encrypted(file)) || (await savedPassword(f.id)) !== undefined;

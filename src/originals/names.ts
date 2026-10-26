@@ -1,13 +1,13 @@
 // Names of originals' files (PDFs and images) and folders: a score's title and folder from its
 // file's path, the paths a rename or a move gives, the name a file coming in is kept under, what a
-// file name can't be, and folder paths tidied. A name says which files are scores, never how one is
+// file name can't be, folders as the user reads them, and folder paths tidied. A name says which files are scores, never how one is
 // read: that is what its contents say. Pure.
 
 /** An original's file name ending: ".pdf", or an image's. */
 const ENDING = /\.(pdf|jpe?g|png|webp|gif|bmp|avif|heic|heif)$/i;
 
 /** The file name at the end of a path ("Masses/Mass in G.pdf" → "Mass in G.pdf"). */
-const nameOf = (path: string) => path.slice(path.lastIndexOf('/') + 1);
+export const nameOf = (path: string) => path.slice(path.lastIndexOf('/') + 1);
 
 /** A score's title: its file's name without ".pdf" (or its image ending), whatever folder it is in. */
 export const titleOf = (path: string) => nameOf(path).replace(ENDING, '');
@@ -28,6 +28,13 @@ export const tidyPath = (path: string) => joinPath(tidyFolder(folderOf(path)), n
 
 /** Whether a file's name says it is an original: a PDF or an image. */
 export const isOriginalName = (name: string) => ENDING.test(name);
+
+/** Why a file can't be moved to `path`, as Volti wouldn't find it there; null when it can. */
+export const unfoundName = (path: string) =>
+  isOriginalName(path) ? null : `“${nameOf(path)}” doesn’t end in .pdf or an image’s ending, so Volti wouldn’t find it.`;
+
+/** A folder as the user reads it, for saying where a file is: "Masses / Latin", or the top. */
+export const shownFolder = (folder: string) => (folder ? folder.split('/').join(' / ') : 'the top of the library');
 
 /** The ending of an original's file name (".pdf", ".jpg"), or "". */
 export const endingOf = (name: string) => ENDING.exec(name)?.[0] ?? '';
