@@ -55,7 +55,8 @@ The next three, in this order:
     where it was and when), deleted for good after a week (looked at on start-up). A list of
     them, from the library's ⋯ menu, restores one to where it was (through the screen below
     where that path is taken). Its cuts, markings and named excerpts stay, as for any score
-    whose file is missing. The storage view shows what removed files take.
+    whose file is missing. The storage breakdown (`library/storage.ts`) gets a part of its own
+    for them, Trash, beside Added scores and Setlist cache.
   - Files deleted outside Volti (in the Files app) aren't in the list: Volti only finds them gone.
 - **Incoming files:** a screen for files coming into the library, shared from another app or
   from Add PDFs, which always opens for them: shared files wait in the inbox until access to the
