@@ -2,7 +2,7 @@
 // first needed and closed when far from the score being read.
 
 import { askPassword } from '../dialogs';
-import { folderState, openOriginal, PageCache, PasswordNotGiven, type Original } from '../originals';
+import { NoAccess, openOriginal, PageCache, PasswordNotGiven, type Original } from '../originals';
 import { hasPictures, picturesOf } from '../pictures';
 import { loadAspects, loadScore, type Aspects, type State } from '../scores';
 
@@ -69,10 +69,10 @@ export class OpenScores {
     let p = this.opening.get(it.scoreId);
     if (!p) {
       const original = it.original;
-      p = this.open(it, original, ask).catch(async (e) => {
+      p = this.open(it, original, ask).catch((e) => {
         if (e instanceof PasswordNotGiven && !ask) return null;
         // Not lost, only not readable until access to the scores folder is allowed again.
-        const locked = !original.added && (await folderState()).kind === 'locked';
+        const locked = e instanceof NoAccess;
         if (!locked) console.error(e);
         for (const x of this.items) if (x.scoreId === it.scoreId) x[locked ? 'needsAccess' : 'missing'] = true;
         return null;

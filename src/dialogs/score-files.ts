@@ -1,7 +1,7 @@
 // Dialogs about a score's file, from the library's score rows and a score's reader: renaming its
 // PDF (or image), and moving it to a subfolder (an added one is only listed there).
 
-import { allowWriting, fileNameProblem, folderOf, pathInFolder, pathWithTitle, titleOf, type Original } from '../originals';
+import { fileNameProblem, NoAccess, folderOf, pathInFolder, pathWithTitle, titleOf, type Original } from '../originals';
 import { askText, el } from '../ui';
 
 /** A score's file changed: it is `now` that original (renamed or moved), or it is `gone`. */
@@ -27,11 +27,11 @@ export function renameFile(h: ScoreFileHost, o: Original) {
     check: async (title) => {
       const why = fileNameProblem(title);
       if (why) return why;
-      // Asked from this tap, which a request for access needs.
-      if (!o.added && !(await allowWriting())) return 'Volti needs permission to change files in the scores folder to rename one.';
       try {
+        // From this tap, which the original's request for access to the scores folder needs.
         return await o.move(pathWithTitle(o.path, title));
       } catch (e) {
+        if (e instanceof NoAccess) return 'Volti needs permission to change files in the scores folder to rename one.';
         console.error(e);
         return `Could not rename it (${(e as Error).name}). It may have been moved or renamed already.`;
       }
@@ -63,11 +63,11 @@ export function moveToFolder(h: ScoreFileHost, o: Original, folders: readonly st
       : 'Volti lists it under that folder, beside the scores folder’s own PDFs there. The PDF itself stays where it is.')],
     alt: { label: 'None', text: '' },
     check: async (folder) => {
-      // Asked from this tap, which a request for access needs.
-      if (!o.added && !(await allowWriting())) return 'Volti needs permission to change files in the scores folder to move one.';
       try {
+        // From this tap, which the original's request for access to the scores folder needs.
         return await o.move(pathInFolder(o.path, folder));
       } catch (e) {
+        if (e instanceof NoAccess) return 'Volti needs permission to change files in the scores folder to move one.';
         console.error(e);
         return `Could not move it (${(e as Error).name}). It may have been moved or renamed already.`;
       }

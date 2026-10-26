@@ -5,8 +5,8 @@
 import { chooseSetlist, givePassword, openExportPdf, openScore, type ExcerptHost, type ExcerptSource, type FileChange, type LibraryScore } from '../dialogs';
 import type { Span } from '../excerpts';
 import type { ExportPart } from '../export';
-import { allOriginals, byFolder, byTitle, folderState, knownTitles, linkFolder, lockedOriginals, PasswordNotGiven, titleOf, unlinkFolder, unlockFolder, type FolderState, type Original } from '../originals';
-import { hasPictures, makePictures } from '../pictures';
+import { allOriginals, byFolder, byTitle, folderState, knownTitles, linkFolder, lockedOriginals, NoAccess, PasswordNotGiven, titleOf, unlinkFolder, unlockFolder, type FolderState, type Original } from '../originals';
+import { makePictures } from '../pictures';
 import { openReader, type ToRead } from '../reader';
 import { loadAspects, loadSavedScore, scoreEntry, type Aspects, type ExcerptName, type Score } from '../scores';
 import { addEntries, defaultSetlist, deleteSetlist, loadLastAddedTo, loadSetlists, saveChanged, saveLastAddedTo, withSetlist, type Setlist } from '../setlists';
@@ -18,6 +18,8 @@ import { SetlistsSection } from './setlists-section';
 
 /** How long Volti has to be out of view before the scores folder is read again on coming back. */
 const AWAY_MS = 30_000;
+/** Said when access to the scores folder isn't allowed, so a score in it can't be opened. */
+const NO_ACCESS = 'Volti needs access to the folder to open its scores.';
 
 /** The Library screen: setlists, the scores folder, imported scores, and the list to open them from. */
 export class Library implements LibraryHost {
@@ -176,7 +178,7 @@ export class Library implements LibraryHost {
   async unlock(): Promise<boolean> {
     const ok = await unlockFolder();
     if (ok) await this.refresh();
-    else this.say('Volti needs access to the folder to open its scores.');
+    else this.say(NO_ACCESS);
     return ok;
   }
 
@@ -298,14 +300,15 @@ export class Library implements LibraryHost {
   }
 
   async openForDialog(o: Original): Promise<LibraryScore | null> {
-    // Opening is a tap, so it can also grant folder access for this session.
-    if (!o.added && this.folder.kind === 'locked' && !(await this.unlock())) return null;
     this.toast.say(`Opening “${titleOf(o.path)}”…`);
     try {
+      // Opening is a tap, so it can also allow access to the scores folder for this session.
       const sc = await openScore(o);
       this.toast.hide();
+      this.accessAllowed();
       return sc;
     } catch (e) {
+      if (e instanceof NoAccess) { this.toast.say(NO_ACCESS); return null; }
       console.error(e);
       this.toast.say(e instanceof PasswordNotGiven ? `“${titleOf(o.path)}” needs its password to open.` : `Could not open “${titleOf(o.path)}”. It may have been moved or renamed.`);
       return null;
@@ -314,15 +317,21 @@ export class Library implements LibraryHost {
 
   async givePassword(o: Original): Promise<boolean> {
     if (!this.locked.has(o.id)) return true;
-    if (!o.added && this.folder.kind === 'locked' && !(await this.unlock())) return false;
     try {
       if (!(await givePassword(o))) return false;
     } catch (e) {
+      if (e instanceof NoAccess) { this.toast.say(NO_ACCESS); return false; }
       console.error(e);
       this.toast.say(`Could not open “${titleOf(o.path)}”. It may have been moved or renamed.`);
       return false;
     }
+    this.accessAllowed();
     return this.unlocked(o);
+  }
+
+  /** A score was read from the scores folder, so access to it may just have been allowed: then read it again. */
+  private accessAllowed() {
+    if (this.folder.kind === 'locked') void this.refresh();
   }
 
   private unlocked(o: Original) {
@@ -335,26 +344,20 @@ export class Library implements LibraryHost {
   open(s: Original) {
     // In the library's order, to turn on to the next score from this one's end.
     const library = byFolder(this.originals).flatMap((l) => l.originals);
-    void this.read({ kind: 'score', original: s, library }, [s], `Could not open “${titleOf(s.path)}”. It may have been moved or renamed.`);
+    void this.read({ kind: 'score', original: s, library }, `Could not open “${titleOf(s.path)}”. It may have been moved or renamed.`);
   }
 
   /** Read a named excerpt, as a setlist entry playing it is read: only its cuts, always from its start. */
   readExcerpt(o: Original, excerpt: ExcerptName) {
-    void this.read({ kind: 'excerpt', original: o, excerpt }, [o], `Could not open “${titleOf(o.path)}”. It may have been moved or renamed.`);
+    void this.read({ kind: 'excerpt', original: o, excerpt }, `Could not open “${titleOf(o.path)}”. It may have been moved or renamed.`);
   }
 
   play(s: Setlist, startEntry?: string) {
-    const originals = s.entries.map((e) => this.originalOf(e.scoreId)).filter((x): x is Original => !!x);
     this.openRows.add(s.id);
-    void this.read({ kind: 'setlist', setlistId: s.id, originals: this.originals, startEntry }, originals, `Could not open “${s.title}”.`);
+    void this.read({ kind: 'setlist', setlistId: s.id, originals: this.originals, startEntry }, `Could not open “${s.title}”.`);
   }
 
-  private async read(what: ToRead, originals: Original[], failed: string) {
-    // Opening is a tap, so it can also grant folder access for this session.
-    // A setlist whose pages are saved as pictures plays without it, asking only for a page that isn't.
-    const folderScores = originals.filter((s) => !s.added);
-    const saved = what.kind === 'setlist' && (await Promise.all(folderScores.map(async (o) => (await hasPictures(o.id)) && !!(await loadAspects(o.id))))).every(Boolean);
-    if (folderScores.length && this.folder.kind === 'locked' && !saved && !(await this.unlock())) return;
+  private async read(what: ToRead, failed: string) {
     this.say('');
     closeOverlay();
     this.toast.hide();
@@ -373,10 +376,13 @@ export class Library implements LibraryHost {
       else void this.loadSetlists().then(() => { this.scoresSection.render(); window.scrollTo(0, scrolled); });
     };
     try {
+      // Opening is a tap, so a score's original can ask for access to the scores folder for this
+      // session. A setlist plays without it from its saved pictures, asking for a page that isn't.
       await openReader(what, back);
     } catch (e) {
-      console.error(e);
       this.root.hidden = false;
+      if (e instanceof NoAccess) { this.say(NO_ACCESS); return; }
+      console.error(e);
       this.say(e instanceof PasswordNotGiven ? `${e.message} to open.` : failed);
     }
   }

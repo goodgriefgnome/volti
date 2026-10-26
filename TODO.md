@@ -13,12 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **Callers catch `NoAccess`:** the library (opening for a dialog, giving a password, opening a
-  setlist), the reader (`lockedOut`, `allowAccess`) and `reader/open-scores.ts` check for a locked
-  scores folder before reading a folder score. An original's methods now ask for access themselves
-  and throw `NoAccess` (`originals/folder.ts`) when they can't get it: catch that instead, keeping
-  what follows access being allowed (the library reading the folder again, the reader redrawing).
-  `dialogs/score-files.ts` can then drop its `allowWriting` calls, as `o.move` asks itself.
 - **Exports ask for their own access:** `exportExists` and `saveExport` ask for write access and
   throw `NoAccess`, as an original's methods do; `allowWriting` then leaves `originals/index.ts`.
 
@@ -64,6 +58,11 @@ The next three, in this order:
 
 Things to try on the tablet.
 
+- **Access asked for by what reads the folder:** after a restart, before tapping Allow access:
+  opening a score from the folder, adding a locked one to a setlist, opening one for a dialog
+  (Add excerpt), and renaming or moving one each ask for access themselves; refusing says so,
+  allowing goes on and the library reads the folder again. In a setlist played from its saved
+  pictures, a page not saved, Edit cuts and Export ask for it, and Allow access redraws.
 - **Turning on the press:** the page turns as the finger goes down, anywhere with the toolbar
   hidden; with it showing, only in the shaded band at each side (a cut tab there still takes the
   press first), and a tap elsewhere hides the toolbar. The chevron at the top right shows it, and

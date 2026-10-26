@@ -6,7 +6,7 @@
 import type { FileChange } from '../dialogs';
 import { ends } from '../excerpts';
 import { PEN_COLORS, type Marking } from '../markings';
-import { folderState, knownTitles, PasswordNotGiven, titleOf, unlockFolder, type Original, type PageCache } from '../originals';
+import { knownTitles, NoAccess, PasswordNotGiven, titleOf, type Original, type PageCache } from '../originals';
 import { framesOnScreen, isZoomed, NO_ZOOM, pageWidths, screenAt, type Hatches, type Zoom } from '../render';
 import { A4, frameOf, loadScore, pack, saveScorePosition, type Aspects, type Cut, type ExcerptName, type Frame, type State } from '../scores';
 import { loadSetlists, type Setlist } from '../setlists';
@@ -396,7 +396,7 @@ class Reader {
     } catch (e) {
       if (seq !== this.seq) return;
       // A page not saved as a picture, of a PDF that can't be read until access is allowed.
-      if (await this.lockedOut()) { this.showUnread(it.title, true, W, H); return; }
+      if (e instanceof NoAccess) { this.showUnread(it.title, true, W, H); return; }
       this.toolbar.info.textContent = 'Could not draw this page';
       console.error(e);
       return;
@@ -441,21 +441,26 @@ class Reader {
     } else this.saveSpot(undefined);
   }
 
-  /** Whether the scores folder, which some of what is read comes from, can't be read until access is allowed. */
-  private async lockedOut(): Promise<boolean> {
-    return this.items.some((it) => it.original?.added === false) && (await folderState()).kind === 'locked';
+  /** Whether the score read can be read from its PDF, or couldn't be as access to the scores folder isn't allowed. */
+  private async readable(): Promise<boolean> {
+    if (this.items[this.k]?.needsAccess) return false;
+    const cache = this.current?.cache;
+    return !cache || cache.ready().then(() => true, (e) => !(e instanceof NoAccess));
   }
 
   /**
-   * Ask for access to the scores folder, from a tap, when what is read needs it: then read the
-   * scores from their PDFs too, and show the screen again. False when it isn't allowed.
+   * When the score read couldn't be read from its PDF for want of access to the scores folder,
+   * open it again from a tap, which its original asks for access from: then read the other scores
+   * from their PDFs too, and show the screen again. False, having said why, when it isn't allowed.
    */
   private async allowAccess(): Promise<boolean> {
-    if (!(await this.lockedOut())) return true;
-    if (!(await unlockFolder())) { this.say('Volti can’t read the scores folder without access.'); return false; }
-    this.toast.hide();
+    if (await this.readable()) return true;
+    const at = this.slots[0]?.frame.items[0]?.cut.id;
     this.scores.accessAllowed();
-    void this.goTo(this.k, this.slots[0]?.frame.items[0]?.cut.id);
+    await this.scores.ensure(this.k, true);
+    if (!(await this.readable())) { this.say('Volti can’t read the scores folder without access.'); return false; }
+    this.toast.hide();
+    void this.goTo(this.k, at);
     return true;
   }
 

@@ -74,6 +74,11 @@ export class PageCache {
     return a;
   }
 
+  /** Resolves once the original is open; rejects with why it couldn't be (NoAccess, PasswordNotGiven). */
+  async ready(): Promise<void> {
+    await this.opened;
+  }
+
   /** Height / width of every page, in order. */
   async allAspects(): Promise<number[]> {
     const n = (await this.opened).pages;
