@@ -13,16 +13,18 @@ scores.
 
 ## Work for the immediate future
 
-- **Turn the page on the press, not the release:** a tap on the reader sometimes felt lost. Today
-  a tap turns only when the finger lifts within 400 ms and 12 px of where it went down
-  (`reader/gestures.ts`), and touches within 600 ms of the pen lifting are ignored as a palm
-  (`reader/input.ts`); a slow or sliding tap does nothing. Turn as the finger goes down instead,
-  except where a press can mean something else: in Edit cuts (long presses), and while
-  annotating (the pen and zoom). Decide what becomes of swipes, which turned already on the press.
-- **A button that opens the toolbar, so every tap on the page turns it:** in performance there is
-  nothing to show where the middle zone (which shows and hides the toolbar) starts, so a tap meant
-  to turn can open the toolbar instead. A button like the back button opens it; the page is then
-  all turning, back on the left and forward on the right.
+- **Turning on the press, and a button for the toolbar:** a tap on the reader sometimes felt lost
+  (today a tap turns only when the finger lifts within 400 ms and 12 px of where it went down, in
+  `reader/gestures.ts`), and in performance nothing shows where the middle zone that opens the
+  toolbar starts. So:
+  - The page turns as the finger goes down, always; back on the left, forward on the right.
+    Swipes no longer turn (the press already has).
+  - Toolbar hidden: the whole page turns; there is no middle zone.
+  - Toolbar showing: only a narrow band at each side turns, marked by a scrim. A tap (on the
+    release) on the rest of the page, when it doesn't write or edit cuts, hides the toolbar.
+  - A button, like the back button, shows the toolbar (and hides it).
+  - To watch for, with the toolbar showing: a palm landing in the band before the pen touches, and
+    a pinch or pan whose first finger lands there, turn the page.
 
 ## Manual check
 
