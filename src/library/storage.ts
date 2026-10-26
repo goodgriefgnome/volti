@@ -1,9 +1,9 @@
 // How much room Volti takes on the tablet, for the library's ⋯ menu: its parts worked out from the
 // files' sizes and the browser's estimate, and shown as one stacked bar with each part's size.
 
-import { importedBytes } from '../originals/imported';
-import { picturesBytes } from '../pictures/pictures';
-import { el } from '../ui/dom';
+import { importedBytes } from '../originals';
+import { picturesBytes } from '../pictures';
+import { el } from '../ui';
 
 /** One part of the room Volti takes: `key` names its colour. */
 export interface StoragePart { key: 'meta' | 'added' | 'cache' | 'app' | 'other'; name: string; bytes: number }

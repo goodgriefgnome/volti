@@ -1,8 +1,7 @@
 // Originals' ids: the SHA-256 of each file's contents, kept with the size and modified time it was
 // worked out for, so a file is read whole again only when it changes.
 
-import { keys } from '../storage/keys';
-import { kv } from '../storage/kv';
+import { keys, kv } from '../storage';
 
 /** A file's hash, good while its size and modified time stay the same. */
 interface Hashed { size: number; modified: number; id: string }

@@ -1,11 +1,8 @@
 // The cut editor's menus, on a right-click or a long press: on a tab, on the music, or above or
 // below it.
 
-import { cutAt, edgeKind, joinNext, remove, restoreEdge, setPad, tidy } from '../../scores/edits';
-import type { Placed } from '../../scores/frames';
-import type { Cut, State } from '../../scores/model';
-import { el } from '../../ui/dom';
-import { closeWithOverlay, showMenu, type MenuItem } from '../../ui/overlay';
+import { cutAt, edgeKind, joinNext, remove, restoreEdge, setPad, tidy, type Cut, type Placed, type State } from '../../scores';
+import { closeWithOverlay, el, showMenu, type MenuItem } from '../../ui';
 import type { FrameSlot } from '../spread';
 import { pageLabel, sayArchived, type Edge, type EditorHost } from './host';
 import { openPicker } from './insert-picker';

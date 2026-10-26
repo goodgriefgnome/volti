@@ -2,10 +2,9 @@
 // part's host (the cut editor's, the tools', pointer input's and the close-up's) is this view and
 // the few things that part may ask the reader to do.
 
-import type { PageCache } from '../originals/pages';
-import type { Zoom } from '../render/zoom';
-import type { Frame } from '../scores/frames';
-import type { Aspects, State } from '../scores/model';
+import type { PageCache } from '../originals';
+import type { Zoom } from '../render';
+import type { Aspects, Frame, State } from '../scores';
 import type { FrameSlot } from './spread';
 
 /** The reader as it is now: read each time, as the reader turns from score to score and redraws. */

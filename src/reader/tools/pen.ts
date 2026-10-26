@@ -1,11 +1,9 @@
 // The pen and highlighter: making a stroke as the pointer moves, and giving it to a cut when the
 // pointer lifts.
 
-import type { Point } from '../../markings/model';
-import { compact, drawPenSegment, HIGHLIGHT_COLOR, HIGHLIGHT_SIZE, PEN_SIZE, type Stroke } from '../../markings/stroke';
-import { frameTarget } from '../../render/paint';
-import { setInk } from '../../scores/edits';
-import { claimMarking } from '../../scores/ownership';
+import { compact, drawPenSegment, HIGHLIGHT_COLOR, HIGHLIGHT_SIZE, PEN_SIZE, type Point, type Stroke } from '../../markings';
+import { frameTarget } from '../../render';
+import { claimMarking, setInk } from '../../scores';
 import type { FrameSlot } from '../spread';
 import type { Tool, ToolHost } from './tool';
 

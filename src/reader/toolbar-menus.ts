@@ -3,30 +3,13 @@
 // plays. What they change is the
 // Reading's, and the reader shows and saves it.
 
-import { openAddScores } from '../dialogs/add-scores';
-import { openExcerptPicker, type ExcerptSource } from '../dialogs/excerpt-picker';
-import { addExcerpt, changeExcerptCuts, deleteExcerpt, renameExcerpt, type ExcerptHost } from '../dialogs/excerpts';
-import { openExportPdf } from '../dialogs/export-pdf';
-import { openScore } from '../dialogs/open-score';
-import { givePassword } from '../dialogs/passwords';
-import { moveToFolder, renameFile, type FileChange, type ScoreFileHost } from '../dialogs/score-files';
-import { askSetlistName, chooseSetlist } from '../dialogs/setlists';
-import { nameOf, sortedNames } from '../excerpts/names';
-import { ends, spanLabel, spanOf, type Span } from '../excerpts/span';
-import type { ExportPart } from '../export/pdf';
-import { subfolders } from '../originals/by-folder';
-import { folderState } from '../originals/folder';
-import { removeImported } from '../originals/imported';
-import { lockedOriginals } from '../originals/locks';
-import { PasswordNotGiven } from '../originals/open';
-import type { Original } from '../originals/originals';
-import type { PageCache } from '../originals/pages';
-import type { ExcerptName, Score } from '../scores/model';
-import { loadSavedScore, saveScore } from '../scores/store';
-import { addEntries, defaultSetlist, duplicate, moveEntry, withSetlist, type Entry, type Setlist } from '../setlists/model';
-import { deleteSetlist, loadLastAddedTo, saveLastAddedTo } from '../setlists/store';
-import { button, dpr, el, plural } from '../ui/dom';
-import { buttonRow, closeOverlay, showDialog, showMenu, type MenuItem } from '../ui/overlay';
+import { addExcerpt, askSetlistName, changeExcerptCuts, chooseSetlist, deleteExcerpt, givePassword, moveToFolder, openAddScores, openExcerptPicker, openExportPdf, openScore, renameExcerpt, renameFile, type ExcerptHost, type ExcerptSource, type FileChange, type ScoreFileHost } from '../dialogs';
+import { ends, nameOf, sortedNames, spanLabel, spanOf, type Span } from '../excerpts';
+import type { ExportPart } from '../export';
+import { folderState, lockedOriginals, PasswordNotGiven, removeImported, subfolders, type Original, type PageCache } from '../originals';
+import { loadSavedScore, saveScore, type ExcerptName, type Score } from '../scores';
+import { addEntries, defaultSetlist, deleteSetlist, duplicate, loadLastAddedTo, moveEntry, saveLastAddedTo, withSetlist, type Entry, type Setlist } from '../setlists';
+import { button, buttonRow, closeOverlay, dpr, el, plural, showDialog, showMenu, type MenuItem } from '../ui';
 import type { OpenScore } from './open-scores';
 import type { Reading } from './reading';
 import type { Saver } from './saver';

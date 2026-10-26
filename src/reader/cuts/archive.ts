@@ -1,8 +1,7 @@
 // The dialog listing a score's archived cuts, to delete them for good.
 
-import { deleteArchived } from '../../scores/edits';
-import { button, el, plural } from '../../ui/dom';
-import { buttonRow, closeOverlay, showDialog } from '../../ui/overlay';
+import { deleteArchived } from '../../scores';
+import { button, buttonRow, closeOverlay, el, plural, showDialog } from '../../ui';
 import type { EditorHost } from './host';
 import { thumbCanvas } from './thumbs';
 

@@ -1,7 +1,7 @@
 // A row of the library's lists that slides open to show more under it: a setlist's scores, a
 // score's named excerpts.
 
-import { button, el } from '../ui/dom';
+import { button, el } from '../ui';
 
 let seq = 0;
 

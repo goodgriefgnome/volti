@@ -2,8 +2,7 @@
 // file picker or shared from other apps, listing and removing them, and the subfolder each is
 // filed under in the library.
 
-import { keys } from '../storage/keys';
-import { kv } from '../storage/kv';
+import { keys, kv } from '../storage';
 import { rememberedListing } from './folder';
 import { hashBytes, Hasher } from './hashes';
 import { takeInbox } from './inbox';

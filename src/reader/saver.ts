@@ -1,8 +1,7 @@
 // Writing the reader's changes to storage: scores and setlists, together, at most twice a second.
 
-import { scoreEntries } from '../scores/store';
-import type { Setlist } from '../setlists/model';
-import { saveChanged } from '../setlists/store';
+import { scoreEntries } from '../scores';
+import { saveChanged, type Setlist } from '../setlists';
 import type { OpenScore } from './open-scores';
 
 /**

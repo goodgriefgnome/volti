@@ -3,26 +3,14 @@
 // read, and how edits carry to setlists, is reading.ts; the toolbar's menus and dialogs are
 // toolbar-menus.ts. Code that can stand on its own goes in one of them.
 
-import type { FileChange } from '../dialogs/score-files';
-import { ends } from '../excerpts/span';
-import type { Marking } from '../markings/model';
-import { PEN_COLORS } from '../markings/stroke';
-import { folderState, unlockFolder } from '../originals/folder';
-import { PasswordNotGiven } from '../originals/open';
-import { knownTitles, type Original } from '../originals/originals';
-import type { PageCache } from '../originals/pages';
-import { framesOnScreen } from '../render/layout';
-import type { Hatches } from '../render/paint';
-import { pageWidths, screenAt } from '../render/screen';
-import { isZoomed, NO_ZOOM, type Zoom } from '../render/zoom';
-import { frameOf, pack, type Frame } from '../scores/frames';
-import { A4, type Aspects, type Cut, type ExcerptName, type State } from '../scores/model';
-import { loadScore, saveScorePosition } from '../scores/store';
-import type { Setlist } from '../setlists/model';
-import { loadSetlists } from '../setlists/store';
-import { dpr, el } from '../ui/dom';
-import { closeOverlay } from '../ui/overlay';
-import { Toast } from '../ui/toast';
+import type { FileChange } from '../dialogs';
+import { ends } from '../excerpts';
+import { PEN_COLORS, type Marking } from '../markings';
+import { folderState, knownTitles, PasswordNotGiven, unlockFolder, type Original, type PageCache } from '../originals';
+import { framesOnScreen, isZoomed, NO_ZOOM, pageWidths, screenAt, type Hatches, type Zoom } from '../render';
+import { A4, frameOf, loadScore, pack, saveScorePosition, type Aspects, type Cut, type ExcerptName, type Frame, type State } from '../scores';
+import { loadSetlists, type Setlist } from '../setlists';
+import { closeOverlay, dpr, el, Toast } from '../ui';
 import { CutEditor } from './cuts/editor';
 import { Detail } from './detail';
 import type { Gesture } from './gestures';

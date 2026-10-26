@@ -1,14 +1,10 @@
 // Opening and closing the scores being read: each score's saved state and its original, opened when
 // first needed and closed when far from the score being read.
 
-import { askPassword } from '../dialogs/passwords';
-import { folderState } from '../originals/folder';
-import { openOriginal, PasswordNotGiven } from '../originals/open';
-import type { Original } from '../originals/originals';
-import { PageCache } from '../originals/pages';
-import { hasPictures, picturesOf } from '../pictures/pictures';
-import type { Aspects, State } from '../scores/model';
-import { loadAspects, loadScore } from '../scores/store';
+import { askPassword } from '../dialogs';
+import { folderState, openOriginal, PageCache, PasswordNotGiven, type Original } from '../originals';
+import { hasPictures, picturesOf } from '../pictures';
+import { loadAspects, loadScore, type Aspects, type State } from '../scores';
 
 /**
  * An original's pages, to read: at once where its pages are saved as pictures and their shapes are

@@ -2,32 +2,17 @@
 // setlists), saving changes to them, and opening the reader. The parts it shows are their own
 // files: the folder banner, the setlists and the scores, each given this as its LibraryHost.
 
-import type { ExcerptSource } from '../dialogs/excerpt-picker';
-import type { ExcerptHost } from '../dialogs/excerpts';
-import { openExportPdf } from '../dialogs/export-pdf';
-import { givePassword } from '../dialogs/passwords';
-import type { FileChange } from '../dialogs/score-files';
-import { chooseSetlist } from '../dialogs/setlists';
-import type { Span } from '../excerpts/span';
-import type { ExportPart } from '../export/pdf';
-import { folderState, linkFolder, unlinkFolder, unlockFolder, type FolderState } from '../originals/folder';
-import { lockedOriginals } from '../originals/locks';
-import { PasswordNotGiven } from '../originals/open';
-import { allOriginals, byTitle, knownTitles, type Original } from '../originals/originals';
-import { makePictures } from '../pictures/maker';
-import { hasPictures } from '../pictures/pictures';
-import { openReader, type ToRead } from '../reader/reader';
-import type { Aspects, ExcerptName, Score } from '../scores/model';
-import { loadAspects, loadSavedScore, scoreEntry } from '../scores/store';
-import { addEntries, defaultSetlist, withSetlist, type Setlist } from '../setlists/model';
-import { deleteSetlist, loadLastAddedTo, loadSetlists, saveChanged, saveLastAddedTo } from '../setlists/store';
-import { el, plural } from '../ui/dom';
-import { closeOverlay, whenOverlayCloses, type MenuItem } from '../ui/overlay';
-import { Toast } from '../ui/toast';
+import { chooseSetlist, givePassword, openExportPdf, openScore, type ExcerptHost, type ExcerptSource, type FileChange, type LibraryScore } from '../dialogs';
+import type { Span } from '../excerpts';
+import type { ExportPart } from '../export';
+import { allOriginals, byFolder, byTitle, folderState, knownTitles, linkFolder, lockedOriginals, PasswordNotGiven, unlinkFolder, unlockFolder, type FolderState, type Original } from '../originals';
+import { hasPictures, makePictures } from '../pictures';
+import { openReader, type ToRead } from '../reader';
+import { loadAspects, loadSavedScore, scoreEntry, type Aspects, type ExcerptName, type Score } from '../scores';
+import { addEntries, defaultSetlist, deleteSetlist, loadLastAddedTo, loadSetlists, saveChanged, saveLastAddedTo, withSetlist, type Setlist } from '../setlists';
+import { closeOverlay, el, plural, Toast, whenOverlayCloses, type MenuItem } from '../ui';
 import { FolderBanner } from './folder-banner';
-import { byFolder } from '../originals/by-folder';
 import type { LibraryHost } from './host';
-import { openScore, type LibraryScore } from '../dialogs/open-score';
 import { ScoresSection } from './scores-section';
 import { SetlistsSection } from './setlists-section';
 

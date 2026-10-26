@@ -1,13 +1,10 @@
 // Named excerpt dialogs that both the library and the reader use: adding one, renaming it, changing
 // its cuts and deleting it. Where the score comes from and how it is saved is the caller's.
 
-import { nameProblem, removeName, setName } from '../excerpts/names';
-import { sameSpan, spanLabel, type Span } from '../excerpts/span';
-import type { Aspects, ExcerptName, Score } from '../scores/model';
-import { moveExcerpt, type Setlist } from '../setlists/model';
-import { askText } from '../ui/ask-text';
-import { button, el, plural } from '../ui/dom';
-import { buttonRow, closeOverlay, showDialog } from '../ui/overlay';
+import { nameProblem, removeName, sameSpan, setName, spanLabel, type Span } from '../excerpts';
+import type { Aspects, ExcerptName, Score } from '../scores';
+import { moveExcerpt, type Setlist } from '../setlists';
+import { askText, button, buttonRow, closeOverlay, el, plural, showDialog } from '../ui';
 import { openExcerptPicker, type ExcerptSource } from './excerpt-picker';
 
 /** Where a score's named excerpts are changed. */

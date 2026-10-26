@@ -1,8 +1,8 @@
 // The reader's toolbar: building its buttons and showing the reader's state on them. The buttons
 // call back into the reader; what they do is not here.
 
-import { PEN_COLORS } from '../markings/stroke';
-import { el } from '../ui/dom';
+import { PEN_COLORS } from '../markings';
+import { el } from '../ui';
 import { TOOL_NAMES, TOOLS, type ToolName } from './tools';
 
 /** The back arrow that leaves the reader for the library, on the toolbar and when it is hidden. */

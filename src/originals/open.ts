@@ -3,8 +3,7 @@
 // asked for only once, even after a restart. Asking is the caller's (dialogs/passwords.ts); without a way to ask, a PDF whose
 // password isn't remembered doesn't open. Every opening of an original's pages goes through here.
 
-import { keys } from '../storage/keys';
-import { kv } from '../storage/kv';
+import { keys, kv } from '../storage';
 import { openImage } from './image';
 import { isImageName } from './names';
 import type { Original } from './originals';

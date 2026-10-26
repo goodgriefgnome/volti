@@ -1,6 +1,6 @@
 // Page thumbnails for the cut editor's dialogs.
 
-import { dpr, el } from '../../ui/dom';
+import { dpr, el } from '../../ui';
 import type { EditorHost } from './host';
 
 export const THUMB_W = 84;

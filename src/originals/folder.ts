@@ -2,8 +2,7 @@
 // PDFs in it and its subfolders, the listing remembered for while access is locked, and the Exports
 // folder in it. The only code that holds the folder's handle.
 
-import { keys } from '../storage/keys';
-import { kv } from '../storage/kv';
+import { keys, kv } from '../storage';
 import { isOriginalName, titleOf } from './names';
 import type { Found, Original } from './originals';
 

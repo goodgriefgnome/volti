@@ -1,12 +1,8 @@
 // Dialogs about a score's file, from the library's score rows and a score's reader: renaming its
 // PDF (or image), and moving it to a subfolder (an added one is only listed there).
 
-import { allowWriting } from '../originals/folder';
-import { fileAdded } from '../originals/imported';
-import { fileNameProblem, tidyFolder } from '../originals/names';
-import { movedOriginal, moveOriginal, renamedOriginal, renameOriginal, type Original } from '../originals/originals';
-import { askText } from '../ui/ask-text';
-import { el } from '../ui/dom';
+import { allowWriting, fileAdded, fileNameProblem, movedOriginal, moveOriginal, renamedOriginal, renameOriginal, tidyFolder, type Original } from '../originals';
+import { askText, el } from '../ui';
 
 /** A score's file changed: it is `now` that original (renamed or moved), or it is `gone`. */
 export type FileChange = { now: Original } | { gone: string };

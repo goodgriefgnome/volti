@@ -2,11 +2,10 @@
 // a named excerpt or a setlist, and the setlists, which edits to a score keep in step. Pure: no
 // DOM, no storage; reader.ts shows and saves what changes here.
 
-import { excerptName, followNames } from '../excerpts/names';
-import { ends, followEdit, spanCuts, type Span } from '../excerpts/span';
-import type { Original } from '../originals/originals';
-import type { Aspects, Cut, Score, State } from '../scores/model';
-import { addEntries, followScore, setEntrySpan, withSetlist, type Entry, type Setlist } from '../setlists/model';
+import { ends, excerptName, followEdit, followNames, spanCuts, type Span } from '../excerpts';
+import type { Original } from '../originals';
+import type { Aspects, Cut, Score, State } from '../scores';
+import { addEntries, followScore, setEntrySpan, withSetlist, type Entry, type Setlist } from '../setlists';
 import type { Item } from './open-scores';
 
 /**

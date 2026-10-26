@@ -2,17 +2,12 @@
 // what it has read, and what they may ask it to do. The Library holds the data; the parts only
 // show it and ask for changes.
 
-import type { ExcerptSource } from '../dialogs/excerpt-picker';
-import type { ExcerptHost } from '../dialogs/excerpts';
-import type { FileChange } from '../dialogs/score-files';
-import type { Span } from '../excerpts/span';
-import type { FolderState } from '../originals/folder';
-import type { Original } from '../originals/originals';
-import type { Aspects, ExcerptName, Score } from '../scores/model';
-import type { Setlist } from '../setlists/model';
-import type { MenuItem } from '../ui/overlay';
-import type { Toast } from '../ui/toast';
-import type { LibraryScore } from '../dialogs/open-score';
+import type { ExcerptHost, ExcerptSource, FileChange, LibraryScore } from '../dialogs';
+import type { Span } from '../excerpts';
+import type { FolderState, Original } from '../originals';
+import type { Aspects, ExcerptName, Score } from '../scores';
+import type { Setlist } from '../setlists';
+import type { MenuItem, Toast } from '../ui';
 
 export interface LibraryHost {
   readonly folder: FolderState;

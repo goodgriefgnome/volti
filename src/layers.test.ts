@@ -1,6 +1,7 @@
 // The layers of src/, kept: each directory imports only from its own files and from directories in
-// lower layers, so code low down never depends on screens or dialogs above it. ARCHITECTURE.md
-// says what each layer is for. A new directory goes in LAYERS.
+// lower layers, so code low down never depends on screens or dialogs above it, and from another
+// directory only through its index.ts. ARCHITECTURE.md says what each layer is for. A new
+// directory goes in LAYERS.
 
 import { describe, expect, it } from 'vitest';
 
@@ -29,7 +30,8 @@ const usesStorage = (file: string) => /\/store\.ts$/.test(file) || file.startsWi
 const sources = import.meta.glob<string>(['./**/*.ts', '!./**/*.test.ts', '!./**/*.d.ts'], { query: '?raw', import: 'default', eager: true });
 const files = Object.entries(sources).map(([path, text]) => ({ file: path.slice(2), text }));
 
-const dirOf = (file: string) => (file.includes('/') ? file.slice(0, file.indexOf('/')) : '.');
+/** The directory a file is in, or that an import of a directory (its index.ts) leads to. */
+const dirOf = (file: string) => (file.includes('/') ? file.slice(0, file.indexOf('/')) : file in LAYERS ? file : '.');
 
 /** Where a relative import from `file` leads, from src/. */
 function resolve(file: string, spec: string): string {
@@ -41,7 +43,8 @@ function resolve(file: string, spec: string): string {
   return parts.join('/');
 }
 
-const imports = (text: string) => [...text.matchAll(/^import [^;]*?from '(\.[^']*)'/gm)].map((m) => m[1]);
+/** Each relative import: the names it takes, and where from. */
+const imports = (text: string) => [...text.matchAll(/^import ([^;]*?) from '(\.[^']*)'/gm)].map((m) => ({ names: m[1], spec: m[2] }));
 
 describe('layers', () => {
   it('lists every directory', () => {
@@ -52,7 +55,7 @@ describe('layers', () => {
     const wrong: string[] = [];
     for (const { file, text } of files) {
       const from = dirOf(file);
-      for (const spec of imports(text)) {
+      for (const { spec } of imports(text)) {
         const to = dirOf(resolve(file, spec));
         if (to !== from && LAYERS[to] >= LAYERS[from]) wrong.push(`${file} imports ${spec}`);
       }
@@ -60,8 +63,20 @@ describe('layers', () => {
     expect(wrong).toEqual([]);
   });
 
+  it('imports from another directory only through its index', () => {
+    const wrong: string[] = [];
+    for (const { file, text } of files) {
+      const from = dirOf(file);
+      for (const { spec } of imports(text)) {
+        const target = resolve(file, spec), to = dirOf(target);
+        if (to !== from && to !== '.' && target !== to) wrong.push(`${file} imports ${spec}`);
+      }
+    }
+    expect(wrong).toEqual([]);
+  });
+
   it('uses storage only from the store modules and originals/', () => {
-    const wrong = files.filter(({ file, text }) => !usesStorage(file) && imports(text).some((spec) => resolve(file, spec) === 'storage/kv'));
+    const wrong = files.filter(({ file, text }) => !usesStorage(file) && imports(text).some(({ names, spec }) => resolve(file, spec) === 'storage' && /\bkv\b/.test(names)));
     expect(wrong.map((f) => f.file)).toEqual([]);
   });
 

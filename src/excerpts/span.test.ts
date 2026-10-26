@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { Stroke } from '../markings/stroke';
+import type { Stroke } from '../markings';
 import { insertArchived, insertPages, joinNext, remove, setEdge, split } from '../scores/edits';
-import type { State } from '../scores/model';
+import type { State } from '../scores';
 import { A4, cut, state } from '../scores/testing';
 import { followEdit, spanCuts, spanFor, spanLabel, spanOf, type Span } from './span';
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { A4 } from '../scores/model';
+import { A4 } from '../scores';
 import { framesOnScreen, placeFrames, sideBySide } from './layout';
 
 const LETTER = 11 / 8.5, WIDE = 1 / A4;

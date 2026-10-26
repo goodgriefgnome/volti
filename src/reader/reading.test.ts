@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { nameOf, setName } from '../excerpts/names';
-import { insertPages, remove } from '../scores/edits';
+import { nameOf, setName } from '../excerpts';
+import { insertPages, remove } from '../scores';
 import { aspects, cut, state } from '../scores/testing';
 import { newEntry, newSetlist, type Setlist } from '../setlists/model';
-import type { Original } from '../originals/originals';
+import type { Original } from '../originals';
 import { Reading, setlistItems } from './reading';
 
 /** Three whole pages, the Kyrie being the first two. */

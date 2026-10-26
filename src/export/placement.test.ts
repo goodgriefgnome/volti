@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Placed } from '../scores/frames';
+import type { Placed } from '../scores';
 import { compose, placeCut, shownSize, turn, type Matrix } from './placement';
 
 const apply = ([a, b, c, d, e, f]: Matrix, x: number, y: number) => [a * x + c * y + e, b * x + d * y + f].map((v) => Math.round(v * 1e6) / 1e6);

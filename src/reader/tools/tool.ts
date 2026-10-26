@@ -1,8 +1,8 @@
 // What every tool is: the Tool interface, and what a tool may ask of the reader. A tool acts on the
 // frames with a pointer; each tool has its own file here, and index.ts lists them.
 
-import type { Marking, Point } from '../../markings/model';
-import type { State } from '../../scores/model';
+import type { Marking, Point } from '../../markings';
+import type { State } from '../../scores';
 import type { FrameSlot } from '../spread';
 import type { ReaderView } from '../view';
 

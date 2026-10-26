@@ -5,15 +5,10 @@
 // pdf-lib and pdf-decrypt are only loaded to export.
 
 import type { PDFDocument, PDFEmbeddedPage, PDFImage, PDFPage } from 'pdf-lib';
-import { spanCuts, type Span } from '../excerpts/span';
-import { openOriginal, savedPassword, type AskPassword } from '../originals/open';
-import type { Original } from '../originals/originals';
-import type { PageCache } from '../originals/pages';
-import { cutTarget, drawFrame, shownOn } from '../render/paint';
-import { pack, type Frame } from '../scores/frames';
-import type { Aspects, State } from '../scores/model';
-import { loadScore } from '../scores/store';
-import { isImageName } from '../originals/names';
+import { spanCuts, type Span } from '../excerpts';
+import { isImageName, openOriginal, savedPassword, type AskPassword, type Original, type PageCache } from '../originals';
+import { cutTarget, drawFrame, shownOn } from '../render';
+import { loadScore, pack, type Aspects, type Frame, type State } from '../scores';
 import { annotate } from './annotations';
 import { isJpeg, isPng, jpegOrientation } from './image-bytes';
 import { placeCut, shownSize, type SourcePage } from './placement';

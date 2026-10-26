@@ -1,6 +1,6 @@
 // Fixtures for tests that need cuts, scores or strokes. Only tests import this.
 
-import type { Stroke } from '../markings/stroke';
+import type { Stroke } from '../markings';
 import { A4, type Cut, type State } from './model';
 
 export { A4 };

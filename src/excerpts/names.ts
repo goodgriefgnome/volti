@@ -4,7 +4,7 @@
 // are edited. Moving a named excerpt, with the setlist entries that play it, is setlists/model.ts.
 // Pure: no DOM, no storage.
 
-import type { Aspects, Cut, ExcerptName, Score } from '../scores/model';
+import type { Aspects, Cut, ExcerptName, Score } from '../scores';
 import { followEdit, sameSpan, spanLabel, spanOf, type Span } from './span';
 
 /** The name on a span, if it has one. */

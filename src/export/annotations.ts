@@ -3,8 +3,7 @@
 // apps show it as drawn and can hide or delete it.
 
 import type { PDFContext, PDFDocument, PDFOperator, PDFPage } from 'pdf-lib';
-import type { Drawing, Look } from '../markings/draw';
-import { annotationOf, drawMarkings, type DrawTarget, type Marking } from '../markings/model';
+import { annotationOf, drawMarkings, type Drawing, type DrawTarget, type Look, type Marking } from '../markings';
 
 type PdfLib = typeof import('pdf-lib');
 

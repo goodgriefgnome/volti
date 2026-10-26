@@ -2,9 +2,9 @@
 // cut editor or the selected tool, and taps, swipes and keys that turn pages. What each tool does
 // is in tools/.
 
-import type { Point } from '../markings/model';
-import { isZoomed, pan, pinch, type Pt, type Zoom } from '../render/zoom';
-import { closeOverlay, overlayOpen } from '../ui/overlay';
+import type { Point } from '../markings';
+import { isZoomed, pan, pinch, type Pt, type Zoom } from '../render';
+import { closeOverlay, overlayOpen } from '../ui';
 import type { CutEditor } from './cuts/editor';
 import { gestureFor, gestureForKey, type Gesture } from './gestures';
 import type { FrameSlot } from './spread';

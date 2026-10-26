@@ -2,7 +2,7 @@
 // is split, and when markings are copied to inserted pages. Works for every kind of marking,
 // through markings/model.ts. Pure.
 
-import { anchorOf, mapMarking, shareOf, type Marking, type Point } from '../markings/model';
+import { anchorOf, mapMarking, shareOf, type Marking, type Point } from '../markings';
 import type { Frame } from './frames';
 import type { Cut, ScoreInk } from './model';
 

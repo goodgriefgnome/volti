@@ -1,12 +1,10 @@
 // The frames on the reader's screen as elements: putting their boxes where render/screen.ts says,
 // and painting them. FrameSlot, the reader's record of a frame on the screen, is defined here.
 
-import type { Marking } from '../markings/model';
-import { drawFrame, drawFrameInk, type Hatches } from '../render/paint';
-import { placeScreen, type ScreenBox } from '../render/screen';
-import type { Frame } from '../scores/frames';
-import type { Aspects, ScoreInk } from '../scores/model';
-import { el } from '../ui/dom';
+import type { Marking } from '../markings';
+import { drawFrame, drawFrameInk, placeScreen, type Hatches, type ScreenBox } from '../render';
+import type { Aspects, Frame, ScoreInk } from '../scores';
+import { el } from '../ui';
 
 /** A frame on the screen. Sizes are CSS pixels in the unzoomed spread. */
 export interface FrameSlot {

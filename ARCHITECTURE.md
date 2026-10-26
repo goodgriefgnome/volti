@@ -31,6 +31,15 @@ Each directory of `src/` is in a layer, and imports only from its own files and 
 `src/layers.test.ts` holds the table and fails on an import that goes sideways or up, so a change
 that needs one is a sign the code belongs somewhere else.
 
+What a directory offers the rest of the app is its `index.ts`, which re-exports it; other
+directories import it from there (`'../originals'`), never from a file inside it, and the test
+fails on one that does. Files in a directory import each other directly, never through their own
+index. Something only a directory's own files use stays out of its index, even when it is exported
+between them. Tests may reach into another directory for test helpers (`scores/testing.ts`).
+`package.json` says only the CSS does anything when loaded (`sideEffects`), so the build leaves out
+what an index re-exports but nothing uses (the service worker takes `putInbox` without pdf.js):
+keep it true, and do any start-up work from `main.ts`.
+
 | Layer | Directory | What it holds |
 | --- | --- | --- |
 | 10 | `src/*.ts` | Start-up (`main.ts`), taking new versions (`updates.ts`), the service worker (`sw.ts`) |
@@ -95,6 +104,9 @@ appears in the toolbar. A tool changes the score by calling `host.commit` with a
 test in `edits.test.ts`; then a menu item that calls `host.commit` with it, in `reader/cuts/menus.ts`.
 Spans and names follow it by themselves, but check `followEdit`'s cases in `excerpts/span.ts` if it
 moves cuts in a new way.
+
+**Something another directory needs**: export it from its file and add it to the directory's
+`index.ts`, beside the rest of that file's names.
 
 **Something new to store**: a key in `storage/keys.ts`, saying what it holds and which module uses
 it, and the loading and saving in that module's `store.ts` (or in `originals/`).

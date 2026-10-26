@@ -3,10 +3,9 @@
 
 import type { ExcerptSource } from '../dialogs/excerpt-picker';
 import { askPassword } from '../dialogs/passwords';
-import { openOriginal } from '../originals/open';
-import type { Original } from '../originals/originals';
-import { loadSavedScore, loadScore, saveScore } from '../scores/store';
-import { dpr } from '../ui/dom';
+import { openOriginal, type Original } from '../originals';
+import { loadSavedScore, loadScore, saveScore } from '../scores';
+import { dpr } from '../ui';
 
 /** A score and its original, open until `close`. */
 export interface LibraryScore extends ExcerptSource {

@@ -2,12 +2,9 @@
 // presses. Menus are in menus.ts and each dialog in its own file; the edits themselves are
 // scores/edits.ts.
 
-import type { Hatches } from '../../render/paint';
-import { edgeRange, release, setEdge, setPad, tidy } from '../../scores/edits';
-import { freeze, roomBefore, type Frame } from '../../scores/frames';
-import type { Cut, State } from '../../scores/model';
-import { el } from '../../ui/dom';
-import { closeOverlay, overlayOpen } from '../../ui/overlay';
+import type { Hatches } from '../../render';
+import { edgeRange, freeze, release, roomBefore, setEdge, setPad, tidy, type Cut, type Frame, type State } from '../../scores';
+import { closeOverlay, el, overlayOpen } from '../../ui';
 import type { FrameSlot } from '../spread';
 import { openArchive } from './archive';
 import { pageLabel, sayArchived, type Edge, type EditorHost } from './host';

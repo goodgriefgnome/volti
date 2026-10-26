@@ -2,8 +2,7 @@
 // can't be read, nor its pages saved as pictures, until its password is given, so it goes into a
 // setlist only once it has been.
 
-import { keys } from '../storage/keys';
-import { kv } from '../storage/kv';
+import { keys, kv } from '../storage';
 import { isImageName } from './names';
 import { openOriginal, PasswordNotGiven, savedPassword } from './open';
 import type { Original } from './originals';

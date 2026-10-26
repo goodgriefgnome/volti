@@ -2,9 +2,8 @@
 // changing them, and keeping every entry on the same music when a score's cuts change. Pure: no
 // DOM, no storage.
 
-import { setName } from '../excerpts/names';
-import { ends, followEdit, sameSpan, spanOf, type Span } from '../excerpts/span';
-import type { Cut, ExcerptName, Score } from '../scores/model';
+import { ends, followEdit, sameSpan, setName, spanOf, type Span } from '../excerpts';
+import type { Cut, ExcerptName, Score } from '../scores';
 
 /**
  * One excerpt of a score, in a setlist. It plays either

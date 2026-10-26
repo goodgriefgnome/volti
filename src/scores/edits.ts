@@ -2,7 +2,7 @@
 // cuts, inserting pages, and setting a cut's ink. Each takes a State and returns a new one, keeping
 // the ink in step. Pure: no DOM, no storage.
 
-import { copyMarking, type Marking } from '../markings/model';
+import { copyMarking, type Marking } from '../markings';
 import { EPS, newCutId, type Aspects, type Cut, type State } from './model';
 import { claimFirstPass, splitMarkings } from './ownership';
 

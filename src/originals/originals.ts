@@ -3,8 +3,7 @@
 // Only finding, reading and renaming files; the score made from an original is in scores/, and
 // opening one's pages is open.ts.
 
-import { keys } from '../storage/keys';
-import { kv } from '../storage/kv';
+import { keys, kv } from '../storage';
 import { folderFiles, folderOriginal, makeFolder, placeOf, relist, rememberedListing, saveListing, type FolderState } from './folder';
 import { Hasher, rememberHash } from './hashes';
 import { importedFiles, importsDir, removeImported } from './imported';

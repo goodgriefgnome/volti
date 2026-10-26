@@ -1,7 +1,7 @@
 // Fitting frames to the screen: how many a screen shows, which way they sit, and how large. Pure
 // maths.
 
-import { isLandscape } from '../scores/frames';
+import { isLandscape } from '../scores';
 
 export interface Rect { x: number; y: number; w: number; h: number }
 

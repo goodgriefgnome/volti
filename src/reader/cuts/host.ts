@@ -1,9 +1,8 @@
 // What the cut editor needs from the reader (EditorHost), and small helpers the cut editor's files
 // share.
 
-import type { Hatches } from '../../render/paint';
-import type { Frame } from '../../scores/frames';
-import type { Cut, State } from '../../scores/model';
+import type { Hatches } from '../../render';
+import type { Cut, Frame, State } from '../../scores';
 import type { ReaderView } from '../view';
 
 /** What the cut editor needs from the reader. Menus are kept inside the stage. */

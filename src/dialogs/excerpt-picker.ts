@@ -2,14 +2,10 @@
 // the dialog around them. The reader and the library both use it; where the pages come from is
 // the caller's business.
 
-import { nameOf, sortedNames } from '../excerpts/names';
-import { spanFor, spanLabel, spanOf, type Span } from '../excerpts/span';
-import { drawFrame, drawFrameInk } from '../render/paint';
-import { scrollForPinch, type Pt } from '../render/zoom';
-import { pack, placeLabel, places, type Frame, type Place } from '../scores/frames';
-import type { Aspects, Score, State } from '../scores/model';
-import { button, dpr, el } from '../ui/dom';
-import { buttonRow, closeOverlay, showDialog } from '../ui/overlay';
+import { nameOf, sortedNames, spanFor, spanLabel, spanOf, type Span } from '../excerpts';
+import { drawFrame, drawFrameInk, scrollForPinch, type Pt } from '../render';
+import { pack, placeLabel, places, type Aspects, type Frame, type Place, type Score, type State } from '../scores';
+import { button, buttonRow, closeOverlay, dpr, el, showDialog } from '../ui';
 
 /** How tall the thumbnails are, unzoomed, as a share of the screen's height; and how narrow they may get. */
 const THUMB_SHARE = 1 / 3;

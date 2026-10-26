@@ -1,17 +1,12 @@
 // The library's scores: searching them, adding PDFs, and the lists of them, by subfolder, each score
 // opening to its named excerpts, with their menus.
 
-import { addExcerpt, changeExcerptCuts, deleteExcerpt, renameExcerpt } from '../dialogs/excerpts';
-import { sortedNames } from '../excerpts/names';
-import { spanLabel } from '../excerpts/span';
-import { importFiles, removeImported } from '../originals/imported';
-import type { Original } from '../originals/originals';
-import type { ExcerptName, Score } from '../scores/model';
-import { setlistsWith } from '../setlists/model';
-import { button, el, lockIcon, plural } from '../ui/dom';
-import { showMenu } from '../ui/overlay';
-import { moveToFolder, renameFile, type ScoreFileHost } from '../dialogs/score-files';
-import { byFolder, subfolders } from '../originals/by-folder';
+import { addExcerpt, changeExcerptCuts, deleteExcerpt, moveToFolder, renameExcerpt, renameFile, type ScoreFileHost } from '../dialogs';
+import { sortedNames, spanLabel } from '../excerpts';
+import { byFolder, importFiles, removeImported, subfolders, type Original } from '../originals';
+import type { ExcerptName, Score } from '../scores';
+import { setlistsWith } from '../setlists';
+import { button, el, lockIcon, plural, showMenu } from '../ui';
 import type { LibraryHost } from './host';
 import { expandableRow, moreButton } from './rows';
 import { loadClosedFolders, saveClosedFolders } from './store';

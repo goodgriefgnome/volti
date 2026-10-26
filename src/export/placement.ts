@@ -2,7 +2,7 @@
 // turned as it is shown, at the place its cut has on the frame, and the band it is clipped to. Pure
 // geometry in PDF points; the exporting itself is in pdf.ts.
 
-import type { Placed } from '../scores/frames';
+import type { Placed } from '../scores';
 
 /** A PDF transformation matrix [a b c d e f]: x' = a·x + c·y + e, y' = b·x + d·y + f. */
 export type Matrix = [number, number, number, number, number, number];

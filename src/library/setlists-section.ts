@@ -1,14 +1,11 @@
 // The library's setlists: the list of them, each opening to its scores, with their menus, and the
 // dialogs only they open (Add scores, choosing an entry's excerpt, deleting one).
 
-import { openExcerptPicker } from '../dialogs/excerpt-picker';
-import { askSetlistName } from '../dialogs/setlists';
-import { excerptName } from '../excerpts/names';
-import { scoreEntries } from '../scores/store';
-import { addEntries, duplicate, moveEntry, newSetlist, setEntrySpan, withSetlist, type Entry, type Setlist } from '../setlists/model';
-import { button, el, plural } from '../ui/dom';
-import { buttonRow, closeOverlay, showDialog, showMenu, whenOverlayCloses } from '../ui/overlay';
-import { openAddScores } from '../dialogs/add-scores';
+import { askSetlistName, openAddScores, openExcerptPicker } from '../dialogs';
+import { excerptName } from '../excerpts';
+import { scoreEntries } from '../scores';
+import { addEntries, duplicate, moveEntry, newSetlist, setEntrySpan, withSetlist, type Entry, type Setlist } from '../setlists';
+import { button, buttonRow, closeOverlay, el, plural, showDialog, showMenu, whenOverlayCloses } from '../ui';
 import type { LibraryHost } from './host';
 import { expandableRow, moreButton } from './rows';
 

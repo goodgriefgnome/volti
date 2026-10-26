@@ -1,11 +1,11 @@
-// Start-up: registering the service worker, taking a new version of the app, asking for lasting
-// storage, importing shared files and showing the library, plus importing the styles. Nothing that
-// belongs to one screen goes here.
+// Start-up: registering the service worker, taking a new version of the app, keeping dialogs above
+// the on-screen keyboard, asking for lasting storage, importing shared files and showing the
+// library, plus importing the styles. Nothing that belongs to one screen goes here.
 
 import { registerSW } from 'virtual:pwa-register';
-import { Library } from './library/library';
-import { importShared } from './originals/imported';
-import { el } from './ui/dom';
+import { Library } from './library';
+import { importShared } from './originals';
+import { el, followVisibleArea } from './ui';
 import { takeUpdate, watchForUpdates } from './updates';
 // In this order: later files build on the earlier ones.
 import './styles/base.css';
@@ -17,6 +17,7 @@ import './styles/setlists.css';
 
 // Reloading into a new version is takeUpdate's to do, at start-up only.
 registerSW({ immediate: true, onNeedReload: () => {} });
+followVisibleArea();
 
 async function start() {
   // A plain start screen while looking for a new version, so an old one never shows first.

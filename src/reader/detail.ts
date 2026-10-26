@@ -1,8 +1,7 @@
 // The sharp close-up drawn over the frames while zoomed in.
 
-import { drawFrameInk, regionBands } from '../render/paint';
-import { isZoomed, visiblePart } from '../render/zoom';
-import { dpr, el } from '../ui/dom';
+import { drawFrameInk, isZoomed, regionBands, visiblePart } from '../render';
+import { dpr, el } from '../ui';
 import type { ReaderView } from './view';
 
 /** Wait this long after a pinch or pan settles before drawing the sharp close-up. */

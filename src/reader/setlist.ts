@@ -1,7 +1,7 @@
 // How the reader shows where it is in a setlist: the title, the card naming a score, and the box
 // after a score's last frame. Display only; moving between scores is in reader.ts.
 
-import { el } from '../ui/dom';
+import { el } from '../ui';
 
 const SCORE_CARD_MS = 2200;
 

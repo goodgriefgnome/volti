@@ -1,8 +1,6 @@
 import * as lib from 'pdf-lib';
 import { describe, expect, it } from 'vitest';
-import type { Drawing } from '../markings/draw';
-import { drawMarkings } from '../markings/model';
-import type { Stroke } from '../markings/stroke';
+import { drawMarkings, type Drawing, type Stroke } from '../markings';
 import { annotate, PdfDrawing, rgb } from './annotations';
 
 const W = 600, H = 800;

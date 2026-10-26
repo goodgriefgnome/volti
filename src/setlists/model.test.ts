@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { nameOf, setName } from '../excerpts/names';
-import { spanCuts, type Span } from '../excerpts/span';
+import { nameOf, setName, spanCuts, type Span } from '../excerpts';
 import { insertPages, split } from '../scores/edits';
-import type { Score, State } from '../scores/model';
+import type { Score, State } from '../scores';
 import { A4, cut, state } from '../scores/testing';
 import {
   addEntries, defaultSetlist, duplicate, followScore, moveEntry, moveExcerpt, newEntry, newSetlist, setEntrySpan, withSetlist, type Setlist,

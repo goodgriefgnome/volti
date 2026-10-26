@@ -3,7 +3,7 @@
 // frames.ts, storage store.ts. The images the cuts are cut from come from the score's original
 // (originals/).
 
-import type { Marking } from '../markings/model';
+import type { Marking } from '../markings';
 
 /** A horizontal band of one page of the original; y0 and y1 are fractions of the page height, 0 = top. */
 export interface Cut {

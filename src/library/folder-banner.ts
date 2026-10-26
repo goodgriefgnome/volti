@@ -2,9 +2,8 @@
 // folder, Allow access), the library's ⋯ menu (the scores folder, and the storage used), and
 // Update when a new version of the app is ready.
 
-import { canLinkFolder } from '../originals/folder';
-import { button, el } from '../ui/dom';
-import { showMenu } from '../ui/overlay';
+import { canLinkFolder } from '../originals';
+import { button, el, showMenu } from '../ui';
 import type { LibraryHost } from './host';
 import { storageView } from './storage';
 import { moreButton } from './rows';

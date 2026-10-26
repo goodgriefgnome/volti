@@ -1,8 +1,7 @@
 // Loading and saving scores, their ink and reading positions in the kv store. The only place scores
 // touch storage.
 
-import { keys } from '../storage/keys';
-import { kv } from '../storage/kv';
+import { keys, kv } from '../storage';
 import { forPages, newScore, type Aspects, type Score, type ScoreInk, type State } from './model';
 
 /**

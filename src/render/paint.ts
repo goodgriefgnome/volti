@@ -2,11 +2,8 @@
 // shown while a cut is dragged. Canvas drawing only, used by the reader, the excerpt picker and
 // exports; where frames sit on the screen is screen.ts.
 
-import { canvasDrawing, type Drawing } from '../markings/draw';
-import { drawMarkings, type DrawTarget, type Marking } from '../markings/model';
-import type { Frame, Placed } from '../scores/frames';
-import type { Aspects, ScoreInk } from '../scores/model';
-import { visible } from '../scores/ownership';
+import { canvasDrawing, drawMarkings, type Drawing, type DrawTarget, type Marking } from '../markings';
+import { visible, type Aspects, type Frame, type Placed, type ScoreInk } from '../scores';
 
 /** Music being cut away during a drag, by cut id: page fractions y0..y1 drawn hatched. */
 export type Hatches = Map<string, [number, number][]>;

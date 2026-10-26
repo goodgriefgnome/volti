@@ -1,10 +1,8 @@
 // Asking for a PDF's password, over whatever is open, and making sure a locked score's is known.
 // Opening the PDF, and remembering the password, is originals/open.ts.
 
-import { openOriginal, PasswordNotGiven, savedPassword, type AskPassword } from '../originals/open';
-import type { Original } from '../originals/originals';
-import { button, el } from '../ui/dom';
-import { buttonRow, showOnTop } from '../ui/overlay';
+import { openOriginal, PasswordNotGiven, savedPassword, type AskPassword, type Original } from '../originals';
+import { button, buttonRow, el, showOnTop } from '../ui';
 
 /** Ask for a PDF's password, over whatever is open; null when it isn't given. */
 export const askPassword: AskPassword = (title, wrong) => new Promise((resolve) => {

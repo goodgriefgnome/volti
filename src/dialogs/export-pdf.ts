@@ -2,11 +2,9 @@
 // exporting a score, an excerpt or a setlist, and writing it into the scores folder's Exports
 // folder, or sharing it when no folder is linked.
 
-import { drawnOriginals, exportPdf, type ExportPart } from '../export/pdf';
-import { allowWriting, exportExists, EXPORTS, saveExport } from '../originals/folder';
-import { fileNameProblem } from '../originals/names';
-import { button, el, focusHighlighted } from '../ui/dom';
-import { buttonRow, closeOverlay, showDialog } from '../ui/overlay';
+import { drawnOriginals, exportPdf, type ExportPart } from '../export';
+import { allowWriting, exportExists, EXPORTS, fileNameProblem, saveExport } from '../originals';
+import { button, buttonRow, closeOverlay, el, focusHighlighted, showDialog } from '../ui';
 import { askPassword } from './passwords';
 
 export interface ExportHost {

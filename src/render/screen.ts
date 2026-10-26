@@ -2,7 +2,7 @@
 // widths their pages are drawn at. Pure: no DOM. The reader puts boxes where this says
 // (reader/spread.ts); saved pictures are drawn at the widths it gives (pictures/maker.ts).
 
-import type { Frame } from '../scores/frames';
+import type { Frame } from '../scores';
 import { framesOnScreen, placeFrames, sideBySide } from './layout';
 
 /** Space between frames on one screen, in CSS pixels. */

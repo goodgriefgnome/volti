@@ -1,9 +1,8 @@
 // The dialog for inserting pages of the original, a range of them or an archived cut into the
 // played order.
 
-import { insertArchived, insertPages, type InsertAt } from '../../scores/edits';
-import { button, el } from '../../ui/dom';
-import { buttonRow, closeOverlay, showDialog } from '../../ui/overlay';
+import { insertArchived, insertPages, type InsertAt } from '../../scores';
+import { button, buttonRow, closeOverlay, el, showDialog } from '../../ui';
 import { openArchive } from './archive';
 import type { EditorHost } from './host';
 import { THUMB_W, thumbCanvas } from './thumbs';

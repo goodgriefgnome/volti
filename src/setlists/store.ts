@@ -1,8 +1,7 @@
 // Loading, saving and deleting setlists in the kv store, and the setlist scores were last added to.
 // The only place setlists touch storage.
 
-import { keys } from '../storage/keys';
-import { kv } from '../storage/kv';
+import { keys, kv } from '../storage';
 import type { Setlist } from './model';
 
 export async function loadSetlists(): Promise<Setlist[]> {
