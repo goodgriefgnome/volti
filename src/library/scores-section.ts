@@ -3,7 +3,7 @@
 
 import { addExcerpt, changeExcerptCuts, deleteExcerpt, moveToFolder, renameExcerpt, renameFile, type ScoreFileHost } from '../dialogs';
 import { sortedNames, spanLabel } from '../excerpts';
-import { byFolder, folderOf, importFiles, subfolders, titleOf, type Original } from '../originals';
+import { addFiles, byFolder, folderOf, NoAccess, putInbox, subfolders, titleOf, type Original } from '../originals';
 import type { ExcerptName, Score } from '../scores';
 import { setlistsWith } from '../setlists';
 import { button, el, lockIcon, plural, showMenu } from '../ui';
@@ -48,10 +48,17 @@ export class ScoresSection {
 
   private async addPdfs() {
     const { lib } = this;
+    const files = [...(this.fileInput.files ?? [])];
     let result;
     try {
-      result = await importFiles(this.fileInput.files ?? []);
+      result = await addFiles(files);
     } catch (e) {
+      if (e instanceof NoAccess) {
+        // Kept, as files shared to Volti are, until it may write in the scores folder.
+        await putInbox(files);
+        lib.say('Volti needs access to the scores folder to add them: they are added once it is allowed.');
+        return;
+      }
       console.error(e);
       lib.say(`Could not add them (${(e as Error).name}).`);
       return;
@@ -141,7 +148,6 @@ export class ScoresSection {
     const n = setlistsWith(lib.setlists, s.id).length;
     const meta = [names.length ? plural(names.length, 'excerpt') : '', n ? `in ${plural(n, 'setlist')}` : ''].filter(Boolean).join(' · ');
     if (meta) title.append(el('span', 'score-folder', meta));
-    if (s.added) title.append(el('span', 'badge', 'Added'));
 
     const more = moreButton(titleOf(s.path), (at) => showMenu(at, titleOf(s.path), [
       ...lib.addToItems(at, s.id, titleOf(s.path)),
@@ -149,9 +155,15 @@ export class ScoresSection {
       { label: 'Rename…', run: () => renameFile(this.files, s) },
       { label: 'Export PDF…', run: () => lib.exportPdf(titleOf(s.path), [{ scoreId: s.id }]) },
       { label: 'Move to folder…', run: () => moveToFolder(this.files, s, subfolders(lib.originals)) },
-      s.added && { label: 'Remove from Volti', run: async () => {
-        await s.remove();
-        lib.say(`Removed “${titleOf(s.path)}”.`);
+      { label: 'Remove', run: async () => {
+        try {
+          await s.remove();
+        } catch (e) {
+          if (!(e instanceof NoAccess)) console.error(e);
+          lib.say(e instanceof NoAccess ? 'Volti needs permission to change files in the scores folder to remove one.' : `Could not remove it (${(e as Error).name}).`);
+          return;
+        }
+        lib.say(`Removed “${titleOf(s.path)}”. It is in Recently removed for a week.`);
         lib.filesChanged([{ gone: s.id }]);
       } },
     ]));

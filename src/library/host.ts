@@ -38,7 +38,7 @@ export interface LibraryHost {
   deleteSetlist(s: Setlist): Promise<void>;
   /** Note the setlist scores were just added to, which is the default from now on. */
   addedTo(id: string): void;
-  /** Read the folder and the imported copies again, and show them. */
+  /** Read the library's root (the scores folder, or the app's own) again, and show it. */
   refresh(): Promise<void>;
   /** Read the scores folder again when asked to, asking for access first if need be, and say what was found. */
   checkFolder(): Promise<void>;

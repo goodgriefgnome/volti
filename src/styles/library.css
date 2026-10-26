@@ -106,5 +106,11 @@
 .part-meta { background: var(--part-meta); }
 .part-added { background: var(--part-added); }
 .part-cache { background: var(--part-cache); }
+.part-trash { background: var(--part-trash); }
 .part-app { background: var(--part-app); }
 .part-other { background: var(--muted); }
+
+/* Recently removed, from the library's ⋯ menu: a file a row, with Put back at its end. */
+.removed-list { list-style: none; margin: 0; padding: 0; display: grid; max-height: calc(var(--seen-height, 100vh) * 0.5); overflow: auto; border-block: 1px solid var(--line); }
+.removed-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+.removed-row + .removed-row { border-top: 1px solid var(--line); }

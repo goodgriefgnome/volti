@@ -1,5 +1,5 @@
 // Dialogs about a score's file, from the library's score rows and a score's reader: renaming its
-// PDF (or image), and moving it to a subfolder (an added one is only listed there).
+// PDF (or image), and moving it to a subfolder.
 
 import { fileNameProblem, NoAccess, folderOf, pathInFolder, pathWithTitle, titleOf, type Original } from '../originals';
 import { askText, el } from '../ui';
@@ -21,9 +21,7 @@ export function renameFile(h: ScoreFileHost, o: Original) {
     value: titleOf(o.path),
     label: 'File name',
     okLabel: 'Rename',
-    below: [el('p', 'hint', !o.added
-      ? `Renames “${o.path.slice(o.path.lastIndexOf('/') + 1)}” in the scores folder.`
-      : 'Renames the copy kept in Volti.')],
+    below: [el('p', 'hint', `Renames “${o.path.slice(o.path.lastIndexOf('/') + 1)}”.`)],
     check: async (title) => {
       const why = fileNameProblem(title);
       if (why) return why;
@@ -45,8 +43,7 @@ export function renameFile(h: ScoreFileHost, o: Original) {
 
 /**
  * Move a score to a subfolder: one of `folders` (the library's subfolders), or a new one; None
- * takes it back to the top. An added score is only listed there (the PDF stays in Volti); a score
- * from the scores folder has its file moved there, making the folders that aren't there yet.
+ * takes it back to the top. Its file is moved there, making the folders that aren't there yet.
  */
 export function moveToFolder(h: ScoreFileHost, o: Original, folders: readonly string[]) {
   const file = o.path.slice(o.path.lastIndexOf('/') + 1);
@@ -58,9 +55,7 @@ export function moveToFolder(h: ScoreFileHost, o: Original, folders: readonly st
     okLabel: 'Move',
     // The subfolders there are.
     choices: [...folders],
-    below: [el('p', 'hint', !o.added
-      ? `Moves “${file}” into that folder in the scores folder, making it if it isn’t there yet.`
-      : 'Volti lists it under that folder, beside the scores folder’s own PDFs there. The PDF itself stays where it is.')],
+    below: [el('p', 'hint', `Moves “${file}” into that folder, making it if it isn’t there yet.`)],
     alt: { label: 'None', text: '' },
     check: async (folder) => {
       try {

@@ -4,7 +4,7 @@
 
 import { registerSW } from 'virtual:pwa-register';
 import { Library } from './library';
-import { importShared } from './originals';
+import { purgeRemoved } from './originals';
 import { el, followVisibleArea } from './ui';
 import { takeUpdate, watchForUpdates } from './updates';
 // In this order: later files build on the earlier ones.
@@ -28,14 +28,15 @@ async function start() {
   await takeUpdate(() => { note.textContent = 'Updating Volti…'; });
   splash.remove();
 
-  // Keep imported scores and markings from being cleared when the tablet runs low on space.
+  // Keep the scores added to the app, and markings, from being cleared when the tablet runs low on space.
   void navigator.storage?.persist?.().catch(() => {});
 
   const library = new Library();
   void watchForUpdates((take) => library.offerUpdate(take));
-  const shared = await importShared().catch(() => 0);
+  // Files removed a week ago or more are deleted for good.
+  await purgeRemoved().catch((e) => console.warn('Could not clear out Recently removed:', e));
+  await library.addShared();
   if (location.search.includes('shared')) history.replaceState(null, '', location.pathname);
-  if (shared) library.say(`Added ${shared} shared score${shared === 1 ? '' : 's'}.`);
   await library.refresh();
 }
 

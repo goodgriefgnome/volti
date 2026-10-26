@@ -17,21 +17,28 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   asks for access again with one tap (**Allow access**, beside the name); a setlist whose pages
   are saved plays without it, asking only for a page that isn't. Coming back to Volti after a
   while (say, from the Files app) reads the folder again, so PDFs added meanwhile appear.
+- Without a linked folder (before one is linked, or where the browser can't link one), the
+  library is a folder of Volti's own, inside the app, read the same way. Unlinking leaves the
+  library empty; cuts, markings and setlists stay, for when the folder is linked again.
 - The **⋯** beside the name has the scores folder's **Check for new scores**, **Change folder…**
-  and **Unlink**, and the storage Volti uses on the tablet: metadata (cuts, markings, setlists),
-  added scores, the setlist cache (pictures of the pages setlists play) and the offline binary
-  (the app itself, kept for working offline).
+  and **Unlink**, **Recently removed…**, and the storage Volti uses on the tablet: metadata (cuts,
+  markings, setlists), added scores (those in Volti's own folder), the setlist cache (pictures of
+  the pages setlists play), the trash (Recently removed) and the offline binary (the app itself,
+  kept for working offline).
 - The scores at the top of the folder come first, then a list for each subfolder ("Masses /
   Latin"), which its heading opens and closes; Volti remembers which are closed.
 - An image (a photo or scan: JPEG, PNG, WebP, or HEIC where the tablet can show it) is a score of
-  one page, in the folder or added, just like a PDF; a photo shows the way up the camera held it.
-- **Add PDFs** (images too), or **Share** a PDF or image to Volti from Files, Gmail or Drive, keeps a copy inside the app.
-  A copy of a PDF that is also in the scores folder is deleted; the score stays.
-  **Move to folder…** in its **⋯** menu lists it under a subfolder (one there is, or a new one);
-  the PDF itself stays in Volti, and **None** takes it back to the top.
-- **Move to folder…** for a score in the scores folder moves its file into that subfolder of the
-  scores folder, making the folder if it isn't there yet; **None** moves it to the top. Its
-  cuts, markings and setlists stay with it. A folder it leaves empty stays.
+  one page, just like a PDF; a photo shows the way up the camera held it.
+- **Add PDFs** (images too), or **Share** a PDF or image to Volti from Files, Gmail or Drive, puts
+  it at the top of the library: into the scores folder, or Volti's own while none is linked. A
+  file the library already has isn't added again. Shared files wait until Volti may write in the
+  scores folder.
+- **Move to folder…** in a score's **⋯** menu moves its file into a subfolder (one there is, or a
+  new one), making the folder if it isn't there yet; **None** moves it to the top. Its cuts,
+  markings and setlists stay with it. A folder it leaves empty stays.
+- **Remove** in a score's **⋯** menu moves its file into **Recently removed** for a week, then it
+  is deleted for good; **Put back** there puts it back where it was. Its cuts, markings and
+  excerpts stay, as for any score whose file is missing.
 - A PDF protected by a password asks for it the first time it is opened. Volti remembers it on
   this tablet, so it asks only once. An exported PDF of it has no password. Until its password is
   given, it shows a lock in the library, and adding it to a setlist asks for the password first.

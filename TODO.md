@@ -15,23 +15,6 @@ scores.
 
 In this order:
 
-- **One root for the library:** the linked scores folder when there is one, the origin private
-  file system (OPFS) when there isn't (before one is linked, or where the browser can't link
-  one). Both are folders with true paths, read, moved, removed and listed by the same code; what
-  differs between them (asking for access, the listing remembered while locked) belongs to the
-  root, not to each original. So added scores are kept at their paths in OPFS, not under their
-  hashes (no moving over: there are no added scores yet), and with one root there are no copies
-  of a file in two places to choose between, nor an Added badge.
-  - Added files go into the root, at its top.
-  - Unlinking leaves the library empty: scores, markings and setlists stay, kept by hash, for
-    when the folder is linked again.
-  - **Recently removed:** removing a score moves its file into a private store in OPFS (with
-    where it was and when), deleted for good after a week (looked at on start-up). A list of
-    them, from the library's ⋯ menu, restores one to where it was (through the screen below
-    where that path is taken). Its cuts, markings and named excerpts stay, as for any score
-    whose file is missing. The storage breakdown (`library/storage.ts`) gets a part of its own
-    for them, Trash, beside Added scores and Setlist cache.
-  - Files deleted outside Volti (in the Files app) aren't in the list: Volti only finds them gone.
 - **Incoming files:** a screen for files coming into the library, shared from another app or
   from Add PDFs, which always opens for them: shared files wait in the inbox until access to the
   folder is allowed, then open in it. Each file is a row with:
@@ -55,6 +38,16 @@ In this order:
 
 Things to try on the tablet.
 
+- **One root for the library:** with no folder linked, Add PDFs and sharing put files at the top
+  of Volti's own folder; moving and renaming them; linking a folder shows only its scores (those
+  in Volti's own folder come back on unlinking, until linking moves them in), and unlinking
+  leaves the library empty, with markings and setlists back when it is linked again. With a
+  folder linked, Add PDFs and sharing put files at the top of the folder (in the Files app too);
+  before Allow access they wait, and are added once it is tapped. No Added badge anywhere.
+- **Recently removed:** Remove in a score's ⋯ menu (library and reader) takes its file out of
+  the folder (gone in the Files app too); the library's ⋯ menu lists it under Recently removed,
+  and Put back puts it where it was, with its cuts and markings. A week later it is gone from the
+  list. The storage view shows Trash.
 - **Access asked for by what reads the folder:** after a restart, before tapping Allow access:
   opening a score from the folder, adding a locked one to a setlist, opening one for a dialog
   (Add excerpt), and renaming or moving one each ask for access themselves; refusing says so,
@@ -85,10 +78,6 @@ Things to try on the tablet.
 - **Locked scores:** a password-protected PDF whose password hasn't been given shows a lock in
   the library and in Add scores (one that only stops printing or copying doesn't); adding it to a
   setlist asks for the password, Cancel leaves it out, and once given the lock goes.
-- **Added scores after the update:** each added score is where it was, under its folder in the
-  library, with its markings and setlists (their files are now kept under their ids: they are
-  moved over once, the first time the library is read). Moving and renaming one; adding a file
-  whose name an added score in another folder has.
 - **Opening times:** opening a large PDF, and a large phone photo, now that every original is read
   as a PDF (a PDF is read by pdf-lib too, to see whether it is encrypted; an image is made into a
   one-page PDF): how long the first page takes, compared with before.

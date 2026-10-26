@@ -5,7 +5,7 @@
 import { chooseSetlist, givePassword, openExportPdf, openScore, type ExcerptHost, type ExcerptSource, type FileChange, type LibraryScore } from '../dialogs';
 import type { Span } from '../excerpts';
 import type { ExportPart } from '../export';
-import { allOriginals, byFolder, byTitle, folderState, knownTitles, linkFolder, lockedOriginals, NoAccess, PasswordNotGiven, titleOf, unlinkFolder, unlockFolder, type FolderState, type Original } from '../originals';
+import { addShared, allOriginals, byFolder, byTitle, folderState, knownTitles, linkFolder, lockedOriginals, NoAccess, PasswordNotGiven, titleOf, unlinkFolder, unlockFolder, type FolderState, type Original } from '../originals';
 import { makePictures } from '../pictures';
 import { openReader, type ToRead } from '../reader';
 import { loadAspects, loadSavedScore, scoreEntry, type Aspects, type ExcerptName, type Score } from '../scores';
@@ -21,7 +21,7 @@ const AWAY_MS = 30_000;
 /** Said when access to the scores folder isn't allowed, so a score in it can't be opened. */
 const NO_ACCESS = 'Volti needs access to the folder to open its scores.';
 
-/** The Library screen: setlists, the scores folder, imported scores, and the list to open them from. */
+/** The Library screen: setlists, the scores in its root (the scores folder, or the app's own), and the list to open them from. */
 export class Library implements LibraryHost {
   folder: FolderState = { kind: 'none' };
   originals: Original[] = [];
@@ -125,14 +125,13 @@ export class Library implements LibraryHost {
     let shown = false;
     try {
       // New PDFs are read whole to know them: show the others meanwhile, and each as it is read.
-      const { originals, removed } = await allOriginals(this.folder, (originals, left) => {
+      const originals = await allOriginals(this.folder, (originals, left) => {
         this.originals = originals;
         this.reading = left > 0;
         this.say(left ? `Reading new scores: ${left} left…` : before ?? '');
         if (!shown) { shown = true; void this.loadSetlists().then(() => this.scoresSection.render()); } else this.scoresSection.render();
       });
       this.originals = originals;
-      if (removed) this.toast.say(`Removed ${plural(removed, 'added copy', 'added copies')} of scores in the scores folder. Their cuts and markings are kept.`);
     } catch (e) {
       // The folder may have been moved or deleted since it was linked.
       console.error(e);
@@ -157,7 +156,7 @@ export class Library implements LibraryHost {
 
   /** Work out which scores are locked, in the background (new PDFs are looked at once), and show them. */
   private async findLocked() {
-    const readable = (o: Original) => o.added || this.folder.kind === 'ready';
+    const readable = () => this.folder.kind !== 'locked';
     const locked = await lockedOriginals(this.originals, readable).catch((e) => { console.warn(e); return this.locked; });
     if ([...locked].join() === [...this.locked].join()) return;
     this.locked = locked;
@@ -177,9 +176,23 @@ export class Library implements LibraryHost {
 
   async unlock(): Promise<boolean> {
     const ok = await unlockFolder();
-    if (ok) await this.refresh();
-    else this.say(NO_ACCESS);
+    if (ok) { await this.refresh(); await this.addShared(); } else this.say(NO_ACCESS);
     return ok;
+  }
+
+  /**
+   * Add the files shared to Volti, saying how many; they wait while the scores folder can't be
+   * written to, and that is said too.
+   */
+  async addShared() {
+    try {
+      const n = await addShared();
+      if (n) { this.say(`Added ${plural(n, 'score')}.`); await this.refresh(); }
+    } catch (e) {
+      if (e instanceof NoAccess) { this.say('Files shared to Volti are added once it has access to the scores folder.'); return; }
+      console.error(e);
+      this.say('Could not add the files shared to Volti.');
+    }
   }
 
   async unlink() {

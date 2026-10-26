@@ -3,7 +3,7 @@ import { byFolder } from './by-folder';
 import type { Original } from './original';
 
 /** An original `id` in `folder`, only for listing. */
-const at = (id: string, folder: string) => ({ id, added: false, path: (folder ? folder + '/' : '') + id + '.pdf' }) as Original;
+const at = (id: string, folder: string) => ({ id, path: (folder ? folder + '/' : '') + id + '.pdf' }) as Original;
 
 describe('byFolder', () => {
   it('lists the top of the folder first, then each subfolder by path, keeping the order within', () => {

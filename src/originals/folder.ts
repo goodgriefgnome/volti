@@ -1,6 +1,8 @@
-// The linked scores folder (File System Access): linking it, asking for access to it, finding the
-// PDFs in it and its subfolders, the listing remembered for while access is locked, and the Exports
-// folder in it. The only code that holds the folder's handle.
+// The library's root: the linked scores folder (File System Access) when there is one, and the
+// app's own folder in the origin private file system (OPFS) when there isn't. Both are folders with
+// true paths, read the same way; what differs is the root's: linking a folder, asking for access to
+// it, and the listing remembered for while access is locked. Also the Exports folder in a linked
+// folder. The only code that holds the folder's handle.
 
 import { keys, kv } from '../storage';
 import { isOriginalName } from './names';
@@ -14,10 +16,24 @@ const MAX_DEPTH = 4;
 
 let dir: FileSystemDirectoryHandle | undefined;
 
+/** The library's root in OPFS, used while no folder is linked. */
+const appRoot = async () => (await navigator.storage.getDirectory()).getDirectoryHandle('library', { create: true });
+
+/** The linked folder, if there is one. */
+const linked = async () => (dir ??= await kv.get<FileSystemDirectoryHandle>(keys.folder));
+
+/** The library's root: the linked folder, or the app's own. Access to a linked one must be allowed. */
+async function root(): Promise<FileSystemDirectoryHandle> {
+  return (await linked()) ?? appRoot();
+}
+
+/** Where a file in the root is, for remembering its hash: the linked folder's and the app's are kept apart. */
+export const whereIs = async (path: string) => ((await linked()) ? 'folder/' : 'app/') + path;
+
 export const canLinkFolder = () => 'showDirectoryPicker' in window;
 
 export async function folderState(): Promise<FolderState> {
-  dir ??= await kv.get<FileSystemDirectoryHandle>(keys.folder);
+  const dir = await linked();
   if (!dir) return { kind: 'none' };
   const perm = await dir.queryPermission({ mode: 'read' });
   return perm === 'granted' ? { kind: 'ready', name: dir.name } : { kind: 'locked', name: dir.name };
@@ -40,6 +56,7 @@ export async function linkFolder(): Promise<boolean> {
  * don't ask again this session; when that is refused, asks to read them only.
  */
 export async function unlockFolder(): Promise<boolean> {
+  const dir = await linked();
   if (!dir) return false;
   if ((await dir.requestPermission({ mode: 'readwrite' }).catch(() => 'denied')) === 'granted') return true;
   return (await dir.requestPermission({ mode: 'read' })) === 'granted';
@@ -51,12 +68,13 @@ export class NoAccess extends Error {
 }
 
 /**
- * Make sure the linked folder can be read (`read`) or changed too (`readwrite`), asking for access
- * where it isn't allowed yet. Asking works only from a tap: elsewhere, or when it is refused, throws
- * NoAccess.
+ * Make sure the root can be read (`read`) or changed too (`readwrite`), asking for access to a
+ * linked folder where it isn't allowed yet (the app's own needs none). Asking works only from a
+ * tap: elsewhere, or when it is refused, throws NoAccess.
  */
 export async function needAccess(mode: 'read' | 'readwrite'): Promise<void> {
-  if (!dir) throw new NoAccess('No folder linked');
+  const dir = await linked();
+  if (!dir) return;
   if ((await dir.queryPermission({ mode })) === 'granted') return;
   if ((await dir.requestPermission({ mode }).catch(() => 'denied')) !== 'granted') throw new NoAccess(`No access to the scores folder (${mode})`);
 }
@@ -78,36 +96,34 @@ async function walk(d: FileSystemDirectoryHandle, prefix: string, depth: number,
   }
 }
 
-/** The file at `path` in the linked folder. Access must be allowed. */
+/** The file at `path` in the root. Access must be allowed. */
 export async function fileAt(path: string): Promise<File> {
   const [d, name] = await placeOf(path);
   return (await d.getFileHandle(name)).getFile();
 }
 
-/** The folder a path in the linked folder is in, and the file's name. */
+/** The folder a path in the root is in, and the file's name. */
 export async function placeOf(path: string): Promise<[FileSystemDirectoryHandle, string]> {
-  if (!dir) throw new Error('No folder linked');
   const parts = path.split('/');
-  let d = dir;
+  let d = await root();
   for (const p of parts.slice(0, -1)) d = await d.getDirectoryHandle(p);
   return [d, parts.at(-1)!];
 }
 
 /**
- * The subfolder `path` of the linked folder ('' for the folder itself), making the folders on it
- * that aren't there yet. Write access must have been allowed.
+ * The subfolder `path` of the root ('' for the root itself), making the folders on it that aren't
+ * there yet. Write access must have been allowed.
  */
 export async function makeFolder(path: string): Promise<FileSystemDirectoryHandle> {
-  if (!dir) throw new Error('No folder linked');
-  let d = dir;
+  let d = await root();
   for (const p of path ? path.split('/') : []) d = await d.getDirectoryHandle(p, { create: true });
   return d;
 }
 
-/** The PDFs and images in the linked folder, read now, by path; access must be granted. */
+/** The PDFs and images in the root, read now, by path; access must be granted. */
 export async function folderFiles(): Promise<{ path: string; file: File }[]> {
   const found: [string, FileSystemFileHandle][] = [];
-  await walk(dir!, '', 0, found);
+  await walk(await root(), '', 0, found);
   return Promise.all(found.map(async ([path, h]) => ({ path, file: await h.getFile() })));
 }
 
@@ -118,13 +134,37 @@ export const EXPORTS = 'Exports';
 
 /** The exports folder, made if it isn't there yet; asks for write access (from a tap), or throws NoAccess. */
 const exportsDir = async () => {
+  const dir = await linked();
+  if (!dir) throw new Error('No folder linked');
   await needAccess('readwrite');
-  return dir!.getDirectoryHandle(EXPORTS, { create: true });
+  return dir.getDirectoryHandle(EXPORTS, { create: true });
 };
 
 /** Whether `name`.pdf is in the exports folder. Asks for write access (from a tap), or throws NoAccess. */
 export async function exportExists(name: string): Promise<boolean> {
   return (await exportsDir()).getFileHandle(name.trim() + '.pdf').then(() => true, () => false);
+}
+
+/** Write a new file `name` in `d`, or over the one of that name; one that fails part way is deleted. */
+export async function writeFile(d: FileSystemDirectoryHandle, name: string, data: Blob | ArrayBuffer) {
+  const h = await d.getFileHandle(name, { create: true });
+  try {
+    const w = await h.createWritable();
+    await w.write(data);
+    await w.close();
+  } catch (e) {
+    await d.removeEntry(name).catch(() => {});
+    throw e;
+  }
+}
+
+/** How much room the files in the app's own root take, in bytes. */
+export async function appRootBytes(): Promise<number> {
+  const found: [string, FileSystemFileHandle][] = [];
+  await walk(await appRoot(), '', 0, found);
+  let n = 0;
+  for (const [, h] of found) n += (await h.getFile()).size;
+  return n;
 }
 
 /**
@@ -137,14 +177,16 @@ export async function saveExport(name: string, data: Blob): Promise<void> {
   await w.close();
 }
 
-/** The linked folder's PDFs as last read. */
+/** The linked folder's PDFs as last read; none while no folder is linked. */
 export const rememberedListing = async () => (await kv.get<ListingEntry[]>(keys.folderListing)) ?? [];
 
-export const saveListing = (listing: ListingEntry[]) => kv.set(keys.folderListing, listing);
+/** Remember the root's PDFs, as just read, where it is a linked folder. */
+export const saveListing = async (listing: ListingEntry[]) => { if (await linked()) await kv.set(keys.folderListing, listing); };
 
 /**
  * Note in the remembered listing that score `id`'s file is at `path` now (renamed or moved), or
  * with no `path`, that it is gone.
  */
-export const relist = (id: string, path?: string) =>
-  kv.update<ListingEntry[]>(keys.folderListing, (old) => (old ?? []).flatMap((e) => (e.id !== id ? [e] : path ? [{ ...e, path }] : [])));
+export const relist = async (id: string, path?: string) => {
+  if (await linked()) await kv.update<ListingEntry[]>(keys.folderListing, (old) => (old ?? []).flatMap((e) => (e.id !== id ? [e] : path ? [{ ...e, path }] : [])));
+};

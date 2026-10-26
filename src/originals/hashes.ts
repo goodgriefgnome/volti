@@ -6,7 +6,7 @@ import { keys, kv } from '../storage';
 /** A file's hash, good while its size and modified time stay the same. */
 interface Hashed { size: number; modified: number; id: string }
 
-/** Hashes by where the file is: "folder/" + path (and, before added scores were kept under their ids, "imported/" + name). */
+/** Hashes by where the file is: "folder/" + its path in the linked folder, or "app/" + its path in the app's own. */
 type HashCache = Record<string, Hashed>;
 
 const hex = (b: ArrayBuffer) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
@@ -35,8 +35,8 @@ export class Hasher {
   }
 
   /** Remember the files hashed this time, and those under `keep` (places not looked at this time). */
-  save(keep?: string) {
-    const kept = keep ? Object.entries(this.before).filter(([k]) => k.startsWith(keep)) : [];
+  save(keep: readonly string[] = []) {
+    const kept = Object.entries(this.before).filter(([k]) => keep.some((p) => k.startsWith(p)));
     return kv.set(keys.hashes, { ...Object.fromEntries(kept), ...this.now });
   }
 }

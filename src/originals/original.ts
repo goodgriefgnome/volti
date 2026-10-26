@@ -1,25 +1,21 @@
-// An original: a score's file, in the linked scores folder or added to Volti, known by the hash of its
-// contents. What it holds is read only as a PDF (contents.ts), whatever the file is; it can be moved
-// (renamed, or into another folder) and removed, asking for the access to the scores folder that
-// needs. There is one Original for each id, so a move shows wherever it is held.
+// An original: a score's file, at its path in the library's root (the linked scores folder, or the
+// app's own), known by the hash of its contents. What it holds is read only as a PDF (contents.ts),
+// whatever the file is; it can be moved (renamed, or into another folder) and removed (into Recently
+// removed), asking for the access to the scores folder that needs. There is one Original for each
+// id, so a move shows wherever it is held.
 
 import { pdfOf, type OriginalPdf } from './contents';
-import { fileAt, makeFolder, needAccess, placeOf, relist } from './folder';
+import { fileAt, makeFolder, needAccess, placeOf, relist, whereIs } from './folder';
 import { rememberHash } from './hashes';
-import { addedFile, addedScores, fileAdded, removeAdded } from './imported';
 import { folderOf, isOriginalName, tidyPath } from './names';
 import type { AskPassword } from './open';
+import { removeFile } from './removed';
 
-/** A score's original: a PDF or an image, in the linked folder or added to Volti. */
+/** A score's original: a PDF or an image in the library. */
 export interface Original {
   /** The SHA-256 of the file's contents, in hex; also the id of the score made from it. */
   readonly id: string;
-  /** Added to Volti and kept in it, rather than in the linked scores folder. */
-  readonly added: boolean;
-  /**
-   * Where it is ("Masses/Latin/Mass in G.pdf"): its path in the scores folder, or for an added one,
-   * where it is filed in the library (the file itself is kept under its id).
-   */
+  /** Where it is in the library's root: "Masses/Latin/Mass in G.pdf". */
   readonly path: string;
   /**
    * What it holds, as a PDF (contents.ts): a password it needs is asked of `ask`. Throws
@@ -32,7 +28,7 @@ export interface Original {
    * of that name is there already); throws NoAccess when the scores folder can't be changed.
    */
   move(path: string): Promise<string | null>;
-  /** Delete its file. Throws NoAccess when the scores folder can't be changed. */
+  /** Move its file into Recently removed. Throws NoAccess when the scores folder can't be changed. */
   remove(): Promise<void>;
 }
 
@@ -40,15 +36,13 @@ export interface Original {
 const nameOf = (path: string) => path.slice(path.lastIndexOf('/') + 1);
 
 /** A folder as the user reads it, for saying where a file is. */
-const shown = (folder: string, added: boolean) =>
-  folder ? folder.split('/').join(' / ') : added ? 'the top of the list' : 'the top of the scores folder';
+const shown = (folder: string) => (folder ? folder.split('/').join(' / ') : 'the top of the library');
 
 class FileOriginal implements Original {
-  constructor(readonly id: string, public added: boolean, public path: string) {}
+  constructor(readonly id: string, public path: string) {}
 
   /** Its file. */
   async file(): Promise<File> {
-    if (this.added) return addedFile(this.id);
     await needAccess('read');
     return fileAt(this.path);
   }
@@ -61,23 +55,15 @@ class FileOriginal implements Original {
     const to = tidyPath(path);
     if (to === this.path) return null;
     if (!isOriginalName(to)) return `“${nameOf(to)}” doesn’t end in .pdf or an image’s ending, so Volti wouldn’t find it.`;
-    return this.added ? this.moveAdded(to) : this.moveInFolder(to);
+    return this.moveInRoot(to);
   }
 
   /** There is a file called `name` where it is being moved. */
   private taken(name: string, folder: string) {
-    return folder === folderOf(this.path) ? `There is already a file called “${name}” there.` : `There is already a file called “${name}” in ${shown(folder, this.added)}.`;
+    return folder === folderOf(this.path) ? `There is already a file called “${name}” there.` : `There is already a file called “${name}” in ${shown(folder)}.`;
   }
 
-  private async moveAdded(to: string): Promise<string | null> {
-    const others = (await addedScores()).filter((s) => s.id !== this.id);
-    if (others.some((s) => s.path.toLowerCase() === to.toLowerCase())) return this.taken(nameOf(to), folderOf(to));
-    await fileAdded(this.id, to);
-    this.path = to;
-    return null;
-  }
-
-  private async moveInFolder(to: string): Promise<string | null> {
+  private async moveInRoot(to: string): Promise<string | null> {
     await needAccess('readwrite');
     const [from, old] = await placeOf(this.path);
     const folder = folderOf(to), name = nameOf(to);
@@ -108,21 +94,19 @@ class FileOriginal implements Original {
       // Both are the same score now, so one left behind only shows twice in the Files app.
       if (!(await from.removeEntry(old).then(() => true, () => false))) {
         return same ? `Copied it as “${name}”, but couldn't delete “${old}”. Delete it in the Files app.`
-          : `Copied it into ${folder || 'the top of the scores folder'}, but couldn't delete it here. Delete it in the Files app.`;
+          : `Copied it into ${shown(folder)}, but couldn't delete it here. Delete it in the Files app.`;
       }
     }
     // The same contents, so the same id: no need to read it again.
-    await rememberHash('folder/' + now, await (await into.getFileHandle(name)).getFile(), this.id);
+    await rememberHash(await whereIs(now), await (await into.getFileHandle(name)).getFile(), this.id);
     await relist(this.id, now);
     this.path = now;
     return null;
   }
 
   async remove(): Promise<void> {
-    if (this.added) return removeAdded(this.id);
     await needAccess('readwrite');
-    const [d, name] = await placeOf(this.path);
-    await d.removeEntry(name);
+    await removeFile(this.id, this.path);
     await relist(this.id);
   }
 }
@@ -130,11 +114,11 @@ class FileOriginal implements Original {
 /** Each id's Original. */
 const made = new Map<string, FileOriginal>();
 
-/** The Original with id `id`, `added` or not, at `path`: the one already made for it, brought up to date. */
-export function originalOf(id: string, added: boolean, path: string): Original {
+/** The Original with id `id` at `path`: the one already made for it, brought up to date. */
+export function originalOf(id: string, path: string): Original {
   let o = made.get(id);
-  if (!o) made.set(id, (o = new FileOriginal(id, added, path)));
-  else { o.added = added; o.path = path; }
+  if (!o) made.set(id, (o = new FileOriginal(id, path)));
+  else o.path = path;
   return o;
 }
 

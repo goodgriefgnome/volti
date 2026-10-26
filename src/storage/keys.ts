@@ -8,16 +8,18 @@ export const keys = {
   /** The linked folder's PDFs as last read, { path, id }[], listed while access is locked (originals/folder.ts). */
   folderListing: 'folder-files',
   /**
-   * Each scores-folder original's SHA-256 as last worked out, with the size and modified time it
-   * was worked out for, by "folder/" + path (originals/hashes.ts).
+   * Each original's SHA-256 as last worked out, with the size and modified time it was worked out
+   * for, by "folder/" + its path in the linked folder, or "app/" + its path in the app's own
+   * (originals/hashes.ts).
    */
   hashes: 'hashes',
   /** Each original's title as last seen, by id: for scores whose original is missing (originals/originals.ts). */
   titles: 'titles',
-  /** Where each added score is in the library, by id ("Masses/Latin/Mass in G.pdf"); its file is kept under its id (originals/imported.ts). */
-  addedPaths: 'added-paths',
-  /** Gone: the subfolder each added score was filed under, by id. Read once, to move added scores over to `addedPaths` (originals/imported.ts). */
-  addedFolders: 'added-folders',
+  /**
+   * Files removed from the library in the last week, kept in OPFS: { key, id, path, at } by the
+   * key each is kept under (originals/removed.ts).
+   */
+  removed: 'removed',
   /** The library's subfolder lists closed by hand, by path (library/store.ts). */
   closedFolders: 'closed-folders',
   /**
@@ -25,7 +27,7 @@ export const keys = {
    * only limits what may be done with it. Worked out once (originals/locks.ts).
    */
   locks: 'locks',
-  /** Files shared into the app, waiting to be imported: File[] (originals/inbox.ts). */
+  /** Files shared into the app, waiting to be added to the library: File[] (originals/inbox.ts). */
   inbox: 'inbox',
 
   /*

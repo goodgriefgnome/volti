@@ -1,10 +1,11 @@
 // The tools at the top of the library, beside the name: the scores folder's buttons (Link scores
-// folder, Allow access), the library's ⋯ menu (the scores folder, and the storage used), and
-// Update when a new version of the app is ready.
+// folder, Allow access), the library's ⋯ menu (the scores folder, Recently removed, and the storage
+// used), and Update when a new version of the app is ready.
 
 import { canLinkFolder } from '../originals';
 import { button, el, showMenu } from '../ui';
 import type { LibraryHost } from './host';
+import { openRecentlyRemoved } from './removed';
 import { storageView } from './storage';
 import { moreButton } from './rows';
 
@@ -20,7 +21,7 @@ export class FolderBanner {
   /**
    * The scores folder's tools, for a folder that is set and forget: the one button that needs a
    * tap (Link scores folder while none is linked, Allow access while locked), then the library's
-   * ⋯ menu: the scores folder's items, and the storage Volti uses on the tablet.
+   * ⋯ menu: the scores folder's items, Recently removed, and the storage Volti uses on the tablet.
    */
   render() {
     const { lib } = this, p = this.folderTools, f = lib.folder;
@@ -32,6 +33,7 @@ export class FolderBanner {
       f.kind !== 'none' && { label: 'Check for new scores', run: () => void lib.checkFolder() },
       f.kind !== 'none' && { label: 'Change folder…', run: () => void lib.link() },
       f.kind !== 'none' && { label: 'Unlink', run: () => void lib.unlink() },
+      { label: 'Recently removed…', run: () => void openRecentlyRemoved(lib) },
       'Storage used on this tablet',
       storageView(),
     ]), 'More'));

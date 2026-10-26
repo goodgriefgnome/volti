@@ -6,7 +6,7 @@
 import { addExcerpt, askSetlistName, changeExcerptCuts, chooseSetlist, deleteExcerpt, givePassword, moveToFolder, openAddScores, openExcerptPicker, openExportPdf, openScore, renameExcerpt, renameFile, type ExcerptHost, type ExcerptSource, type FileChange, type ScoreFileHost } from '../dialogs';
 import { ends, nameOf, sortedNames, spanLabel, spanOf, type Span } from '../excerpts';
 import type { ExportPart } from '../export';
-import { folderState, lockedOriginals, PasswordNotGiven, subfolders, titleOf, type Original, type PageCache } from '../originals';
+import { folderState, lockedOriginals, NoAccess, PasswordNotGiven, subfolders, titleOf, type Original, type PageCache } from '../originals';
 import { loadSavedScore, saveScore, type ExcerptName, type Score } from '../scores';
 import { addEntries, defaultSetlist, deleteSetlist, duplicate, loadLastAddedTo, moveEntry, saveLastAddedTo, withSetlist, type Entry, type Setlist } from '../setlists';
 import { button, buttonRow, closeOverlay, dpr, el, plural, showDialog, showMenu, type MenuItem } from '../ui';
@@ -98,7 +98,7 @@ export class ReaderMenus {
       o && { label: 'Rename…', run: () => renameFile(this.files(), o) },
       { label: 'Export PDF…', run: () => void this.exportPdf() },
       o && { label: 'Move to folder…', run: () => moveToFolder(this.files(), o, subfolders(this.h.library)) },
-      o?.added && { label: 'Remove from Volti', run: () => void this.remove(o) },
+      o && { label: 'Remove', run: () => void this.remove(o) },
     ]);
   }
 
@@ -134,9 +134,15 @@ export class ReaderMenus {
     };
   }
 
-  /** Take an added PDF out of Volti, and go back to the library. */
+  /** Move the score's file into Recently removed, and go back to the library. */
   private async remove(o: Original) {
-    await o.remove();
+    try {
+      await o.remove();
+    } catch (e) {
+      if (!(e instanceof NoAccess)) console.error(e);
+      this.h.say(e instanceof NoAccess ? 'Volti needs permission to change files in the scores folder to remove one.' : `Could not remove it (${(e as Error).name}).`);
+      return;
+    }
     this.h.filesChanged({ gone: o.id });
     this.h.leave();
   }
@@ -222,10 +228,10 @@ export class ReaderMenus {
     const { reading } = this.h, originals = this.h.library;
     // The scores as saved: a preview opens them from there.
     await this.h.saver.flush();
-    const ready = (await folderState()).kind === 'ready';
+    const readable = (await folderState()).kind !== 'locked';
     const [saved, locked] = await Promise.all([
       Promise.all(originals.map((o) => loadSavedScore(o.id))),
-      lockedOriginals(originals, (o) => o.added || ready),
+      lockedOriginals(originals, () => readable),
     ]);
     const s = reading.setlist;
     if (!s) return;
