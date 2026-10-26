@@ -4,7 +4,7 @@
 // Other directories import originals/ only from here.
 
 export { byFolder, subfolders } from './by-folder';
-export { leftInApp, putIncoming, readIncoming } from './adding';
+export { leftInApp, readIncoming, removedSource } from './adding';
 export { arrivals, type Arrival } from './arrivals';
 export { appRootBytes, canLinkFolder, exportExists, EXPORTS, folderState, linkFolder, NoAccess, saveExport, unlinkFolder, unlockFolder, type FolderState } from './folder';
 export { dropInbox, peekInbox, putInbox } from './inbox';
@@ -13,4 +13,4 @@ export { PasswordNotGiven, type AskPassword } from './open';
 export type { Original, SourceFile } from './original';
 export { byTitle, knownTitles, libraryFiles } from './originals';
 export { PageCache, type PagePictures } from './pages';
-export { forgetRemoved, purgeRemoved, recentlyRemoved, removedBytes, removedFile, restoreRemoved, type Removed } from './removed';
+export { purgeRemoved, recentlyRemoved, removedBytes, type Removed } from './removed';

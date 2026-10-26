@@ -1,12 +1,10 @@
 // Recently removed: a score's file removed from the library is kept here, in the app's own store
 // (OPFS), with where it was and when, for a week; then it is deleted for good, as Volti starts. One
-// can be put back where it was. The score made from it (cuts, markings, named excerpts) is kept by
+// is put back by moving it into the library (adding.ts, `removedSource`). The score made from it (cuts, markings, named excerpts) is kept by
 // its id all along, as for any score whose file is missing. Files deleted outside Volti aren't here.
 
 import { keys, kv } from '../storage';
-import { makeFolder, needAccess, placeOf, whereIs, writeFile } from './folder';
-import { rememberHash } from './hashes';
-import { folderOf } from './names';
+import { placeOf, writeFile } from './folder';
 
 /** How long a removed file is kept. */
 const KEEP_MS = 7 * 24 * 60 * 60 * 1000;
@@ -49,24 +47,6 @@ export async function removeFile(id: string, path: string): Promise<void> {
 /** The files removed in the last week, the latest first. */
 export async function recentlyRemoved(): Promise<Removed[]> {
   return Object.values(await load()).sort((a, b) => b.at - a.at);
-}
-
-/**
- * Put a removed file back where it was in the library's root, making its folders if they aren't
- * there; 'taken' when another file is there now. Asks for write access to the root (from a tap),
- * or throws NoAccess.
- */
-export async function restoreRemoved(r: Removed): Promise<'taken' | null> {
-  await needAccess('readwrite');
-  const file = await (await (await removedDir()).getFileHandle(r.key)).getFile();
-  const d = await makeFolder(folderOf(r.path));
-  const name = r.path.slice(r.path.lastIndexOf('/') + 1);
-  if (await d.getFileHandle(name).then(() => true, () => false)) return 'taken';
-  await writeFile(d, name, file);
-  // The same contents, so the same id: no need to read it again.
-  await rememberHash(await whereIs(r.path), await (await d.getFileHandle(name)).getFile(), r.id);
-  await forgetRemoved(r.key);
-  return null;
 }
 
 /** A removed file's file, as it was. */

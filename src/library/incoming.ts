@@ -6,7 +6,7 @@
 
 import { askPassword, ThumbStrip } from '../dialogs';
 import {
-  arrivals, fileNameProblem, folderOf, NoAccess, pathInFolder, pathWithTitle, PasswordNotGiven, putIncoming, readIncoming,
+  arrivals, fileNameProblem, folderOf, NoAccess, pathInFolder, pathWithTitle, PasswordNotGiven, readIncoming,
   subfolders, titleOf, type Arrival, type PageCache, type SourceFile,
 } from '../originals';
 import { newScore } from '../scores';
@@ -178,7 +178,9 @@ export async function openIncoming(lib: LibraryHost, files: readonly Arriving[],
       let why: string | null;
       try {
         // From this tap, which asking for access to the scores folder needs.
-        why = await putIncoming(r.source, pathOf(r), a.kind === 'taken' ? a.by : undefined);
+        // A file replaced goes to Recently removed first.
+        if (a.kind === 'taken' && a.by) await a.by.remove();
+        why = await r.source.move(pathOf(r));
       } catch (e) {
         if (!(e instanceof NoAccess)) console.error(e);
         why = e instanceof NoAccess ? 'Volti needs permission to write in the scores folder to add files.' : `Could not add it (${(e as Error).name}).`;

@@ -2,14 +2,15 @@
 // its contents: a file at its path in the library's root (the linked scores folder, or the app's
 // own), which can be moved (renamed, or into another folder) and removed (into Recently removed),
 // asking for the access to the scores folder that needs; or a file Volti holds outside the library
-// (coming in, or left in its own folder while one is linked). Reading one gives its original: its
+// (coming in, left in its own folder while one is linked, or in Recently removed), which moving puts
+// into the library. Reading one gives its original: its
 // pages to draw, and its music as a PDF for export. A PDF is read with pdf.js (contents.ts), asking
 // for its password the first time it needs one; an image is drawn from its decoded bitmap
 // (image.ts). There is one source file for each id in the root, so a move shows wherever it is held.
 
 import { encrypted, imagePdf, pdfOf, type OriginalPdf } from './contents';
 import { isPdf } from './file-kind';
-import { fileAt, makeFolder, needAccess, placeOf, relist, whereIs } from './folder';
+import { fileAt, makeFolder, needAccess, placeOf, relist, whereIs, writeFile } from './folder';
 import { rememberHash } from './hashes';
 import { openImage } from './image';
 import { folderOf, isOriginalName, tidyPath } from './names';
@@ -26,9 +27,9 @@ export interface SourceFile {
   readonly path: string;
   /**
    * Rename it, or move it into another folder ('' at the top), or both, making the folders that
-   * aren't there yet; its score stays, as its contents don't change. Says why when it can't (a file
-   * of that name is there already, or it isn't in the library); throws NoAccess when the scores
-   * folder can't be changed.
+   * aren't there yet; its score stays, as its contents don't change. One held outside the library
+   * is moved into it. Says why when it can't (a file of that name is there already); throws
+   * NoAccess when the scores folder can't be changed.
    */
   move(path: string): Promise<string | null>;
   /** Move it out of the library, into Recently removed; or drop one held outside it. Throws NoAccess when the scores folder can't be changed. */
@@ -131,22 +132,44 @@ class RootFile implements Readable {
   }
 }
 
-/** A file Volti holds outside the library: coming in, or left in its own folder. It can't be moved. */
+/**
+ * A file Volti holds outside the library: coming in, left in its own folder, or in Recently
+ * removed. Moving it puts it into the library, and drops it from where it was held; from then on
+ * it is the library's file there.
+ */
 class HeldFile implements Readable {
-  constructor(readonly id: string, readonly path: string, private bytes: File, private drop: () => Promise<void>) {}
+  /** Once moved into the library, the file there, which does the rest. */
+  private moved?: SourceFile;
 
+  constructor(readonly id: string, private at: string, private bytes: File, private drop: () => Promise<void>) {}
+
+  get path() { return this.moved?.path ?? this.at; }
   async file() { return this.bytes; }
-  async move() { return 'It isn’t in the library yet.'; }
-  remove() { return this.drop(); }
-  read(ask?: AskPassword): Promise<Original> { return readAs(this, ask); }
+  read(ask?: AskPassword): Promise<Original> { return this.moved ? this.moved.read(ask) : readAs(this, ask); }
+  remove() { return this.moved ? this.moved.remove() : this.drop(); }
+
+  async move(path: string): Promise<string | null> {
+    if (this.moved) return this.moved.move(path);
+    const to = tidyPath(path), folder = folderOf(to), name = nameOf(to);
+    if (!isOriginalName(to)) return `“${name}” doesn’t end in .pdf or an image’s ending, so Volti wouldn’t find it.`;
+    await needAccess('readwrite');
+    const d = await makeFolder(folder);
+    if (await d.getFileHandle(name).then(() => true, () => false)) return `There is already a file called “${name}” in ${shown(folder)}.`;
+    await writeFile(d, name, this.bytes);
+    // Its contents are known: no need to read it again.
+    await rememberHash(await whereIs(to), await (await d.getFileHandle(name)).getFile(), this.id);
+    this.moved = sourceFileOf(this.id, to);
+    await this.drop();
+    return null;
+  }
 }
 
-/** A file Volti holds outside the library, `bytes`, at `path` (where it would go); `drop` is what removing it does. */
+/**
+ * A file Volti holds outside the library, `bytes`, at `path` (where it would go); `drop` is what
+ * removing it does, and what moving it into the library does once it is there.
+ */
 export const heldFile = (id: string, path: string, bytes: File, drop: () => Promise<void> = async () => {}): SourceFile =>
   new HeldFile(id, path, bytes, drop);
-
-/** A source file's bytes. */
-export const fileOf = (f: SourceFile) => (f as Readable).file();
 
 /**
  * Read a source file: an image as it is; a PDF asks for its password now if it has one Volti

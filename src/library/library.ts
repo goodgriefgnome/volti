@@ -5,7 +5,7 @@
 import { chooseSetlist, givePassword, openExportPdf, openScore, type ExcerptHost, type ExcerptSource, type FileChange, type LibraryScore } from '../dialogs';
 import type { Span } from '../excerpts';
 import type { ExportPart } from '../export';
-import { arrivals, byFolder, byTitle, dropInbox, folderState, knownTitles, leftInApp, libraryFiles, linkFolder, NoAccess, PasswordNotGiven, peekInbox, putIncoming, titleOf, unlinkFolder, unlockFolder, type FolderState, type SourceFile } from '../originals';
+import { arrivals, byFolder, byTitle, dropInbox, folderState, knownTitles, leftInApp, libraryFiles, linkFolder, NoAccess, PasswordNotGiven, peekInbox, titleOf, unlinkFolder, unlockFolder, type FolderState, type SourceFile } from '../originals';
 import { makePictures } from '../pictures';
 import { openReader, type ToRead } from '../reader';
 import { loadAspects, loadSavedScore, scoreEntry, type Aspects, type ExcerptName, type Score } from '../scores';
@@ -187,12 +187,11 @@ export class Library implements LibraryHost {
       for (const [i, f] of left.entries()) {
         const a = what[i];
         if (a.kind === 'taken') { taken.push(f); continue; }
-        if (a.kind === 'new') {
-          // Taken after all, by a file the library doesn't list.
-          if (await putIncoming(f, f.path)) { taken.push(f); continue; }
-          moved++;
-        }
-        await f.remove();
+        // One the folder has already is only dropped from Volti's folder.
+        if (a.kind === 'have') { await f.remove(); continue; }
+        // Taken after all, by a file the library doesn't list.
+        if (await f.move(f.path)) { taken.push(f); continue; }
+        moved++;
       }
     } catch (e) {
       if (!(e instanceof NoAccess)) console.error(e);
@@ -203,10 +202,8 @@ export class Library implements LibraryHost {
     this.say(moved ? `Moved ${plural(moved, 'score')} into the scores folder.` : '');
     await this.refresh();
     if (!taken.length) return;
-    // Removing one added from Volti's folder deletes it there.
-    void openIncoming(this, taken, (added) => {
-      void Promise.all(added.map((f) => f.remove())).then(() => this.refresh());
-    });
+    // Moving one in drops it from Volti's folder.
+    void openIncoming(this, taken);
   }
 
   async unlock(): Promise<boolean> {

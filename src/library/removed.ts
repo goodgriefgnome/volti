@@ -2,7 +2,7 @@
 // first, each with where it was and when, and a button that puts it back there, through the screen
 // for incoming files when another file is there now.
 
-import { folderOf, forgetRemoved, NoAccess, recentlyRemoved, removedFile, restoreRemoved, titleOf, type Removed } from '../originals';
+import { folderOf, NoAccess, recentlyRemoved, removedSource, titleOf, type Removed } from '../originals';
 import { button, buttonRow, closeOverlay, el, showDialog } from '../ui';
 import type { LibraryHost } from './host';
 import { openIncoming } from './incoming';
@@ -41,10 +41,10 @@ export async function openRecentlyRemoved(lib: LibraryHost) {
       let why: string | null;
       try {
         // From this tap, which asking for access to the scores folder needs.
-        if ((await restoreRemoved(r)) === 'taken') {
-          // Another file is there now: a new name or folder, or replacing it.
-          const file = await removedFile(r);
-          void openIncoming(lib, [{ file, path: r.path }], (added) => { if (added.length) void forgetRemoved(r.key); });
+        const f = await removedSource(r);
+        if (await f.move(r.path)) {
+          // Another file is there now: a new name or folder, or replacing it. Moving it in forgets it here.
+          void openIncoming(lib, [f]);
           return;
         }
         why = null;
