@@ -39,6 +39,43 @@ scores.
 - **Exports ask for their own access:** `exportExists` and `saveExport` ask for write access and
   throw `NoAccess`, as an original's methods do; `allowWriting` then leaves `originals/index.ts`.
 
+The next three, in this order:
+
+- **One root for the library:** the linked scores folder when there is one, the origin private
+  file system (OPFS) when there isn't (before one is linked, or where the browser can't link
+  one). Both are folders with true paths, read, moved, removed and listed by the same code; what
+  differs between them (asking for access, the listing remembered while locked) belongs to the
+  root, not to each original. So added scores are kept at their paths in OPFS, not under their
+  hashes (no moving over: there are no added scores yet), and with one root there are no copies
+  of a file in two places to choose between, nor an Added badge.
+  - Added files go into the root, at its top.
+  - Unlinking leaves the library empty: scores, markings and setlists stay, kept by hash, for
+    when the folder is linked again.
+  - **Recently removed:** removing a score moves its file into a private store in OPFS (with
+    where it was and when), deleted for good after a week (looked at on start-up). A list of
+    them, from the library's ⋯ menu, restores one to where it was (through the screen below
+    where that path is taken). Its cuts, markings and named excerpts stay, as for any score
+    whose file is missing. The storage view shows what removed files take.
+  - Files deleted outside Volti (in the Files app) aren't in the list: Volti only finds them gone.
+- **Incoming files:** a screen for files coming into the library, shared from another app or
+  from Add PDFs, which always opens for them: shared files wait in the inbox until access to the
+  folder is allowed, then open in it. Each file is a row with:
+  - a preview: the excerpt picker's zoomable strip (`dialogs/excerpt-picker.ts`), split out of
+    it and used read-only, showing the file's pages as a new score starts (each page one cut);
+    a locked PDF asks for its password when previewed;
+  - its name, which can be changed (often a phone's or a download's: IMG_2041.jpg);
+  - its folder, the top by default, chosen from the library's subfolders or a new one, and one
+    for every row at once;
+  - what happens to it: new; already in the library (the same file, by hash, perhaps under
+    another name: left out, saying where it is); or its path taken by a different file, which
+    needs a new name or folder, or replacing that file (which then goes to Recently removed).
+  Changing a name or folder checks again. Leaving a file out, or cancelling, drops it.
+- **Linking a folder with scores in OPFS:** they move into the folder at their paths, without
+  overwriting anything. One the folder already has (the same hash) is dropped from OPFS. Those
+  whose path the folder has for a different file are listed in the same screen, to rename, put
+  in another folder, replace, or leave out; one left out stays in OPFS, out of the library while
+  the folder is linked, and an item in the library's ⋯ menu opens the screen for them again.
+
 ## Manual check
 
 Things to try on the tablet.
@@ -75,6 +112,10 @@ Things to try on the tablet.
   back to Volti after half a minute or more: it appears in the library without asking.
 
 ## Confirmed features which require more thought
+
+- **Purging a removed score's data** [needs discussion]: once a removed file is deleted for good,
+  its score (cuts, markings, named excerpts, reading position) is still kept by hash, as for any
+  score whose file is missing. Eventually there should be a way to purge it.
 
 - **What metadata holds, in the storage view:** tapping the Metadata line opens what it holds, as a
   small stacked bar of its own (as the main bar is) with its parts as labelled chips under it
