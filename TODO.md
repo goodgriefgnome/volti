@@ -77,6 +77,19 @@ Things to try on the tablet.
 
 ## Confirmed features which require more thought
 
+- **Images read as images, not as PDFs:** an image is now made into a one-page PDF with pdf-lib
+  (`contents.ts`, `imagePdf`) and then opened by pdf.js, though it has no passwords, no
+  encryption, one page, and nothing a decoded bitmap can't draw. Split it at `PageSource`
+  (`pages.ts`): an `ImageSource` beside `PdfSource`, decoding the file upright
+  (`createImageBitmap`, `imageOrientation: 'from-image'`), with one page, its shape from the
+  bitmap, and `draw` and `region` as `drawImage` with high-quality smoothing. An original says
+  which it is from its contents (`file-kind.ts`) and opens the matching source; `pdf()` stays
+  only for export, where an image still goes in as a page (as `imagePdf` does now, so
+  `recompressed` is only said there). Passwords, locks, pdf-lib and the pdf.js worker are then
+  never touched for an image. To think through: holding a 12 MP photo's bitmap (about 48 MB)
+  against decoding it again at each width (`resizeWidth`), and whether setlists save pictures of
+  images at all; how this sits with one page cache for the app (below); and that this undoes
+  "read only as a PDF, whatever the file is" (44623be), which kept one path for everything.
 - **One page cache for the app, kept between sessions** [needs discussion]: today each opener
   (the reader's scores, a dialog's score, an export, the pictures maker, an incoming preview)
   opens its own `PageCache`, so one original can be open in pdf.js twice, with its pages drawn
