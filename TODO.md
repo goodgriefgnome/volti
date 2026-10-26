@@ -13,7 +13,10 @@ scores.
 
 ## Work for the immediate future
 
-Nothing waiting: ideas to take up are under Confirmed features below.
+- **`PdfSource` without its loading task:** it keeps the task only to close the document
+  (`task.destroy()`), and the document reaches it itself (`doc.loadingTask`). Drop the `task`
+  parameter in `originals/pdf.ts` and close with `this.doc.loadingTask.destroy()`; nothing else
+  changes.
 
 ## Manual check
 
