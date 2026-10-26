@@ -3,18 +3,67 @@
 // know, or a PDF pdf-lib can't read), its pages drawn by pdf.js into a PDF of pictures; and, for
 // export, an image as a one-page PDF. Each says why, where its music lost something on the way.
 // pdf-lib and pdf-decrypt are only loaded when needed.
+//
+// The password that opened a PDF is remembered on the tablet by its file's id, so it is asked for
+// only once, even after a restart, and never forgotten. Asking is the caller's
+// (dialogs/passwords.ts); without a way to ask, a PDF whose password isn't remembered doesn't open.
 
-import { isEncryptedPdf, isJpeg, isPng, jpegOrientation, namesEncrypt, PDF_ENDS } from './file-kind';
-import { Passwords, type AskPassword } from './open';
+import { keys, kv } from '../storage';
+import { isEncryptedPdf, isJpeg, isPng, jpegOrientation } from './file-kind';
+import { titleOf } from './names';
 import type { SourceFile } from './original';
 import { openPdf } from './pdf';
+
+/** Ask for a PDF's password, saying whether the last one tried was wrong; null when it isn't given. */
+export type AskPassword = (title: string, wrong: boolean) => Promise<string | null>;
+
+/** Opening stopped because the PDF's password wasn't given. */
+export class PasswordNotGiven extends Error {
+  name = 'PasswordNotGiven';
+}
+
+/** The password remembered for a file, if it has needed one. */
+export const savedPassword = (id: string) => kv.get<string>(keys.password(id));
+
+/**
+ * The passwords to try for an original's PDF, once it has been tried without one: the one
+ * remembered for it, then each one `ask` gives. `refused` once there are no more.
+ */
+class Passwords {
+  private tried?: string;
+  refused = false;
+
+  private constructor(private o: SourceFile, private saved: string | undefined, private ask?: AskPassword) {}
+
+  static async for(o: SourceFile, ask?: AskPassword) { return new Passwords(o, await savedPassword(o.id), ask); }
+
+  /** The next password to try, after one that was `wrong`: null when there is none. */
+  async next(wrong: boolean): Promise<string | null> {
+    if (this.saved !== undefined && this.tried === undefined) return (this.tried = this.saved);
+    const p = this.ask ? await this.ask(titleOf(this.o.path), wrong || this.tried !== undefined) : null;
+    if (p === null) this.refused = true;
+    else this.tried = p;
+    return p;
+  }
+
+  /** The PDF opened: remember the password that opened it, if it is a new one. */
+  async keep() {
+    if (this.tried !== undefined && this.tried !== this.saved) await kv.set(keys.password(this.o.id), this.tried);
+  }
+
+  /** Why opening stopped: PasswordNotGiven when it was for want of a password. */
+  failure(e: unknown) {
+    return this.refused ? new PasswordNotGiven(`“${titleOf(this.o.path)}” needs its password`) : e;
+  }
+}
+
 
 /**
  * Why an original as a PDF has lost something of its music: its pages were drawn by pdf.js, as
  * its encryption isn't one pdf-decrypt knows (`encryption`) or pdf-lib can't read it
  * (`unreadable`); or, an image, it was put in as a JPEG of its own (`recompressed`).
  */
-export type LossyReason = 'encryption' | 'unreadable' | 'recompressed';
+type LossyReason = 'encryption' | 'unreadable' | 'recompressed';
 
 /** An original as a PDF. */
 export interface OriginalPdf {
@@ -28,13 +77,6 @@ export interface OriginalPdf {
 const DRAWN_W = 2000;
 /** The width, in points, of a page made for an image, or of a drawn page: A4's. */
 const A4_W = 595;
-
-/** Whether a PDF is encrypted, reading only its ends (file-kind.ts). */
-export async function encrypted(file: File): Promise<boolean> {
-  const ends = file.size <= 2 * PDF_ENDS ? [file] : [file.slice(0, PDF_ENDS), file.slice(file.size - PDF_ENDS)];
-  for (const part of ends) if (namesEncrypt(new Uint8Array(await part.arrayBuffer()))) return true;
-  return false;
-}
 
 /**
  * The PDF `o`, whose bytes are `file`, as a PDF pdf-lib and pdf.js can read. An encrypted one

@@ -9,7 +9,7 @@ export { arrivals, type Arrival } from './arrivals';
 export { appRootBytes, canLinkFolder, exportExists, EXPORTS, folderState, linkFolder, NoAccess, saveExport, unlinkFolder, unlockFolder, type FolderState } from './folder';
 export { dropInbox, peekInbox, putInbox } from './inbox';
 export { fileNameProblem, folderOf, pathInFolder, pathWithTitle, titleOf } from './names';
-export { PasswordNotGiven, type AskPassword } from './open';
+export { PasswordNotGiven, type AskPassword } from './contents';
 export type { Original, SourceFile } from './original';
 export { byTitle, knownTitles, libraryFiles } from './originals';
 export { PageCache, type PagePictures } from './pages';

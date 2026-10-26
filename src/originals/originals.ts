@@ -15,7 +15,7 @@ export const knownTitles = async () => (await kv.get<Record<string, string>>(key
  * Hears the files known so far while new or changed files are read, and how many are `left`
  * to read.
  */
-export type Progress = (originals: SourceFile[], left: number) => void;
+type Progress = (originals: SourceFile[], left: number) => void;
 
 /** In the library's order: by title, numbers by value. */
 export const byTitle = (x: SourceFile, y: SourceFile) => titleOf(x.path).localeCompare(titleOf(y.path), undefined, { numeric: true, sensitivity: 'base' });

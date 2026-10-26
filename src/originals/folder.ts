@@ -86,7 +86,7 @@ export async function unlinkFolder(): Promise<void> {
 }
 
 /** A PDF in the linked folder, as last read: listed from this while access is locked. */
-export interface ListingEntry { path: string; id: string }
+interface ListingEntry { path: string; id: string }
 
 async function walk(d: FileSystemDirectoryHandle, prefix: string, depth: number, out: [string, FileSystemFileHandle][]) {
   for await (const [name, h] of d.entries()) {

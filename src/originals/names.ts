@@ -1,6 +1,6 @@
 // Names of originals' files (PDFs and images) and folders: a score's title and folder from its
-// file's path, the paths a rename or a move gives, the name an added file is kept under, what a file
-// name can't be, and folder paths tidied. A name says which files are scores, never how one is
+// file's path, the paths a rename or a move gives, the name a file coming in is kept under, what a
+// file name can't be, and folder paths tidied. A name says which files are scores, never how one is
 // read: that is what its contents say. Pure.
 
 /** An original's file name ending: ".pdf", or an image's. */
@@ -29,29 +29,17 @@ export const tidyPath = (path: string) => joinPath(tidyFolder(folderOf(path)), n
 /** Whether a file's name says it is an original: a PDF or an image. */
 export const isOriginalName = (name: string) => ENDING.test(name);
 
-/** Whether a file is an original, by its name or else its type. */
-export const isOriginalFile = (f: File) => isOriginalName(f.name) || f.type === 'application/pdf' || f.type.startsWith('image/');
-
 /** The ending of an original's file name (".pdf", ".jpg"), or "". */
 export const endingOf = (name: string) => ENDING.exec(name)?.[0] ?? '';
 
 /**
- * The name to keep an added file under: its own, with an ending added if it hasn't one (".pdf",
+ * The name to keep a file coming in under: its own, with an ending added if it hasn't one (".pdf",
  * or for an image, one for its type).
  */
 export function importName(name: string, type = ''): string {
   if (isOriginalName(name)) return name;
   const image = /^image\/(\w+)/.exec(type)?.[1];
   return name + (image ? '.' + (image === 'jpeg' ? 'jpg' : image) : '.pdf');
-}
-
-/** A name for a new file that no other has (`taken` is lower case): "Mass.pdf", then "Mass (2).pdf". */
-export function freeName(name: string, taken: ReadonlySet<string>): string {
-  const base = titleOf(name), ending = endingOf(name) || '.pdf';
-  for (let n = 1; ; n++) {
-    const next = n === 1 ? `${base}${ending}` : `${base} (${n})${ending}`;
-    if (!taken.has(next.toLowerCase())) return next;
-  }
 }
 
 /** Why `title` can't be a file name, or null if it can. */

@@ -8,13 +8,12 @@
 // for its password the first time it needs one; an image is drawn from its decoded bitmap
 // (image.ts). There is one source file for each id in the root, so a move shows wherever it is held.
 
-import { encrypted, imagePdf, pdfOf, type OriginalPdf } from './contents';
-import { isPdf } from './file-kind';
+import { imagePdf, pdfOf, savedPassword, type AskPassword, type OriginalPdf } from './contents';
+import { isPdf, namesEncrypt, PDF_ENDS } from './file-kind';
 import { fileAt, makeFolder, needAccess, placeOf, relist, whereIs, writeFile } from './folder';
 import { rememberHash } from './hashes';
 import { openImage } from './image';
 import { folderOf, isOriginalName, tidyPath } from './names';
-import { savedPassword, type AskPassword } from './open';
 import type { PageCache } from './pages';
 import { openPdf } from './pdf';
 import { removeFile } from './removed';
@@ -170,6 +169,13 @@ class HeldFile implements Readable {
  */
 export const heldFile = (id: string, path: string, bytes: File, drop: () => Promise<void> = async () => {}): SourceFile =>
   new HeldFile(id, path, bytes, drop);
+
+/** Whether a PDF is encrypted, reading only its ends (file-kind.ts). */
+async function encrypted(file: File): Promise<boolean> {
+  const ends = file.size <= 2 * PDF_ENDS ? [file] : [file.slice(0, PDF_ENDS), file.slice(file.size - PDF_ENDS)];
+  for (const part of ends) if (namesEncrypt(new Uint8Array(await part.arrayBuffer()))) return true;
+  return false;
+}
 
 /**
  * Read a source file: an image as it is; a PDF asks for its password now if it has one Volti

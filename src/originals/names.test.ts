@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { endingOf, folderOf, freeName, importName, isOriginalName, pathInFolder, pathWithTitle, tidyFolder, tidyPath, titleOf } from './names';
+import { endingOf, folderOf, importName, isOriginalName, pathInFolder, pathWithTitle, tidyFolder, tidyPath, titleOf } from './names';
 
 describe('importName', () => {
   it('keeps a PDF\'s own name', () => {
@@ -19,12 +19,11 @@ describe('images', () => {
     expect(isOriginalName('Ave verum.heic')).toBe(true);
     expect(isOriginalName('notes.txt')).toBe(false);
   });
-  it('titles an image without its ending, and keeps the ending when importing and freeing a name', () => {
+  it('titles an image without its ending, and keeps the ending when importing', () => {
     expect(titleOf('Ave verum.jpeg')).toBe('Ave verum');
     expect(importName('Ave verum.jpg', 'image/jpeg')).toBe('Ave verum.jpg');
     expect(importName('IMG_0042', 'image/jpeg')).toBe('IMG_0042.jpg');
     expect(importName('scan', 'image/png')).toBe('scan.png');
-    expect(freeName('Ave verum.jpg', new Set(['ave verum.jpg']))).toBe('Ave verum (2).jpg');
     expect(endingOf('Ave verum.webp')).toBe('.webp');
   });
 });
