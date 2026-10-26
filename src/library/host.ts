@@ -11,6 +11,8 @@ import type { MenuItem, Toast } from '../ui';
 
 export interface LibraryHost {
   readonly folder: FolderState;
+  /** How many scores are left in Volti's own folder while a folder is linked. */
+  readonly leftIn: number;
   /** The library's scores' originals, by title. */
   readonly originals: readonly Original[];
   /** New PDFs are still being read. */
@@ -48,6 +50,8 @@ export interface LibraryHost {
   render(): void;
 
   link(): Promise<void>;
+  /** Move the scores left in Volti's own folder into the linked folder, asking about those whose paths it has. */
+  moveLeftIn(): Promise<void>;
   /** Allow access to the linked folder this session; false, having said why, when it isn't. */
   unlock(): Promise<boolean>;
   unlink(): Promise<void>;

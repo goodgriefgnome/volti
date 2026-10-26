@@ -1,10 +1,11 @@
-// Files coming into the library, from Add PDFs, shared from other apps (the inbox), or put back
-// from Recently removed: each read once and known by its id, previewed, and put at the path chosen
-// for it in the library's root (arrivals.ts says what happens to each there).
+// Files coming into the library, from Add PDFs, shared from other apps (the inbox), put back from
+// Recently removed, or left in the app's own folder when a folder is linked: each read once and
+// known by its id, previewed, and put at the path chosen for it in the library's root (arrivals.ts
+// says what happens to each there).
 
 import { pdfOf } from './contents';
-import { makeFolder, needAccess, whereIs, writeFile } from './folder';
-import { hashBytes, rememberHash } from './hashes';
+import { appFiles, makeFolder, needAccess, removeAppFile, whereIs, writeFile } from './folder';
+import { Hasher, hashBytes, rememberHash } from './hashes';
 import { folderOf, importName } from './names';
 import type { AskPassword } from './open';
 import { originalOf, type Named } from './original';
@@ -48,3 +49,20 @@ export async function putIncoming(f: Incoming, path: string, replacing?: Named):
   await rememberHash(await whereIs(path), await (await d.getFileHandle(name)).getFile(), f.id);
   return null;
 }
+
+/** A file left in the app's own folder, with its path there. */
+export interface LeftInApp extends Incoming { path: string }
+
+/**
+ * The scores in the app's own folder while a folder is linked: those not moved into it yet. Each
+ * is known by its hash, as last worked out where it hasn't changed.
+ */
+export async function leftInApp(): Promise<LeftInApp[]> {
+  const hasher = await Hasher.load();
+  const out: LeftInApp[] = [];
+  for (const { path, file } of await appFiles()) out.push({ path, file, id: await hasher.id('app/' + path, file) });
+  return out;
+}
+
+/** Delete a file left in the app's own folder, once it is in the linked folder (or was already). */
+export const dropLeftInApp = (f: LeftInApp) => removeAppFile(f.path);

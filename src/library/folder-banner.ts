@@ -33,6 +33,7 @@ export class FolderBanner {
       f.kind !== 'none' && { label: 'Check for new scores', run: () => void lib.checkFolder() },
       f.kind !== 'none' && { label: 'Change folder…', run: () => void lib.link() },
       f.kind !== 'none' && { label: 'Unlink', run: () => void lib.unlink() },
+      f.kind !== 'none' && lib.leftIn > 0 && { label: `Move ${lib.leftIn === 1 ? 'the score' : `${lib.leftIn} scores`} left in Volti…`, run: () => void lib.moveLeftIn() },
       { label: 'Recently removed…', run: () => void openRecentlyRemoved(lib) },
       'Storage used on this tablet',
       storageView(),

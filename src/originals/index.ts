@@ -3,7 +3,7 @@
 // removed, passwords, and opening their pages. Other directories import originals/ only from here.
 
 export { byFolder, subfolders } from './by-folder';
-export { previewIncoming, putIncoming, readIncoming, type Incoming } from './adding';
+export { dropLeftInApp, leftInApp, previewIncoming, putIncoming, readIncoming, type Incoming, type LeftInApp } from './adding';
 export { arrivals, type Arrival } from './arrivals';
 export { appRootBytes, canLinkFolder, exportExists, EXPORTS, folderState, linkFolder, NoAccess, saveExport, unlinkFolder, unlockFolder, type FolderState } from './folder';
 export { dropInbox, peekInbox, putInbox } from './inbox';

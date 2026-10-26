@@ -5,7 +5,7 @@
 import { chooseSetlist, givePassword, openExportPdf, openScore, type ExcerptHost, type ExcerptSource, type FileChange, type LibraryScore } from '../dialogs';
 import type { Span } from '../excerpts';
 import type { ExportPart } from '../export';
-import { allOriginals, byFolder, dropInbox, byTitle, folderState, knownTitles, linkFolder, lockedOriginals, NoAccess, PasswordNotGiven, peekInbox, titleOf, unlinkFolder, unlockFolder, type FolderState, type Original } from '../originals';
+import { allOriginals, arrivals, byFolder, dropInbox, dropLeftInApp, leftInApp, byTitle, folderState, knownTitles, linkFolder, lockedOriginals, NoAccess, PasswordNotGiven, peekInbox, putIncoming, titleOf, unlinkFolder, unlockFolder, type FolderState, type LeftInApp, type Original } from '../originals';
 import { makePictures } from '../pictures';
 import { openReader, type ToRead } from '../reader';
 import { loadAspects, loadSavedScore, scoreEntry, type Aspects, type ExcerptName, type Score } from '../scores';
@@ -13,7 +13,7 @@ import { addEntries, defaultSetlist, deleteSetlist, loadLastAddedTo, loadSetlist
 import { closeOverlay, el, plural, Toast, whenOverlayCloses, type MenuItem } from '../ui';
 import { FolderBanner } from './folder-banner';
 import type { LibraryHost } from './host';
-import { openIncoming } from './incoming';
+import { openIncoming, type Arriving } from './incoming';
 import { ScoresSection } from './scores-section';
 import { SetlistsSection } from './setlists-section';
 
@@ -27,6 +27,8 @@ export class Library implements LibraryHost {
   folder: FolderState = { kind: 'none' };
   originals: Original[] = [];
   reading = false;
+  /** How many scores are left in Volti's own folder while a folder is linked. */
+  leftIn = 0;
   setlists: Setlist[] = [];
   saved = new Map<string, Score>();
   shapes = new Map<string, Aspects>();
@@ -121,6 +123,7 @@ export class Library implements LibraryHost {
 
   private async readOriginals() {
     this.folder = await folderState();
+    this.leftIn = this.folder.kind === 'none' ? 0 : (await leftInApp().catch(() => [])).length;
     this.banner.render();
     const before = this.status.textContent;
     let shown = false;
@@ -168,11 +171,53 @@ export class Library implements LibraryHost {
 
   async link() {
     try {
-      if (await linkFolder()) await this.refresh();
+      if (!(await linkFolder())) return;
     } catch (e) {
       this.say('That folder cannot be linked. Android blocks the Download folder itself and the top of internal storage; pick a folder inside them, such as Download/Scores.');
       console.error(e);
+      return;
     }
+    await this.refresh();
+    await this.moveLeftIn();
+  }
+
+  /**
+   * Move the scores in Volti's own folder into the linked folder, at their paths, overwriting
+   * nothing: one the folder has already is dropped, and those whose paths the folder has for
+   * different files open in the screen for incoming files. One left out there stays in Volti's
+   * folder, out of the library, until this is done again from the library's ⋯ menu.
+   */
+  async moveLeftIn() {
+    const left = await leftInApp();
+    if (!left.length) return;
+    const what = arrivals(left, this.originals.map((o) => ({ id: o.id, path: o.path })));
+    const taken: LeftInApp[] = [];
+    let moved = 0;
+    if (left.length > 1) this.say(`Moving ${plural(left.length, 'score')} into the scores folder…`);
+    try {
+      for (const [i, f] of left.entries()) {
+        const a = what[i];
+        if (a.kind === 'taken') { taken.push(f); continue; }
+        if (a.kind === 'new') {
+          // Taken after all, by a file the library doesn't list.
+          if (await putIncoming(f, f.path)) { taken.push(f); continue; }
+          moved++;
+        }
+        await dropLeftInApp(f);
+      }
+    } catch (e) {
+      if (!(e instanceof NoAccess)) console.error(e);
+      this.say(e instanceof NoAccess ? 'Volti needs permission to write in the scores folder to move its scores there.' : 'Could not move all the scores into the scores folder.');
+      await this.refresh();
+      return;
+    }
+    this.say(moved ? `Moved ${plural(moved, 'score')} into the scores folder.` : '');
+    await this.refresh();
+    if (!taken.length) return;
+    const arriving = new Map<Arriving, LeftInApp>(taken.map((f) => [{ file: f.file, path: f.path }, f]));
+    void openIncoming(this, [...arriving.keys()], (added) => {
+      void Promise.all(added.map((a) => dropLeftInApp(arriving.get(a)!))).then(() => this.refresh());
+    });
   }
 
   async unlock(): Promise<boolean> {

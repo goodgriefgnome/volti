@@ -13,27 +13,23 @@ scores.
 
 ## Work for the immediate future
 
-In this order:
-
-- **Linking a folder with scores in OPFS:** they move into the folder at their paths, without
-  overwriting anything. One the folder already has (the same hash) is dropped from OPFS. Those
-  whose path the folder has for a different file are listed in the same screen, to rename, put
-  in another folder, replace, or leave out; one left out stays in OPFS, out of the library while
-  the folder is linked, and an item in the library's ⋯ menu opens the screen for them again.
+Nothing waiting: ideas to take up are under Confirmed features below.
 
 ## Manual check
 
 Things to try on the tablet.
 
+- **Linking with scores in Volti's own folder:** link a folder after adding some PDFs without one:
+  they move into the folder at their paths (in the Files app too), one the folder already has is
+  dropped, and one whose name the folder has for another file opens the incoming screen. Leave it
+  out: the library's ⋯ menu offers "Move the score left in Volti…" to open the screen again.
 - **Incoming files:** Add PDFs, and sharing from another app, open the screen: each file's pages
   (pinch and drag), its name and folder (and one folder for all), and New, Already in the library
   (left out, saying where), or a path taken (another name or folder, or Replace). A locked PDF
   shows its pages once its password is given. Shared files before Allow access open after it.
   Putting back a removed file whose place is taken opens the screen for it.
 - **One root for the library:** with no folder linked, Add PDFs and sharing put files at the top
-  of Volti's own folder; moving and renaming them; linking a folder shows only its scores (those
-  in Volti's own folder come back on unlinking, until linking moves them in), and unlinking
-  leaves the library empty, with markings and setlists back when it is linked again. With a
+  of Volti's own folder; moving and renaming them; unlinking leaves the library empty, with markings and setlists back when it is linked again. With a
   folder linked, Add PDFs and sharing put files at the top of the folder (in the Files app too);
   before Allow access they wait, and are added once it is tapped. No Added badge anywhere.
 - **Recently removed:** Remove in a score's ⋯ menu (library and reader) takes its file out of

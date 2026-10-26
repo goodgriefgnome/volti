@@ -18,8 +18,11 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   are saved plays without it, asking only for a page that isn't. Coming back to Volti after a
   while (say, from the Files app) reads the folder again, so PDFs added meanwhile appear.
 - Without a linked folder (before one is linked, or where the browser can't link one), the
-  library is a folder of Volti's own, inside the app, read the same way. Unlinking leaves the
-  library empty; cuts, markings and setlists stay, for when the folder is linked again.
+  library is a folder of Volti's own, inside the app, read the same way. Linking a folder moves
+  its scores into the folder at their paths, overwriting nothing: one the folder has already is
+  dropped, and one whose name is taken there opens the screen for incoming files (one left out
+  waits in Volti, and the **⋯** menu offers it again). Unlinking leaves the library empty; cuts,
+  markings and setlists stay, for when the folder is linked again.
 - The **⋯** beside the name has the scores folder's **Check for new scores**, **Change folder…**
   and **Unlink**, **Recently removed…**, and the storage Volti uses on the tablet: metadata (cuts,
   markings, setlists), added scores (those in Volti's own folder), the setlist cache (pictures of
