@@ -3,9 +3,9 @@
 // here use the kv store: the */store.ts files, and originals/.
 
 export const keys = {
-  /** The linked scores folder's FileSystemDirectoryHandle (originals/folder.ts). */
+  /** The linked scores folder's FileSystemDirectoryHandle (originals/library-root.ts). */
   folder: 'folder',
-  /** The linked folder's PDFs as last read, { path, id }[], listed while access is locked (originals/folder.ts). */
+  /** The linked folder's PDFs as last read, { path, id }[], listed while access is locked (originals/library-root.ts). */
   folderListing: 'folder-files',
   /**
    * Each original's SHA-256 as last worked out, with the size and modified time it was worked out

@@ -6,7 +6,8 @@
 export { byFolder, subfolders } from './by-folder';
 export { leftInApp, readIncoming, removedSource } from './adding';
 export { arrivals, type Arrival } from './arrivals';
-export { appRootBytes, canLinkFolder, exportExists, EXPORTS, folderState, linkFolder, NoAccess, saveExport, unlinkFolder, unlockFolder, type FolderState } from './folder';
+export { appRootBytes, exportExists, EXPORTS, saveExport } from './folder';
+export { canLinkFolder, folderState, linkFolder, NoAccess, unlinkFolder, unlockFolder, type FolderState } from './library-root';
 export { dropInbox, peekInbox, putInbox } from './inbox';
 export { fileNameProblem, folderOf, pathInFolder, pathWithTitle, titleOf } from './names';
 export { PasswordNotGiven, type AskPassword } from './contents';

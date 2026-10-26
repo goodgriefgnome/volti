@@ -5,7 +5,7 @@
 // missing. Files deleted outside Volti aren't here.
 
 import { keys, kv } from '../storage';
-import { placeOf, writeFile } from './folder';
+import { writeFile } from './folder';
 
 /** How long a removed file is kept. */
 const KEEP_MS = 7 * 24 * 60 * 60 * 1000;
@@ -27,22 +27,14 @@ export async function forgetRemoved(key: string) {
 }
 
 /**
- * Move score `id`'s file, at `path` in the library's root, into Recently removed. Write access to
- * the root must have been allowed.
+ * Keep score `id`'s file, which was at `path` in the library, in Recently removed, as its file is
+ * removed from there: the key it is kept under, to forget it by if removing it fails.
  */
-export async function removeFile(id: string, path: string): Promise<void> {
-  const [d, name] = await placeOf(path);
-  const file = await (await d.getFileHandle(name)).getFile();
-  const at = Date.now(), key = `${at}-${id}`, kept = await removedDir();
-  await writeFile(kept, key, file);
+export async function keepRemoved(id: string, path: string, file: File): Promise<string> {
+  const at = Date.now(), key = `${at}-${id}`;
+  await writeFile(await removedDir(), key, file);
   await kv.update<Records>(keys.removed, (old) => ({ ...old, [key]: { key, id, path, at } }));
-  try {
-    await d.removeEntry(name);
-  } catch (e) {
-    // Still in the library: not removed after all.
-    await forgetRemoved(key);
-    throw e;
-  }
+  return key;
 }
 
 /** The files removed in the last week, the latest first. */

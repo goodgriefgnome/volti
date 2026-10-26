@@ -1,12 +1,13 @@
-// The library's files: the PDFs and images in its root (folder.ts: the linked folder, or the app's
-// own), known by the hash of their contents (hashes.ts). Only finding them; a file itself, and the
-// original reading it gives, are original.ts, and the score made from one is in scores/.
+// The library's files: the PDFs and images in its root (library-root.ts: the linked folder, or
+// Volti's own), known by the hash of their contents (hashes.ts). Only finding them; a file itself is
+// library-root.ts, the original reading it gives is original.ts, and the score made from one is in
+// scores/.
 
 import { keys, kv } from '../storage';
-import { folderFiles, rememberedListing, saveListing, whereIs, type FolderState } from './folder';
+import { folderFiles, rememberedListing, saveListing, sourceFileOf, whereIs, type FolderState } from './library-root';
 import { Hasher } from './hashes';
 import { titleOf } from './names';
-import { sourceFileOf, type SourceFile } from './original';
+import type { SourceFile } from './original';
 
 /** Every file's title as last seen, by id: for a score whose file can't be found. */
 export const knownTitles = async () => (await kv.get<Record<string, string>>(keys.titles)) ?? {};
