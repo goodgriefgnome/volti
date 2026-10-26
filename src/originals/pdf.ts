@@ -28,7 +28,7 @@ export async function openPdf(data: Uint8Array, password?: (wrong: boolean) => P
     void ask.then((p) => answer(p ?? new Error('No password')), (e: Error) => answer(e));
   };
   const doc = await task.promise;
-  return new PageCache(Promise.resolve(new PdfSource(task, doc)));
+  return new PageCache(Promise.resolve(new PdfSource(doc)));
 }
 
 /** Largest canvas drawn while supersampling, in pixels; bigger ones risk running out of graphics memory. */
@@ -42,7 +42,7 @@ export function supersample(width: number, height: number): number {
 
 /** A PDF's pages, drawn by pdf.js. */
 class PdfSource implements PageSource {
-  constructor(private task: pdfjs.PDFDocumentLoadingTask, private doc: pdfjs.PDFDocumentProxy) {}
+  constructor(private doc: pdfjs.PDFDocumentProxy) {}
 
   get pages() { return this.doc.numPages; }
 
@@ -93,7 +93,8 @@ class PdfSource implements PageSource {
     return canvas;
   }
 
+  /** Close the document, freeing it in the worker: its loading task does that. */
   destroy() {
-    void this.task.destroy();
+    void this.doc.loadingTask.destroy();
   }
 }
