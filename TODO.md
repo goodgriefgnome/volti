@@ -77,20 +77,40 @@ Things to try on the tablet.
 
 ## Confirmed features which require more thought
 
-- **Images read as images, not as PDFs:** an image is now made into a one-page PDF with pdf-lib
-  (`contents.ts`, `imagePdf`) and then opened by pdf.js, though it has no passwords, no
-  encryption, one page, and nothing a decoded bitmap can't draw. Split it at `PageSource`
-  (`pages.ts`): an `ImageSource` beside `PdfSource`, decoding the file upright
-  (`createImageBitmap`, `imageOrientation: 'from-image'`), with one page, its shape from the
-  bitmap, and `draw` and `region` as `drawImage` with high-quality smoothing. An original says
-  which it is from its contents (`file-kind.ts`) and opens the matching source; `pdf()` stays
-  only for export, where an image still goes in as a page (as `imagePdf` does now, so
-  `recompressed` is only said there). Passwords, locks, pdf-lib and the pdf.js worker are then
-  never touched for an image. To think through: holding a 12 MP photo's bitmap (about 48 MB)
-  against decoding it again at each width (`resizeWidth`), and whether setlists save pictures of
-  images at all; how this sits with one page cache for the app (below); and that this undoes
-  "read only as a PDF, whatever the file is" (44623be), which kept one path for everything.
-- **One page cache for the app, kept between sessions** [needs discussion]: today each opener
+- **Source files and originals:** today's `Original` is two things. Split it:
+  - A **`SourceFile`** is bytes Volti can read as music: `id` (the hash of its contents), `path`,
+    `move(path)` (says why it can't), `remove()`, and `read(ask?)`, which gives its `Original`,
+    asking for its password the first time if it has one. The library's files are source files;
+    so are a file coming in (its own name at the top as its path; `move` says it isn't in the
+    library yet), one left in Volti's own folder while a folder is linked (`LeftInApp` goes), and
+    one in Recently removed (read to preview it before putting it back).
+  - An **`Original`** is a source file Volti has read, what scores are made from:
+    `interface Original extends SourceFile` with `pages()` (to draw) and `pdf()` (its music as a
+    PDF, for export). It shares its file's object, or passes `path` and `move` through to it, so a
+    move shows in both.
+  - No kind on either: whether a file is a PDF or an image (`file-kind.ts`) is only for `read()`,
+    which draws a PDF's pages with pdf.js and an image's from a decoded bitmap (an `ImageSource`
+    beside `PdfSource`, decoded upright with `createImageBitmap`, `imageOrientation:
+    'from-image'`). An image never touches passwords, pdf-lib or the pdf.js worker; `pdf()` still
+    makes one into a page for export (as `imagePdf` does now, so `recompressed` is only said there).
+    This undoes "read only as a PDF, whatever the file is" (44623be).
+  - No locks: "locked" is only a file never read in Volti, whose password isn't known yet (a given
+    password is kept by its hash and never forgotten, and nothing is made from a file before it is
+    read). `locks.ts`, the `locks` key, the lock icon and `lib.locked` go; opening a file, Add
+    excerpt, export and adding it to a setlist go through `read()`, the one place a password is
+    asked for. A score whose file is gone has no original: its cuts, excerpts and page shapes are
+    the score's, and the reader says it is missing.
+  - `Named` goes: `pdfOf`, `pagesDrawn` and `Passwords` work on the file being read,
+    `previewIncoming` becomes `read()` then `pages()`, and putting a file in takes the source
+    file it replaces and calls its `remove()`. `At` in `arrivals.ts` stays plain data, which any
+    source file fits.
+  - To think through: whether the library shows a row per file or per original (two copies of
+    one file share an id, so one score); one object per id or per file; holding a big photo's
+    decoded bitmap against decoding it again at each width (`resizeWidth`), and whether setlists
+    save pictures of images; and offering to take a PDF's password off as it comes in (a copy
+    kept without it, by choice, as pdf-decrypt can), so Volti has nothing to remember.
+- **One page cache for the app, kept between sessions** [needs discussion], once source files and
+  originals are split (above): today each opener
   (the reader's scores, a dialog's score, an export, the pictures maker, an incoming preview)
   opens its own `PageCache`, so one original can be open in pdf.js twice, with its pages drawn
   twice. Instead, one cache keyed by original id (a hash, so never stale): openers take and
