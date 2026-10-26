@@ -20,9 +20,13 @@ scores.
   - The page turns as the finger goes down, always; back on the left, forward on the right.
     Swipes no longer turn (the press already has).
   - Toolbar hidden: the whole page turns; there is no middle zone.
-  - Toolbar showing: only a narrow band at each side turns, marked by a scrim. A tap (on the
+  - Toolbar showing: only a thin band at each side turns, about as wide as the cut tabs (40 px
+    seen, 64 px to touch), marked by a scrim. The cut tabs at the edges still take a press before
+    the band does. A tap (on the
     release) on the rest of the page, when it doesn't write or edit cuts, hides the toolbar.
   - A button, like the back button, shows the toolbar (and hides it).
+  - Nothing turns while the pen is on the screen, nor for a moment after it lifts: touches then
+    are taken as the palm (as now, `PALM_GUARD_MS` in `reader/input.ts`).
   - To watch for, with the toolbar showing: a palm landing in the band before the pen touches, and
     a pinch or pan whose first finger lands there, turn the page.
 
