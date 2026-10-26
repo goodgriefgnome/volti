@@ -1,11 +1,10 @@
 // What an original holds, as a PDF, whatever its file is (told by its contents, not its name): a PDF
-// as it is; an encrypted one decrypted, with its password; an image as a one-page PDF; and where the
-// music can't be had as it is (an encryption pdf-decrypt doesn't know, or a PDF pdf-lib can't
-// read), its pages drawn by pdf.js into a PDF of pictures. pdf-lib and pdf-decrypt are only loaded
-// when needed.
+// as it is; an encrypted one decrypted, with its password (by our fork of pdf-decrypt); an image as
+// a one-page PDF; and where the music can't be had as it is (an encryption pdf-decrypt doesn't
+// know, or a PDF pdf-lib can't read), its pages drawn by pdf.js into a PDF of pictures. pdf-lib and
+// pdf-decrypt are only loaded when needed.
 
-import type { PDFDocument } from 'pdf-lib';
-import { isJpeg, isPdf, isPng, jpegOrientation } from './file-kind';
+import { isEncryptedPdf, isJpeg, isPdf, isPng, jpegOrientation } from './file-kind';
 import { Passwords, type AskPassword } from './open';
 import type { Original } from './original';
 import { openPdf } from './pdf';
@@ -32,14 +31,17 @@ export async function pdfOf(o: Original, file: File, ask?: AskPassword): Promise
   const bytes = new Uint8Array(await file.arrayBuffer());
   if (!isPdf(bytes)) return { bytes: await imagePdf(file, bytes), drawn: false };
   const lib = await import('pdf-lib');
-  let doc: PDFDocument;
-  try {
-    doc = await lib.PDFDocument.load(bytes, { ignoreEncryption: true });
-  } catch (e) {
-    console.warn('Drawing the pages, as pdf-lib can\'t read them:', e);
-    return drawn(o, bytes, ask, 'unreadable');
-  }
-  if (!doc.isEncrypted) return { bytes, drawn: false };
+  /** The PDF as it is, where pdf-lib can read it. */
+  const asItIs = async (): Promise<OriginalPdf> => {
+    try {
+      await lib.PDFDocument.load(bytes);
+    } catch (e) {
+      console.warn('Drawing the pages, as pdf-lib can\'t read them:', e);
+      return drawn(o, bytes, ask, 'unreadable');
+    }
+    return { bytes, drawn: false };
+  };
+  if (!isEncryptedPdf(bytes)) return asItIs();
   const { decryptPDF } = await import('@pdfsmaller/pdf-decrypt');
   // First without a password, as a PDF that only limits what may be done with it has none.
   const passwords = await Passwords.for(o, ask);
@@ -50,6 +52,8 @@ export async function pdfOf(o: Original, file: File, ask?: AskPassword): Promise
       decrypted = await decryptPDF(bytes, password);
     } catch (e) {
       const message = e instanceof Error ? e.message : '';
+      // Its ends named /Encrypt, but not as its encryption.
+      if (message.includes('not encrypted')) return asItIs();
       if (message.includes('Incorrect password')) {
         const next = await passwords.next(wrong);
         if (next === null) throw passwords.failure(e);

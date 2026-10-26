@@ -3,7 +3,7 @@
 // setlist only once it has been.
 
 import { keys, kv } from '../storage';
-import { isPdf } from './file-kind';
+import { isPdf, namesEncrypt, PDF_ENDS } from './file-kind';
 import { fileOf, type Original } from './original';
 import { Passwords, savedPassword } from './open';
 import { openPdf } from './pdf';
@@ -11,27 +11,10 @@ import { openPdf } from './pdf';
 /** Whether each original needs a password, by id; one not in it hasn't been looked at yet. */
 type Locks = Record<string, boolean>;
 
-/** How much of each end of a file to look through for its encryption. */
-const ENDS = 64 * 1024;
-const ENCRYPT = new TextEncoder().encode('/Encrypt');
-
-/** Whether `bytes` holds `word`. */
-export function holds(bytes: Uint8Array, word: Uint8Array): boolean {
-  outer: for (let i = 0; i + word.length <= bytes.length; i++) {
-    for (let j = 0; j < word.length; j++) if (bytes[i + j] !== word[j]) continue outer;
-    return true;
-  }
-  return false;
-}
-
-/**
- * Whether a PDF is encrypted: its trailer names an /Encrypt dictionary. The trailer is at the end
- * of the file, or for one laid out for the web (linearized), at the start too, so only the ends are
- * read.
- */
+/** Whether a PDF is encrypted, reading only its ends (file-kind.ts). */
 async function encrypted(file: File): Promise<boolean> {
-  const ends = file.size <= 2 * ENDS ? [file] : [file.slice(0, ENDS), file.slice(file.size - ENDS)];
-  for (const part of ends) if (holds(new Uint8Array(await part.arrayBuffer()), ENCRYPT)) return true;
+  const ends = file.size <= 2 * PDF_ENDS ? [file] : [file.slice(0, PDF_ENDS), file.slice(file.size - PDF_ENDS)];
+  for (const part of ends) if (namesEncrypt(new Uint8Array(await part.arrayBuffer()))) return true;
   return false;
 }
 

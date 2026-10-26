@@ -3,7 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "sideEffects": ["*.css"],
+  "sideEffects": [
+    "*.css"
+  ],
   "scripts": {
     "predev": "node scripts/copy-pdfjs.mjs",
     "dev": "vite",
@@ -14,7 +16,7 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@pdfsmaller/pdf-decrypt": "1.0.1",
+    "@pdfsmaller/pdf-decrypt": "github:goodgriefgnome/pdf-decrypt#a6af0ddfe5b80ad034868932dca661c1d974b833",
     "pdf-lib": "1.17.1",
     "pdfjs-dist": "6.4.299",
     "workbox-precaching": "7.4.1",

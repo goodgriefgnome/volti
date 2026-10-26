@@ -68,9 +68,9 @@ Things to try on the tablet.
 - **Opening times:** opening a large PDF, and a large phone photo, now that every original is read
   as a PDF (a PDF is read by pdf-lib too, to see whether it is encrypted; an image is made into a
   one-page PDF): how long the first page takes, compared with before.
-- **Scores drawn as pictures:** a PDF encrypted in a way pdf-decrypt doesn't know (AES-128, which
-  Acrobat often uses, even for one that only stops printing) now shows as pictures of its pages,
-  drawn each time it is opened: how long that takes, and how close-ups look.
+- **Password-protected and restricted PDFs:** ones from Acrobat (often AES-128, even when they
+  only stop printing) and ones with a password open sharp, as before, now that our fork of
+  pdf-decrypt reads them; export says "Original quality" for them.
 - **New PDFs appear on coming back:** add a PDF to the scores folder in the Files app, switch
   back to Volti after half a minute or more: it appears in the library without asking.
 
