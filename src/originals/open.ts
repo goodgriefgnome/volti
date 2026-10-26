@@ -1,12 +1,11 @@
-// Opening an original's pages: an image's, or a PDF's, whether or not it is protected by a
-// password. The password that opened a PDF is remembered on the tablet by the score's id, so it is
-// asked for only once, even after a restart. Asking is the caller's (dialogs/passwords.ts); without a way to ask, a PDF whose
-// password isn't remembered doesn't open. Every opening of an original's pages goes through here.
+// Opening an original's pages, and its password. Its pages are those of the PDF its contents read as
+// (contents.ts), drawn by pdf.js. The password that opened a PDF is remembered on the tablet by the
+// score's id, so it is asked for only once, even after a restart. Asking is the caller's
+// (dialogs/passwords.ts); without a way to ask, a PDF whose password isn't remembered doesn't open.
 
 import { keys, kv } from '../storage';
-import { openImage } from './image';
-import { isImageName } from './names';
-import type { Original } from './originals';
+import { titleOf } from './names';
+import type { Original } from './original';
 import type { PageCache } from './pages';
 import { openPdf } from './pdf';
 
@@ -22,25 +21,43 @@ export class PasswordNotGiven extends Error {
 export const savedPassword = (id: string) => kv.get<string>(keys.password(id));
 
 /**
+ * The passwords to try for an original's PDF, once it has been tried without one: the one
+ * remembered for it, then each one `ask` gives. `refused` once there are no more.
+ */
+export class Passwords {
+  private tried?: string;
+  refused = false;
+
+  private constructor(private o: Original, private saved: string | undefined, private ask?: AskPassword) {}
+
+  static async for(o: Original, ask?: AskPassword) { return new Passwords(o, await savedPassword(o.id), ask); }
+
+  /** The next password to try, after one that was `wrong`: null when there is none. */
+  async next(wrong: boolean): Promise<string | null> {
+    if (this.saved !== undefined && this.tried === undefined) return (this.tried = this.saved);
+    const p = this.ask ? await this.ask(titleOf(this.o.path), wrong || this.tried !== undefined) : null;
+    if (p === null) this.refused = true;
+    else this.tried = p;
+    return p;
+  }
+
+  /** The PDF opened: remember the password that opened it, if it is a new one. */
+  async keep() {
+    if (this.tried !== undefined && this.tried !== this.saved) await kv.set(keys.password(this.o.id), this.tried);
+  }
+
+  /** Why opening stopped: PasswordNotGiven when it was for want of a password. */
+  failure(e: unknown) {
+    return this.refused ? new PasswordNotGiven(`“${titleOf(this.o.path)}” needs its password`) : e;
+  }
+}
+
+/**
  * Open an original's pages. One protected by a password tries the password remembered for it,
  * then asks `ask` for it (with none, as when opening ahead of time, it gives up), and remembers the
- * one that opens it. Throws PasswordNotGiven when it isn't given.
+ * one that opens it. Throws PasswordNotGiven when it isn't given, and NoAccess when the scores
+ * folder can't be read.
  */
 export async function openOriginal(o: Original, ask?: AskPassword): Promise<PageCache> {
-  if (isImageName(o.path)) return openImage(await o.getFile());
-  const saved = await savedPassword(o.id);
-  let tried: string | undefined, refused = false;
-  try {
-    const cache = await openPdf(await o.getFile(), async (wrong) => {
-      if (saved !== undefined && tried === undefined) return (tried = saved);
-      const p = ask ? await ask(o.title, wrong || tried !== undefined) : null;
-      if (p === null) refused = true;
-      else tried = p;
-      return p;
-    });
-    if (tried !== undefined && tried !== saved) await kv.set(keys.password(o.id), tried);
-    return cache;
-  } catch (e) {
-    throw refused ? new PasswordNotGiven(`“${o.title}” needs its password`) : e;
-  }
+  return openPdf((await o.pdf(ask)).bytes);
 }

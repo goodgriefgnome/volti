@@ -1,42 +1,29 @@
-// Scores' originals: the PDFs in the linked folder (folder.ts) and the copies imported into the app
-// (imported.ts), listed together, each known by the hash of its contents (hashes.ts), and renamed.
-// Only finding, reading and renaming files; the score made from an original is in scores/, and
-// opening one's pages is open.ts.
+// The library's originals: the PDFs and images in the linked folder (folder.ts) and those added to
+// Volti (imported.ts), listed together, each once, with the scores folder's known by the hash of
+// their contents (hashes.ts). Only finding them; an original itself is original.ts, and the score
+// made from one is in scores/.
 
 import { keys, kv } from '../storage';
-import { folderFiles, folderOriginal, makeFolder, placeOf, relist, rememberedListing, saveListing, type FolderState } from './folder';
-import { Hasher, rememberHash } from './hashes';
-import { importedFiles, importsDir, removeImported } from './imported';
-import { endingOf, titleOf } from './names';
+import { folderFiles, rememberedListing, saveListing, type FolderState } from './folder';
+import { Hasher } from './hashes';
+import { addedScores, removeAdded } from './imported';
+import { titleOf } from './names';
+import { originalOf, type Original } from './original';
 
-/** A score's original: a PDF in the linked folder or imported into the app. */
-export interface Original {
-  /** The SHA-256 of the file's contents, in hex; also the id of the score made from it. */
-  id: string;
-  title: string;
-  /**
-   * Subfolder within the linked folder ("Masses/Latin"), '' at its top. An imported original's is
-   * the one it is filed under in the library (`fileAdded`), as it is in no folder.
-   */
-  folder: string;
-  location: 'folder' | 'imported';
-  /** Where the file is: its path within the linked folder, or its name among the imported copies. */
-  path: string;
-  getFile(): Promise<File>;
-}
+/** An original found, before it is made: its id, whether it is added, and where it is. */
+export interface Place { id: string; added: boolean; path: string }
 
 /**
- * The originals, each once: when the same file is both in the folder and imported, the folder's
- * copy, and `copies` are the imported ones to delete. Two of the same file in one place show the
- * first.
+ * The originals, each once: when the same file is both in the folder and added, the folder's copy,
+ * and `copies` are the added ones to delete. Two of the same file in one place show the first.
  */
-export function oneEach(folder: readonly Original[], imported: readonly Original[], deleteCopies: boolean): { originals: Original[]; copies: Original[] } {
-  const seen = new Map<string, Original>();
-  const copies: Original[] = [];
-  for (const o of [...folder, ...imported]) {
+export function oneEach(folder: readonly Place[], added: readonly Place[], deleteCopies: boolean): { originals: Place[]; copies: Place[] } {
+  const seen = new Map<string, Place>();
+  const copies: Place[] = [];
+  for (const o of [...folder, ...added]) {
     const first = seen.get(o.id);
     if (!first) seen.set(o.id, o);
-    else if (deleteCopies && o.location === 'imported' && first.location === 'folder') copies.push(o);
+    else if (deleteCopies && o.added && !first.added) copies.push(o);
   }
   return { originals: [...seen.values()], copies };
 }
@@ -50,124 +37,41 @@ export const knownTitles = async () => (await kv.get<Record<string, string>>(key
  */
 export type Progress = (originals: Original[], left: number) => void;
 
-/** A file found, and the original it is once its id is known. */
-export interface Found { where: string; file: File; make: (id: string) => Original }
-
 /** In the library's order: by title, numbers by value. */
-export const byTitle = (x: Original, y: Original) => x.title.localeCompare(y.title, undefined, { numeric: true, sensitivity: 'base' });
+export const byTitle = (x: Original, y: Original) => titleOf(x.path).localeCompare(titleOf(y.path), undefined, { numeric: true, sensitivity: 'base' });
 
 /**
- * Every original, each file once, sorted by title. Files new or changed since last time are
- * hashed, which reads them whole, one at a time; `progress` hears the originals known so far
- * before the first and after each. An imported copy of a file that is also in the folder is then
- * deleted: `removed` counts them. While the folder is locked, its PDFs are the ones remembered.
+ * Every original, each file once, sorted by title: the same Original for an id as before. Files in
+ * the scores folder new or changed since last time are hashed, which reads them whole, one at a
+ * time; `progress` hears the originals known so far before the first and after each. An added copy
+ * of a file that is also in the folder is then deleted: `removed` counts them. While the folder is
+ * locked, its PDFs are the ones remembered.
  */
 export async function allOriginals(state: FolderState, progress?: Progress): Promise<{ originals: Original[]; removed: number }> {
   const hasher = await Hasher.load();
-  const remembered = state.kind === 'locked' ? (await rememberedListing()).map(folderOriginal) : [];
-  const files = [...(state.kind === 'ready' ? await folderFiles() : []), ...await importedFiles()];
-  const ids = new Map<Found, string>();
+  const remembered: Place[] = state.kind === 'locked' ? (await rememberedListing()).map((e) => ({ ...e, added: false })) : [];
+  const files = state.kind === 'ready' ? await folderFiles() : [];
+  const added: Place[] = (await addedScores()).map((a) => ({ ...a, added: true }));
+  const ids = new Map<string, string>();
   const known = (deleteCopies: boolean) => {
-    const done = files.filter((f) => ids.has(f)).map((f) => f.make(ids.get(f)!));
-    return oneEach([...remembered, ...done.filter((o) => o.location === 'folder')], done.filter((o) => o.location === 'imported'), deleteCopies);
+    const found = files.filter((f) => ids.has(f.path)).map((f): Place => ({ id: ids.get(f.path)!, added: false, path: f.path }));
+    const { originals, copies } = oneEach([...remembered, ...found], added, deleteCopies);
+    return { originals: originals.map((p) => originalOf(p.id, p.added, p.path)).sort(byTitle), copies };
   };
-  const fresh: Found[] = [];
+  const where = (path: string) => 'folder/' + path;
+  const fresh: typeof files = [];
   for (const f of files) {
-    if (hasher.known(f.where, f.file)) ids.set(f, await hasher.id(f.where, f.file)); else fresh.push(f);
+    if (hasher.known(where(f.path), f.file)) ids.set(f.path, await hasher.id(where(f.path), f.file)); else fresh.push(f);
   }
   for (const [i, f] of fresh.entries()) {
-    if (i === 0) progress?.(known(false).originals.sort(byTitle), fresh.length);
-    ids.set(f, await hasher.id(f.where, f.file));
-    progress?.(known(false).originals.sort(byTitle), fresh.length - i - 1);
+    if (i === 0) progress?.(known(false).originals, fresh.length);
+    ids.set(f.path, await hasher.id(where(f.path), f.file));
+    progress?.(known(false).originals, fresh.length - i - 1);
   }
-  if (state.kind === 'ready') await saveListing(files.filter((f) => f.where.startsWith('folder/')).map((f) => ({ path: f.where.slice('folder/'.length), id: ids.get(f)! })));
+  if (state.kind === 'ready') await saveListing(files.map((f) => ({ path: f.path, id: ids.get(f.path)! })));
   await hasher.save(state.kind === 'ready' ? undefined : 'folder/');
   const { originals, copies } = known(state.kind === 'ready');
-  for (const c of copies) await removeImported(c);
-  await kv.update<Record<string, string>>(keys.titles, (old) => ({ ...old, ...Object.fromEntries(originals.map((o) => [o.id, o.title])) }));
-  return { originals: originals.sort(byTitle), removed: copies.length };
-}
-
-/** A scores-folder original as it is once moved into subfolder `folder` (by moveOriginal). */
-export const movedOriginal = (o: Original, folder: string): Original =>
-  folderOriginal({ path: (folder ? folder + '/' : '') + o.path.slice(o.path.lastIndexOf('/') + 1), id: o.id });
-
-/**
- * Move a scores-folder original's file into subfolder `folder` of the scores folder ('' for the
- * top), making the folders that aren't there yet; its score stays, as its contents haven't
- * changed. Write access must have been allowed. Says why when it can't (a file of that name is
- * there already).
- */
-export async function moveOriginal(o: Original, folder: string): Promise<string | null> {
-  const [from, name] = await placeOf(o.path);
-  const to = await makeFolder(folder);
-  if (await to.isSameEntry(from)) return null;
-  if (await to.getFileHandle(name).then(() => true, () => false)) return `There is already a file called “${name}” in ${folder ? folder.split('/').join(' / ') : 'the top of the scores folder'}.`;
-  const h = await from.getFileHandle(name);
-  // Where it can't be moved (as in some of Android's folders), copy it there, then delete it here.
-  const moved = h.move ? await h.move(to).then(() => true, (e) => { console.warn('Moving by copying, as moving failed:', e); return false; }) : false;
-  if (!moved) {
-    const copy = await to.getFileHandle(name, { create: true });
-    try {
-      const w = await copy.createWritable();
-      await w.write(await h.getFile());
-      await w.close();
-    } catch (e) {
-      await to.removeEntry(name).catch(() => {});
-      throw e;
-    }
-    if (!(await from.removeEntry(name).then(() => true, () => false))) return `Copied it into ${folder || 'the top of the scores folder'}, but couldn't delete it here. Delete it in the Files app.`;
-  }
-  // The same contents, so the same id: no need to read it again.
-  const path = movedOriginal(o, folder).path;
-  await rememberHash('folder/' + path, await (await to.getFileHandle(name)).getFile(), o.id);
-  await relist(o.id, path);
-  return null;
-}
-
-/** The file name `title` gives an original: with its ending, ".pdf" or an image's. */
-const fileName = (o: Original, title: string) => title.trim() + (endingOf(o.path) || '.pdf');
-
-/** The original as it is once renamed to `title` (by renameOriginal): the same score, under the new name. */
-export function renamedOriginal(o: Original, title: string): Original {
-  const name = fileName(o, title);
-  if (o.location === 'folder') return folderOriginal({ path: o.path.slice(0, o.path.lastIndexOf('/') + 1) + name, id: o.id });
-  return { ...o, title: titleOf(name), path: name, getFile: async () => (await (await importsDir()).getFileHandle(name)).getFile() };
-}
-
-/**
- * Rename an original's file to `title` (with its ending, ".pdf" or an image's), in the same folder; its score stays, as its
- * contents haven't changed. For the linked folder, write access must have been allowed. Says why
- * when it can't (a file of that name is there already).
- */
-export async function renameOriginal(o: Original, title: string): Promise<string | null> {
-  const name = fileName(o, title);
-  const [d, old] = o.location === 'folder' ? await placeOf(o.path) : [await importsDir(), o.path];
-  if (name === old) return null;
-  const h = await d.getFileHandle(old);
-  // Changing only the case finds the file itself where the file system ignores case.
-  const caseOnly = name.toLowerCase() === old.toLowerCase();
-  if (!caseOnly && (await d.getFileHandle(name).then(() => true, () => false))) return `There is already a file called “${name}” there.`;
-  // Where it can't be moved (as in some of Android's folders), copy it under the new name, then delete the old one.
-  const moved = h.move ? await h.move(name).then(() => true, (e) => { console.warn('Renaming by copying, as moving failed:', e); return false; }) : false;
-  if (!moved) {
-    if (caseOnly) return 'Only the case changes, and this folder can\'t do that. Change another letter too.';
-    const copy = await d.getFileHandle(name, { create: true });
-    try {
-      const w = await copy.createWritable();
-      await w.write(await h.getFile());
-      await w.close();
-    } catch (e) {
-      await d.removeEntry(name).catch(() => {});
-      throw e;
-    }
-    // Both are the same score now, so one left behind only shows twice in the Files app.
-    if (!(await d.removeEntry(old).then(() => true, () => false))) return `Copied it as “${name}”, but couldn't delete “${old}”. Delete it in the Files app.`;
-  }
-  // The same contents, so the same id: no need to read it again.
-  const file = await (await d.getFileHandle(name)).getFile();
-  const where = (o.location === 'folder' ? 'folder/' + o.path.slice(0, o.path.length - old.length) : 'imported/') + name;
-  await rememberHash(where, file, o.id);
-  if (o.location === 'folder') await relist(o.id, where.slice('folder/'.length));
-  return null;
+  for (const c of copies) await removeAdded(c.id);
+  await kv.update<Record<string, string>>(keys.titles, (old) => ({ ...old, ...Object.fromEntries(originals.map((o) => [o.id, titleOf(o.path)])) }));
+  return { originals, removed: copies.length };
 }

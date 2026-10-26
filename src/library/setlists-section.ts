@@ -3,6 +3,7 @@
 
 import { askSetlistName, openAddScores, openExcerptPicker } from '../dialogs';
 import { excerptName } from '../excerpts';
+import { titleOf } from '../originals';
 import { scoreEntries } from '../scores';
 import { addEntries, duplicate, moveEntry, newSetlist, setEntrySpan, withSetlist, type Entry, type Setlist } from '../setlists';
 import { button, buttonRow, closeOverlay, el, plural, showDialog, showMenu, whenOverlayCloses } from '../ui';
@@ -193,7 +194,7 @@ export class SetlistsSection {
     if (!sc) return;
     openExcerptPicker({
       ...sc,
-      question: `Which part of “${o.title}” does entry ${s.entries.indexOf(e) + 1} play?`,
+      question: `Which part of “${titleOf(o.path)}” does entry ${s.entries.indexOf(e) + 1} play?`,
       verb: 'This entry plays',
       named: true,
       span: e,

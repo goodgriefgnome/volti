@@ -1,15 +1,30 @@
-// Names of originals' files (PDFs and images) and folders: a score's title from its file's name, the
-// name an added file is kept under, what a file name can't be, and folder paths tidied. Pure.
+// Names of originals' files (PDFs and images) and folders: a score's title and folder from its
+// file's path, the paths a rename or a move gives, the name an added file is kept under, what a file
+// name can't be, and folder paths tidied. A name says which files are scores, never how one is
+// read: that is what its contents say. Pure.
 
-const IMAGE = /\.(jpe?g|png|webp|gif|bmp|avif|heic|heif)$/i;
 /** An original's file name ending: ".pdf", or an image's. */
 const ENDING = /\.(pdf|jpe?g|png|webp|gif|bmp|avif|heic|heif)$/i;
 
-/** A score's title: its file's name without ".pdf" (or its image ending). */
-export const titleOf = (name: string) => name.replace(ENDING, '');
+/** The file name at the end of a path ("Masses/Mass in G.pdf" → "Mass in G.pdf"). */
+const nameOf = (path: string) => path.slice(path.lastIndexOf('/') + 1);
 
-/** Whether a file's name says it is an image, read as a score of one page. */
-export const isImageName = (name: string) => IMAGE.test(name);
+/** A score's title: its file's name without ".pdf" (or its image ending), whatever folder it is in. */
+export const titleOf = (path: string) => nameOf(path).replace(ENDING, '');
+
+/** The folder a path is in ("Masses/Latin/Mass.pdf" → "Masses/Latin"), '' at the top. */
+export const folderOf = (path: string) => path.slice(0, Math.max(0, path.lastIndexOf('/')));
+
+/** The path an original at `path` has once renamed to `title`: in the same folder, with the same ending. */
+export const pathWithTitle = (path: string, title: string) => joinPath(folderOf(path), title.trim() + (endingOf(nameOf(path)) || '.pdf'));
+
+/** The path an original at `path` has once moved into `folder` ('' for the top), with the same name. */
+export const pathInFolder = (path: string, folder: string) => joinPath(tidyFolder(folder), nameOf(path));
+
+const joinPath = (folder: string, name: string) => (folder ? folder + '/' : '') + name;
+
+/** A path tidied: its folders' names trimmed, empty ones dropped. */
+export const tidyPath = (path: string) => joinPath(tidyFolder(folderOf(path)), nameOf(path));
 
 /** Whether a file's name says it is an original: a PDF or an image. */
 export const isOriginalName = (name: string) => ENDING.test(name);

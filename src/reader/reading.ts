@@ -3,7 +3,7 @@
 // DOM, no storage; reader.ts shows and saves what changes here.
 
 import { ends, excerptName, followEdit, followNames, spanCuts, type Span } from '../excerpts';
-import type { Original } from '../originals';
+import { titleOf, type Original } from '../originals';
 import type { Aspects, Cut, Score, State } from '../scores';
 import { addEntries, followScore, setEntrySpan, withSetlist, type Entry, type Setlist } from '../setlists';
 import type { Item } from './open-scores';
@@ -21,7 +21,7 @@ export type ReadingKind = { kind: 'score' } | { kind: 'excerpt'; span: Span } | 
 export function setlistItems(s: Setlist, originals: ReadonlyMap<string, Original>, titles: Readonly<Record<string, string>>): Item[] {
   return s.entries.map((e) => {
     const original = originals.get(e.scoreId);
-    return { scoreId: e.scoreId, entryId: e.id, original, title: original?.title ?? titles[e.scoreId] ?? 'Missing score', missing: !original };
+    return { scoreId: e.scoreId, entryId: e.id, original, title: (original && titleOf(original.path)) ?? titles[e.scoreId] ?? 'Missing score', missing: !original };
   });
 }
 
@@ -96,7 +96,7 @@ export class Reading {
 
   /** A score's file was renamed: its items take the new name. */
   renamed(o: Original) {
-    for (const it of this.items) if (it.scoreId === o.id) { it.title = o.title; it.original = o; }
+    for (const it of this.items) if (it.scoreId === o.id) { it.title = titleOf(o.path); it.original = o; }
   }
 
   /** In a score's own reader: read another score instead. */

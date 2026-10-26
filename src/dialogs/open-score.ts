@@ -3,7 +3,7 @@
 
 import type { ExcerptSource } from '../dialogs/excerpt-picker';
 import { askPassword } from '../dialogs/passwords';
-import { openOriginal, type Original } from '../originals';
+import { openOriginal, titleOf, type Original } from '../originals';
 import { loadSavedScore, loadScore, saveScore } from '../scores';
 import { dpr } from '../ui';
 
@@ -21,7 +21,7 @@ export async function openScore(o: Original): Promise<LibraryScore> {
   try {
     const aspects = await cache.allAspects();
     const fresh = !(await loadSavedScore(o.id));
-    const { state } = await loadScore(o.id, o.title, aspects);
+    const { state } = await loadScore(o.id, titleOf(o.path), aspects);
     if (fresh) await saveScore(state);
     return {
       state,

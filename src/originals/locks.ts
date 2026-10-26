@@ -3,9 +3,10 @@
 // setlist only once it has been.
 
 import { keys, kv } from '../storage';
-import { isImageName } from './names';
-import { openOriginal, PasswordNotGiven, savedPassword } from './open';
-import type { Original } from './originals';
+import { isPdf } from './file-kind';
+import { fileOf, type Original } from './original';
+import { Passwords, savedPassword } from './open';
+import { openPdf } from './pdf';
 
 /** Whether each original needs a password, by id; one not in it hasn't been looked at yet. */
 type Locks = Record<string, boolean>;
@@ -34,17 +35,21 @@ async function encrypted(file: File): Promise<boolean> {
   return false;
 }
 
-/** Whether an encrypted original needs a password: pdf.js tries it without one. */
-async function needsPassword(o: Original): Promise<boolean> {
+/** Whether an encrypted original, whose file is `file`, needs a password: pdf.js tries it without one. */
+async function needsPassword(o: Original, file: File): Promise<boolean> {
   if ((await savedPassword(o.id)) !== undefined) return true;
+  const passwords = await Passwords.for(o);
   try {
-    (await openOriginal(o)).destroy();
+    (await openPdf(new Uint8Array(await file.arrayBuffer()), (wrong) => passwords.next(wrong))).destroy();
     return false;
   } catch (e) {
-    if (e instanceof PasswordNotGiven) return true;
+    if (passwords.refused) return true;
     throw e;
   }
 }
+
+/** Whether a file is a PDF, by its first bytes. */
+const pdfFile = async (file: File) => isPdf(new Uint8Array(await file.slice(0, 2048).arrayBuffer()));
 
 /**
  * The ids of the originals that are locked: they need a password, and none is remembered. Each is
@@ -56,12 +61,12 @@ export async function lockedOriginals(originals: readonly Original[], readable: 
   let found = false;
   for (const o of originals) {
     if (o.id in locks || !readable(o)) continue;
-    if (isImageName(o.path)) { locks[o.id] = false; found = true; continue; }
     try {
-      locks[o.id] = (await encrypted(await o.getFile())) && (await needsPassword(o));
+      const file = await fileOf(o);
+      locks[o.id] = (await pdfFile(file)) && (await encrypted(file)) && (await needsPassword(o, file));
       found = true;
     } catch (e) {
-      console.warn(`Could not tell whether “${o.title}” has a password:`, e);
+      console.warn(`Could not tell whether “${o.path}” has a password:`, e);
     }
   }
   if (found) await kv.update<Locks>(keys.locks, (old) => ({ ...old, ...locks }));

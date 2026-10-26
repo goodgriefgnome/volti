@@ -2,7 +2,7 @@
 // the widths this screen shows them, drawing those not saved yet, and deleting the rest.
 
 import { spanCuts } from '../excerpts';
-import { openOriginal, type Original } from '../originals';
+import { openOriginal, titleOf, type Original } from '../originals';
 import { readPageWidths } from '../render';
 import { loadAspects, loadScore, pack } from '../scores';
 import type { Setlist } from '../setlists';
@@ -47,7 +47,7 @@ async function make(mine: number, originals: readonly Original[], setlists: read
       if (!cache) { unsure.add(id); continue; }
       try { aspects = await cache.allAspects(); } finally { cache.destroy(); }
     }
-    const { state } = await loadScore(id, original?.title ?? '', aspects);
+    const { state } = await loadScore(id, (original && titleOf(original.path)) ?? '', aspects);
     const widths = new Map<number, Set<number>>();
     for (const e of entries.filter((e) => e.scoreId === id)) {
       for (const [p, ws] of readPageWidths(pack(spanCuts(state.score.cuts, e), aspects), W, H, scale)) {

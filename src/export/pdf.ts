@@ -1,16 +1,15 @@
 // Exporting scores as PDFs that read as the reader does in 1-page mode: a page for each frame, the
 // music cut from the original's pages, and the markings over it as annotations. The music stays as it is in the
-// original (vectors, or the scan) where pdf-lib can read the original, decrypting an encrypted
-// one first, and is drawn by pdf.js where it can't (an encryption pdf-decrypt doesn't know, say).
-// pdf-lib and pdf-decrypt are only loaded to export.
+// original (vectors, the scan, or the image) where pdf-lib can read the original as a PDF (as
+// originals/ gives it, decrypted), and is drawn by pdf.js where it can't (an encryption
+// pdf-decrypt doesn't know, say). pdf-lib is only loaded to export.
 
-import type { PDFDocument, PDFEmbeddedPage, PDFImage, PDFPage } from 'pdf-lib';
+import type { PDFDocument, PDFEmbeddedPage, PDFPage } from 'pdf-lib';
 import { spanCuts, type Span } from '../excerpts';
-import { isImageName, openOriginal, savedPassword, type AskPassword, type Original, type PageCache } from '../originals';
+import { openOriginal, PasswordNotGiven, titleOf, type AskPassword, type Original, type PageCache } from '../originals';
 import { cutTarget, drawFrame, shownOn } from '../render';
 import { loadScore, pack, type Aspects, type Frame, type State } from '../scores';
 import { annotate } from './annotations';
-import { isJpeg, isPng, jpegOrientation } from './image-bytes';
 import { placeCut, shownSize, type SourcePage } from './placement';
 
 /** One part of an export: a score, whole or the excerpt `span` of it. Each starts on a new page. */
@@ -34,8 +33,6 @@ interface Source {
   widths: number[];
   /** Its pages, each embedded in the export once, by 0-based page. */
   embedded: Map<number, Promise<PDFEmbeddedPage>>;
-  /** For an image, the image, embedded in the export once. */
-  image?: Promise<PDFImage>;
 }
 
 const sourcePage = (page: PDFPage): SourcePage => {
@@ -47,26 +44,23 @@ const sourcePage = (page: PDFPage): SourcePage => {
 type Unread = 'password' | 'encryption' | 'unreadable';
 
 /**
- * pdf-lib's copy of an original, decrypted with its remembered password (or none, for a PDF that
- * only limits what may be done with it) where it is encrypted; or why there can't be one.
+ * pdf-lib's copy of an original as a PDF, decrypted with its remembered password (or none, for a
+ * PDF that only limits what may be done with it) where it is encrypted; or why there can't be one.
  */
 async function musicOf(lib: PdfLib, o: Original): Promise<PDFDocument | Unread> {
-  const bytes = new Uint8Array(await (await o.getFile()).arrayBuffer());
+  let pdf: Awaited<ReturnType<Original['pdf']>>;
   try {
-    const doc = await lib.PDFDocument.load(bytes, { ignoreEncryption: true });
-    if (!doc.isEncrypted) return doc;
+    pdf = await o.pdf();
+  } catch (e) {
+    if (e instanceof PasswordNotGiven) return 'password';
+    throw e;
+  }
+  if (pdf.drawn) return pdf.drawn;
+  try {
+    return await lib.PDFDocument.load(pdf.bytes);
   } catch (e) {
     console.warn('Exporting by drawing the pages:', e);
     return 'unreadable';
-  }
-  const { decryptPDF } = await import('@pdfsmaller/pdf-decrypt');
-  const password = (await savedPassword(o.id)) ?? '';
-  try {
-    return await lib.PDFDocument.load(await decryptPDF(bytes, password));
-  } catch (e) {
-    console.warn('Exporting by drawing the pages:', e);
-    const message = e instanceof Error ? e.message : '';
-    return message.includes('Incorrect password') ? 'password' : message.includes('Unsupported encryption') ? 'encryption' : 'unreadable';
   }
 }
 
@@ -79,7 +73,6 @@ export async function drawnOriginals(originals: readonly Original[]): Promise<{ 
   const out: { original: Original; why: 'encryption' | 'unreadable' }[] = [];
   // One at a time: a long setlist of scans would otherwise hold every one in memory at once.
   for (const o of new Map(originals.map((o) => [o.id, o])).values()) {
-    if (isImageName(o.path)) continue; // goes in as it is
     const music = await musicOf(lib, o).catch(() => 'unreadable' as const);
     if (music === 'encryption' || music === 'unreadable') out.push({ original: o, why: music });
   }
@@ -91,9 +84,9 @@ async function open(lib: PdfLib, o: Original, ask?: AskPassword): Promise<Source
   const cache = await openOriginal(o, ask);
   try {
     const aspects = await cache.allAspects();
-    const { state } = await loadScore(o.id, o.title, aspects);
-    const music = isImageName(o.path) ? null : await musicOf(lib, o);
-    const doc = !music || typeof music === 'string' ? null : music;
+    const { state } = await loadScore(o.id, titleOf(o.path), aspects);
+    const music = await musicOf(lib, o);
+    const doc = typeof music === 'string' ? null : music;
     const widths = aspects.map((_, i) => (doc && i < doc.getPageCount() ? shownSize(sourcePage(doc.getPage(i))).width : A4_W));
     return { original: o, state, aspects, cache, doc, widths, embedded: new Map() };
   } catch (e) {
@@ -144,52 +137,10 @@ async function drawnMusic(src: Source, frame: Frame): Promise<HTMLCanvasElement>
   return canvas;
 }
 
-/**
- * An image original, to embed: a JPEG or PNG as it is; a JPEG that has to be turned to be upright,
- * or another kind of image, drawn upright and put in as a JPEG (a photo) or a PNG.
- */
-async function embedImage(out: PDFDocument, o: Original): Promise<PDFImage> {
-  const file = await o.getFile(), bytes = new Uint8Array(await file.arrayBuffer());
-  if (isJpeg(bytes) && jpegOrientation(bytes) === 1) return out.embedJpg(bytes);
-  if (isPng(bytes)) return out.embedPng(bytes);
-  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
-  const canvas = Object.assign(document.createElement('canvas'), { width: bitmap.width, height: bitmap.height });
-  const ctx = canvas.getContext('2d', { alpha: false })!;
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(bitmap, 0, 0);
-  bitmap.close();
-  const photo = isJpeg(bytes) || file.type === 'image/jpeg';
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, photo ? 'image/jpeg' : 'image/png', 0.92));
-  if (!blob) throw new Error('Could not draw the image');
-  const encoded = new Uint8Array(await blob.arrayBuffer());
-  return photo ? out.embedJpg(encoded) : out.embedPng(encoded);
-}
-
-/** The music of a frame from an image original: each cut's band of the image, as it is. */
-async function drawImageMusic(lib: PdfLib, out: PDFDocument, page: PDFPage, src: Source, frame: Frame, W: number, H: number) {
-  const image = await (src.image ??= embedImage(out, src.original));
-  const name = page.node.newXObject('Image', image.ref);
-  for (const p of frame.items) {
-    // The image as a page as wide as the export's, to place the cut as a PDF page's is.
-    const sp = { width: A4_W, height: A4_W * src.aspects[p.cut.page], rotation: 0 };
-    const { matrix, clip } = placeCut(p, sp, W, H);
-    page.pushOperators(
-      lib.pushGraphicsState(),
-      lib.rectangle(clip.x, clip.y, clip.width, clip.height), lib.clip(), lib.endPath(),
-      lib.concatTransformationMatrix(...matrix),
-      lib.concatTransformationMatrix(sp.width, 0, 0, sp.height, 0, 0),
-      lib.drawObject(name),
-      lib.popGraphicsState(),
-    );
-  }
-}
-
 async function addFrame(lib: PdfLib, out: PDFDocument, src: Source, frame: Frame) {
   const W = src.widths[frame.items[0]?.cut.page ?? 0], H = W * frame.aspect;
   const page = out.addPage([W, H]);
   if (src.doc) await drawMusic(lib, out, page, src as Source & { doc: PDFDocument }, frame, W, H);
-  else if (isImageName(src.original.path)) await drawImageMusic(lib, out, page, src, frame, W, H);
   else page.drawImage(await out.embedJpg(await jpeg(await drawnMusic(src, frame))), { x: 0, y: 0, width: W, height: H });
   // Each marking as an annotation, placed as the reader places it.
   for (const p of frame.items) {

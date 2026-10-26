@@ -3,7 +3,7 @@
 // scores) and a setlist's reader (⋯ › Add scores) both open it.
 
 import { ends, excerptName, nameOf, sameSpan, sortedNames, type Span } from '../excerpts';
-import { byFolder, type Original } from '../originals';
+import { byFolder, folderOf, titleOf, type Original } from '../originals';
 import type { ExcerptName, Score } from '../scores';
 import type { Setlist } from '../setlists';
 import { button, buttonRow, closeOverlay, el, lockIcon, plural, showDialog, whenOverlayCloses } from '../ui';
@@ -81,7 +81,7 @@ export function openAddScores(h: AddScoresHost) {
   /** The score's named excerpts to list: all of them, or when searching, those that match unless the score does. */
   const namesShown = (sc: Original, q: string) => {
     const score = h.saved.get(sc.id), names = score ? sortedNames(score) : [];
-    return !q || `${sc.title} ${sc.folder}`.toLowerCase().includes(q) ? names : names.filter((x) => x.name.toLowerCase().includes(q));
+    return !q || `${titleOf(sc.path)} ${folderOf(sc.path)}`.toLowerCase().includes(q) ? names : names.filter((x) => x.name.toLowerCase().includes(q));
   };
 
   /** The subfolder lists opened in this dialog; they start closed. */
@@ -89,7 +89,7 @@ export function openAddScores(h: AddScoresHost) {
   const fill = (search: string) => {
     list.replaceChildren();
     const q = search.trim().toLowerCase();
-    const shown = h.originals.filter((x) => `${x.title} ${x.folder}`.toLowerCase().includes(q) || namesShown(x, q).length);
+    const shown = h.originals.filter((x) => `${titleOf(x.path)} ${folderOf(x.path)}`.toLowerCase().includes(q) || namesShown(x, q).length);
     if (!shown.length) list.append(el('p', 'empty', h.originals.length ? `Nothing matches “${search}”.` : 'No scores yet.'));
     // As in the library: the top of the folder, then a list for each subfolder, opened by its heading.
     for (const { folder, originals } of byFolder(shown)) {
@@ -136,9 +136,9 @@ export function openAddScores(h: AddScoresHost) {
     });
     const redraw = () => { sync(); r.replaceWith(row(sc, names)); };
     const has = s.entries.filter((e) => e.scoreId === sc.id).length;
-    label.append(box, pickText(sc.title, has ? `in this setlist${has > 1 ? ` ${has}×` : ''}` : '', h.locked.has(sc.id)));
+    label.append(box, pickText(titleOf(sc.path), has ? `in this setlist${has > 1 ? ` ${has}×` : ''}` : '', h.locked.has(sc.id)));
     const preview = button('Preview', () => void showPreview(sc), 'quiet');
-    preview.setAttribute('aria-label', `Preview ${sc.title}`);
+    preview.setAttribute('aria-label', `Preview ${titleOf(sc.path)}`);
     r.append(label, preview);
     // Named excerpts, indented under their score, each with its own Preview.
     const score = h.saved.get(sc.id);
@@ -206,7 +206,7 @@ export function openAddScores(h: AddScoresHost) {
       sync();
       back();
     }, 'primary');
-    heading.textContent = o.title;
+    heading.textContent = titleOf(o.path);
     previewView.replaceChildren(namedExcerptMenu(strip, sc.state.score), strip.el, strip.hint, buttonRow(button('Back', back), use));
     listView.hidden = true;
     previewView.hidden = false;

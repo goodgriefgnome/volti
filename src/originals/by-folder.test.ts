@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { Original } from '../originals/originals';
 import { byFolder } from './by-folder';
+import type { Original } from './original';
 
-const original = (id: string, location: Original['location'], path: string): Original =>
-  ({ id, title: path, folder: '', location, path, getFile: () => Promise.reject(new Error('not here')) });
+/** An original `id` in `folder`, only for listing. */
+const at = (id: string, folder: string) => ({ id, added: false, path: (folder ? folder + '/' : '') + id + '.pdf' }) as Original;
 
 describe('byFolder', () => {
-  const at = (id: string, folder: string): Original => ({ ...original(id, 'folder', id), folder });
   it('lists the top of the folder first, then each subfolder by path, keeping the order within', () => {
     const lists = byFolder([at('a', 'Masses'), at('b', ''), at('c', 'Exports'), at('d', 'Masses/Latin'), at('e', 'Masses'), at('f', '')]);
     expect(lists.map((l) => [l.folder, l.originals.map((o) => o.id).join('')])).toEqual([

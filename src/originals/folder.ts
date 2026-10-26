@@ -3,8 +3,7 @@
 // folder in it. The only code that holds the folder's handle.
 
 import { keys, kv } from '../storage';
-import { isOriginalName, titleOf } from './names';
-import type { Found, Original } from './originals';
+import { isOriginalName } from './names';
 
 export type FolderState =
   | { kind: 'none' }
@@ -53,6 +52,22 @@ export async function allowWriting(): Promise<boolean> {
   return (await dir.requestPermission({ mode: 'readwrite' })) === 'granted';
 }
 
+/** The scores folder can't be read, or changed, as access to it isn't allowed. */
+export class NoAccess extends Error {
+  name = 'NoAccess';
+}
+
+/**
+ * Make sure the linked folder can be read (`read`) or changed too (`readwrite`), asking for access
+ * where it isn't allowed yet. Asking works only from a tap: elsewhere, or when it is refused, throws
+ * NoAccess.
+ */
+export async function needAccess(mode: 'read' | 'readwrite'): Promise<void> {
+  if (!dir) throw new NoAccess('No folder linked');
+  if ((await dir.queryPermission({ mode })) === 'granted') return;
+  if ((await dir.requestPermission({ mode }).catch(() => 'denied')) !== 'granted') throw new NoAccess(`No access to the scores folder (${mode})`);
+}
+
 export async function unlinkFolder(): Promise<void> {
   dir = undefined;
   await kv.del(keys.folder);
@@ -70,7 +85,8 @@ async function walk(d: FileSystemDirectoryHandle, prefix: string, depth: number,
   }
 }
 
-async function fileAt(path: string): Promise<File> {
+/** The file at `path` in the linked folder. Access must be allowed. */
+export async function fileAt(path: string): Promise<File> {
   const [d, name] = await placeOf(path);
   return (await d.getFileHandle(name)).getFile();
 }
@@ -95,23 +111,11 @@ export async function makeFolder(path: string): Promise<FileSystemDirectoryHandl
   return d;
 }
 
-export function folderOriginal({ path, id }: ListingEntry): Original {
-  const slash = path.lastIndexOf('/');
-  return {
-    id,
-    title: titleOf(path.slice(slash + 1)),
-    folder: slash < 0 ? '' : path.slice(0, slash),
-    location: 'folder',
-    path,
-    getFile: () => fileAt(path),
-  };
-}
-
-/** The PDFs in the linked folder, read now; access must be granted. */
-export async function folderFiles(): Promise<Found[]> {
+/** The PDFs and images in the linked folder, read now, by path; access must be granted. */
+export async function folderFiles(): Promise<{ path: string; file: File }[]> {
   const found: [string, FileSystemFileHandle][] = [];
   await walk(dir!, '', 0, found);
-  return Promise.all(found.map(async ([path, h]) => ({ where: 'folder/' + path, file: await h.getFile(), make: (id: string) => folderOriginal({ path, id }) })));
+  return Promise.all(found.map(async ([path, h]) => ({ path, file: await h.getFile() })));
 }
 
 /* ---------- exports ---------- */
@@ -141,6 +145,9 @@ export const rememberedListing = async () => (await kv.get<ListingEntry[]>(keys.
 
 export const saveListing = (listing: ListingEntry[]) => kv.set(keys.folderListing, listing);
 
-/** Note in the remembered listing that score `id`'s file is at `path` now (renamed or moved). */
-export const relist = (id: string, path: string) =>
-  kv.update<ListingEntry[]>(keys.folderListing, (old) => (old ?? []).map((e) => (e.id === id ? { ...e, path } : e)));
+/**
+ * Note in the remembered listing that score `id`'s file is at `path` now (renamed or moved), or
+ * with no `path`, that it is gone.
+ */
+export const relist = (id: string, path?: string) =>
+  kv.update<ListingEntry[]>(keys.folderListing, (old) => (old ?? []).flatMap((e) => (e.id !== id ? [e] : path ? [{ ...e, path }] : [])));

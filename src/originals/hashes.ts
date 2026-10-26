@@ -6,7 +6,7 @@ import { keys, kv } from '../storage';
 /** A file's hash, good while its size and modified time stay the same. */
 interface Hashed { size: number; modified: number; id: string }
 
-/** Hashes by where the file is: "folder/" + path or "imported/" + name. */
+/** Hashes by where the file is: "folder/" + path (and, before added scores were kept under their ids, "imported/" + name). */
 type HashCache = Record<string, Hashed>;
 
 const hex = (b: ArrayBuffer) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');

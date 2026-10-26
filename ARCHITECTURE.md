@@ -10,7 +10,7 @@ The code uses these words, always in these senses.
 
 | Word | Means | Type |
 | --- | --- | --- |
-| **original** | A PDF, or an image read as one page: in the linked scores folder, or a copy imported into the app. Its id is the SHA-256 of its contents, so renaming or moving it keeps everything made from it. | `Original` (`originals/originals.ts`) |
+| **original** | A PDF, or an image read as one page: in the linked scores folder, or added to the app. Its id is the SHA-256 of its contents, so renaming or moving it keeps everything made from it. It is read only as a PDF, whatever the file is. There is one `Original` for each id. | `Original` (`originals/original.ts`) |
 | **original page** | One page of an original. 0-based in the code (`cut.page`), 1-based to pdf.js and to the user. | |
 | **aspects** | Each original page's shape, height / width. Lengths on a page are in page widths. | `Aspects` (`scores/model.ts`) |
 | **score** | What is shown of an original: its cuts in played order, its archived cuts and its named excerpts. Its id is its original's. | `Score` |
@@ -50,7 +50,7 @@ keep it true, and do any start-up work from `main.ts`.
 | 5 | `render/` | What is on a screen: fitting frames to it (`layout`, `screen`), zoom maths (`zoom`), drawing a frame on a canvas (`paint`) |
 | 4 | `setlists/` | Setlists and their entries, and keeping them on the same music when a score's cuts change |
 | 3 | `excerpts/` | Spans of a score's cuts (`span`) and the names on them (`names`) |
-| 2 | `scores/`, `originals/` | A score: its data (`model`), edits (`edits`), frames (`frames`), which cut owns a marking (`ownership`), storage (`store`). Originals: the linked folder (`folder`), imported copies (`imported`), hashes, file names, opening one's pages (`open`), drawing them through the page cache (`pages`) from a PDF (`pdf`) or an image (`image`) |
+| 2 | `scores/`, `originals/` | A score: its data (`model`), edits (`edits`), frames (`frames`), which cut owns a marking (`ownership`), storage (`store`). Originals: an original (`original`), what one holds as a PDF (`contents`, told by `file-kind`), listing them (`originals`), the linked folder (`folder`), added scores (`imported`), hashes, file names, opening one's pages and passwords (`open`), drawing them through the page cache (`pages`) with pdf.js (`pdf`) |
 | 1 | `markings/`, `ui/` | What can be drawn on the music, and how (`draw`); generic pieces of the interface: elements (`dom`), menus and dialogs one at a time (`overlay`), asking for a line of text (`ask-text`), toasts |
 | 0 | `storage/`, `types/` | The IndexedDB key-value store, with every key in `keys.ts`; missing DOM types |
 

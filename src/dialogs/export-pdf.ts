@@ -3,7 +3,7 @@
 // folder, or sharing it when no folder is linked.
 
 import { drawnOriginals, exportPdf, type ExportPart } from '../export';
-import { allowWriting, exportExists, EXPORTS, fileNameProblem, saveExport } from '../originals';
+import { allowWriting, exportExists, EXPORTS, fileNameProblem, saveExport, titleOf } from '../originals';
 import { button, buttonRow, closeOverlay, el, focusHighlighted, showDialog } from '../ui';
 import { askPassword } from './passwords';
 
@@ -33,7 +33,7 @@ export function openExportPdf(h: ExportHost) {
   const quality = el('p', 'hint', 'Checking quality…');
   quality.setAttribute('aria-live', 'polite');
   void drawnOriginals(h.parts.map((p) => p.original)).then((drawn) => {
-    const titles = (why: string) => drawn.filter((d) => d.why === why).map((d) => `“${d.original.title}”`).join(', ');
+    const titles = (why: string) => drawn.filter((d) => d.why === why).map((d) => `“${titleOf(d.original.path)}”`).join(', ');
     const enc = titles('encryption'), bad = titles('unreadable');
     quality.textContent = !drawn.length ? 'Original quality.'
       : [enc && `Rasterized (unsupported encryption): ${enc}.`, bad && `Rasterized (could not be read as it is): ${bad}.`].filter(Boolean).join(' ');

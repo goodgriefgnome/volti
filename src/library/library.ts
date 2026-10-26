@@ -5,7 +5,7 @@
 import { chooseSetlist, givePassword, openExportPdf, openScore, type ExcerptHost, type ExcerptSource, type FileChange, type LibraryScore } from '../dialogs';
 import type { Span } from '../excerpts';
 import type { ExportPart } from '../export';
-import { allOriginals, byFolder, byTitle, folderState, knownTitles, linkFolder, lockedOriginals, PasswordNotGiven, unlinkFolder, unlockFolder, type FolderState, type Original } from '../originals';
+import { allOriginals, byFolder, byTitle, folderState, knownTitles, linkFolder, lockedOriginals, PasswordNotGiven, titleOf, unlinkFolder, unlockFolder, type FolderState, type Original } from '../originals';
 import { hasPictures, makePictures } from '../pictures';
 import { openReader, type ToRead } from '../reader';
 import { loadAspects, loadSavedScore, scoreEntry, type Aspects, type ExcerptName, type Score } from '../scores';
@@ -155,7 +155,7 @@ export class Library implements LibraryHost {
 
   /** Work out which scores are locked, in the background (new PDFs are looked at once), and show them. */
   private async findLocked() {
-    const readable = (o: Original) => o.location === 'imported' || this.folder.kind === 'ready';
+    const readable = (o: Original) => o.added || this.folder.kind === 'ready';
     const locked = await lockedOriginals(this.originals, readable).catch((e) => { console.warn(e); return this.locked; });
     if ([...locked].join() === [...this.locked].join()) return;
     this.locked = locked;
@@ -189,7 +189,7 @@ export class Library implements LibraryHost {
   /* ---------- showing and changing ---------- */
 
   originalOf(id: string) { return this.originals.find((s) => s.id === id); }
-  titleOf(scoreId: string) { return this.originalOf(scoreId)?.title ?? this.titles[scoreId] ?? this.saved.get(scoreId)?.title ?? 'Missing score'; }
+  titleOf(scoreId: string) { const o = this.originalOf(scoreId); return (o && titleOf(o.path)) ?? this.titles[scoreId] ?? this.saved.get(scoreId)?.title ?? 'Missing score'; }
   setlist(id: string) { return this.setlists.find((s) => s.id === id); }
 
   private renderSetlists() {
@@ -299,27 +299,27 @@ export class Library implements LibraryHost {
 
   async openForDialog(o: Original): Promise<LibraryScore | null> {
     // Opening is a tap, so it can also grant folder access for this session.
-    if (o.location === 'folder' && this.folder.kind === 'locked' && !(await this.unlock())) return null;
-    this.toast.say(`Opening “${o.title}”…`);
+    if (!o.added && this.folder.kind === 'locked' && !(await this.unlock())) return null;
+    this.toast.say(`Opening “${titleOf(o.path)}”…`);
     try {
       const sc = await openScore(o);
       this.toast.hide();
       return sc;
     } catch (e) {
       console.error(e);
-      this.toast.say(e instanceof PasswordNotGiven ? `“${o.title}” needs its password to open.` : `Could not open “${o.title}”. It may have been moved or renamed.`);
+      this.toast.say(e instanceof PasswordNotGiven ? `“${titleOf(o.path)}” needs its password to open.` : `Could not open “${titleOf(o.path)}”. It may have been moved or renamed.`);
       return null;
     }
   }
 
   async givePassword(o: Original): Promise<boolean> {
     if (!this.locked.has(o.id)) return true;
-    if (o.location === 'folder' && this.folder.kind === 'locked' && !(await this.unlock())) return false;
+    if (!o.added && this.folder.kind === 'locked' && !(await this.unlock())) return false;
     try {
       if (!(await givePassword(o))) return false;
     } catch (e) {
       console.error(e);
-      this.toast.say(`Could not open “${o.title}”. It may have been moved or renamed.`);
+      this.toast.say(`Could not open “${titleOf(o.path)}”. It may have been moved or renamed.`);
       return false;
     }
     return this.unlocked(o);
@@ -335,12 +335,12 @@ export class Library implements LibraryHost {
   open(s: Original) {
     // In the library's order, to turn on to the next score from this one's end.
     const library = byFolder(this.originals).flatMap((l) => l.originals);
-    void this.read({ kind: 'score', original: s, library }, [s], `Could not open “${s.title}”. It may have been moved or renamed.`);
+    void this.read({ kind: 'score', original: s, library }, [s], `Could not open “${titleOf(s.path)}”. It may have been moved or renamed.`);
   }
 
   /** Read a named excerpt, as a setlist entry playing it is read: only its cuts, always from its start. */
   readExcerpt(o: Original, excerpt: ExcerptName) {
-    void this.read({ kind: 'excerpt', original: o, excerpt }, [o], `Could not open “${o.title}”. It may have been moved or renamed.`);
+    void this.read({ kind: 'excerpt', original: o, excerpt }, [o], `Could not open “${titleOf(o.path)}”. It may have been moved or renamed.`);
   }
 
   play(s: Setlist, startEntry?: string) {
@@ -352,7 +352,7 @@ export class Library implements LibraryHost {
   private async read(what: ToRead, originals: Original[], failed: string) {
     // Opening is a tap, so it can also grant folder access for this session.
     // A setlist whose pages are saved as pictures plays without it, asking only for a page that isn't.
-    const folderScores = originals.filter((s) => s.location === 'folder');
+    const folderScores = originals.filter((s) => !s.added);
     const saved = what.kind === 'setlist' && (await Promise.all(folderScores.map(async (o) => (await hasPictures(o.id)) && !!(await loadAspects(o.id))))).every(Boolean);
     if (folderScores.length && this.folder.kind === 'locked' && !saved && !(await this.unlock())) return;
     this.say('');

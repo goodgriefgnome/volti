@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { endingOf, freeName, importName, isImageName, isOriginalName, tidyFolder, titleOf } from './names';
+import { endingOf, folderOf, freeName, importName, isOriginalName, pathInFolder, pathWithTitle, tidyFolder, tidyPath, titleOf } from './names';
 
 describe('importName', () => {
   it('keeps a PDF\'s own name', () => {
@@ -18,8 +18,6 @@ describe('images', () => {
     expect(isOriginalName('Ave verum.JPG')).toBe(true);
     expect(isOriginalName('Ave verum.heic')).toBe(true);
     expect(isOriginalName('notes.txt')).toBe(false);
-    expect(isImageName('Mass.pdf')).toBe(false);
-    expect(isImageName('Page 1.png')).toBe(true);
   });
   it('titles an image without its ending, and keeps the ending when importing and freeing a name', () => {
     expect(titleOf('Ave verum.jpeg')).toBe('Ave verum');
@@ -35,5 +33,24 @@ describe('tidyFolder', () => {
   it('trims the parts of a path and drops empty ones', () => {
     expect(tidyFolder(' Masses / Latin/ ')).toBe('Masses/Latin');
     expect(tidyFolder(' / ')).toBe('');
+  });
+});
+
+describe('paths', () => {
+  it('gives a title and a folder from a path', () => {
+    expect(titleOf('Masses/Latin/Mass in G.pdf')).toBe('Mass in G');
+    expect(folderOf('Masses/Latin/Mass in G.pdf')).toBe('Masses/Latin');
+    expect(folderOf('Mass in G.pdf')).toBe('');
+  });
+  it('renames in the same folder, keeping the ending', () => {
+    expect(pathWithTitle('Masses/Mass.jpg', ' Mass in G ')).toBe('Masses/Mass in G.jpg');
+    expect(pathWithTitle('Mass.pdf', 'Kyrie')).toBe('Kyrie.pdf');
+  });
+  it('moves into a tidied folder, keeping the name', () => {
+    expect(pathInFolder('Masses/Mass.pdf', ' Anthems / Easter/ ')).toBe('Anthems/Easter/Mass.pdf');
+    expect(pathInFolder('Masses/Mass.pdf', '')).toBe('Mass.pdf');
+  });
+  it('tidies a path\'s folders', () => {
+    expect(tidyPath(' Masses //Latin /Mass.pdf')).toBe('Masses/Latin/Mass.pdf');
   });
 });

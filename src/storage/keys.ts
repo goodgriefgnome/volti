@@ -8,13 +8,15 @@ export const keys = {
   /** The linked folder's PDFs as last read, { path, id }[], listed while access is locked (originals/folder.ts). */
   folderListing: 'folder-files',
   /**
-   * Each original's SHA-256 as last worked out, with the size and modified time it was worked out
-   * for, by "folder/" + path or "imported/" + name (originals/hashes.ts).
+   * Each scores-folder original's SHA-256 as last worked out, with the size and modified time it
+   * was worked out for, by "folder/" + path (originals/hashes.ts).
    */
   hashes: 'hashes',
   /** Each original's title as last seen, by id: for scores whose original is missing (originals/originals.ts). */
   titles: 'titles',
-  /** The subfolder each imported original is filed under in the library, by id ("Masses/Latin") (originals/imported.ts). */
+  /** Where each added score is in the library, by id ("Masses/Latin/Mass in G.pdf"); its file is kept under its id (originals/imported.ts). */
+  addedPaths: 'added-paths',
+  /** Gone: the subfolder each added score was filed under, by id. Read once, to move added scores over to `addedPaths` (originals/imported.ts). */
   addedFolders: 'added-folders',
   /** The library's subfolder lists closed by hand, by path (library/store.ts). */
   closedFolders: 'closed-folders',

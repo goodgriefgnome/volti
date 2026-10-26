@@ -72,7 +72,7 @@ export class OpenScores {
       p = this.open(it, original, ask).catch(async (e) => {
         if (e instanceof PasswordNotGiven && !ask) return null;
         // Not lost, only not readable until access to the scores folder is allowed again.
-        const locked = original.location === 'folder' && (await folderState()).kind === 'locked';
+        const locked = !original.added && (await folderState()).kind === 'locked';
         if (!locked) console.error(e);
         for (const x of this.items) if (x.scoreId === it.scoreId) x[locked ? 'needsAccess' : 'missing'] = true;
         return null;

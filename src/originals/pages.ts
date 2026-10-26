@@ -1,7 +1,7 @@
 // The pages of an original, drawn and kept: the page cache, which draws pages a couple at a time,
 // those for the screen first, keeps those around the current screen, and uses saved pictures where
-// there are some. What draws the pages is a PageSource: pdf.js for a PDF (pdf.ts), or an image
-// (image.ts).
+// there are some. What draws the pages is a PageSource: pdf.js (pdf.ts), as an original is always
+// read as a PDF.
 
 /** An original's pages, to draw. Pages are numbered from 1. */
 export interface PageSource {

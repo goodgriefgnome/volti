@@ -28,7 +28,7 @@ describe('Reading', () => {
   it('lists a setlist\'s entries again in place, keeping a score found missing', () => {
     const a = newEntry('p'), b = newEntry('q');
     const set: Setlist = { ...newSetlist('Spring'), entries: [a, b] };
-    const originals = new Map([['p', { id: 'p', title: 'Mass' } as Original]]);
+    const originals = new Map([['p', { id: 'p', path: 'Mass.pdf' } as Original]]);
     const items = setlistItems(set, originals, { q: 'Requiem' });
     expect(items.map((it) => [it.title, !!it.missing])).toEqual([['Mass', false], ['Requiem', true]]);
     const r = new Reading(items, { kind: 'setlist', id: set.id }, [set]);

@@ -30,6 +30,15 @@ scores.
   - To watch for, with the toolbar showing: a palm landing in the band before the pen touches, and
     a pinch or pan whose first finger lands there, turn the page.
 
+- **Callers catch `NoAccess`:** the library (opening for a dialog, giving a password, opening a
+  setlist), the reader (`lockedOut`, `allowAccess`) and `reader/open-scores.ts` check for a locked
+  scores folder before reading a folder score. An original's methods now ask for access themselves
+  and throw `NoAccess` (`originals/folder.ts`) when they can't get it: catch that instead, keeping
+  what follows access being allowed (the library reading the folder again, the reader redrawing).
+  `dialogs/score-files.ts` can then drop its `allowWriting` calls, as `o.move` asks itself.
+- **Exports ask for their own access:** `exportExists` and `saveExport` ask for write access and
+  throw `NoAccess`, as an original's methods do; `allowWriting` then leaves `originals/index.ts`.
+
 ## Manual check
 
 Things to try on the tablet.
@@ -52,6 +61,16 @@ Things to try on the tablet.
 - **Locked scores:** a password-protected PDF whose password hasn't been given shows a lock in
   the library and in Add scores (one that only stops printing or copying doesn't); adding it to a
   setlist asks for the password, Cancel leaves it out, and once given the lock goes.
+- **Added scores after the update:** each added score is where it was, under its folder in the
+  library, with its markings and setlists (their files are now kept under their ids: they are
+  moved over once, the first time the library is read). Moving and renaming one; adding a file
+  whose name an added score in another folder has.
+- **Opening times:** opening a large PDF, and a large phone photo, now that every original is read
+  as a PDF (a PDF is read by pdf-lib too, to see whether it is encrypted; an image is made into a
+  one-page PDF): how long the first page takes, compared with before.
+- **Scores drawn as pictures:** a PDF encrypted in a way pdf-decrypt doesn't know (AES-128, which
+  Acrobat often uses, even for one that only stops printing) now shows as pictures of its pages,
+  drawn each time it is opened: how long that takes, and how close-ups look.
 - **New PDFs appear on coming back:** add a PDF to the scores folder in the Files app, switch
   back to Volti after half a minute or more: it appears in the library without asking.
 

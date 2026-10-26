@@ -12,12 +12,12 @@ import { PageCache, type PageSource } from './pages';
 const assets = import.meta.env.BASE_URL + 'pdfjs/';
 
 /**
- * Open a PDF. One protected by a password asks `password` for it, saying whether the last one was
- * wrong; null gives up, and the opening fails.
+ * Open a PDF, which takes `data` (it can't be used again). One protected by a password asks
+ * `password` for it, saying whether the last one was wrong; null gives up, and the opening fails.
  */
-export async function openPdf(file: File, password?: (wrong: boolean) => Promise<string | null>): Promise<PageCache> {
+export async function openPdf(data: Uint8Array, password?: (wrong: boolean) => Promise<string | null>): Promise<PageCache> {
   const task = pdfjs.getDocument({
-    data: new Uint8Array(await file.arrayBuffer()),
+    data,
     cMapUrl: assets + 'cmaps/',
     standardFontDataUrl: assets + 'standard_fonts/',
     wasmUrl: assets + 'wasm/',

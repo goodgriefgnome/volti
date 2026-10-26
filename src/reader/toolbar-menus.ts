@@ -6,7 +6,7 @@
 import { addExcerpt, askSetlistName, changeExcerptCuts, chooseSetlist, deleteExcerpt, givePassword, moveToFolder, openAddScores, openExcerptPicker, openExportPdf, openScore, renameExcerpt, renameFile, type ExcerptHost, type ExcerptSource, type FileChange, type ScoreFileHost } from '../dialogs';
 import { ends, nameOf, sortedNames, spanLabel, spanOf, type Span } from '../excerpts';
 import type { ExportPart } from '../export';
-import { folderState, lockedOriginals, PasswordNotGiven, removeImported, subfolders, type Original, type PageCache } from '../originals';
+import { folderState, lockedOriginals, PasswordNotGiven, subfolders, titleOf, type Original, type PageCache } from '../originals';
 import { loadSavedScore, saveScore, type ExcerptName, type Score } from '../scores';
 import { addEntries, defaultSetlist, deleteSetlist, duplicate, loadLastAddedTo, moveEntry, saveLastAddedTo, withSetlist, type Entry, type Setlist } from '../setlists';
 import { button, buttonRow, closeOverlay, dpr, el, plural, showDialog, showMenu, type MenuItem } from '../ui';
@@ -98,7 +98,7 @@ export class ReaderMenus {
       o && { label: 'Rename…', run: () => renameFile(this.files(), o) },
       { label: 'Export PDF…', run: () => void this.exportPdf() },
       o && { label: 'Move to folder…', run: () => moveToFolder(this.files(), o, subfolders(this.h.library)) },
-      o?.location === 'imported' && { label: 'Remove from Volti', run: () => void this.remove(o) },
+      o?.added && { label: 'Remove from Volti', run: () => void this.remove(o) },
     ]);
   }
 
@@ -136,7 +136,7 @@ export class ReaderMenus {
 
   /** Take an added PDF out of Volti, and go back to the library. */
   private async remove(o: Original) {
-    await removeImported(o);
+    await o.remove();
     this.h.filesChanged({ gone: o.id });
     this.h.leave();
   }
@@ -225,7 +225,7 @@ export class ReaderMenus {
     const ready = (await folderState()).kind === 'ready';
     const [saved, locked] = await Promise.all([
       Promise.all(originals.map((o) => loadSavedScore(o.id))),
-      lockedOriginals(originals, (o) => o.location === 'imported' || ready),
+      lockedOriginals(originals, (o) => o.added || ready),
     ]);
     const s = reading.setlist;
     if (!s) return;
@@ -234,10 +234,10 @@ export class ReaderMenus {
       originals,
       saved: new Map(saved.filter((x): x is Score => !!x).map((x) => [x.id, x])),
       locked,
-      givePassword: (o) => givePassword(o).catch((e) => { console.error(e); this.h.say(`Could not open “${o.title}”.`); return false; }),
+      givePassword: (o) => givePassword(o).catch((e) => { console.error(e); this.h.say(`Could not open “${titleOf(o.path)}”.`); return false; }),
       open: (o) => openScore(o).catch((e) => {
         console.error(e);
-        this.h.say(e instanceof PasswordNotGiven ? `“${o.title}” needs its password to open.` : `Could not open “${o.title}”.`);
+        this.h.say(e instanceof PasswordNotGiven ? `“${titleOf(o.path)}” needs its password to open.` : `Could not open “${titleOf(o.path)}”.`);
         return null;
       }),
       add: (entries, scores) => {

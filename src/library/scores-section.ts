@@ -3,7 +3,7 @@
 
 import { addExcerpt, changeExcerptCuts, deleteExcerpt, moveToFolder, renameExcerpt, renameFile, type ScoreFileHost } from '../dialogs';
 import { sortedNames, spanLabel } from '../excerpts';
-import { byFolder, importFiles, removeImported, subfolders, type Original } from '../originals';
+import { byFolder, folderOf, importFiles, subfolders, titleOf, type Original } from '../originals';
 import type { ExcerptName, Score } from '../scores';
 import { setlistsWith } from '../setlists';
 import { button, el, lockIcon, plural, showMenu } from '../ui';
@@ -67,7 +67,7 @@ export class ScoresSection {
   render() {
     const { lib } = this;
     const q = this.query.trim().toLowerCase();
-    const matches = (s: Original) => !q || `${s.title} ${s.folder}`.toLowerCase().includes(q);
+    const matches = (s: Original) => !q || `${titleOf(s.path)} ${folderOf(s.path)}`.toLowerCase().includes(q);
     // Named excerpts whose names match, found under their scores.
     const hits = (s: Original) => {
       const score = lib.saved.get(s.id);
@@ -123,9 +123,9 @@ export class ScoresSection {
     const li = el('li', 'score hit');
     const open = button('', () => this.lib.readExcerpt(o, x), 'open');
     const pages = spanLabel(score.cuts, x, this.lib.shapes.get(score.id));
-    open.append(el('span', 'score-title', `${x.name} · ${o.title}`));
+    open.append(el('span', 'score-title', `${x.name} · ${titleOf(o.path)}`));
     if (pages) open.append(el('span', 'score-folder', pages));
-    open.setAttribute('aria-label', `${x.name}, an excerpt of ${o.title}`);
+    open.setAttribute('aria-label', `${x.name}, an excerpt of ${titleOf(o.path)}`);
     li.append(el('span', 'expand'), open, this.excerptMore(o, score, x));
     return li;
   }
@@ -135,23 +135,23 @@ export class ScoresSection {
     const { lib } = this;
     const score = lib.saved.get(s.id), names = score ? sortedNames(score) : [];
     const title = button('', () => lib.open(s), 'open');
-    const name = el('span', 'score-title', s.title);
+    const name = el('span', 'score-title', titleOf(s.path));
     if (lib.locked.has(s.id)) name.append(lockIcon('Needs its password'));
     title.append(name);
     const n = setlistsWith(lib.setlists, s.id).length;
     const meta = [names.length ? plural(names.length, 'excerpt') : '', n ? `in ${plural(n, 'setlist')}` : ''].filter(Boolean).join(' · ');
     if (meta) title.append(el('span', 'score-folder', meta));
-    if (s.location === 'imported') title.append(el('span', 'badge', 'Added'));
+    if (s.added) title.append(el('span', 'badge', 'Added'));
 
-    const more = moreButton(s.title, (at) => showMenu(at, s.title, [
-      ...lib.addToItems(at, s.id, s.title),
-      { label: 'Add excerpt…', run: () => void lib.withPages(s, (sc) => addExcerpt(sc, s.title, lib.excerptHost(s.id))) },
+    const more = moreButton(titleOf(s.path), (at) => showMenu(at, titleOf(s.path), [
+      ...lib.addToItems(at, s.id, titleOf(s.path)),
+      { label: 'Add excerpt…', run: () => void lib.withPages(s, (sc) => addExcerpt(sc, titleOf(s.path), lib.excerptHost(s.id))) },
       { label: 'Rename…', run: () => renameFile(this.files, s) },
-      { label: 'Export PDF…', run: () => lib.exportPdf(s.title, [{ scoreId: s.id }]) },
+      { label: 'Export PDF…', run: () => lib.exportPdf(titleOf(s.path), [{ scoreId: s.id }]) },
       { label: 'Move to folder…', run: () => moveToFolder(this.files, s, subfolders(lib.originals)) },
-      s.location === 'imported' && { label: 'Remove from Volti', run: async () => {
-        await removeImported(s);
-        lib.say(`Removed “${s.title}”.`);
+      s.added && { label: 'Remove from Volti', run: async () => {
+        await s.remove();
+        lib.say(`Removed “${titleOf(s.path)}”.`);
         lib.filesChanged([{ gone: s.id }]);
       } },
     ]));
@@ -159,14 +159,14 @@ export class ScoresSection {
     let excerpts: HTMLElement | undefined;
     if (score && names.length) {
       excerpts = el('ul', 'entries excerpts');
-      excerpts.setAttribute('aria-label', `Named excerpts of ${s.title}`);
+      excerpts.setAttribute('aria-label', `Named excerpts of ${titleOf(s.path)}`);
       for (const x of names) excerpts.append(this.excerptRow(s, score, x));
     }
     return expandableRow({
       cls: 'score set',
       id: s.id,
       open: lib.openRows,
-      label: `Named excerpts of ${s.title}`,
+      label: `Named excerpts of ${titleOf(s.path)}`,
       head: [title, more],
       inner: excerpts,
     });
@@ -191,7 +191,7 @@ export class ScoresSection {
       ...lib.addToItems(at, o.id, x.name, x),
       { label: 'Rename…', run: () => renameExcerpt(score, x, lib.excerptHost(o.id)) },
       { label: 'Change cuts…', run: () => void lib.withPages(o, (sc) => changeExcerptCuts(sc, x, lib.excerptHost(o.id))) },
-      { label: 'Export PDF…', run: () => lib.exportPdf(`${o.title} - ${x.name}`, [{ scoreId: o.id, first: x.first, last: x.last }]) },
+      { label: 'Export PDF…', run: () => lib.exportPdf(`${titleOf(o.path)} - ${x.name}`, [{ scoreId: o.id, first: x.first, last: x.last }]) },
       { label: 'Delete…', run: () => deleteExcerpt(score, x, lib.excerptHost(o.id)) },
     ]));
   }

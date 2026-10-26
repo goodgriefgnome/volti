@@ -6,7 +6,7 @@
 import type { FileChange } from '../dialogs';
 import { ends } from '../excerpts';
 import { PEN_COLORS, type Marking } from '../markings';
-import { folderState, knownTitles, PasswordNotGiven, unlockFolder, type Original, type PageCache } from '../originals';
+import { folderState, knownTitles, PasswordNotGiven, titleOf, unlockFolder, type Original, type PageCache } from '../originals';
 import { framesOnScreen, isZoomed, NO_ZOOM, pageWidths, screenAt, type Hatches, type Zoom } from '../render';
 import { A4, frameOf, loadScore, pack, saveScorePosition, type Aspects, type Cut, type ExcerptName, type Frame, type State } from '../scores';
 import { loadSetlists, type Setlist } from '../setlists';
@@ -54,9 +54,9 @@ export async function openReader(what: ToRead, onClose: (fileChanges: FileChange
   if (what.kind !== 'setlist') {
     const { original } = what;
     const { cache, aspects } = await openPages(original, true);
-    const { state, position } = await loadScore(original.id, original.title, aspects);
+    const { state, position } = await loadScore(original.id, titleOf(original.path), aspects);
     const first: OpenScore = { id: original.id, original, aspects, state, cache };
-    const item = { scoreId: original.id, title: original.title, original };
+    const item = { scoreId: original.id, title: titleOf(original.path), original };
     // An excerpt starts at its start each time: its place isn't kept.
     if (what.kind === 'excerpt') new Reader([item], { kind: 'excerpt', span: ends(what.excerpt) }, setlists, first, 0, undefined, onClose);
     else new Reader([item], { kind: 'score' }, setlists, first, 0, position, onClose, what.library);
@@ -434,7 +434,7 @@ class Reader {
 
   /** Whether the scores folder, which some of what is read comes from, can't be read until access is allowed. */
   private async lockedOut(): Promise<boolean> {
-    return this.items.some((it) => it.original?.location === 'folder') && (await folderState()).kind === 'locked';
+    return this.items.some((it) => it.original?.added === false) && (await folderState()).kind === 'locked';
   }
 
   /**
@@ -542,7 +542,7 @@ class Reader {
     const { open, offered } = offerScore(this.offered, dir, o?.id, Date.now(), OFFER_MS);
     this.offered = offered;
     if (!o) this.say(dir > 0 ? 'This is the last score.' : 'This is the first score.');
-    else if (!open) this.say(`Tap again for “${o.title}”`);
+    else if (!open) this.say(`Tap again for “${titleOf(o.path)}”`);
     else {
       this.toast.hide();
       void this.turnToScore(o, dir);
@@ -558,19 +558,19 @@ class Reader {
     try {
       const { cache, aspects } = await openPages(o, true);
       if (this.scores.closed) { cache.destroy(); return; }
-      const { state } = await loadScore(o.id, o.title, aspects);
+      const { state } = await loadScore(o.id, titleOf(o.path), aspects);
       open = { id: o.id, original: o, aspects, state, cache };
     } catch (e) {
       // Not opened (its password not given, say): stay where you were.
       this.loading = false;
       this.syncBar();
       void this.show();
-      this.say(e instanceof PasswordNotGiven ? `“${o.title}” needs its password to open.` : `Could not open “${o.title}”. It may have been moved or renamed.`);
+      this.say(e instanceof PasswordNotGiven ? `“${titleOf(o.path)}” needs its password to open.` : `Could not open “${titleOf(o.path)}”. It may have been moved or renamed.`);
       if (!(e instanceof PasswordNotGiven)) console.error(e);
       return;
     }
     this.scores.adopt(open);
-    this.reading.turnTo({ scoreId: o.id, title: o.title, original: o });
+    this.reading.turnTo({ scoreId: o.id, title: titleOf(o.path), original: o });
     this.loading = false;
     await this.goTo(0, dir > 0 ? 'first' : 'last');
   }

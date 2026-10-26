@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isJpeg, isPng, jpegOrientation } from './image-bytes';
+import { isJpeg, isPdf, isPng, jpegOrientation } from './file-kind';
 
 /** A JPEG's start with an EXIF block saying `orientation`, in the given byte order. */
 function jpegWith(orientation: number, little: boolean): Uint8Array {
@@ -29,5 +29,18 @@ describe('jpegOrientation', () => {
     expect(isJpeg(jpegWith(1, false))).toBe(true);
     expect(isPng(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 13, 10]))).toBe(true);
     expect(isPng(jpegWith(1, false))).toBe(false);
+  });
+});
+
+describe('isPdf', () => {
+  const bytes = (s: string) => new TextEncoder().encode(s);
+  it('finds the header at the start, or after some junk within the first 1 KB', () => {
+    expect(isPdf(bytes('%PDF-1.7\n'))).toBe(true);
+    expect(isPdf(bytes('x'.repeat(1000) + '%PDF-1.4'))).toBe(true);
+  });
+  it('is not fooled by a header further in, or by an image', () => {
+    expect(isPdf(bytes('x'.repeat(2000) + '%PDF-1.4'))).toBe(false);
+    expect(isPdf(new Uint8Array([0xff, 0xd8, 0xff, 0xe0]))).toBe(false);
+    expect(isPdf(bytes('%PDF'))).toBe(false);
   });
 });
