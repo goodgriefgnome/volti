@@ -21,7 +21,7 @@ import { Reading, setlistItems, type ReadingKind, type ReadingSnapshot } from '.
 import { Saver } from './saver';
 import { blankBox, ScoreCard, showSetlistTitle } from './setlist';
 import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './spread';
-import { backIcon, Toolbar, type ToolChoice } from './toolbar';
+import { backIcon, chromeIcon, Toolbar, type ToolChoice } from './toolbar';
 import { ReaderMenus } from './toolbar-menus';
 import { offerScore, turnFrom, type Offer } from './turning';
 import type { ToolName } from './tools';
@@ -162,6 +162,7 @@ class Reader {
     this.detail = new Detail(view);
     this.toolbar = new Toolbar(what.kind, {
       close: () => history.back(),
+      hide: () => this.showChrome(false),
       scores: () => this.menus.scores(),
       excerpt: () => void this.withAccess(() => this.menus.excerpt()),
       excerpts: () => this.menus.excerpts(),
@@ -210,7 +211,15 @@ class Reader {
     back.append(backIcon());
     back.setAttribute('aria-label', 'Library');
     back.addEventListener('click', () => history.back());
-    this.root.append(this.stage, back, this.toolbar.el, this.scope, this.toast.el);
+    // And one at the top right shows the toolbar.
+    const show = el('button', 'show-bar');
+    show.type = 'button';
+    show.append(chromeIcon('down'));
+    show.setAttribute('aria-label', 'Show the toolbar');
+    show.addEventListener('click', () => this.showChrome(true));
+    // While it shows, a scrim marks the band at each side that turns the page.
+    const bands = [el('div', 'turn-band left'), el('div', 'turn-band right')];
+    this.root.append(this.stage, ...bands, back, show, this.toolbar.el, this.scope, this.toast.el);
     document.body.append(this.root);
     document.body.classList.add('reading');
 
@@ -515,8 +524,6 @@ class Reader {
   /** Turn a screen; in a setlist, past a score's end into the next one, or back into the one before. */
   private turn(dir: 1 | -1) {
     if (this.loading) return;
-    // Put the tool away so taps turn pages again. The toolbar stays until you dismiss it.
-    this.tool = 'none';
     const place = { k: this.k, items: this.items.length, frame: this.frame, shown: this.shown, frames: this.frames.length };
     const t = turnFrom(place, dir, this.reading.what.kind);
     if (t.to !== 'score') this.offered = null;

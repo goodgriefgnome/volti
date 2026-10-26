@@ -18,13 +18,28 @@
 .chrome-hidden .bar { transform: translateY(-100%); opacity: 0; pointer-events: none; }
 /* The back arrow: on the toolbar's Library button, and on its own at the top left while the toolbar is hidden. */
 .back-icon { width: 22px; height: 22px; display: block; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
-.bar button:has(> .back-icon) { padding: 6px 9px; }
 .reader > .back {
   position: absolute; z-index: 6; left: max(6px, env(safe-area-inset-left, 0px)); top: max(6px, env(safe-area-inset-top, 0px));
   width: 44px; height: 44px; min-height: 0; padding: 0; display: none; place-items: center; border-radius: 50%;
   border: 0; background: rgba(20, 22, 27, 0.45); color: #ffffff; opacity: 0.75;
 }
 .reader.chrome-hidden > .back { display: grid; }
+/* Its twin at the top right shows the toolbar. */
+.reader > .show-bar {
+  position: absolute; z-index: 6; right: max(6px, env(safe-area-inset-right, 0px)); top: max(6px, env(safe-area-inset-top, 0px));
+  width: 44px; height: 44px; min-height: 0; padding: 0; display: none; place-items: center; border-radius: 50%;
+  border: 0; background: rgba(20, 22, 27, 0.45); color: #ffffff; opacity: 0.75;
+}
+.reader.chrome-hidden > .show-bar { display: grid; }
+.bar button:has(> .back-icon) { padding: 6px 9px; }
+/*
+ * While the toolbar shows, only a band at each side turns the page (TURN_BAND_PX in
+ * reader/gestures.ts, 64 px to touch); a scrim 40 px wide marks it, as wide as a cut tab shows.
+ */
+.turn-band { position: absolute; z-index: 4; top: var(--bar-h, 56px); bottom: 0; width: 40px; pointer-events: none; background: rgba(20, 22, 27, 0.28); }
+.turn-band.left { left: 0; }
+.turn-band.right { right: 0; }
+.chrome-hidden .turn-band { display: none; }
 .bar .group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
 .bar button { min-height: 40px; padding: 6px 12px; background: transparent; color: inherit; border-color: rgba(255, 255, 255, 0.22); }
 .bar button[aria-pressed="true"] { background: var(--bar-fg); color: #14161b; border-color: var(--bar-fg); }

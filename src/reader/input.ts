@@ -1,18 +1,21 @@
 // Pointer and keyboard input on the score: palm rejection, pinch and pan, handing a pointer to the
-// cut editor or the selected tool, and taps, swipes and keys that turn pages. What each tool does
+// cut editor or the selected tool, and presses, taps and keys that turn pages or hide the toolbar. What each tool does
 // is in tools/.
 
 import type { Point } from '../markings';
 import { isZoomed, pan, pinch, type Pt, type Zoom } from '../render';
 import { closeOverlay, overlayOpen } from '../ui';
 import type { CutEditor } from './cuts/editor';
-import { gestureFor, gestureForKey, type Gesture } from './gestures';
+import { gestureForKey, isTap, turnFor, type Gesture } from './gestures';
 import type { FrameSlot } from './spread';
 import type { ToolChoice } from './toolbar';
 import { TOOLS } from './tools';
 import type { ToolHost, ToolPointer } from './tools/tool';
 
-/** After the pen lifts, finger touches are ignored this long, as they are probably the writing hand. */
+/**
+ * While the pen is down, and this long after it lifts, finger touches are ignored, as they are
+ * probably the writing hand: they neither write nor turn.
+ */
 const PALM_GUARD_MS = 600;
 
 /** What pointer and key handling needs from the reader, besides what the tools need. */
@@ -27,9 +30,11 @@ export interface InputHost extends ToolHost {
 }
 
 /**
- * Pointers and keys on the score: two fingers pinch, one pans when zoomed in, a pen or finger
- * uses the selected tool (tools/), and otherwise taps, swipes and keys turn pages. A palm resting
- * while the pen writes is ignored. The cut editor gets the pointer first.
+ * Pointers and keys on the score. A press turns the page as it goes down: anywhere while the
+ * toolbar is hidden, and only in the band at each side while it shows (gestures.ts). Otherwise,
+ * with the toolbar showing, two fingers pinch, one pans when zoomed in, a pen or finger uses the
+ * selected tool (tools/), and a tap hides the toolbar; the pen writes in the bands too. A palm
+ * resting while the pen writes is ignored. The cut editor's tabs get the pointer first.
  */
 export class Input {
   /** Fingers currently on the screen, by pointer id. */
@@ -40,8 +45,10 @@ export class Input {
   private active: { id: number; type: string; slot: FrameSlot; rect: DOMRect; use: ToolPointer } | null = null;
   private gesture: { id: number; x: number; y: number; t: number } | null = null;
   private pinching: { ids: [number, number]; start: Zoom; c0: Pt; d0: number } | null = null;
-  private panning: { id: number; start: Zoom; x0: number; y0: number } | null = null;
+  private panning: { id: number; start: Zoom; x0: number; y0: number; t: number } | null = null;
   private lastPen = 0;
+  /** Pens on the screen, by pointer id. */
+  private pens = new Set<number>();
 
   constructor(private host: InputHost) {
     const { stage } = host;
@@ -58,7 +65,7 @@ export class Input {
     document.removeEventListener('keydown', this.onKey);
   }
 
-  /** Forget the tap or swipe in progress. */
+  /** Forget the tap in progress. */
   cancelGesture() {
     this.gesture = null;
   }
@@ -100,6 +107,7 @@ export class Input {
     const now = performance.now();
     if (e.pointerType === 'pen') {
       this.lastPen = now;
+      this.pens.add(e.pointerId);
       // A palm often lands just before the pen tip; drop whatever it started.
       if (this.active?.type === 'touch') this.dropActive();
       const fingersBusy = this.pinching || (this.panning && this.fingers.has(this.panning.id));
@@ -111,9 +119,9 @@ export class Input {
     }
     if (e.pointerType === 'touch') {
       this.fingers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      if (this.active?.type === 'pen' || now - this.lastPen < PALM_GUARD_MS) { this.ignored.add(e.pointerId); return; }
+      if (this.pens.size || this.active?.type === 'pen' || now - this.lastPen < PALM_GUARD_MS) { this.ignored.add(e.pointerId); return; }
       if (this.fingers.size >= 2) {
-        // A second finger: this is a pinch, not writing, turning or panning.
+        // A second finger: this is a pinch, not writing, a tap or panning.
         this.dropActive();
         host.editor.cancel();
         this.gesture = this.panning = null;
@@ -125,11 +133,19 @@ export class Input {
     if (this.active || this.pinching) return;
     if (e.button === 2) return; // right-click opens a menu instead
     host.stage.setPointerCapture(e.pointerId);
-    // A tab takes the pointer before writing, panning or turning.
+    // A tab takes the pointer before turning, writing or panning.
     if (host.editor.onDown(e)) return;
 
     const eraserButton = e.pointerType === 'pen' && !!(e.buttons & 32); // the pen's eraser end or button
     const tool = eraserButton ? 'eraser' : host.tool();
+    const toolbar = host.annotating();
+    const penWrites = toolbar && tool !== 'none' && e.pointerType === 'pen';
+    const turn = penWrites ? null : turnFor(this.stagePoint(e.clientX, e.clientY).x, host.stage.clientWidth, toolbar);
+    if (turn) {
+      host.editor.cancel(); // no long press on the page it turned from
+      host.act(turn);
+      return;
+    }
     if (tool !== 'none') {
       const hit = this.slotAt(e.clientX, e.clientY);
       if (!hit) return;
@@ -138,7 +154,7 @@ export class Input {
       return;
     }
     if (isZoomed(host.zoom())) {
-      this.panning = { id: e.pointerId, start: host.zoom(), x0: e.clientX, y0: e.clientY };
+      this.panning = { id: e.pointerId, start: host.zoom(), x0: e.clientX, y0: e.clientY, t: now };
       return;
     }
     this.gesture = { id: e.pointerId, x: e.clientX, y: e.clientY, t: now };
@@ -174,7 +190,7 @@ export class Input {
 
   private onUp(e: PointerEvent, cancelled: boolean) {
     const { host } = this;
-    if (e.pointerType === 'pen') this.lastPen = performance.now();
+    if (e.pointerType === 'pen') { this.lastPen = performance.now(); this.pens.delete(e.pointerId); }
     this.fingers.delete(e.pointerId);
     if (this.ignored.delete(e.pointerId)) return;
     if (host.editor.onUp(e, cancelled)) return;
@@ -185,14 +201,19 @@ export class Input {
       this.pinching = null;
       return;
     }
-    if (this.panning?.id === e.pointerId) { this.panning = null; return; }
-
+    // A tap on the page, when it doesn't write or edit cuts, hides the toolbar.
+    const tapped = (x: number, y: number, t: number) =>
+      !cancelled && isTap({ x0: x, y0: y, x1: e.clientX, y1: e.clientY, ms: performance.now() - t });
+    const pn = this.panning;
+    if (pn?.id === e.pointerId) {
+      this.panning = null;
+      if (tapped(pn.x0, pn.y0, pn.t)) host.act('toggleChrome');
+      return;
+    }
     const g = this.gesture;
     if (g && e.pointerId === g.id) {
       this.gesture = null;
-      if (cancelled) return;
-      const action = gestureFor({ x0: g.x, y0: g.y, x1: e.clientX, y1: e.clientY, ms: performance.now() - g.t }, host.stage.clientWidth);
-      if (action) host.act(action);
+      if (tapped(g.x, g.y, g.t)) host.act('toggleChrome');
       return;
     }
 

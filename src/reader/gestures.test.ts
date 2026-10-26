@@ -1,23 +1,34 @@
 import { describe, expect, it } from 'vitest';
-import { gestureFor, gestureForKey } from './gestures';
+import { gestureForKey, isTap, turnFor, TURN_BAND_PX } from './gestures';
 
 const tap = (x: number) => ({ x0: x, y0: 400, x1: x, y1: 400, ms: 120 });
 
-describe('gestureFor', () => {
-  it('turns forward when tapping the right side and back on the left', () => {
-    expect(gestureFor(tap(1200), 1280)).toBe('next');
-    expect(gestureFor(tap(80), 1280)).toBe('prev');
+describe('turnFor', () => {
+  it('turns anywhere while the toolbar is hidden: back on the left half, forward on the right', () => {
+    expect(turnFor(1200, 1280, false)).toBe('next');
+    expect(turnFor(660, 1280, false)).toBe('next');
+    expect(turnFor(620, 1280, false)).toBe('prev');
+    expect(turnFor(0, 1280, false)).toBe('prev');
   });
-  it('shows the toolbar when tapping the middle', () => {
-    expect(gestureFor(tap(640), 1280)).toBe('toggleChrome');
+  it('turns only in the band at each side while the toolbar shows', () => {
+    expect(turnFor(10, 1280, true)).toBe('prev');
+    expect(turnFor(TURN_BAND_PX, 1280, true)).toBe('prev');
+    expect(turnFor(1280 - TURN_BAND_PX, 1280, true)).toBe('next');
+    expect(turnFor(1275, 1280, true)).toBe('next');
+    expect(turnFor(TURN_BAND_PX + 1, 1280, true)).toBeNull();
+    expect(turnFor(640, 1280, true)).toBeNull();
   });
-  it('turns on a horizontal swipe', () => {
-    expect(gestureFor({ x0: 900, y0: 400, x1: 700, y1: 420, ms: 200 }, 1280)).toBe('next');
-    expect(gestureFor({ x0: 300, y0: 400, x1: 500, y1: 380, ms: 200 }, 1280)).toBe('prev');
+});
+
+describe('isTap', () => {
+  it('takes a short press that stays put', () => {
+    expect(isTap(tap(640))).toBe(true);
+    expect(isTap({ ...tap(640), x1: 650 })).toBe(true);
   });
-  it('ignores long presses and vertical drags', () => {
-    expect(gestureFor({ ...tap(1200), ms: 900 }, 1280)).toBeNull();
-    expect(gestureFor({ x0: 600, y0: 200, x1: 640, y1: 600, ms: 200 }, 1280)).toBeNull();
+  it('leaves out long presses and drags', () => {
+    expect(isTap({ ...tap(640), ms: 900 })).toBe(false);
+    expect(isTap({ ...tap(640), x1: 700 })).toBe(false);
+    expect(isTap({ ...tap(640), y1: 440 })).toBe(false);
   });
 });
 

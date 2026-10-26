@@ -17,11 +17,25 @@ export function backIcon(): SVGSVGElement {
   return svg;
 }
 
+/** A chevron, down to show the toolbar, up to hide it: on the toolbar, and when it is hidden. */
+export function chromeIcon(dir: 'down' | 'up'): SVGSVGElement {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.classList.add('back-icon');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', dir === 'down' ? 'M5 9l7 7 7-7' : 'M5 15l7-7 7 7');
+  svg.append(path);
+  return svg;
+}
+
 /** The tool selected in the toolbar, if any. */
 export type ToolChoice = 'none' | ToolName;
 
 export interface ToolbarActions {
   close(): void;
+  /** Hide the toolbar. */
+  hide(): void;
   /** In a setlist: the menu of its scores. */
   scores(): void;
   /** In a setlist: choosing the excerpt of this score; in a named excerpt: changing its cuts. */
@@ -93,12 +107,17 @@ export class Toolbar {
     const more = this.button('more', '⋯', act.more, 'more');
     more.setAttribute('aria-label', reading === 'setlist' ? 'More for this setlist' : 'More');
     more.setAttribute('aria-haspopup', 'menu');
+    const hide = this.button('hide', '', act.hide);
+    hide.append(chromeIcon('up'));
+    hide.setAttribute('aria-label', 'Hide the toolbar');
+    hide.title = 'Hide the toolbar';
     right.append(
       this.button('edit', 'Edit cuts', act.toggleEditing),
       this.button('archived', 'Archived', act.openArchive),
       this.button('fit', 'Fit page', act.fit),
       more,
       this.info,
+      hide,
     );
     this.el.append(left, tools, right);
   }

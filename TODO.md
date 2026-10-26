@@ -13,23 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **Turning on the press, and a button for the toolbar:** a tap on the reader sometimes felt lost
-  (today a tap turns only when the finger lifts within 400 ms and 12 px of where it went down, in
-  `reader/gestures.ts`), and in performance nothing shows where the middle zone that opens the
-  toolbar starts. So:
-  - The page turns as the finger goes down, always; back on the left, forward on the right.
-    Swipes no longer turn (the press already has).
-  - Toolbar hidden: the whole page turns; there is no middle zone.
-  - Toolbar showing: only a thin band at each side turns, about as wide as the cut tabs (40 px
-    seen, 64 px to touch), marked by a scrim. The cut tabs at the edges still take a press before
-    the band does. A tap (on the
-    release) on the rest of the page, when it doesn't write or edit cuts, hides the toolbar.
-  - A button, like the back button, shows the toolbar (and hides it).
-  - Nothing turns while the pen is on the screen, nor for a moment after it lifts: touches then
-    are taken as the palm (as now, `PALM_GUARD_MS` in `reader/input.ts`).
-  - To watch for, with the toolbar showing: a palm landing in the band before the pen touches, and
-    a pinch or pan whose first finger lands there, turn the page.
-
 - **Callers catch `NoAccess`:** the library (opening for a dialog, giving a password, opening a
   setlist), the reader (`lockedOut`, `allowAccess`) and `reader/open-scores.ts` check for a locked
   scores folder before reading a folder score. An original's methods now ask for access themselves
@@ -81,6 +64,12 @@ The next three, in this order:
 
 Things to try on the tablet.
 
+- **Turning on the press:** the page turns as the finger goes down, anywhere with the toolbar
+  hidden; with it showing, only in the shaded band at each side (a cut tab there still takes the
+  press first), and a tap elsewhere hides the toolbar. The chevron at the top right shows it, and
+  the one at the toolbar's right end hides it. Nothing turns while the pen is down or just after
+  it lifts. Watch for a palm landing in a band before the pen touches, and a pinch or pan whose
+  first finger lands in a band: they turn the page. Turning no longer puts the pen away.
 - **Setlists without folder access:** after a restart, before tapping Allow access, play a
   setlist whose pages are saved: it opens without asking. Turn the tablet (pages not saved at
   that size): the page asks for access, and Allow access shows it.
