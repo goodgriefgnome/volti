@@ -77,6 +77,19 @@ Things to try on the tablet.
 
 ## Confirmed features which require more thought
 
+- **One page cache for the app, kept between sessions** [needs discussion]: today each opener
+  (the reader's scores, a dialog's score, an export, the pictures maker, an incoming preview)
+  opens its own `PageCache`, so one original can be open in pdf.js twice, with its pages drawn
+  twice. Instead, one cache keyed by original id (a hash, so never stale): openers take and
+  release a hold on an original, pdf.js closes it once none is held, and drawn pages share one
+  memory budget, the least recently used dropped first. Kept between sessions, it would take over
+  from the saved pictures (`pictures/`), which are already a stored page cache for the pages
+  setlists play: the pictures maker would only mark those pages to keep. To think through: how
+  much room it may take, and which pages are worth storing (thumbnails, zoom steps, sizes no
+  longer shown); the cost of encoding WebP against drawing again (small for vector pages, large
+  for scans); a version in its keys, as a new pdf.js or supersampling draws differently; that a
+  password-protected PDF's pages are stored readable, as pictures are now; and Trash in the
+  storage view for a removed score's pages.
 - **Purging a removed score's data** [needs discussion]: once a removed file is deleted for good,
   its score (cuts, markings, named excerpts, reading position) is still kept by hash, as for any
   score whose file is missing. Eventually there should be a way to purge it.
