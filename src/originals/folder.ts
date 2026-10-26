@@ -45,13 +45,6 @@ export async function unlockFolder(): Promise<boolean> {
   return (await dir.requestPermission({ mode: 'read' })) === 'granted';
 }
 
-/** Ask to change files in the linked folder as well as read them. Must be called from a tap. */
-export async function allowWriting(): Promise<boolean> {
-  if (!dir) return false;
-  if ((await dir.queryPermission({ mode: 'readwrite' })) === 'granted') return true;
-  return (await dir.requestPermission({ mode: 'readwrite' })) === 'granted';
-}
-
 /** The scores folder can't be read, or changed, as access to it isn't allowed. */
 export class NoAccess extends Error {
   name = 'NoAccess';
@@ -123,17 +116,21 @@ export async function folderFiles(): Promise<{ path: string; file: File }[]> {
 /** The folder inside the linked folder that exported PDFs are written to. */
 export const EXPORTS = 'Exports';
 
+/** The exports folder, made if it isn't there yet; asks for write access (from a tap), or throws NoAccess. */
 const exportsDir = async () => {
-  if (!dir) throw new Error('No folder linked');
-  return dir.getDirectoryHandle(EXPORTS, { create: true });
+  await needAccess('readwrite');
+  return dir!.getDirectoryHandle(EXPORTS, { create: true });
 };
 
-/** Whether `name`.pdf is in the exports folder. Write access must have been allowed. */
+/** Whether `name`.pdf is in the exports folder. Asks for write access (from a tap), or throws NoAccess. */
 export async function exportExists(name: string): Promise<boolean> {
   return (await exportsDir()).getFileHandle(name.trim() + '.pdf').then(() => true, () => false);
 }
 
-/** Write `name`.pdf into the exports folder, replacing one of that name. Write access must have been allowed. */
+/**
+ * Write `name`.pdf into the exports folder, replacing one of that name. Asks for write access
+ * (from a tap: exportExists is asked first), or throws NoAccess.
+ */
 export async function saveExport(name: string, data: Blob): Promise<void> {
   const w = await (await (await exportsDir()).getFileHandle(name.trim() + '.pdf', { create: true })).createWritable();
   await w.write(data);

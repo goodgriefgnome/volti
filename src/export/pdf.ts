@@ -6,7 +6,7 @@
 
 import type { PDFDocument, PDFEmbeddedPage, PDFPage } from 'pdf-lib';
 import { spanCuts, type Span } from '../excerpts';
-import { openOriginal, PasswordNotGiven, titleOf, type AskPassword, type Original, type PageCache } from '../originals';
+import { NoAccess, openOriginal, PasswordNotGiven, titleOf, type AskPassword, type Original, type PageCache } from '../originals';
 import { cutTarget, drawFrame, shownOn } from '../render';
 import { loadScore, pack, type Aspects, type Frame, type State } from '../scores';
 import { annotate } from './annotations';
@@ -75,7 +75,10 @@ export async function drawnOriginals(originals: readonly Original[]): Promise<{ 
   const out: { original: Original; why: 'encryption' | 'unreadable' }[] = [];
   // One at a time: a long setlist of scans would otherwise hold every one in memory at once.
   for (const o of new Map(originals.map((o) => [o.id, o])).values()) {
-    const music = await musicOf(lib, o).catch(() => 'unreadable' as const);
+    const music = await musicOf(lib, o).catch((e) => {
+      if (e instanceof NoAccess) throw e; // not known, rather than drawn
+      return 'unreadable' as const;
+    });
     if (music === 'encryption' || music === 'unreadable') out.push({ original: o, why: music });
   }
   return out;

@@ -13,10 +13,7 @@ scores.
 
 ## Work for the immediate future
 
-- **Exports ask for their own access:** `exportExists` and `saveExport` ask for write access and
-  throw `NoAccess`, as an original's methods do; `allowWriting` then leaves `originals/index.ts`.
-
-The next three, in this order:
+In this order:
 
 - **One root for the library:** the linked scores folder when there is one, the origin private
   file system (OPFS) when there isn't (before one is linked, or where the browser can't link
@@ -61,7 +58,8 @@ Things to try on the tablet.
 - **Access asked for by what reads the folder:** after a restart, before tapping Allow access:
   opening a score from the folder, adding a locked one to a setlist, opening one for a dialog
   (Add excerpt), and renaming or moving one each ask for access themselves; refusing says so,
-  allowing goes on and the library reads the folder again. In a setlist played from its saved
+  allowing goes on and the library reads the folder again. Exporting into the folder asks for
+  write access when Export is tapped. In a setlist played from its saved
   pictures, a page not saved, Edit cuts and Export ask for it, and Allow access redraws.
 - **Turning on the press:** the page turns as the finger goes down, anywhere with the toolbar
   hidden; with it showing, only in the shaded band at each side (a cut tab there still takes the

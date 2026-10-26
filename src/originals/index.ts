@@ -3,7 +3,7 @@
 // import originals/ only from here.
 
 export { byFolder, subfolders } from './by-folder';
-export { allowWriting, canLinkFolder, exportExists, EXPORTS, folderState, linkFolder, NoAccess, saveExport, unlinkFolder, unlockFolder, type FolderState } from './folder';
+export { canLinkFolder, exportExists, EXPORTS, folderState, linkFolder, NoAccess, saveExport, unlinkFolder, unlockFolder, type FolderState } from './folder';
 export { importedBytes, importFiles, importShared } from './imported';
 export { putInbox } from './inbox';
 export { lockedOriginals } from './locks';

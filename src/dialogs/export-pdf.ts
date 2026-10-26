@@ -3,7 +3,7 @@
 // folder, or sharing it when no folder is linked.
 
 import { drawnOriginals, exportPdf, type ExportPart } from '../export';
-import { allowWriting, exportExists, EXPORTS, fileNameProblem, saveExport, titleOf } from '../originals';
+import { exportExists, EXPORTS, fileNameProblem, NoAccess, saveExport, titleOf } from '../originals';
 import { button, buttonRow, closeOverlay, el, focusHighlighted, showDialog } from '../ui';
 import { askPassword } from './passwords';
 
@@ -18,6 +18,9 @@ export interface ExportHost {
   /** The file was written into the folder, as `name`.pdf. */
   saved(name: string): void;
 }
+
+/** Said when access to write in the scores folder isn't allowed. */
+const NO_ACCESS = 'Volti needs permission to write in the scores folder to export there.';
 
 /** Ask for a file name, then export. */
 export function openExportPdf(h: ExportHost) {
@@ -50,9 +53,13 @@ export function openExportPdf(h: ExportHost) {
   const ok = async () => {
     const name = input.value.trim(), why = fileNameProblem(name);
     if (why) { error.textContent = why; return; }
-    // Asked from this tap, which a request for access needs.
-    if (h.toFolder && !(await allowWriting())) { error.textContent = 'Volti needs permission to write in the scores folder to export there.'; return; }
-    if (h.toFolder && replace !== name && (await exportExists(name))) {
+    // Asked from this tap, which a request for access to the scores folder needs.
+    const exists = h.toFolder && replace !== name && (await exportExists(name).catch((e) => {
+      if (e instanceof NoAccess) return null;
+      throw e;
+    }));
+    if (exists === null) { error.textContent = NO_ACCESS; return; }
+    if (exists) {
       replace = name;
       go.textContent = 'Replace';
       error.textContent = `There is already “${name}.pdf” in ${EXPORTS}. Tap Replace to write over it.`;
@@ -77,8 +84,8 @@ export function openExportPdf(h: ExportHost) {
       try {
         await saveExport(name, file);
       } catch (e) {
-        console.error(e);
-        error.textContent = `Could not write it into ${EXPORTS}.`;
+        if (!(e instanceof NoAccess)) console.error(e);
+        error.textContent = e instanceof NoAccess ? NO_ACCESS : `Could not write it into ${EXPORTS}.`;
         go.disabled = input.disabled = false;
         go.textContent = 'Export';
         return;
