@@ -1,14 +1,23 @@
-// Source files and originals, as the rest of the app uses them: the library's root (the linked
-// folder, or the app's own), files coming into it, listing them, a source file (moved, removed,
-// read), the original reading one gives (its pages, its PDF), Recently removed, and passwords.
-// Other directories import originals/ only from here.
+// Source files and originals, as the rest of the app uses them. Other directories import originals/
+// only from here; everything else in the directory is private to it.
 
-export { leftInApp, readIncoming, removedSource } from './misc-files';
-export { internalBytes } from './internal-score-fs';
-export { canLinkFolder, exportExists, EXPORTS, folderState, linkFolder, saveExport, unlinkFolder, unlockFolder } from './device-score-fs';
-export { dropInbox, peekInbox, putInbox } from './inbox-fs';
-export { arrivals, byFolder, byTitle, fileNameProblem, folderOf, pathInFolder, pathWithTitle, subfolders, titleOf, type Arrival } from './path-utils';
+// Types and errors.
 export { NoAccess, PasswordNotGiven, type AskPassword, type FolderState, type Original, type PagePictures, type Removed, type RenderedPdf, type SourceFile } from './types';
-export { knownTitles, libraryFiles } from './library-files';
 export { PageCache } from './original';
+
+// The device folder.
+export { canLinkFolder, EXPORTS, exportExists, folderState, linkFolder, saveExport, unlinkFolder, unlockFolder } from './device-score-fs';
+
+// The library.
+export { internalBytes } from './internal-score-fs';
+export { knownTitles, libraryFiles } from './library-files';
+
+// Files coming in.
+export { leftInApp, readIncoming, removedSource } from './misc-files';
+export { dropInbox, peekInbox, putInbox } from './inbox-fs';
+
+// Trash.
 export { purgeRemoved, recentlyRemoved, removedBytes } from './trash-fs';
+
+// Paths.
+export { arrivals, byFolder, byTitle, fileNameProblem, folderOf, pathInFolder, pathWithTitle, subfolders, titleOf, type Arrival } from './path-utils';
