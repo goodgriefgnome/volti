@@ -3,7 +3,7 @@
 // outside the library (a HeldFile), known by its id, which moving puts at the path chosen for it in
 // the library's root (arrivals.ts says what happens to each there).
 
-import { appFiles, removeAppFile } from './folder';
+import { internalFiles, removeInternalFile } from './internal-score-fs';
 import { hashBytes, writeFile } from './filesystem-utils';
 import { needAccess } from './device-score-fs';
 import { makeFolder, sourceFileOf, whereIs } from './library-root';
@@ -73,7 +73,7 @@ export async function readIncoming(f: File, path?: string): Promise<SourceFile> 
 export async function leftInApp(): Promise<SourceFile[]> {
   const hasher = await Hasher.load();
   const out: SourceFile[] = [];
-  for (const { path, file } of await appFiles()) out.push(heldFile(await hasher.id('app/' + path, file), path, file, () => removeAppFile(path)));
+  for (const { path, file } of await internalFiles()) out.push(heldFile(await hasher.id('app/' + path, file), path, file, () => removeInternalFile(path)));
   return out;
 }
 

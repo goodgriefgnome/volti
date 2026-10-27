@@ -1,7 +1,7 @@
 // How much room Volti takes on the tablet, for the library's ⋯ menu: its parts worked out from the
 // files' sizes and the browser's estimate, and shown as one stacked bar with each part's size.
 
-import { appRootBytes, removedBytes } from '../originals';
+import { internalBytes, removedBytes } from '../originals';
 import { picturesBytes } from '../pictures';
 import { el } from '../ui';
 
@@ -39,7 +39,7 @@ export function formatBytes(b: number): string {
 }
 
 async function measure(): Promise<StoragePart[]> {
-  const [estimate, added, cache, trash] = await Promise.all([navigator.storage.estimate(), appRootBytes(), picturesBytes(), removedBytes()]);
+  const [estimate, added, cache, trash] = await Promise.all([navigator.storage.estimate(), internalBytes(), picturesBytes(), removedBytes()]);
   // Chrome's breakdown by store; other browsers give the total only.
   const details = (estimate as StorageEstimate & { usageDetails?: { indexedDB?: number; caches?: number } }).usageDetails;
   return storageParts({ usage: estimate.usage ?? 0, details }, added, cache, trash);

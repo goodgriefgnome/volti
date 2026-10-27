@@ -10,14 +10,14 @@ export const opfsRoot = async () => (await navigator.storage.getDirectory()).get
  * The PDFs and images in Volti's own folder, by path, whether or not it is the root now: those
  * left there when a folder was linked.
  */
-export async function appFiles(): Promise<{ path: string; file: File }[]> {
+export async function internalFiles(): Promise<{ path: string; file: File }[]> {
   const found: [string, FileSystemFileHandle][] = [];
   await walk(await opfsRoot(), '', 0, found);
   return Promise.all(found.map(async ([path, h]) => ({ path, file: await h.getFile() })));
 }
 
 /** Delete the file at `path` in Volti's own folder, as when it has been moved into the linked folder. */
-export async function removeAppFile(path: string): Promise<void> {
+export async function removeInternalFile(path: string): Promise<void> {
   const parts = path.split('/');
   let d = await opfsRoot();
   for (const p of parts.slice(0, -1)) d = await d.getDirectoryHandle(p);
@@ -25,7 +25,7 @@ export async function removeAppFile(path: string): Promise<void> {
 }
 
 /** How much room the files in Volti's own folder take, in bytes. */
-export async function appRootBytes(): Promise<number> {
+export async function internalBytes(): Promise<number> {
   const found: [string, FileSystemFileHandle][] = [];
   await walk(await opfsRoot(), '', 0, found);
   let n = 0;

@@ -1,11 +1,11 @@
 // The library's root: the linked scores folder (device-score-fs.ts) when there is one, and Volti's
-// own folder in OPFS (folder.ts) when there isn't. Both are folders with true paths, read the same
+// own folder in OPFS (internal-score-fs.ts) when there isn't. Both are folders with true paths, read the same
 // way. A file in the root is a source file that can be moved (renamed, or into another folder) and
 // removed (into Recently removed), asking for the access that needs.
 
 import { linked, needAccess, relist } from './device-score-fs';
 import { walk } from './filesystem-utils';
-import { opfsRoot } from './folder';
+import { opfsRoot } from './internal-score-fs';
 import { rememberHash } from './hashes';
 import { folderOf, nameOf, shownFolder, tidyPath, unfoundName } from './path-utils';
 import type { Readable } from './internal-types';

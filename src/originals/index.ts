@@ -4,7 +4,7 @@
 // Other directories import originals/ only from here.
 
 export { leftInApp, readIncoming, removedSource } from './adding';
-export { appRootBytes } from './folder';
+export { internalBytes } from './internal-score-fs';
 export { canLinkFolder, exportExists, EXPORTS, folderState, linkFolder, saveExport, unlinkFolder, unlockFolder } from './device-score-fs';
 export { dropInbox, peekInbox, putInbox } from './inbox';
 export { arrivals, byFolder, byTitle, fileNameProblem, folderOf, pathInFolder, pathWithTitle, subfolders, titleOf, type Arrival } from './path-utils';
