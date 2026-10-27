@@ -2,7 +2,7 @@
 // state of the linked folder, passwords, saved page pictures, removed files, and the errors thrown
 // when a file can't be read for want of access or a password.
 
-import type { PageCache } from './pages';
+import type { PageCache } from './original';
 
 /** Bytes Volti can read as music: a PDF or an image. */
 export interface SourceFile {

@@ -9,7 +9,7 @@ import { makeFolder, needAccess, sourceFileOf, whereIs } from './library-root';
 import { Hasher, rememberHash } from './hashes';
 import { folderOf, importName, nameOf, shownFolder, tidyPath, unfoundName } from './path-utils';
 import type { Readable } from './internal-types';
-import { readAs } from './original';
+import { readOriginal } from './original';
 import { forgetRemoved, removedFile } from './removed';
 import type { AskPassword, Original, Removed, SourceFile } from './types';
 
@@ -26,7 +26,7 @@ class HeldFile implements Readable {
 
   get path() { return this.moved?.path ?? this.at; }
   async file() { return this.bytes; }
-  read(ask?: AskPassword): Promise<Original> { return this.moved ? this.moved.read(ask) : readAs(this, ask); }
+  read(ask?: AskPassword): Promise<Original> { return this.moved ? this.moved.read(ask) : readOriginal(this, ask); }
   remove() { return this.moved ? this.moved.remove() : this.drop(); }
 
   async move(path: string): Promise<string | null> {

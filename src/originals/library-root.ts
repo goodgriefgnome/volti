@@ -11,7 +11,7 @@ import { walk } from './filesystem-utils';
 import { rememberHash } from './hashes';
 import { folderOf, nameOf, shownFolder, tidyPath, unfoundName } from './path-utils';
 import type { Readable } from './internal-types';
-import { readAs } from './original';
+import { readOriginal } from './original';
 import { forgetRemoved, keepRemoved } from './removed';
 import { NoAccess, type AskPassword, type FolderState, type Original, type SourceFile } from './types';
 
@@ -138,7 +138,7 @@ class RootFile implements Readable {
   }
 
   read(ask?: AskPassword): Promise<Original> {
-    return readAs(this, ask);
+    return readOriginal(this, ask);
   }
 
   async move(path: string): Promise<string | null> {

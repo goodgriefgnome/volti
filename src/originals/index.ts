@@ -10,5 +10,5 @@ export { dropInbox, peekInbox, putInbox } from './inbox';
 export { arrivals, byFolder, byTitle, fileNameProblem, folderOf, pathInFolder, pathWithTitle, subfolders, titleOf, type Arrival } from './path-utils';
 export { NoAccess, PasswordNotGiven, type AskPassword, type FolderState, type Original, type PagePictures, type Removed, type RenderedPdf, type SourceFile } from './types';
 export { knownTitles, libraryFiles } from './originals';
-export { PageCache } from './pages';
+export { PageCache } from './original';
 export { purgeRemoved, recentlyRemoved, removedBytes } from './removed';
