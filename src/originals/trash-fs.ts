@@ -1,6 +1,6 @@
 // Recently removed: a score's file removed from the library is kept here, in the app's own store
 // (OPFS), with where it was and when, for a week; then it is deleted for good, as Volti starts. One
-// is put back by moving it into the library (adding.ts, `removedSource`). The score made from it
+// is put back by moving it into the library (misc-files.ts, `removedSource`). The score made from it
 // (cuts, markings, named excerpts) is kept by its id all along, as for any score whose file is
 // missing. Files deleted outside Volti aren't here.
 

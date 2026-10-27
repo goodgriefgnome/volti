@@ -16,7 +16,12 @@ import { forgetRemoved, keepRemoved } from './trash-fs';
 import type { AskPassword, FolderState, Original, SourceFile } from './types';
 
 /** Where a file in the root is, for remembering its hash: the linked folder's and the app's are kept apart. */
-export const whereIs = async (path: string) => ((await linked()) ? 'folder/' : 'app/') + path;
+const whereIs = async (path: string) => ((await linked()) ? 'folder/' : 'app/') + path;
+
+/** Note the id of a file at `path` in the root whose contents are known, such as one just renamed or added, so it isn't read again. */
+export async function rememberId(path: string, file: File, id: string) {
+  await rememberHash(await whereIs(path), file, id);
+}
 
 /** The library's root: the linked folder, or the app's own. Access to a linked one must be allowed. */
 async function root(): Promise<FileSystemDirectoryHandle> {
@@ -117,7 +122,7 @@ class LibraryFile implements Readable {
       }
     }
     // The same contents, so the same id: no need to read it again.
-    await rememberHash(await whereIs(now), await (await into.getFileHandle(name)).getFile(), this.id);
+    await rememberId(now, await (await into.getFileHandle(name)).getFile(), this.id);
     await relist(this.id, now);
     this.path = now;
     return null;

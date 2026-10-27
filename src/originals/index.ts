@@ -3,7 +3,7 @@
 // read), the original reading one gives (its pages, its PDF), Recently removed, and passwords.
 // Other directories import originals/ only from here.
 
-export { leftInApp, readIncoming, removedSource } from './adding';
+export { leftInApp, readIncoming, removedSource } from './misc-files';
 export { internalBytes } from './internal-score-fs';
 export { canLinkFolder, exportExists, EXPORTS, folderState, linkFolder, saveExport, unlinkFolder, unlockFolder } from './device-score-fs';
 export { dropInbox, peekInbox, putInbox } from './inbox-fs';
