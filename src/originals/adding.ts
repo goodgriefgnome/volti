@@ -5,7 +5,8 @@
 
 import { appFiles, removeAppFile } from './folder';
 import { hashBytes, writeFile } from './filesystem-utils';
-import { makeFolder, needAccess, sourceFileOf, whereIs } from './library-root';
+import { needAccess } from './device-score-fs';
+import { makeFolder, sourceFileOf, whereIs } from './library-root';
 import { Hasher, rememberHash } from './hashes';
 import { folderOf, importName, nameOf, shownFolder, tidyPath, unfoundName } from './path-utils';
 import type { Readable } from './internal-types';

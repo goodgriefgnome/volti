@@ -1,85 +1,25 @@
-// The library's root: the linked scores folder (File System Access) when there is one, and Volti's
+// The library's root: the linked scores folder (device-score-fs.ts) when there is one, and Volti's
 // own folder in OPFS (folder.ts) when there isn't. Both are folders with true paths, read the same
-// way; what differs is the linked folder's: linking it, asking for access to it, and the listing
-// remembered for while access is locked. A file in the root is a source file that can be moved
-// (renamed, or into another folder) and removed (into Recently removed), asking for the access that
-// needs. The only code that holds the linked folder's handle.
+// way. A file in the root is a source file that can be moved (renamed, or into another folder) and
+// removed (into Recently removed), asking for the access that needs.
 
-import { keys, kv } from '../storage';
-import { opfsRoot } from './folder';
+import { linked, needAccess, relist } from './device-score-fs';
 import { walk } from './filesystem-utils';
+import { opfsRoot } from './folder';
 import { rememberHash } from './hashes';
 import { folderOf, nameOf, shownFolder, tidyPath, unfoundName } from './path-utils';
 import type { Readable } from './internal-types';
 import { readOriginal } from './original';
 import { forgetRemoved, keepRemoved } from './removed';
-import { NoAccess, type AskPassword, type FolderState, type Original, type SourceFile } from './types';
+import type { AskPassword, Original, SourceFile } from './types';
 
-let dir: FileSystemDirectoryHandle | undefined;
-
-/** The linked folder, if there is one. */
-export const linked = async () => (dir ??= await kv.get<FileSystemDirectoryHandle>(keys.folder));
+/** Where a file in the root is, for remembering its hash: the linked folder's and the app's are kept apart. */
+export const whereIs = async (path: string) => ((await linked()) ? 'folder/' : 'app/') + path;
 
 /** The library's root: the linked folder, or the app's own. Access to a linked one must be allowed. */
 async function root(): Promise<FileSystemDirectoryHandle> {
   return (await linked()) ?? opfsRoot();
 }
-
-/** Where a file in the root is, for remembering its hash: the linked folder's and the app's are kept apart. */
-export const whereIs = async (path: string) => ((await linked()) ? 'folder/' : 'app/') + path;
-
-export const canLinkFolder = () => 'showDirectoryPicker' in window;
-
-export async function folderState(): Promise<FolderState> {
-  const dir = await linked();
-  if (!dir) return { kind: 'none' };
-  const perm = await dir.queryPermission({ mode: 'read' });
-  return perm === 'granted' ? { kind: 'ready', name: dir.name } : { kind: 'locked', name: dir.name };
-}
-
-/** Must be called from a tap. Asks to change files too (renaming, exports), so that's asked once. */
-export async function linkFolder(): Promise<boolean> {
-  try {
-    dir = await window.showDirectoryPicker({ id: 'volti-scores', mode: 'readwrite' });
-  } catch (e) {
-    if ((e as DOMException).name === 'AbortError') return false;
-    throw e;
-  }
-  await kv.set(keys.folder, dir);
-  return true;
-}
-
-/**
- * Must be called from a tap. Asks to change files as well as read them, so renaming and exporting
- * don't ask again this session; when that is refused, asks to read them only.
- */
-export async function unlockFolder(): Promise<boolean> {
-  const dir = await linked();
-  if (!dir) return false;
-  if ((await dir.requestPermission({ mode: 'readwrite' }).catch(() => 'denied')) === 'granted') return true;
-  return (await dir.requestPermission({ mode: 'read' })) === 'granted';
-}
-
-/**
- * Make sure the root can be read (`read`) or changed too (`readwrite`), asking for access to a
- * linked folder where it isn't allowed yet (the app's own needs none). Asking works only from a
- * tap: elsewhere, or when it is refused, throws NoAccess.
- */
-export async function needAccess(mode: 'read' | 'readwrite'): Promise<void> {
-  const dir = await linked();
-  if (!dir) return;
-  if ((await dir.queryPermission({ mode })) === 'granted') return;
-  if ((await dir.requestPermission({ mode }).catch(() => 'denied')) !== 'granted') throw new NoAccess(`No access to the scores folder (${mode})`);
-}
-
-export async function unlinkFolder(): Promise<void> {
-  dir = undefined;
-  await kv.del(keys.folder);
-  await kv.del(keys.folderListing);
-}
-
-/** A PDF in the linked folder, as last read: listed from this while access is locked. */
-interface ListingEntry { path: string; id: string }
 
 /** The file at `path` in the root. Access must be allowed. */
 async function fileAt(path: string): Promise<File> {
@@ -111,20 +51,6 @@ export async function folderFiles(): Promise<{ path: string; file: File }[]> {
   await walk(await root(), '', 0, found);
   return Promise.all(found.map(async ([path, h]) => ({ path, file: await h.getFile() })));
 }
-
-/** The linked folder's PDFs as last read; none while no folder is linked. */
-export const rememberedListing = async () => (await kv.get<ListingEntry[]>(keys.folderListing)) ?? [];
-
-/** Remember the root's PDFs, as just read, where it is a linked folder. */
-export const saveListing = async (listing: ListingEntry[]) => { if (await linked()) await kv.set(keys.folderListing, listing); };
-
-/**
- * Note in the remembered listing that score `id`'s file is at `path` now (renamed or moved), or
- * with no `path`, that it is gone.
- */
-const relist = async (id: string, path?: string) => {
-  if (await linked()) await kv.update<ListingEntry[]>(keys.folderListing, (old) => (old ?? []).flatMap((e) => (e.id !== id ? [e] : path ? [{ ...e, path }] : [])));
-};
 
 /* ---------- its files ---------- */
 

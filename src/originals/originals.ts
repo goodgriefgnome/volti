@@ -4,7 +4,8 @@
 // scores/.
 
 import { keys, kv } from '../storage';
-import { folderFiles, rememberedListing, saveListing, sourceFileOf, whereIs } from './library-root';
+import { rememberedListing, saveListing } from './device-score-fs';
+import { folderFiles, sourceFileOf, whereIs } from './library-root';
 import { Hasher } from './hashes';
 import { byTitle, titleOf } from './path-utils';
 import type { FolderState, SourceFile } from './types';
