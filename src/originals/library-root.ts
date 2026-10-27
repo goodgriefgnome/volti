@@ -10,7 +10,7 @@ import { rememberHash } from './hashes';
 import { folderOf, nameOf, shownFolder, tidyPath, unfoundName } from './path-utils';
 import type { Readable } from './internal-types';
 import { readOriginal } from './original';
-import { forgetRemoved, keepRemoved } from './removed';
+import { forgetRemoved, keepRemoved } from './trash-fs';
 import type { AskPassword, Original, SourceFile } from './types';
 
 /** Where a file in the root is, for remembering its hash: the linked folder's and the app's are kept apart. */

@@ -11,7 +11,7 @@ import { Hasher, rememberHash } from './hashes';
 import { folderOf, importName, nameOf, shownFolder, tidyPath, unfoundName } from './path-utils';
 import type { Readable } from './internal-types';
 import { readOriginal } from './original';
-import { forgetRemoved, removedFile } from './removed';
+import { forgetRemoved, removedFile } from './trash-fs';
 import type { AskPassword, Original, Removed, SourceFile } from './types';
 
 /**
