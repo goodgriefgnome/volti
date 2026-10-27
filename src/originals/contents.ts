@@ -10,7 +10,7 @@
 
 import { keys, kv } from '../storage';
 import { isEncryptedPdf, isJpeg, isPng, jpegOrientation } from './file-kind';
-import { titleOf } from './names';
+import { titleOf } from './path-utils';
 import type { SourceFile } from './original';
 import { openPdf } from './pdf';
 

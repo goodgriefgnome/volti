@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { endingOf, folderOf, importName, isOriginalName, pathInFolder, pathWithTitle, shownFolder, tidyFolder, tidyPath, titleOf, unfoundName } from './names';
+import { arrivals, byFolder, endingOf, folderOf, importName, isOriginalName, pathInFolder, pathWithTitle, shownFolder, tidyFolder, tidyPath, titleOf, unfoundName } from './path-utils';
+import type { SourceFile } from './original';
 
 describe('importName', () => {
   it('keeps a PDF\'s own name', () => {
@@ -66,5 +67,42 @@ describe('shownFolder', () => {
   it('reads a folder as the user would, and the top as the top', () => {
     expect(shownFolder('Masses/Latin')).toBe('Masses / Latin');
     expect(shownFolder('')).toBe('the top of the library');
+  });
+});
+
+
+const library = [{ id: 'a', path: 'Mass.pdf' }, { id: 'b', path: 'Masses/Kyrie.pdf' }];
+
+describe('arrivals', () => {
+  it('adds a file the library hasn\'t at a free path', () => {
+    expect(arrivals([{ id: 'c', path: 'Song.pdf' }], library)).toEqual([{ kind: 'new' }]);
+  });
+  it('leaves out a file the library has, saying where, whatever it is called', () => {
+    expect(arrivals([{ id: 'b', path: 'IMG_2041.pdf' }], library)).toEqual([{ kind: 'have', path: 'Masses/Kyrie.pdf' }]);
+  });
+  it('finds a path taken by a different file, ignoring case', () => {
+    expect(arrivals([{ id: 'c', path: 'masses/KYRIE.pdf' }], library)).toEqual([{ kind: 'taken', by: library[1] }]);
+  });
+  it('lets the first of two coming in at one path take it', () => {
+    expect(arrivals([{ id: 'c', path: 'Song.pdf' }, { id: 'd', path: 'song.pdf' }], library)).toEqual([{ kind: 'new' }, { kind: 'taken' }]);
+  });
+  it('doesn\'t let a file the library has take a path', () => {
+    expect(arrivals([{ id: 'a', path: 'Song.pdf' }, { id: 'd', path: 'Song.pdf' }], library)).toEqual([{ kind: 'have', path: 'Mass.pdf' }, { kind: 'new' }]);
+  });
+});
+
+
+/** An original `id` in `folder`, only for listing. */
+const at = (id: string, folder: string) => ({ id, path: (folder ? folder + '/' : '') + id + '.pdf' }) as SourceFile;
+
+describe('byFolder', () => {
+  it('lists the top of the folder first, then each subfolder by path, keeping the order within', () => {
+    const lists = byFolder([at('a', 'Masses'), at('b', ''), at('c', 'Exports'), at('d', 'Masses/Latin'), at('e', 'Masses'), at('f', '')]);
+    expect(lists.map((l) => [l.folder, l.originals.map((o) => o.id).join('')])).toEqual([
+      ['', 'bf'], ['Exports', 'c'], ['Masses', 'ae'], ['Masses/Latin', 'd'],
+    ]);
+  });
+  it('has the top list even when it is empty', () => {
+    expect(byFolder([at('a', 'Masses')]).map((l) => l.folder)).toEqual(['', 'Masses']);
   });
 });

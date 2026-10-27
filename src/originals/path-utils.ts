@@ -1,7 +1,10 @@
-// Names of originals' files (PDFs and images) and folders: a score's title and folder from its
-// file's path, the paths a rename or a move gives, the name a file coming in is kept under, what a
-// file name can't be, folders as the user reads them, and folder paths tidied. A name says which files are scores, never how one is
-// read: that is what its contents say. Pure.
+// Paths of originals' files (PDFs and images) and the library grouped by them. Pure: no DOM, no storage.
+// A score's title and folder from its file's path, the paths a rename or a move gives, the name a
+// file coming in is kept under, what a file name can't be, folders as the user reads them and
+// tidied, the library in lists by folder, sorting by title, and what happens to files arriving at
+// paths. A name says which files are scores, never how one is read: that is what its contents say.
+
+import type { SourceFile } from './original';
 
 /** An original's file name ending: ".pdf", or an image's. */
 const ENDING = /\.(pdf|jpe?g|png|webp|gif|bmp|avif|heic|heif)$/i;
@@ -60,3 +63,51 @@ export function fileNameProblem(title: string): string | null {
 
 /** A folder path tidied: parts trimmed, empty ones dropped, joined with "/". */
 export const tidyFolder = (path: string) => path.split('/').map((p) => p.trim()).filter(Boolean).join('/');
+
+/**
+ * The originals in lists by folder: the top of the folder (with what is filed under no folder)
+ * first, then each subfolder, by path. Each list keeps the originals' order.
+ */
+export function byFolder(originals: readonly SourceFile[]): { folder: string; originals: SourceFile[] }[] {
+  const lists = new Map<string, SourceFile[]>([['', []]]);
+  for (const o of originals) lists.set(folderOf(o.path), [...(lists.get(folderOf(o.path)) ?? []), o]);
+  return [...lists].map(([folder, originals]) => ({ folder, originals }))
+    .sort((a, b) => (a.folder === '' ? -1 : b.folder === '' ? 1 : a.folder.localeCompare(b.folder, undefined, { numeric: true, sensitivity: 'base' })));
+}
+
+/** The subfolders the originals are in, by path. */
+export const subfolders = (originals: readonly SourceFile[]) => [...new Set(originals.map((o) => folderOf(o.path)).filter(Boolean))].sort();
+
+/** In the library's order: by title, numbers by value. */
+export const byTitle = (x: SourceFile, y: SourceFile) => titleOf(x.path).localeCompare(titleOf(y.path), undefined, { numeric: true, sensitivity: 'base' });
+
+/** A file by its id (the hash of its contents) and its path in the library. */
+export interface At { id: string; path: string }
+
+/** What happens to a file coming in, given the library's files `T`. */
+export type Arrival<T extends At = At> =
+  | { kind: 'new' }
+  /** The library has it, at `path`: it is left out. */
+  | { kind: 'have'; path: string }
+  /** A different file is at its path: in the library (`by`, which may be replaced), or another coming in. */
+  | { kind: 'taken'; by?: T };
+
+/**
+ * What happens to each file coming in, at its path. Paths are compared ignoring case, as a folder
+ * may; of two coming in at one path, the first takes it.
+ */
+export function arrivals<T extends At>(coming: readonly At[], library: readonly T[]): Arrival<T>[] {
+  const have = new Map(library.map((o) => [o.id, o.path]));
+  const at = new Map(library.map((o) => [o.path.toLowerCase(), o]));
+  const claimed = new Set<string>();
+  return coming.map((c): Arrival<T> => {
+    const there = have.get(c.id);
+    if (there !== undefined) return { kind: 'have', path: there };
+    const key = c.path.toLowerCase();
+    const by = at.get(key);
+    if (by) return { kind: 'taken', by };
+    if (claimed.has(key)) return { kind: 'taken' };
+    claimed.add(key);
+    return { kind: 'new' };
+  });
+}

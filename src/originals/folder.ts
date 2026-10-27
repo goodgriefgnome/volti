@@ -4,7 +4,7 @@
 // folder.
 
 import { linked, needAccess } from './library-root';
-import { isOriginalName } from './names';
+import { isOriginalName } from './path-utils';
 
 const MAX_DEPTH = 4;
 

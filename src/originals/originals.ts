@@ -6,7 +6,7 @@
 import { keys, kv } from '../storage';
 import { folderFiles, rememberedListing, saveListing, sourceFileOf, whereIs, type FolderState } from './library-root';
 import { Hasher } from './hashes';
-import { titleOf } from './names';
+import { byTitle, titleOf } from './path-utils';
 import type { SourceFile } from './original';
 
 /** Every file's title as last seen, by id: for a score whose file can't be found. */
@@ -17,9 +17,6 @@ export const knownTitles = async () => (await kv.get<Record<string, string>>(key
  * to read.
  */
 type Progress = (originals: SourceFile[], left: number) => void;
-
-/** In the library's order: by title, numbers by value. */
-export const byTitle = (x: SourceFile, y: SourceFile) => titleOf(x.path).localeCompare(titleOf(y.path), undefined, { numeric: true, sensitivity: 'base' });
 
 /**
  * The library's files, sorted by title: the same SourceFile for an id as before; two of the same file show

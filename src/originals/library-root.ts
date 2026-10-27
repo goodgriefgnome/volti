@@ -9,7 +9,7 @@ import { keys, kv } from '../storage';
 import type { AskPassword } from './contents';
 import { opfsRoot, walk } from './folder';
 import { rememberHash } from './hashes';
-import { folderOf, nameOf, shownFolder, tidyPath, unfoundName } from './names';
+import { folderOf, nameOf, shownFolder, tidyPath, unfoundName } from './path-utils';
 import { readAs, type Original, type Readable, type SourceFile } from './original';
 import { forgetRemoved, keepRemoved } from './removed';
 

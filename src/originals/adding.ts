@@ -7,7 +7,7 @@ import type { AskPassword } from './contents';
 import { appFiles, removeAppFile, writeFile } from './folder';
 import { makeFolder, needAccess, sourceFileOf, whereIs } from './library-root';
 import { Hasher, hashBytes, rememberHash } from './hashes';
-import { folderOf, importName, nameOf, shownFolder, tidyPath, unfoundName } from './names';
+import { folderOf, importName, nameOf, shownFolder, tidyPath, unfoundName } from './path-utils';
 import { readAs, type Original, type Readable, type SourceFile } from './original';
 import { forgetRemoved, removedFile, type Removed } from './removed';
 
