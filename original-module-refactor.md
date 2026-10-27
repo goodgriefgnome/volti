@@ -29,7 +29,7 @@ above it in this list (type-only imports, which are erased, don't count).
 | --- | --- |
 | `path-utils.ts` | Pure, no DOM, no storage. Titles and folders from paths (`titleOf`, `folderOf`, `nameOf`), the paths a rename or move gives (`pathWithTitle`, `pathInFolder`, `tidyPath`, `tidyFolder`), what a name can't be (`fileNameProblem`, `unfoundName`, `isOriginalName`, `endingOf`), the name a file coming in is kept under (`importName`), a folder as the user reads it (`shownFolder`), the library grouped by folder (`byFolder`, `subfolders`), sorting by title (`byTitle`), and what happens to a file arriving at a path (`arrivals`, `Arrival`). |
 | `filesystem-utils.ts` | General helpers with no knowledge of any one filesystem (it uses the names in `path-utils.ts` to tell which files are scores): `walk` (the PDFs and images in a folder, a few levels deep), `writeFile` (a file that fails part way is deleted), `hashBytes` and `hashFile`. |
-| `types.ts` | The public types. `SourceFile`, `Original`, `OriginalPdf` and `LossyReason`, `FolderState`, `AskPassword`, `PagePictures`, `Removed`, and the errors `NoAccess` and `PasswordNotGiven`. |
+| `types.ts` | The public types. `SourceFile`, `Original`, `RenderedPdf` and `LossyReason`, `FolderState`, `AskPassword`, `PagePictures`, `Removed`, and the errors `NoAccess` and `PasswordNotGiven`. |
 | `internal-types.ts` | Types used by several files in the directory but not outside it. `Readable` (a `SourceFile` that can give its bytes: `file(): Promise<File>`), `PageSource`, and `Content`. |
 | `pdf-source.ts` | Everything that is only about PDFs. `PdfSource`, `openPdf` (pdf.js), `readPdf`, the password flow, decryption (pdf-decrypt), the check for an encrypted PDF, drawing the pages of a PDF that can't be had as it is, `isPdf`, `isEncryptedPdf`, `supersample`. |
 | `image-source.ts` | Everything that is only about images. `ImageSource`, `openImage` (decoded upright), `readImage`, `imagePdf` (an image as a one-page PDF, for export), `isJpeg`, `isPng`, `jpegOrientation`. |
@@ -57,9 +57,14 @@ interface SourceFile {
 }
 interface Original extends SourceFile {
   pages(): Promise<PageCache>;
-  pdf(): Promise<OriginalPdf>;   // its music as a PDF, for export
+  pdf(): Promise<RenderedPdf>;   // its music as a PDF, for export
 }
 ```
+
+A `RenderedPdf` is the original as a PDF that pdf.js and pdf-lib can both read: `bytes` of an
+unencrypted PDF, and `lossyReason` when the music lost something on the way. It is a PDF as it is,
+a decrypted one, an image made into a page, or pictures of the pages where the music can't be had
+as it is. It is not the file's own bytes.
 
 The content-specific parts know nothing of where a file lives. Each takes a `Readable` and gives a
 `Content`:
@@ -67,7 +72,7 @@ The content-specific parts know nothing of where a file lives. Each takes a `Rea
 ```ts
 interface Content {
   pages(): Promise<PageSource>;
-  pdf(): Promise<OriginalPdf>;
+  pdf(): Promise<RenderedPdf>;
 }
 ```
 
@@ -124,7 +129,7 @@ can change files there.
 
 Through `index.ts` only. Everything else is private to the directory.
 
-- **Types and errors:** `SourceFile`, `Original`, `OriginalPdf`, `FolderState`, `AskPassword`,
+- **Types and errors:** `SourceFile`, `Original`, `RenderedPdf`, `FolderState`, `AskPassword`,
   `PagePictures`, `Removed`, `NoAccess`, `PasswordNotGiven`, `PageCache`.
 - **The device folder:** `canLinkFolder`, `folderState`, `linkFolder`, `unlockFolder`,
   `unlinkFolder`, `EXPORTS`, `exportExists`, `saveExport`.
