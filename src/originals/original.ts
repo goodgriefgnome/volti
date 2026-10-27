@@ -8,31 +8,22 @@
 // for its password the first time it needs one; an image is drawn from its decoded bitmap
 // (image.ts). There is one source file for each id in the root, so a move shows wherever it is held.
 
-import { imagePdf, pdfOf, savedPassword } from './contents';
-import { isPdf, namesEncrypt, PDF_ENDS } from './file-kind';
+import { imagePdf } from './contents';
 import { openImage } from './image';
-import type { Readable } from './internal-types';
-import type { PageCache } from './pages';
-import { openPdf } from './pdf';
+import type { Content, Readable } from './internal-types';
+import { PageCache } from './pages';
+import { isPdf, readPdf } from './pdf-source';
 import type { AskPassword, Original, RenderedPdf } from './types';
-
-/** Whether a PDF is encrypted, reading only its ends (file-kind.ts). */
-async function encrypted(file: File): Promise<boolean> {
-  const ends = file.size <= 2 * PDF_ENDS ? [file] : [file.slice(0, PDF_ENDS), file.slice(file.size - PDF_ENDS)];
-  for (const part of ends) if (namesEncrypt(new Uint8Array(await part.arrayBuffer()))) return true;
-  return false;
-}
 
 /**
  * Read a source file: an image as it is; a PDF asks for its password now if it has one Volti
- * doesn't know yet (its music, worked out to try it, is kept for its pages), and otherwise reads
- * its music only when its pages or its PDF are wanted.
+ * doesn't know yet, and otherwise reads its music only when its pages or its PDF are wanted
+ * (pdf-source.ts).
  */
 export async function readAs(f: Readable, ask?: AskPassword): Promise<Original> {
   const file = await f.file();
   if (!isPdf(new Uint8Array(await file.slice(0, 2048).arrayBuffer()))) return new ImageOriginal(f);
-  const known = !(await encrypted(file)) || (await savedPassword(f.id)) !== undefined;
-  return new PdfOriginal(f, known ? undefined : await pdfOf(f, file, ask));
+  return new PdfOriginal(f, await readPdf(f, ask));
 }
 
 /** An original: its file's id, path, moving and removing, and itself as what reading it gives. */
@@ -48,18 +39,9 @@ abstract class BaseOriginal implements Original {
 }
 
 class PdfOriginal extends BaseOriginal {
-  /** Its music, worked out when it was read, until its pages or its PDF take it. */
-  constructor(f: Readable, private held?: RenderedPdf) { super(f); }
-
-  async pdf(): Promise<RenderedPdf> {
-    const held = this.held;
-    this.held = undefined; // pdf.js takes the bytes it is given
-    return held ?? pdfOf(this.f, await this.f.file());
-  }
-
-  async pages(): Promise<PageCache> {
-    return openPdf((await this.pdf()).bytes);
-  }
+  constructor(f: Readable, private content: Content) { super(f); }
+  pdf() { return this.content.pdf(); }
+  async pages(): Promise<PageCache> { return new PageCache(Promise.resolve(await this.content.pages())); }
 }
 
 class ImageOriginal extends BaseOriginal {

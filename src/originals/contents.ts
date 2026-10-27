@@ -1,131 +1,9 @@
-// An original's music as a PDF: a PDF as it is; an encrypted one decrypted, with its password (by
-// our fork of pdf-decrypt); where the music can't be had as it is (an encryption pdf-decrypt doesn't
-// know, or a PDF pdf-lib can't read), its pages drawn by pdf.js into a PDF of pictures; and, for
-// export, an image as a one-page PDF. Each says why, where its music lost something on the way.
-// pdf-lib and pdf-decrypt are only loaded when needed.
-//
-// The password that opened a PDF is remembered on the tablet by its file's id, so it is asked for
-// only once, even after a restart, and never forgotten. Asking is the caller's
-// (dialogs/passwords.ts); without a way to ask, a PDF whose password isn't remembered doesn't open.
+// An image as a one-page PDF, for export, upright; pdf-lib is only loaded when it is needed. The
+// image is drawn by the browser, never read as a PDF.
 
-import { keys, kv } from '../storage';
-import { isEncryptedPdf, isJpeg, isPng, jpegOrientation } from './file-kind';
-import { titleOf } from './path-utils';
-import { openPdf } from './pdf';
-import { PasswordNotGiven, type AskPassword, type RenderedPdf, type SourceFile } from './types';
-
-/** The password remembered for a file, if it has needed one. */
-export const savedPassword = (id: string) => kv.get<string>(keys.password(id));
-
-/**
- * The passwords to try for an original's PDF, once it has been tried without one: the one
- * remembered for it, then each one `ask` gives. `refused` once there are no more.
- */
-class Passwords {
-  private tried?: string;
-  refused = false;
-
-  private constructor(private o: SourceFile, private saved: string | undefined, private ask?: AskPassword) {}
-
-  static async for(o: SourceFile, ask?: AskPassword) { return new Passwords(o, await savedPassword(o.id), ask); }
-
-  /** The next password to try, after one that was `wrong`: null when there is none. */
-  async next(wrong: boolean): Promise<string | null> {
-    if (this.saved !== undefined && this.tried === undefined) return (this.tried = this.saved);
-    const p = this.ask ? await this.ask(titleOf(this.o.path), wrong || this.tried !== undefined) : null;
-    if (p === null) this.refused = true;
-    else this.tried = p;
-    return p;
-  }
-
-  /** The PDF opened: remember the password that opened it, if it is a new one. */
-  async keep() {
-    if (this.tried !== undefined && this.tried !== this.saved) await kv.set(keys.password(this.o.id), this.tried);
-  }
-
-  /** Why opening stopped: PasswordNotGiven when it was for want of a password. */
-  failure(e: unknown) {
-    return this.refused ? new PasswordNotGiven(`“${titleOf(this.o.path)}” needs its password`) : e;
-  }
-}
-
-
-/** How many pixels wide a page is drawn when its music can't be had as it is. */
-const DRAWN_W = 2000;
-/** The width, in points, of a page made for an image, or of a drawn page: A4's. */
-const A4_W = 595;
-
-/**
- * The PDF `o`, whose bytes are `file`, as a PDF pdf-lib and pdf.js can read. An encrypted one
- * tries the password remembered for it, then asks `ask` (with none, it gives up:
- * PasswordNotGiven), and remembers the one that opens it.
- */
-export async function pdfOf(o: SourceFile, file: File, ask?: AskPassword): Promise<RenderedPdf> {
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const lib = await import('pdf-lib');
-  /** The PDF as it is, where pdf-lib can read it. */
-  const asItIs = async (): Promise<RenderedPdf> => {
-    try {
-      await lib.PDFDocument.load(bytes);
-    } catch (e) {
-      console.warn('Drawing the pages, as pdf-lib can\'t read them:', e);
-      return pagesDrawn(o, bytes, ask, 'unreadable');
-    }
-    return { bytes };
-  };
-  if (!isEncryptedPdf(bytes)) return asItIs();
-  const { decryptPDF } = await import('@pdfsmaller/pdf-decrypt');
-  // First without a password, as a PDF that only limits what may be done with it has none.
-  const passwords = await Passwords.for(o, ask);
-  let password = '';
-  for (let wrong = false; ; wrong = true) {
-    let decrypted: Uint8Array;
-    try {
-      decrypted = await decryptPDF(bytes, password);
-    } catch (e) {
-      const message = e instanceof Error ? e.message : '';
-      // Its ends named /Encrypt, but not as its encryption.
-      if (message.includes('not encrypted')) return asItIs();
-      if (message.includes('Incorrect password')) {
-        const next = await passwords.next(wrong);
-        if (next === null) throw passwords.failure(e);
-        password = next;
-        continue;
-      }
-      console.warn('Drawing the pages, as they can\'t be decrypted:', e);
-      return pagesDrawn(o, bytes, ask, message.includes('Unsupported encryption') ? 'encryption' : 'unreadable');
-    }
-    await passwords.keep();
-    try {
-      await lib.PDFDocument.load(decrypted);
-    } catch (e) {
-      console.warn('Drawing the pages, as pdf-lib can\'t read them decrypted:', e);
-      return pagesDrawn(o, bytes, ask, 'unreadable');
-    }
-    return { bytes: decrypted };
-  }
-}
-
-/** A PDF of each page of `bytes` drawn by pdf.js, with the password if it needs one. */
-async function pagesDrawn(o: SourceFile, bytes: Uint8Array, ask: AskPassword | undefined, why: 'encryption' | 'unreadable'): Promise<RenderedPdf> {
-  const passwords = await Passwords.for(o, ask);
-  const cache = await openPdf(bytes, (wrong) => passwords.next(wrong)).catch((e: unknown) => { throw passwords.failure(e); });
-  try {
-    await passwords.keep();
-    const lib = await import('pdf-lib');
-    const out = await lib.PDFDocument.create();
-    for (const [i, aspect] of (await cache.allAspects()).entries()) {
-      const canvas = await cache.render(i + 1, DRAWN_W, Math.round(DRAWN_W * aspect), 1);
-      const image = await out.embedJpg(await encode(canvas, 'image/jpeg'));
-      cache.keepOnly([], () => undefined);
-      canvas.width = canvas.height = 0; // free its memory now rather than at garbage collection
-      out.addPage([A4_W, A4_W * aspect]).drawImage(image, { x: 0, y: 0, width: A4_W, height: A4_W * aspect });
-    }
-    return { bytes: await out.save(), lossyReason: why };
-  } finally {
-    cache.destroy();
-  }
-}
+import { isJpeg, isPng, jpegOrientation } from './file-kind';
+import { A4_W, encode } from './pdf-source';
+import type { RenderedPdf } from './types';
 
 /**
  * An image as a one-page PDF, upright, for export: a JPEG or PNG put in as it is; a JPEG that has
@@ -161,10 +39,4 @@ function drawUpright(bitmap: ImageBitmap): HTMLCanvasElement {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(bitmap, 0, 0);
   return canvas;
-}
-
-async function encode(canvas: HTMLCanvasElement, type: 'image/jpeg' | 'image/png'): Promise<Uint8Array> {
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, 0.92));
-  if (!blob) throw new Error('Could not draw a page');
-  return new Uint8Array(await blob.arrayBuffer());
 }

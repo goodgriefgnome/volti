@@ -1,41 +1,5 @@
-// What a file's bytes say it is, whatever its name: a PDF, and whether it is encrypted, or for an
-// image to be put in a PDF as it is, a JPEG or a PNG, and which way up a JPEG is meant to be shown.
-// Pure.
-
-/** How far into a file a PDF's header may start. */
-const PDF_HEADER_WITHIN = 1024;
-const PDF_HEADER = new TextEncoder().encode('%PDF-');
-
-/** Whether a file's first bytes (at least its first 1 KB, where it is that long) say it is a PDF. */
-export function isPdf(b: Uint8Array): boolean {
-  outer: for (let i = 0; i + PDF_HEADER.length <= Math.min(b.length, PDF_HEADER_WITHIN + PDF_HEADER.length); i++) {
-    for (let j = 0; j < PDF_HEADER.length; j++) if (b[i + j] !== PDF_HEADER[j]) continue outer;
-    return true;
-  }
-  return false;
-}
-
-/** Whether `bytes` holds `word`. */
-export function holds(bytes: Uint8Array, word: Uint8Array): boolean {
-  outer: for (let i = 0; i + word.length <= bytes.length; i++) {
-    for (let j = 0; j < word.length; j++) if (bytes[i + j] !== word[j]) continue outer;
-    return true;
-  }
-  return false;
-}
-
-/**
- * How much of each end of a PDF to look through for its encryption: its trailer is at the end, or
- * for one laid out for the web (linearized), at the start too.
- */
-export const PDF_ENDS = 64 * 1024;
-const ENCRYPT = new TextEncoder().encode('/Encrypt');
-
-/** Whether some of a PDF's bytes (its ends) name an /Encrypt dictionary, as an encrypted one's trailer does. */
-export const namesEncrypt = (b: Uint8Array) => holds(b, ENCRYPT);
-
-/** Whether a PDF, all of whose bytes are `b`, is encrypted, by its ends. */
-export const isEncryptedPdf = (b: Uint8Array) => namesEncrypt(b.subarray(0, PDF_ENDS)) || namesEncrypt(b.subarray(Math.max(0, b.length - PDF_ENDS)));
+// What an image's bytes say it is, whatever its name: for an image to be put in a PDF as it is, a
+// JPEG or a PNG, and which way up a JPEG is meant to be shown. Pure.
 
 export const isJpeg = (b: Uint8Array) => b[0] === 0xff && b[1] === 0xd8;
 export const isPng = (b: Uint8Array) => b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47;
