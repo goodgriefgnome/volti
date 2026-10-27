@@ -11,16 +11,8 @@
 import { keys, kv } from '../storage';
 import { isEncryptedPdf, isJpeg, isPng, jpegOrientation } from './file-kind';
 import { titleOf } from './path-utils';
-import type { SourceFile } from './original';
 import { openPdf } from './pdf';
-
-/** Ask for a PDF's password, saying whether the last one tried was wrong; null when it isn't given. */
-export type AskPassword = (title: string, wrong: boolean) => Promise<string | null>;
-
-/** Opening stopped because the PDF's password wasn't given. */
-export class PasswordNotGiven extends Error {
-  name = 'PasswordNotGiven';
-}
+import { PasswordNotGiven, type AskPassword, type RenderedPdf, type SourceFile } from './types';
 
 /** The password remembered for a file, if it has needed one. */
 export const savedPassword = (id: string) => kv.get<string>(keys.password(id));
@@ -58,21 +50,6 @@ class Passwords {
 }
 
 
-/**
- * Why an original as a PDF has lost something of its music: its pages were drawn by pdf.js, as
- * its encryption isn't one pdf-decrypt knows (`encryption`) or pdf-lib can't read it
- * (`unreadable`); or, an image, it was put in as a JPEG of its own (`recompressed`).
- */
-type LossyReason = 'encryption' | 'unreadable' | 'recompressed';
-
-/** An original as a PDF. */
-export interface OriginalPdf {
-  /** An unencrypted PDF that pdf-lib can read, new each time: pdf.js takes the bytes it is given. */
-  bytes: Uint8Array;
-  /** Why its music isn't as the file has it; none when it is. */
-  lossyReason?: LossyReason;
-}
-
 /** How many pixels wide a page is drawn when its music can't be had as it is. */
 const DRAWN_W = 2000;
 /** The width, in points, of a page made for an image, or of a drawn page: A4's. */
@@ -83,11 +60,11 @@ const A4_W = 595;
  * tries the password remembered for it, then asks `ask` (with none, it gives up:
  * PasswordNotGiven), and remembers the one that opens it.
  */
-export async function pdfOf(o: SourceFile, file: File, ask?: AskPassword): Promise<OriginalPdf> {
+export async function pdfOf(o: SourceFile, file: File, ask?: AskPassword): Promise<RenderedPdf> {
   const bytes = new Uint8Array(await file.arrayBuffer());
   const lib = await import('pdf-lib');
   /** The PDF as it is, where pdf-lib can read it. */
-  const asItIs = async (): Promise<OriginalPdf> => {
+  const asItIs = async (): Promise<RenderedPdf> => {
     try {
       await lib.PDFDocument.load(bytes);
     } catch (e) {
@@ -130,7 +107,7 @@ export async function pdfOf(o: SourceFile, file: File, ask?: AskPassword): Promi
 }
 
 /** A PDF of each page of `bytes` drawn by pdf.js, with the password if it needs one. */
-async function pagesDrawn(o: SourceFile, bytes: Uint8Array, ask: AskPassword | undefined, why: 'encryption' | 'unreadable'): Promise<OriginalPdf> {
+async function pagesDrawn(o: SourceFile, bytes: Uint8Array, ask: AskPassword | undefined, why: 'encryption' | 'unreadable'): Promise<RenderedPdf> {
   const passwords = await Passwords.for(o, ask);
   const cache = await openPdf(bytes, (wrong) => passwords.next(wrong)).catch((e: unknown) => { throw passwords.failure(e); });
   try {
@@ -155,7 +132,7 @@ async function pagesDrawn(o: SourceFile, bytes: Uint8Array, ask: AskPassword | u
  * to be turned to be upright, or another kind of image, drawn upright and put in as a JPEG (a
  * photo: `recompressed`, as JPEG loses some of it again) or a PNG (which loses nothing).
  */
-export async function imagePdf(file: File): Promise<OriginalPdf> {
+export async function imagePdf(file: File): Promise<RenderedPdf> {
   const bytes = new Uint8Array(await file.arrayBuffer());
   const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
     .catch((e: unknown) => { throw new Error('Neither a PDF nor an image this browser can read', { cause: e }); });

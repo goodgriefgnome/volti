@@ -8,45 +8,13 @@
 // for its password the first time it needs one; an image is drawn from its decoded bitmap
 // (image.ts). There is one source file for each id in the root, so a move shows wherever it is held.
 
-import { imagePdf, pdfOf, savedPassword, type AskPassword, type OriginalPdf } from './contents';
+import { imagePdf, pdfOf, savedPassword } from './contents';
 import { isPdf, namesEncrypt, PDF_ENDS } from './file-kind';
 import { openImage } from './image';
+import type { Readable } from './internal-types';
 import type { PageCache } from './pages';
 import { openPdf } from './pdf';
-
-/** Bytes Volti can read as music: a PDF or an image. */
-export interface SourceFile {
-  /** The SHA-256 of the file's contents, in hex; also the id of the score made from it. */
-  readonly id: string;
-  /** Where it is in the library's root ("Masses/Latin/Mass in G.pdf"), or would go. */
-  readonly path: string;
-  /**
-   * Rename it, or move it into another folder ('' at the top), or both, making the folders that
-   * aren't there yet; its score stays, as its contents don't change. One held outside the library
-   * is moved into it. Says why when it can't (a file of that name is there already); throws
-   * NoAccess when the scores folder can't be changed.
-   */
-  move(path: string): Promise<string | null>;
-  /** Move it out of the library, into Recently removed; or drop one held outside it. Throws NoAccess when the scores folder can't be changed. */
-  remove(): Promise<void>;
-  /**
-   * Read it as music: its original. A PDF with a password not known yet asks `ask` for it, and
-   * remembers it (without `ask`, it throws PasswordNotGiven); throws NoAccess when the scores
-   * folder can't be read.
-   */
-  read(ask?: AskPassword): Promise<Original>;
-}
-
-/** A source file Volti has read: what a score is made from. */
-export interface Original extends SourceFile {
-  /** Its pages, to draw. */
-  pages(): Promise<PageCache>;
-  /** Its music as a PDF, for export (contents.ts). */
-  pdf(): Promise<OriginalPdf>;
-}
-
-/** A source file's bytes, for reading what only originals/ reads from it. */
-export interface Readable extends SourceFile { file(): Promise<File> }
+import type { AskPassword, Original, RenderedPdf } from './types';
 
 /** Whether a PDF is encrypted, reading only its ends (file-kind.ts). */
 async function encrypted(file: File): Promise<boolean> {
@@ -76,14 +44,14 @@ abstract class BaseOriginal implements Original {
   remove() { return this.f.remove(); }
   async read() { return this; }
   abstract pages(): Promise<PageCache>;
-  abstract pdf(): Promise<OriginalPdf>;
+  abstract pdf(): Promise<RenderedPdf>;
 }
 
 class PdfOriginal extends BaseOriginal {
   /** Its music, worked out when it was read, until its pages or its PDF take it. */
-  constructor(f: Readable, private held?: OriginalPdf) { super(f); }
+  constructor(f: Readable, private held?: RenderedPdf) { super(f); }
 
-  async pdf(): Promise<OriginalPdf> {
+  async pdf(): Promise<RenderedPdf> {
     const held = this.held;
     this.held = undefined; // pdf.js takes the bytes it is given
     return held ?? pdfOf(this.f, await this.f.file());
@@ -95,6 +63,6 @@ class PdfOriginal extends BaseOriginal {
 }
 
 class ImageOriginal extends BaseOriginal {
-  async pdf(): Promise<OriginalPdf> { return imagePdf(await this.f.file()); }
+  async pdf(): Promise<RenderedPdf> { return imagePdf(await this.f.file()); }
   async pages(): Promise<PageCache> { return openImage(await this.f.file()); }
 }

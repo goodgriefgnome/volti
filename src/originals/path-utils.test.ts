@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { arrivals, byFolder, endingOf, folderOf, importName, isOriginalName, pathInFolder, pathWithTitle, shownFolder, tidyFolder, tidyPath, titleOf, unfoundName } from './path-utils';
-import type { SourceFile } from './original';
+import type { SourceFile } from './types';
 
 describe('importName', () => {
   it('keeps a PDF\'s own name', () => {

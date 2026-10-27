@@ -6,14 +6,12 @@
 
 import { keys, kv } from '../storage';
 import { writeFile } from './filesystem-utils';
+import type { Removed } from './types';
 
 /** How long a removed file is kept. */
 const KEEP_MS = 7 * 24 * 60 * 60 * 1000;
 
 const removedDir = async () => (await navigator.storage.getDirectory()).getDirectoryHandle('removed', { create: true });
-
-/** A removed file: kept under `key`, with its id, where it was in the library, and when it was removed (ms since 1970). */
-export interface Removed { key: string; id: string; path: string; at: number }
 
 type Records = Record<string, Removed>;
 const load = async () => (await kv.get<Records>(keys.removed)) ?? {};

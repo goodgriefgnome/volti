@@ -7,7 +7,8 @@ import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
-import { PageCache, type PageSource } from './pages';
+import type { PageSource } from './internal-types';
+import { PageCache } from './pages';
 
 const assets = import.meta.env.BASE_URL + 'pdfjs/';
 

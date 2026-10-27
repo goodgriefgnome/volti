@@ -3,14 +3,15 @@
 // outside the library (a HeldFile), known by its id, which moving puts at the path chosen for it in
 // the library's root (arrivals.ts says what happens to each there).
 
-import type { AskPassword } from './contents';
 import { appFiles, removeAppFile } from './folder';
 import { hashBytes, writeFile } from './filesystem-utils';
 import { makeFolder, needAccess, sourceFileOf, whereIs } from './library-root';
 import { Hasher, rememberHash } from './hashes';
 import { folderOf, importName, nameOf, shownFolder, tidyPath, unfoundName } from './path-utils';
-import { readAs, type Original, type Readable, type SourceFile } from './original';
-import { forgetRemoved, removedFile, type Removed } from './removed';
+import type { Readable } from './internal-types';
+import { readAs } from './original';
+import { forgetRemoved, removedFile } from './removed';
+import type { AskPassword, Original, Removed, SourceFile } from './types';
 
 /**
  * A file Volti holds outside the library: coming in, left in its own folder, or in Recently

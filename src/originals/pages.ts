@@ -1,26 +1,9 @@
 // The pages of an original, drawn and kept: the page cache, which draws pages a couple at a time,
 // those for the screen first, keeps those around the current screen, and uses saved pictures where
-// there are some. What draws the pages is a PageSource: pdf.js (pdf.ts), as an original is always
-// read as a PDF.
+// there are some. What draws the pages is a PageSource (pdf.ts, image.ts).
 
-/** An original's pages, to draw. Pages are numbered from 1. */
-export interface PageSource {
-  readonly pages: number;
-  /** Page height / width. */
-  aspect(num: number): Promise<number>;
-  /** Draw a page `width` device pixels wide. */
-  draw(num: number, width: number): Promise<HTMLCanvasElement>;
-  /** Draw a page `pageWidth` pixels wide, and cut `region` (in those pixels) out of it. */
-  region(num: number, pageWidth: number, region: { x: number; y: number; w: number; h: number }): Promise<HTMLCanvasElement>;
-  destroy(): void;
-}
-
-/** Saved pictures of a score's pages, by page number and width in device pixels: looked at before a page is drawn. */
-export interface PagePictures {
-  get(num: number, width: number): Promise<HTMLCanvasElement | null>;
-  /** Offered each page drawn for reading: kept if it is one to keep. */
-  put(num: number, width: number, canvas: HTMLCanvasElement): void;
-}
+import type { PageSource } from './internal-types';
+import type { PagePictures } from './types';
 
 /**
  * How soon a page is wanted: `now` on the screen, `ahead` on a neighbouring screen, `later` in

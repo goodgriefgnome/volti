@@ -4,7 +4,7 @@
 // tidied, the library in lists by folder, sorting by title, and what happens to files arriving at
 // paths. A name says which files are scores, never how one is read: that is what its contents say.
 
-import type { SourceFile } from './original';
+import type { SourceFile } from './types';
 
 /** An original's file name ending: ".pdf", or an image's. */
 const ENDING = /\.(pdf|jpe?g|png|webp|gif|bmp|avif|heic|heif)$/i;

@@ -5,11 +5,10 @@
 
 export { leftInApp, readIncoming, removedSource } from './adding';
 export { appRootBytes, exportExists, EXPORTS, saveExport } from './folder';
-export { canLinkFolder, folderState, linkFolder, NoAccess, unlinkFolder, unlockFolder, type FolderState } from './library-root';
+export { canLinkFolder, folderState, linkFolder, unlinkFolder, unlockFolder } from './library-root';
 export { dropInbox, peekInbox, putInbox } from './inbox';
 export { arrivals, byFolder, byTitle, fileNameProblem, folderOf, pathInFolder, pathWithTitle, subfolders, titleOf, type Arrival } from './path-utils';
-export { PasswordNotGiven, type AskPassword } from './contents';
-export type { Original, SourceFile } from './original';
+export { NoAccess, PasswordNotGiven, type AskPassword, type FolderState, type Original, type PagePictures, type Removed, type RenderedPdf, type SourceFile } from './types';
 export { knownTitles, libraryFiles } from './originals';
-export { PageCache, type PagePictures } from './pages';
-export { purgeRemoved, recentlyRemoved, removedBytes, type Removed } from './removed';
+export { PageCache } from './pages';
+export { purgeRemoved, recentlyRemoved, removedBytes } from './removed';

@@ -4,10 +4,10 @@
 // scores/.
 
 import { keys, kv } from '../storage';
-import { folderFiles, rememberedListing, saveListing, sourceFileOf, whereIs, type FolderState } from './library-root';
+import { folderFiles, rememberedListing, saveListing, sourceFileOf, whereIs } from './library-root';
 import { Hasher } from './hashes';
 import { byTitle, titleOf } from './path-utils';
-import type { SourceFile } from './original';
+import type { FolderState, SourceFile } from './types';
 
 /** Every file's title as last seen, by id: for a score whose file can't be found. */
 export const knownTitles = async () => (await kv.get<Record<string, string>>(keys.titles)) ?? {};

@@ -1,7 +1,8 @@
 // An image's page, drawn from its decoded bitmap: an image is a score of one page, shown upright as
 // its camera meant (EXIF orientation), with no PDF in between.
 
-import { PageCache, type PageSource } from './pages';
+import type { PageSource } from './internal-types';
+import { PageCache } from './pages';
 
 /** Open an image's one page; throws when the browser can't read it. */
 export async function openImage(file: File): Promise<PageCache> {

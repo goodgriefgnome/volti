@@ -6,18 +6,14 @@
 // needs. The only code that holds the linked folder's handle.
 
 import { keys, kv } from '../storage';
-import type { AskPassword } from './contents';
 import { opfsRoot } from './folder';
 import { walk } from './filesystem-utils';
 import { rememberHash } from './hashes';
 import { folderOf, nameOf, shownFolder, tidyPath, unfoundName } from './path-utils';
-import { readAs, type Original, type Readable, type SourceFile } from './original';
+import type { Readable } from './internal-types';
+import { readAs } from './original';
 import { forgetRemoved, keepRemoved } from './removed';
-
-export type FolderState =
-  | { kind: 'none' }
-  | { kind: 'ready'; name: string }
-  | { kind: 'locked'; name: string }; // linked, but needs a tap to allow access this session
+import { NoAccess, type AskPassword, type FolderState, type Original, type SourceFile } from './types';
 
 let dir: FileSystemDirectoryHandle | undefined;
 
@@ -62,11 +58,6 @@ export async function unlockFolder(): Promise<boolean> {
   if (!dir) return false;
   if ((await dir.requestPermission({ mode: 'readwrite' }).catch(() => 'denied')) === 'granted') return true;
   return (await dir.requestPermission({ mode: 'read' })) === 'granted';
-}
-
-/** The scores folder can't be read, or changed, as access to it isn't allowed. */
-export class NoAccess extends Error {
-  name = 'NoAccess';
 }
 
 /**
