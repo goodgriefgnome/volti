@@ -8,11 +8,12 @@ export const keys = {
   /** The linked folder's PDFs as last read, { path, id }[], listed while access is locked (originals/library-root.ts). */
   folderListing: 'folder-files',
   /**
-   * Each original's SHA-256 as last worked out, with the size and modified time it was worked out
-   * for, by "folder/" + its path in the linked folder, or "app/" + its path in the app's own
-   * (originals/hashes.ts).
+   * Each file's SHA-256 in the linked folder as last worked out, with the size and modified time it
+   * was worked out for, by its path there (originals/device-score-fs.ts).
    */
   hashes: 'hashes',
+  /** Each file's SHA-256 in Volti's own folder, exactly, by its path there (originals/internal-score-fs.ts). */
+  internalIds: 'internal-ids',
   /** Each original's title as last seen, by id: for scores whose original is missing (originals/originals.ts). */
   titles: 'titles',
   /**

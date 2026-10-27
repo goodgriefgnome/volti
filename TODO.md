@@ -24,6 +24,9 @@ Things to try on the tablet.
   (from a score's ⋯ menu or Add scores; Cancel leaves it out), then never again. One that only
   stops printing doesn't ask. A phone photo shows upright, sharp at every width and in the
   zoomed close-up, and exports at original quality (a turned JPEG says it was recompressed).
+- **Ids after updating:** opening the library doesn't read every score again ("Reading new scores"
+  doesn't appear), both with a folder linked and without one. Then add, rename, move, remove, put
+  back, link, and unlink: each keeps scores, markings and setlists.
 - **Linking with scores in Volti's own folder:** link a folder after adding some PDFs without one:
   they move into the folder at their paths (in the Files app too), one the folder already has is
   dropped, and one whose name the folder has for another file opens the incoming screen. Leave it

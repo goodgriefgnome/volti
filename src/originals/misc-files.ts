@@ -3,11 +3,10 @@
 // outside the library (a MemoryFile), known by its id, which moving puts at the path chosen for it in
 // the library's root (arrivals.ts says what happens to each there).
 
-import { internalFiles, removeInternalFile } from './internal-score-fs';
+import { internalFiles, internalIds, removeInternalFile } from './internal-score-fs';
 import { hashBytes, writeFile } from './filesystem-utils';
 import { needAccess } from './device-score-fs';
-import { makeFolder, rememberId, sourceFileOf } from './library-files';
-import { Hasher } from './hashes';
+import { idsReady, makeFolder, rememberId, sourceFileOf } from './library-files';
 import { folderOf, importName, nameOf, shownFolder, tidyPath, unfoundName } from './path-utils';
 import type { Readable } from './internal-types';
 import { readOriginal } from './original';
@@ -68,12 +67,15 @@ export async function readIncoming(f: File, path?: string): Promise<SourceFile> 
 /**
  * The files in the app's own folder while a folder is linked: those not moved into it yet, each at
  * its path there, which moving it into the linked folder, or removing it, deletes. Each is known
- * by its hash, as last worked out where it hasn't changed.
+ * by its id in the internal record, hashed and recorded where it has none; records for files no
+ * longer there are dropped.
  */
 export async function leftInApp(): Promise<SourceFile[]> {
-  const hasher = await Hasher.load();
+  await idsReady();
+  const ids = await internalIds();
   const out: SourceFile[] = [];
-  for (const { path, file } of await internalFiles()) out.push(heldFile(await hasher.id('app/' + path, file), path, file, () => removeInternalFile(path)));
+  for (const { path, file } of await internalFiles()) out.push(heldFile(await ids.id(path, file), path, file, () => removeInternalFile(path)));
+  await ids.save();
   return out;
 }
 

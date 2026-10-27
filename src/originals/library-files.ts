@@ -5,22 +5,49 @@
 // listing the root's files, known by the hash of their contents.
 
 import { keys, kv } from '../storage';
-import { linked, needAccess, relist, rememberedListing, saveListing } from './device-score-fs';
+import { deviceIds, linked, needAccess, relist, rememberedListing, saveListing, type HashCache } from './device-score-fs';
 import { walk } from './filesystem-utils';
-import { Hasher, rememberHash } from './hashes';
-import { opfsRoot } from './internal-score-fs';
-import type { Readable } from './internal-types';
+import { internalFiles, internalIds, opfsRoot, type IdRecord } from './internal-score-fs';
+import type { Ids, Readable } from './internal-types';
 import { readOriginal } from './original';
 import { byTitle, folderOf, nameOf, shownFolder, tidyPath, titleOf, unfoundName } from './path-utils';
 import { forgetRemoved, keepRemoved } from './trash-fs';
 import type { AskPassword, FolderState, Original, SourceFile } from './types';
 
-/** Where a file in the root is, for remembering its hash: the linked folder's and the app's are kept apart. */
-const whereIs = async (path: string) => ((await linked()) ? 'folder/' : 'app/') + path;
+/**
+ * Before the id stores were split, the cache of ids (`hashes`) held both the linked folder's, under
+ * "folder/", and Volti's own folder's, under "app/". Split them once, without hashing anything
+ * again: the internal record (`internal-ids`) takes the "app/" entries whose file still has the
+ * size and modified time they were worked out for, and `hashes` keeps the "folder/" ones, by path.
+ * Whether `internal-ids` exists is the only safe sign it has been done, as a real folder can be
+ * called "app" or "folder". A crash between the two writes costs one full hash of the linked
+ * folder, and loses nothing.
+ */
+async function splitIds(): Promise<void> {
+  if ((await kv.get<IdRecord>(keys.internalIds)) !== undefined) return;
+  const old = (await kv.get<HashCache>(keys.hashes)) ?? {};
+  const record: IdRecord = {};
+  for (const { path, file } of await internalFiles().catch(() => [])) {
+    const was = old['app/' + path];
+    if (was && was.size === file.size && was.modified === file.lastModified) record[path] = was.id;
+  }
+  await kv.set(keys.internalIds, record);
+  await kv.set(keys.hashes, Object.fromEntries(Object.entries(old).filter(([k]) => k.startsWith('folder/')).map(([k, v]) => [k.slice('folder/'.length), v])));
+}
 
-/** Note the id of a file at `path` in the root whose contents are known, such as one just renamed or added, so it isn't read again. */
+let split: Promise<void> | undefined;
+/** Resolves once the id stores are in their present form (see splitIds): wait for it before using either. */
+export const idsReady = () => (split ??= splitIds());
+
+/** The ids of the files in the library's root: the linked folder's cache, or Volti's own folder's record. */
+async function idsOfRoot(): Promise<Ids> {
+  await idsReady();
+  return (await linked()) ? deviceIds() : internalIds();
+}
+
+/** Note the id of a file at `path` in the root whose contents are known, such as one just added, so it isn't read again. */
 export async function rememberId(path: string, file: File, id: string) {
-  await rememberHash(await whereIs(path), file, id);
+  await (await idsOfRoot()).remember(path, file, id);
 }
 
 /** The library's root: the linked folder, or the app's own. Access to a linked one must be allowed. */
@@ -122,7 +149,7 @@ class LibraryFile implements Readable {
       }
     }
     // The same contents, so the same id: no need to read it again.
-    await rememberId(now, await (await into.getFileHandle(name)).getFile(), this.id);
+    await (await idsOfRoot()).moved(this.path, now, await (await into.getFileHandle(name)).getFile(), this.id);
     await relist(this.id, now);
     this.path = now;
     return null;
@@ -139,6 +166,7 @@ class LibraryFile implements Readable {
       await forgetRemoved(key);
       throw e;
     }
+    await (await idsOfRoot()).forget(this.path);
     await relist(this.id);
   }
 }
@@ -170,11 +198,10 @@ type Progress = (originals: SourceFile[], left: number) => void;
  * linked folder is locked, its PDFs are the ones remembered.
  */
 export async function libraryFiles(state: FolderState, progress?: Progress): Promise<SourceFile[]> {
-  const hasher = await Hasher.load();
+  const hashes = await idsOfRoot();
   const locked = state.kind === 'locked';
   const remembered = locked ? await rememberedListing() : [];
   const files = locked ? [] : await folderFiles();
-  const where = await Promise.all(files.map((f) => whereIs(f.path)));
   const ids = new Map<string, string>();
   const known = () => {
     const seen = new Map<string, string>();
@@ -183,16 +210,18 @@ export async function libraryFiles(state: FolderState, progress?: Progress): Pro
   };
   const fresh: number[] = [];
   for (const [i, f] of files.entries()) {
-    if (hasher.known(where[i], f.file)) ids.set(f.path, await hasher.id(where[i], f.file)); else fresh.push(i);
+    if (hashes.known(f.path, f.file)) ids.set(f.path, await hashes.id(f.path, f.file)); else fresh.push(i);
   }
   for (const [n, i] of fresh.entries()) {
     if (n === 0) progress?.(known(), fresh.length);
-    ids.set(files[i].path, await hasher.id(where[i], files[i].file));
+    ids.set(files[i].path, await hashes.id(files[i].path, files[i].file));
     progress?.(known(), fresh.length - n - 1);
   }
-  if (!locked) await saveListing(files.map((f) => ({ path: f.path, id: ids.get(f.path)! })));
-  // The hashes of the root not read this time are kept: the app's while a folder is linked, and the other way round.
-  await hasher.save(locked ? ['folder/', 'app/'] : [state.kind === 'none' ? 'folder/' : 'app/']);
+  // A locked folder wasn't read, so neither store has anything new to keep or drop.
+  if (!locked) {
+    await saveListing(files.map((f) => ({ path: f.path, id: ids.get(f.path)! })));
+    await hashes.save();
+  }
   const found = known();
   await kv.update<Record<string, string>>(keys.titles, (old) => ({ ...old, ...Object.fromEntries(found.map((f) => [f.id, titleOf(f.path)])) }));
   return found;

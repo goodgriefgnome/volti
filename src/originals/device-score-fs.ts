@@ -1,8 +1,10 @@
 // The device score filesystem: the linked scores folder (File System Access). Its handle (the only
 // code that holds it), linking and unlinking it, asking for access to it, the listing remembered for
-// while access is locked, and the Exports folder inside it that exported PDFs are written to.
+// while access is locked, the cache of its files' ids, and the Exports folder inside it that exported PDFs are written to.
 
 import { keys, kv } from '../storage';
+import { hashFile } from './filesystem-utils';
+import type { Ids } from './internal-types';
 import { NoAccess, type FolderState } from './types';
 
 let dir: FileSystemDirectoryHandle | undefined;
@@ -104,3 +106,45 @@ export async function saveExport(name: string, data: Blob): Promise<void> {
   await w.write(data);
   await w.close();
 }
+
+/* ---------- its ids ---------- */
+
+/** A file's id, good while its size and modified time stay the same. */
+interface Hashed { size: number; modified: number; id: string }
+
+/** The linked folder's ids by path in it. */
+export type HashCache = Record<string, Hashed>;
+
+/**
+ * The cache of the linked folder's ids. Other apps can change files there at any time, so an id is
+ * trusted only while the file's size and modified time are as they were; otherwise it is read whole
+ * again. Unlinking the folder doesn't clear it.
+ */
+class DeviceIds implements Ids {
+  private constructor(private before: HashCache, private now: HashCache = {}) {}
+  static async load() { return new DeviceIds((await kv.get<HashCache>(keys.hashes)) ?? {}); }
+
+  known(path: string, file: File): string | undefined {
+    const was = this.before[path];
+    return was && was.size === file.size && was.modified === file.lastModified ? was.id : undefined;
+  }
+
+  async id(path: string, file: File): Promise<string> {
+    const id = this.known(path, file) ?? await hashFile(file);
+    this.now[path] = { size: file.size, modified: file.lastModified, id };
+    return id;
+  }
+
+  async remember(path: string, file: File, id: string) {
+    await kv.update<HashCache>(keys.hashes, (old) => ({ ...old, [path]: { size: file.size, modified: file.lastModified, id } }));
+  }
+
+  /** The old path's entry stays until the next listing drops it. */
+  moved(_from: string, to: string, file: File, id: string) { return this.remember(to, file, id); }
+
+  async forget() {}
+
+  save() { return kv.set(keys.hashes, this.now); }
+}
+
+export const deviceIds = (): Promise<Ids> => DeviceIds.load();
