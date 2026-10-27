@@ -8,8 +8,7 @@
 // for its password the first time it needs one; an image is drawn from its decoded bitmap
 // (image.ts). There is one source file for each id in the root, so a move shows wherever it is held.
 
-import { imagePdf } from './contents';
-import { openImage } from './image';
+import { readImage } from './image-source';
 import type { Content, Readable } from './internal-types';
 import { PageCache } from './pages';
 import { isPdf, readPdf } from './pdf-source';
@@ -22,8 +21,8 @@ import type { AskPassword, Original, RenderedPdf } from './types';
  */
 export async function readAs(f: Readable, ask?: AskPassword): Promise<Original> {
   const file = await f.file();
-  if (!isPdf(new Uint8Array(await file.slice(0, 2048).arrayBuffer()))) return new ImageOriginal(f);
-  return new PdfOriginal(f, await readPdf(f, ask));
+  if (!isPdf(new Uint8Array(await file.slice(0, 2048).arrayBuffer()))) return new ContentOriginal(f, readImage(f));
+  return new ContentOriginal(f, await readPdf(f, ask));
 }
 
 /** An original: its file's id, path, moving and removing, and itself as what reading it gives. */
@@ -38,13 +37,8 @@ abstract class BaseOriginal implements Original {
   abstract pdf(): Promise<RenderedPdf>;
 }
 
-class PdfOriginal extends BaseOriginal {
+class ContentOriginal extends BaseOriginal {
   constructor(f: Readable, private content: Content) { super(f); }
-  pdf() { return this.content.pdf(); }
+  pdf(): Promise<RenderedPdf> { return this.content.pdf(); }
   async pages(): Promise<PageCache> { return new PageCache(Promise.resolve(await this.content.pages())); }
-}
-
-class ImageOriginal extends BaseOriginal {
-  async pdf(): Promise<RenderedPdf> { return imagePdf(await this.f.file()); }
-  async pages(): Promise<PageCache> { return openImage(await this.f.file()); }
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isJpeg, isPng, jpegOrientation } from './file-kind';
+import { isJpeg, isPng, jpegOrientation } from './image-source';
 
 /** A JPEG's start with an EXIF block saying `orientation`, in the given byte order. */
 function jpegWith(orientation: number, little: boolean): Uint8Array {
