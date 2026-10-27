@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hashFile } from './hashes';
+import { hashFile } from './filesystem-utils';
 
 describe('hashFile', () => {
   it('is the SHA-256 of the contents, in hex', async () => {

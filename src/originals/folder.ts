@@ -1,37 +1,12 @@
-// Folders: walking one for the PDFs and images in it, writing a file into one, Volti's own folder in
-// the origin private file system (OPFS), which is the library's root while no folder is linked
-// (library-root.ts) and keeps the files left in it when one is, and the Exports folder in a linked
-// folder.
+// Folders: Volti's own folder in the origin private file system (OPFS), which is the library's root
+// while no folder is linked (library-root.ts) and keeps the files left in it when one is, and the
+// Exports folder in a linked folder.
 
+import { walk } from './filesystem-utils';
 import { linked, needAccess } from './library-root';
-import { isOriginalName } from './path-utils';
-
-const MAX_DEPTH = 4;
 
 /** Volti's own folder in OPFS: the library's root while no folder is linked. */
 export const opfsRoot = async () => (await navigator.storage.getDirectory()).getDirectoryHandle('library', { create: true });
-
-/** The PDFs and images in `d` and its subfolders, a few deep, by path from it (after `prefix`). */
-export async function walk(d: FileSystemDirectoryHandle, prefix: string, depth: number, out: [string, FileSystemFileHandle][]) {
-  for await (const [name, h] of d.entries()) {
-    if (name.startsWith('.')) continue;
-    if (h.kind === 'file' && isOriginalName(name)) out.push([prefix + name, h as FileSystemFileHandle]);
-    else if (h.kind === 'directory' && depth < MAX_DEPTH) await walk(h as FileSystemDirectoryHandle, `${prefix}${name}/`, depth + 1, out);
-  }
-}
-
-/** Write a new file `name` in `d`, or over the one of that name; one that fails part way is deleted. */
-export async function writeFile(d: FileSystemDirectoryHandle, name: string, data: Blob | ArrayBuffer) {
-  const h = await d.getFileHandle(name, { create: true });
-  try {
-    const w = await h.createWritable();
-    await w.write(data);
-    await w.close();
-  } catch (e) {
-    await d.removeEntry(name).catch(() => {});
-    throw e;
-  }
-}
 
 /**
  * The PDFs and images in Volti's own folder, by path, whether or not it is the root now: those

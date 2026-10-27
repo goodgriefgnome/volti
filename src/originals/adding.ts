@@ -4,9 +4,10 @@
 // the library's root (arrivals.ts says what happens to each there).
 
 import type { AskPassword } from './contents';
-import { appFiles, removeAppFile, writeFile } from './folder';
+import { appFiles, removeAppFile } from './folder';
+import { hashBytes, writeFile } from './filesystem-utils';
 import { makeFolder, needAccess, sourceFileOf, whereIs } from './library-root';
-import { Hasher, hashBytes, rememberHash } from './hashes';
+import { Hasher, rememberHash } from './hashes';
 import { folderOf, importName, nameOf, shownFolder, tidyPath, unfoundName } from './path-utils';
 import { readAs, type Original, type Readable, type SourceFile } from './original';
 import { forgetRemoved, removedFile, type Removed } from './removed';

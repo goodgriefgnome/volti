@@ -2,20 +2,13 @@
 // worked out for, so a file is read whole again only when it changes.
 
 import { keys, kv } from '../storage';
+import { hashFile } from './filesystem-utils';
 
 /** A file's hash, good while its size and modified time stay the same. */
 interface Hashed { size: number; modified: number; id: string }
 
 /** Hashes by where the file is: "folder/" + its path in the linked folder, or "app/" + its path in the app's own. */
 type HashCache = Record<string, Hashed>;
-
-const hex = (b: ArrayBuffer) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
-
-/** The SHA-256 of some contents, in hex. */
-export const hashBytes = async (bytes: ArrayBuffer) => hex(await crypto.subtle.digest('SHA-256', bytes));
-
-/** The SHA-256 of `file`'s contents, in hex. */
-export const hashFile = async (file: Blob) => hashBytes(await file.arrayBuffer());
 
 /** Ids for files, hashing only those that changed since they were last hashed. */
 export class Hasher {

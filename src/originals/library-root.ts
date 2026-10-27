@@ -7,7 +7,8 @@
 
 import { keys, kv } from '../storage';
 import type { AskPassword } from './contents';
-import { opfsRoot, walk } from './folder';
+import { opfsRoot } from './folder';
+import { walk } from './filesystem-utils';
 import { rememberHash } from './hashes';
 import { folderOf, nameOf, shownFolder, tidyPath, unfoundName } from './path-utils';
 import { readAs, type Original, type Readable, type SourceFile } from './original';

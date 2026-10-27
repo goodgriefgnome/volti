@@ -5,7 +5,7 @@
 // missing. Files deleted outside Volti aren't here.
 
 import { keys, kv } from '../storage';
-import { writeFile } from './folder';
+import { writeFile } from './filesystem-utils';
 
 /** How long a removed file is kept. */
 const KEEP_MS = 7 * 24 * 60 * 60 * 1000;
