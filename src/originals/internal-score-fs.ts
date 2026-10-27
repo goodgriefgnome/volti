@@ -1,5 +1,5 @@
 // Volti's own folder in the origin private file system (OPFS), which is the library's root while no
-// folder is linked (library-root.ts) and keeps the files left in it when one is.
+// folder is linked (library-files.ts) and keeps the files left in it when one is.
 
 import { walk } from './filesystem-utils';
 

@@ -6,7 +6,7 @@
 import { internalFiles, removeInternalFile } from './internal-score-fs';
 import { hashBytes, writeFile } from './filesystem-utils';
 import { needAccess } from './device-score-fs';
-import { makeFolder, sourceFileOf, whereIs } from './library-root';
+import { makeFolder, sourceFileOf, whereIs } from './library-files';
 import { Hasher, rememberHash } from './hashes';
 import { folderOf, importName, nameOf, shownFolder, tidyPath, unfoundName } from './path-utils';
 import type { Readable } from './internal-types';

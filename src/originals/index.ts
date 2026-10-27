@@ -9,6 +9,6 @@ export { canLinkFolder, exportExists, EXPORTS, folderState, linkFolder, saveExpo
 export { dropInbox, peekInbox, putInbox } from './inbox-fs';
 export { arrivals, byFolder, byTitle, fileNameProblem, folderOf, pathInFolder, pathWithTitle, subfolders, titleOf, type Arrival } from './path-utils';
 export { NoAccess, PasswordNotGiven, type AskPassword, type FolderState, type Original, type PagePictures, type Removed, type RenderedPdf, type SourceFile } from './types';
-export { knownTitles, libraryFiles } from './originals';
+export { knownTitles, libraryFiles } from './library-files';
 export { PageCache } from './original';
 export { purgeRemoved, recentlyRemoved, removedBytes } from './trash-fs';

@@ -1,17 +1,19 @@
-// The library's root: the linked scores folder (device-score-fs.ts) when there is one, and Volti's
-// own folder in OPFS (internal-score-fs.ts) when there isn't. Both are folders with true paths, read the same
-// way. A file in the root is a source file that can be moved (renamed, or into another folder) and
-// removed (into Recently removed), asking for the access that needs.
+// Source files over the library's root: the linked scores folder (device-score-fs.ts) when there is
+// one, and Volti's own folder in OPFS (internal-score-fs.ts) when there isn't. Both are folders with
+// true paths, read the same way. A file in the root is a source file that can be moved (renamed, or
+// into another folder) and removed (into Recently removed), asking for the access that needs. Also
+// listing the root's files, known by the hash of their contents.
 
-import { linked, needAccess, relist } from './device-score-fs';
+import { keys, kv } from '../storage';
+import { linked, needAccess, relist, rememberedListing, saveListing } from './device-score-fs';
 import { walk } from './filesystem-utils';
+import { Hasher, rememberHash } from './hashes';
 import { opfsRoot } from './internal-score-fs';
-import { rememberHash } from './hashes';
-import { folderOf, nameOf, shownFolder, tidyPath, unfoundName } from './path-utils';
 import type { Readable } from './internal-types';
 import { readOriginal } from './original';
+import { byTitle, folderOf, nameOf, shownFolder, tidyPath, titleOf, unfoundName } from './path-utils';
 import { forgetRemoved, keepRemoved } from './trash-fs';
-import type { AskPassword, Original, SourceFile } from './types';
+import type { AskPassword, FolderState, Original, SourceFile } from './types';
 
 /** Where a file in the root is, for remembering its hash: the linked folder's and the app's are kept apart. */
 export const whereIs = async (path: string) => ((await linked()) ? 'folder/' : 'app/') + path;
@@ -55,7 +57,7 @@ export async function folderFiles(): Promise<{ path: string; file: File }[]> {
 /* ---------- its files ---------- */
 
 /** A file at its path in the library's root. */
-class RootFile implements Readable {
+class LibraryFile implements Readable {
   constructor(readonly id: string, public path: string) {}
 
   async file(): Promise<File> {
@@ -137,12 +139,56 @@ class RootFile implements Readable {
 }
 
 /** Each id's file in the root. */
-const made = new Map<string, RootFile>();
+const made = new Map<string, LibraryFile>();
 
 /** The file in the root with id `id` at `path`: the one already made for it, brought up to date. */
 export function sourceFileOf(id: string, path: string): SourceFile {
   let o = made.get(id);
-  if (!o) made.set(id, (o = new RootFile(id, path)));
+  if (!o) made.set(id, (o = new LibraryFile(id, path)));
   else o.path = path;
   return o;
+}
+
+/** Every file's title as last seen, by id: for a score whose file can't be found. */
+export const knownTitles = async () => (await kv.get<Record<string, string>>(keys.titles)) ?? {};
+
+/**
+ * Hears the files known so far while new or changed files are read, and how many are `left`
+ * to read.
+ */
+type Progress = (originals: SourceFile[], left: number) => void;
+
+/**
+ * The library's files, sorted by title: the same SourceFile for an id as before; two of the same file show
+ * the first. Files new or changed since last time are hashed, which reads them whole, one at a
+ * time; `progress` hears the files known so far before the first and after each. While the
+ * linked folder is locked, its PDFs are the ones remembered.
+ */
+export async function libraryFiles(state: FolderState, progress?: Progress): Promise<SourceFile[]> {
+  const hasher = await Hasher.load();
+  const locked = state.kind === 'locked';
+  const remembered = locked ? await rememberedListing() : [];
+  const files = locked ? [] : await folderFiles();
+  const where = await Promise.all(files.map((f) => whereIs(f.path)));
+  const ids = new Map<string, string>();
+  const known = () => {
+    const seen = new Map<string, string>();
+    for (const e of [...remembered, ...files.filter((f) => ids.has(f.path)).map((f) => ({ id: ids.get(f.path)!, path: f.path }))]) if (!seen.has(e.id)) seen.set(e.id, e.path);
+    return [...seen].map(([id, path]) => sourceFileOf(id, path)).sort(byTitle);
+  };
+  const fresh: number[] = [];
+  for (const [i, f] of files.entries()) {
+    if (hasher.known(where[i], f.file)) ids.set(f.path, await hasher.id(where[i], f.file)); else fresh.push(i);
+  }
+  for (const [n, i] of fresh.entries()) {
+    if (n === 0) progress?.(known(), fresh.length);
+    ids.set(files[i].path, await hasher.id(where[i], files[i].file));
+    progress?.(known(), fresh.length - n - 1);
+  }
+  if (!locked) await saveListing(files.map((f) => ({ path: f.path, id: ids.get(f.path)! })));
+  // The hashes of the root not read this time are kept: the app's while a folder is linked, and the other way round.
+  await hasher.save(locked ? ['folder/', 'app/'] : [state.kind === 'none' ? 'folder/' : 'app/']);
+  const found = known();
+  await kv.update<Record<string, string>>(keys.titles, (old) => ({ ...old, ...Object.fromEntries(found.map((f) => [f.id, titleOf(f.path)])) }));
+  return found;
 }
