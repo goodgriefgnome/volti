@@ -167,6 +167,14 @@ Things to try on the tablet.
   it), and `OfflinePage` one cache entry to pin (a page at an exact width, with its aspect). Rename
   them to say so, as `PinnedOriginal` and `PinnedPage` say, or pass a `Map` of pinned pages by id
   with the sources alongside; `keepPagesOffline` (`originals/original.ts`) and the maker follow.
+- **Showing whether storage is persistent:** `main.ts` asks for it (`navigator.storage.persist()`)
+  at each start and ignores the answer, and nothing shows it. Chrome grants it by itself, mostly
+  to an installed app; in a browser tab it may not, and then Volti's own folder (scores added
+  without a linked folder), and the cuts, markings and setlists, can be cleared when the tablet
+  runs low on space, without a word. The storage view could say whether it is
+  (`navigator.storage.persisted()`), and where it isn't, suggest installing Volti (Add to home
+  screen). Where it is, the page cache's 30% of the quota is room only Volti gives back (see the
+  item on the cache giving room back).
 - **Purging a removed score's data** [needs discussion]: once a removed file is deleted for good,
   its score (cuts, markings, named excerpts, reading position) is still kept by hash, as for any
   score whose file is missing. Eventually there should be a way to purge it.
