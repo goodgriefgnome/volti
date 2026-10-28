@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nameOf, setName } from '../excerpts/names';
+import { nameOf, setName } from '../scores/excerpts';
 import { insertPages, remove } from '../scores/edits';
 import { aspects, cut, state } from '../scores/testing';
 import { newEntry, newSetlist, type Setlist } from '../setlists/model';

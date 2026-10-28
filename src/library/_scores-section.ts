@@ -3,8 +3,7 @@
 
 import { addExcerpt, changeExcerptCuts, deleteExcerpt, renameExcerpt } from '../dialogs/excerpts';
 import { moveToFolder, renameFile, type ScoreFileHost } from '../dialogs/score-files';
-import { sortedNames } from '../excerpts/names';
-import { spanLabel } from '../excerpts/span';
+import { sortedNames, spanLabel } from '../scores/excerpts';
 import { byFolder, folderOf, subfolders, titleOf } from '../originals/path-utils';
 import { NoAccess, type SourceFile } from '../originals/types';
 import type { ExcerptName, Score } from '../scores/model';

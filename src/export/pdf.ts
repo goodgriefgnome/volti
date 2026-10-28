@@ -5,7 +5,7 @@
 // pdf-lib is only loaded to export.
 
 import type { PDFDocument, PDFEmbeddedPage, PDFPage } from 'pdf-lib';
-import { spanCuts, type Span } from '../excerpts/span';
+import { type Span, spanCuts } from '../scores/excerpts';
 import { NoAccess, PasswordNotGiven, type AskPassword, type LossyReason, type SourceFile } from '../originals/types';
 import { cutTarget, shownOn } from '../render/paint';
 import { loadScore } from '../scores/store';

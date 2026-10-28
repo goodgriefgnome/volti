@@ -4,7 +4,7 @@
 import { askSetlistName } from '../dialogs/setlists';
 import { openAddScores } from '../dialogs/add-scores';
 import { openExcerptPicker } from '../dialogs/excerpt-picker';
-import { excerptName } from '../excerpts/names';
+import { excerptName } from '../scores/excerpts';
 import { titleOf } from '../originals/path-utils';
 import { scoreEntries } from '../scores/store';
 import { addEntries, duplicate, moveEntry, newSetlist, setEntrySpan, withSetlist, type Entry, type Setlist } from '../setlists/model';

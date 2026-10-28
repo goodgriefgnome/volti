@@ -1,15 +1,14 @@
-// Setlists and their entries, each playing a span of a score (excerpts/span.ts): making and
+// Setlists and their entries, each playing a span of a score (scores/excerpts.ts): making and
 // changing them, and keeping every entry on the same music when a score's cuts change. Pure: no
 // DOM, no storage.
 
-import { ends, followEdit, sameSpan, spanOf, type Span } from '../excerpts/span';
-import { setName } from '../excerpts/names';
+import { type Span, ends, followEdit, sameSpan, setName, spanOf } from '../scores/excerpts';
 import type { Cut, ExcerptName, Score } from '../scores/model';
 
 /**
  * One excerpt of a score, in a setlist. It plays either
  * - the whole score: no span, so `first` and `last` are both missing; or
- * - part of it: a span. A named excerpt is a name on a span (excerpts/names.ts), so an entry
+ * - part of it: a span. A named excerpt is a name on a span (scores/excerpts.ts), so an entry
  *   whose span has a name plays that named excerpt.
  */
 export interface Entry extends Span {

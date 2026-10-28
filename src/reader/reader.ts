@@ -4,7 +4,7 @@
 // _toolbar-menus.ts. Code that can stand on its own goes in one of them.
 
 import type { FileChange } from '../dialogs/score-files';
-import { ends } from '../excerpts/span';
+import { ends } from '../scores/excerpts';
 import { PEN_COLORS } from '../markings/stroke';
 import { type Marking } from '../markings/model';
 import { knownTitles } from '../originals/library-files';

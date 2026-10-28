@@ -2,8 +2,7 @@
 // excerpts, or as excerpts chosen in its preview. The library ("New setlist", a setlist's ⋯ › Add
 // scores) and a setlist's reader (⋯ › Add scores) both open it.
 
-import { ends, sameSpan, type Span } from '../excerpts/span';
-import { excerptName, nameOf, sortedNames } from '../excerpts/names';
+import { type Span, ends, excerptName, nameOf, sameSpan, sortedNames } from '../scores/excerpts';
 import { byFolder, folderOf, titleOf } from '../originals/path-utils';
 import { type SourceFile } from '../originals/types';
 import type { ExcerptName, Score } from '../scores/model';

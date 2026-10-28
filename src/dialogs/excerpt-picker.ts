@@ -2,8 +2,7 @@
 // the dialog around them. The reader and the library both use it; where the pages come from is
 // the caller's business.
 
-import { nameOf, sortedNames } from '../excerpts/names';
-import { spanFor, spanLabel, spanOf, type Span } from '../excerpts/span';
+import { type Span, nameOf, sortedNames, spanFor, spanLabel, spanOf } from '../scores/excerpts';
 import { placeLabel, places, type Place } from '../scores/frames';
 import { type Score } from '../scores/model';
 import { button, el } from '../ui/dom';

@@ -2,7 +2,7 @@
 // setlists play, at the widths this screen shows them, and telling the page cache to keep exactly
 // those (it draws those not saved yet, and lets go of the rest).
 
-import { spanCuts } from '../excerpts/span';
+import { spanCuts } from '../scores/excerpts';
 import { keepPagesOffline, knownAspects } from '../originals/original';
 import { type Original, type SourceFile } from '../originals/types';
 import type { OfflinePage } from '../page-cache/types';

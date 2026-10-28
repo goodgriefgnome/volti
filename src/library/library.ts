@@ -9,7 +9,7 @@ import { openScore, type LibraryScore } from '../dialogs/open-score';
 import { type ExcerptHost } from '../dialogs/excerpts';
 import { type ExcerptSource } from '../dialogs/thumb-strip';
 import { type FileChange } from '../dialogs/score-files';
-import type { Span } from '../excerpts/span';
+import type { Span } from '../scores/excerpts';
 import type { ExportPart } from '../export/pdf';
 import { arrivals, byFolder, byTitle, titleOf } from '../originals/path-utils';
 import { folderState, linkFolder, unlinkFolder, unlockFolder } from '../originals/device-score-fs';

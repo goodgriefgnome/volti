@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nameOf, setName } from '../excerpts/names';
-import { spanCuts, type Span } from '../excerpts/span';
+import { type Span, nameOf, setName, spanCuts } from '../scores/excerpts';
 import { insertPages, split } from '../scores/edits';
 import type { Score, State } from '../scores/model';
 import { A4, cut, state } from '../scores/testing';

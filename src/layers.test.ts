@@ -14,15 +14,14 @@ const LAYERS: Record<string, number> = {
   markings: 1,
   originals: 2,
   scores: 2,
-  excerpts: 3,
-  setlists: 4,
-  render: 5,
-  pictures: 6,
-  export: 6,
-  dialogs: 7,
-  reader: 8,
-  library: 9,
-  '.': 10,
+  setlists: 3,
+  render: 4,
+  pictures: 5,
+  export: 5,
+  dialogs: 6,
+  reader: 7,
+  library: 8,
+  '.': 9,
 };
 
 /** The only files that use the kv store (storage/keys.ts names the one for each key). */

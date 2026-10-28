@@ -13,36 +13,9 @@ scores.
 
 ## Work for the immediate future
 
-Two moves of code, one commit each. Nothing is meant to change in what the app does, so the
+One move of code. Nothing is meant to change in what the app does, so the
 checks are `npm test` and `npm run build` (which type-checks every moved import).
 
-- **Fold `excerpts/` into `scores/excerpts.ts`:** spans and excerpt names are about a score's
-  cuts, and the names are already kept on the score (`ExcerptName` in `scores/model.ts`).
-  - Make `src/scores/excerpts.ts`: `span.ts`'s code first, then `names.ts`'s (which uses it).
-    Merge the two header comments into one that says the file holds spans (which cuts an excerpt
-    plays, as the ids of its first and last cut) and the names on them, and stays **Pure**. Import
-    from `./frames` and `./model` instead of `../scores/…`.
-  - Drop `_ends` (from `names.ts`): it is the same function as `ends`. Its callers in the file use
-    `ends`.
-  - Every export keeps its name: `Span`, `spanOf`, `spanCuts`, `spanLabel`, `spanFor`,
-    `followEdit`, `sameSpan`, `ends`, `nameOf`, `excerptName`, `sortedNames`, `nameProblem`,
-    `setName`, `removeName`, `followNames`.
-  - Merge `span.test.ts` and `names.test.ts` into `src/scores/excerpts.test.ts`, keeping their
-    `describe` blocks as they are.
-  - Point every import of `../excerpts/span` and `../excerpts/names` at `../scores/excerpts`
-    (one import per file where a file had both): `dialogs/add-scores.ts`,
-    `dialogs/excerpt-picker.ts`, `dialogs/excerpts.ts`, `export/pdf.ts`, `library/_host.ts`,
-    `library/_scores-section.ts`, `library/_setlists-section.ts`, `library/library.ts`,
-    `pictures/maker.ts`, `reader/_reading.ts`, `reader/_reading.test.ts`, `reader/_toolbar-menus.ts`,
-    `reader/reader.ts`, `setlists/model.ts`, `setlists/model.test.ts`. Comments naming
-    `excerpts/` (`scores/model.ts`, `setlists/model.ts`) name
-    `scores/excerpts.ts`.
-  - Delete `src/excerpts/`. In `src/layers.test.ts`, remove `excerpts` from `LAYERS` and move every
-    layer above it down by one, so there is no gap.
-  - `ARCHITECTURE.md`: in the layer table, remove the `excerpts/` row, renumber the rows above it
-    to match `LAYERS`, and add spans and excerpt names (`excerpts`) to the `scores/` row. Update
-    the glossary's **span** row (`Span` in `scores/excerpts.ts`), the list of pure rules, and "check
-    `followEdit`'s cases in `scores/excerpts.ts`".
 - **Fold `pictures/` into `library/_offline-pages.ts`:** since the page cache, `pictures/` holds
   only `maker.ts`, which works out the pages setlists play and tells the page cache to keep them
   offline; only `library/library.ts` uses it.

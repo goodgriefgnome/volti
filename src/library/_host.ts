@@ -6,7 +6,7 @@ import type { ExcerptHost } from '../dialogs/excerpts';
 import type { ExcerptSource } from '../dialogs/thumb-strip';
 import type { FileChange } from '../dialogs/score-files';
 import type { LibraryScore } from '../dialogs/open-score';
-import type { Span } from '../excerpts/span';
+import type { Span } from '../scores/excerpts';
 import type { FolderState, SourceFile } from '../originals/types';
 import type { Aspects, ExcerptName, Score } from '../scores/model';
 import type { Setlist } from '../setlists/model';
