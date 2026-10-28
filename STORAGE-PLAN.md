@@ -351,15 +351,15 @@ Update `folder`'s comment.
 - New file `src/reader/_last-read.ts`, **Pure**, with a test:
   ```ts
   export type LastRead = …   // exactly as STORAGE.md
-  /** What is opened: a score or an excerpt of it (its span's ends), or a setlist (without a tapped entry). */
-  export type Opening = { kind: 'score'; id: string; first?: string; last?: string } | { kind: 'setlist'; id: string };
+  /** What is opened: an excerpt of a score (no ends: the whole score), or a setlist (without a tapped entry). */
+  export type Opening = { kind: 'excerpt'; id: string; first?: string; last?: string } | { kind: 'setlist'; id: string };
   /** Where to start `opening`: where `last` was, if it names the same thing; else undefined (its beginning). */
   export function resumeAt(last: LastRead | undefined, opening: Opening): { entry?: string; cut: string } | undefined
   ```
-  A score matches only with equal `id`, `first` and `last` (compare the strings; a missing end
+  An excerpt matches only with equal `id`, `first` and `last` (compare the strings; a missing end
   matches only a missing end). Test: same score; a different score; the whole score against an
   excerpt of it, both ways (no match); the same excerpt; two excerpts of one score (no match);
-  same setlist; a score with a setlist's `last-read` of the same id string (no match); nothing
+  same setlist; an excerpt with a setlist's `last-read` of the same id string (no match); nothing
   stored.
 - New file `src/reader/_store.ts`, like `library/_store.ts`: `loadLastRead()` and
   `saveLastRead(l)`. In `keys.ts`, add `lastRead: 'last-read'` and remove `pos`.
@@ -367,7 +367,7 @@ Update `folder`'s comment.
   returns only `{ state }`.
 - `src/reader/reader.ts`:
   - `openReader`:
-    - for `score`, `position = resumeAt(await loadLastRead(), { kind: 'score', id })?.cut`
+    - for `score`, `position = resumeAt(await loadLastRead(), { kind: 'excerpt', id })?.cut`
     - for `excerpt`, the same with `...ends(what.excerpt)` in the opening, and pass the position
       to the `Reader` (today it passes `undefined`).
     - for `setlist` with no `startEntry`, use `resumeAt` to get `entry` and `cut`, find `k` by
@@ -376,7 +376,7 @@ Update `folder`'s comment.
     - with a `startEntry`, as now: it starts at that entry's start. `saveSpot` then makes
       `last-read` name the setlist at that entry, as for any setlist.
   - `saveSpot(cut)`:
-    - for `score`, save `{ kind: 'score', id: this.items[this.k].scoreId, cut }`
+    - for `score`, save `{ kind: 'excerpt', id: this.items[this.k].scoreId, cut }`
     - for `excerpt`, the same plus `...ends(this.reading.what.span)`. Use the span in
       `this.reading.what`, not the one opened: it follows cut edits, and playing part of a score
       (`readSpan`) switches the reader to an excerpt.
