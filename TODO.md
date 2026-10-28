@@ -77,6 +77,9 @@ Things to try on the tablet.
 - **Password-protected and restricted PDFs:** ones from Acrobat (often AES-128, even when they
   only stop printing) and ones with a password open sharp, as before, now that our fork of
   pdf-decrypt reads them; export says "Original quality" for them.
+- **Exporting a PDF whose pages have to be drawn** (one with an encryption pdf-decrypt doesn't
+  know): it exports, with the pictures of its pages as sharp as in the reader, and the dialog says
+  it was rasterized; plain PDFs and images export at original quality, as before.
 - **New PDFs appear on coming back:** add a PDF to the scores folder in the Files app, switch
   back to Volti after half a minute or more: it appears in the library without asking.
 
@@ -102,6 +105,15 @@ Things to try on the tablet.
   for scans); a version in its keys, as a new pdf.js or supersampling draws differently; that a
   password-protected PDF's pages are stored readable, as pictures are now; and Trash in the
   storage view for a removed score's pages.
+- **An original whose pages have to be drawn is drawn three times to export it** [needs
+  refinement]: where a PDF's music can't be had as it is (an encryption pdf-decrypt doesn't know,
+  or a PDF pdf-lib can't read), `pdfOf` draws every page with pdf.js into a PDF of pictures
+  (`pagesDrawn`), and nothing keeps it. The export dialog (`openExportPdf`) draws it once to learn
+  `lossyReason` in `drawnOriginals`, and exporting (`open` in `export/pdf.ts`) draws it again for
+  `o.pages()`, only for the pages' aspects, and again for `o.pdf()`, as `PdfContent` holds what it
+  worked out only until the first `pdf()` takes it (pdf.js takes the bytes it is given). Reading
+  such a score draws every page up front too. To work out: where the drawn PDF should be kept, and
+  for how long (it can be large), and whether the reason can be known without drawing.
 - **Purging a removed score's data** [needs discussion]: once a removed file is deleted for good,
   its score (cuts, markings, named excerpts, reading position) is still kept by hash, as for any
   score whose file is missing. Eventually there should be a way to purge it.
