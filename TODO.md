@@ -83,8 +83,8 @@ scores.
   - **Known gap:** the reader draws with `draw`, which shows only pages saved at exactly the width
     asked for. The offline keeper saves the widths for the current window size and orientation
     (`readPageWidths`), so this works as long as the tablet is held as it was. After rotating, the
-    pages of a gone file show "Not saved for this screen". The follow-up under "Confirmed features
-    which require more thought" closes the gap.
+    pages of a gone file show "Not saved for this screen". The next item, progressive drawing,
+    closes the gap.
   - **Tests:** `reader/_reading.test.ts`: `setlistItems` marks an entry with no original
     `fileGone`, not `missing`. `savedPages` and the reader need the page cache and IndexedDB, so
     they are checked by hand.
@@ -94,6 +94,70 @@ scores.
     3. Play the setlist: the gone score shows from its saved pages, with its title.
     4. Editing cuts or choosing an excerpt on it says the file is gone.
     5. Rotate the tablet: its pages say "Not saved for this screen". Rotate back: they show again.
+- **The reader and thumbnails draw progressively.** Do this after the item above: it relies on
+  `Pages` and `savedPages`. Today every caller draws with `draw`, exact widths only, and waits
+  for it. `drawProgressive` (`page-cache/cache.ts`, `drawPageProgressive`) first yields a
+  stand-in, the closest width held or saved (`exact: false`), then the exact page. A stand-in
+  paints correctly as it is:
+  - `drawFrame` scales a page canvas of any width to the slot (`render/paint.ts`)
+  - ink is painted on its own layer, in page fractions (`paintSlotInk`, `reader/_spread.ts`)
+
+  This also closes that item's known gap: after rotating, a gone file's pages show their
+  stand-ins, because `savedPages`' `drawProgressive` ends quietly. One commit.
+  - **Opening:** `openPages` (`reader/_open-scores.ts`) also returns
+    `drawProgressive: (page, pxWidth, options?) => AsyncIterable<Drawn>`, from the `Pages` it
+    opened. `OpenScore` gains `drawProgressive?` next to `draw`: set and cleared with it, in
+    `open`, `accessAllowed`, `keepNear` and `destroy`. `ReaderView` (`reader/_view.ts`) gains
+    `drawProgressive()`.
+  - **The main screen** (`show()`, `reader/reader.ts`):
+    - Draw each page with `drawProgressive`, at `priority: 'now'` as now.
+    - Paint the screen once every page has its first yield, stand-in or exact. Then, as each
+      exact page arrives, put it in `this.pages` and repaint the slots that show it
+      (`this.paint(s, this.state)`).
+    - Every repaint checks `seq !== this.seq` first, so a later screen is never overwritten by an
+      earlier one's pages. When `seq` moves on, stop iterating: the `ahead` abort already stops
+      the draws.
+    - **A failure with no yield at all** is handled as now (`NoAccess`, `NotSaved`, or "Could not
+      draw this page").
+    - **A failure after a stand-in** keeps the stand-in on the screen. Log the error, and set
+      `this.toolbar.info` to "Could not draw this page".
+    - There is no marker on a stand-in: it sharpens when the exact page arrives. A gone file's
+      stand-in stays slightly soft.
+  - **Unchanged, exact only:** `predraw` (it only warms the cache) and the close-up
+    (`reader/_detail.ts`), which exists to be sharp. For a gone file the close-up doesn't
+    sharpen; that is fine.
+  - **The cut editor's thumbnails** (`reader/cuts/`):
+    - `EditorHost.thumb(page, width): Promise<HTMLCanvasElement>` becomes
+      `thumbs(page, width): AsyncIterable<HTMLCanvasElement>` (`_host.ts`). The reader gives it
+      from `drawProgressive` (`reader.ts:181`).
+    - `thumbCanvas` (`_thumbs.ts`) draws each yield into its canvas as it comes, while the
+      dialog is open.
+    - `_insert-picker.ts`, which draws thumbnails one after another, waits for each page's
+      generator to finish before the next, as it waits for `thumb` now.
+  - **`ThumbStrip`** (`dialogs/thumb-strip.ts`), used by the excerpt picker, opening a score and
+    the incoming screen:
+    - `ExcerptSource.page(page, w): Promise<HTMLCanvasElement>` becomes
+      `pages(page, w): AsyncIterable<HTMLCanvasElement>`.
+    - Its three makers give it from `drawProgressive`: `library/_incoming.ts` and
+      `dialogs/open-score.ts` from the `Original`, and `reader/_toolbar-menus.ts` from
+      `OpenScore.drawProgressive`.
+    - The strip's first draw becomes two passes:
+      1. **Stand-ins,** every frame in order: take each page's first yield only, then stop
+         iterating it (`return()` on the iterator), and paint the frame if every page gave
+         something. The strip shows at once.
+      2. **Exact,** every frame in order, as `draw(i, w)` does now: iterate each page to its
+         last yield, and paint the frame from the last canvases.
+    - Zoom redraws (`redraw`) use the second pass only.
+    - A frame whose page fails in pass 2 keeps what pass 1 painted.
+  - **Tests:** none new. Drawing needs the page cache and the DOM. `npm run build` finds every
+    caller of the changed signatures.
+  - **Manual check** (add under Manual check):
+    1. Open a score, rotate the tablet: pages show at once, soft, then sharpen.
+    2. Turn pages quickly: no page from an earlier screen flashes onto a later one.
+    3. Open the excerpt picker on a long score: the strip fills at once, then sharpens.
+    4. The same with the cut editor's insert picker, and the incoming screen's preview.
+    5. With the previous item's gone file: rotate in its setlist, and its pages show (soft)
+       instead of "Not saved for this screen".
 
 ## Manual check
 
@@ -220,15 +284,6 @@ Things to try on the tablet.
   removed file isn't read to preview it in Recently removed; and there is no way yet to take a
   PDF's password off as it comes in (a copy kept without it, by choice), which would leave Volti
   nothing to remember.
-- **Progressive drawing for thumbnails when they are first drawn** [needs thought]: the page
-  cache can give stand-ins (`Original.drawProgressive`), but no caller uses it yet; thumbnails
-  would show a nearby width at once and sharpen.
-- **The reader drawing progressively** [needs thought]: the reader draws with `draw`, exact
-  widths only. With `drawProgressive` it would show a stand-in from the closest saved width at
-  once. That also lets a setlist play a gone file's pages after the tablet is rotated, since the
-  saved-pages `drawProgressive` (`savedPages`, `originals/original.ts`) ends quietly with its
-  stand-in. Needs thought: when to redraw a stand-in sharper, and how ink and zoom handle a
-  stand-in's width.
 - **The cache giving room back when the origin runs short of quota** [needs thought]: pinned
   pages are never evicted and the others only to stay within 30% of the quota; nothing shrinks the
   cache when the origin as a whole (scores added, metadata) runs out of room.
