@@ -3,6 +3,8 @@
 // here use the kv store: the */store.ts files, and originals/.
 
 export const keys = {
+  /** An OriginalRecord, by the original's id: where its bytes are, and what reading it found (originals/_record-store.ts; STORAGE.md). */
+  original: (id: string) => 'original:' + id,
   /** The linked scores folder's FileSystemDirectoryHandle (originals/device-score-fs.ts). */
   folder: 'folder',
   /** The linked folder's PDFs as last read, { path, id }[], listed while access is locked (originals/device-score-fs.ts). */
