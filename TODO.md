@@ -104,15 +104,23 @@ Things to try on the tablet.
   cache when the origin as a whole (scores added, metadata) runs out of room.
 - **Showing offline progress on the setlist's row:** `keepPagesOffline` reports how many of the
   pages setlists play are saved; nothing shows it yet.
-- **An original whose pages have to be drawn is drawn three times to export it** [needs
-  refinement]: where a PDF's music can't be had as it is (an encryption pdf-decrypt doesn't know,
-  or a PDF pdf-lib can't read), `pdfOf` draws every page with pdf.js into a PDF of pictures
+- **An original whose pages have to be drawn is drawn again for each use** [needs refinement]:
+  where a PDF's music can't be had as it is (an encryption pdf-decrypt doesn't know, or a PDF
+  pdf-lib can't read), `pdfOf` draws every page with pdf.js into a PDF of pictures
   (`pagesDrawn`), and nothing keeps it. The export dialog (`openExportPdf`) draws it once to learn
   `lossyReason` in `drawnOriginals`, and exporting (`open` in `export/pdf.ts`) draws it again for
-  `o.aspects()`, which draws them to count the pages, and again for `o.pdf()`, as `PdfContent` holds what it
-  worked out only until the first `pdf()` takes it (pdf.js takes the bytes it is given). Reading
-  such a score draws every page up front too. To work out: where the drawn PDF should be kept, and
-  for how long (it can be large), and whether the reason can be known without drawing.
+  `o.pdf()`, as `PdfContent` holds what it worked out only until the first `pdf()` takes it
+  (pdf.js takes the bytes it is given): twice an export. `o.aspects()` draws it a third time, but
+  only while its aspects aren't stored yet. Reading such a score draws every page up front too.
+  To work out: where the drawn PDF should be kept, and for how long (it can be large), and
+  whether the reason can be known without drawing.
+- **`Original.aspects()` opens the pages outside the shared source**: where an original's aspects
+  aren't stored yet, `aspects()` (`originals/original.ts`) opens `content.pages()` itself and
+  destroys them, rather than through its id's source in `_sources.ts`. So an original drawn for
+  the first time is opened in pdf.js twice, once for its aspects and once by the source that draws
+  it (for one whose pages have to be drawn, `pagesDrawn` runs twice). Once per original, as the
+  aspects are then stored. The fix is for `_sources.ts` to give the open pages to `aspects()` too,
+  counted as a use, so the 5 s close applies to it.
 - **Purging a removed score's data** [needs discussion]: once a removed file is deleted for good,
   its score (cuts, markings, named excerpts, reading position) is still kept by hash, as for any
   score whose file is missing. Eventually there should be a way to purge it.
