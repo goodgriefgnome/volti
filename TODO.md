@@ -121,6 +121,11 @@ Things to try on the tablet.
   it (for one whose pages have to be drawn, `pagesDrawn` runs twice). Once per original, as the
   aspects are then stored. The fix is for `_sources.ts` to give the open pages to `aspects()` too,
   counted as a use, so the 5 s close applies to it.
+- **Naming what `keepOffline` is given** (`page-cache/types.ts`): `OfflineScore` is an
+  original's pages to pin (its id is the original's, and nothing of a score's cuts or ink is in
+  it), and `OfflinePage` one cache entry to pin (a page at an exact width, with its aspect). Rename
+  them to say so, as `PinnedOriginal` and `PinnedPage` say, or pass a `Map` of pinned pages by id
+  with the sources alongside; `keepPagesOffline` (`originals/original.ts`) and the maker follow.
 - **Purging a removed score's data** [needs discussion]: once a removed file is deleted for good,
   its score (cuts, markings, named excerpts, reading position) is still kept by hash, as for any
   score whose file is missing. Eventually there should be a way to purge it.
