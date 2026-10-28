@@ -19,6 +19,11 @@ When asked for a plan:
 - Don't plan a migration of existing data unless I ask for one. Say what data is dropped instead.
 - Write down the decisions you made that we didn't discuss, and list them in your reply so I can
   overrule them.
+- When I confirm a plan is ready to go, offer to implement it stage by stage with subagents, and
+  wait for my yes. If I say yes: one Sonnet subagent per stage, given the spec, the plan and the
+  stage to do. After each stage, check its work against the spec, run the tests and the build,
+  and make sure it is committed and pushed before starting the next. Stop and ask me when a stage
+  fails twice or the plan turns out to be wrong.
 
 ## Design discussions
 
