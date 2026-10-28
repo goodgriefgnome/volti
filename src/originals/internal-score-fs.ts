@@ -2,36 +2,37 @@
 // folder is linked (library-files.ts) and keeps the files left in it when one is.
 // It also keeps an exact record of each file's id, as only Volti changes the files there.
 
-import { keys, kv } from '../storage';
-import { hashFile, walk } from './filesystem-utils';
-import type { Ids } from './internal-types';
+import { keys } from '../storage/keys';
+import { kv } from '../storage/kv';
+import { hashFile, walk } from './_filesystem-utils';
+import type { Ids } from './_types';
 
 /** Volti's own folder in OPFS: the library's root while no folder is linked. */
-export const opfsRoot = async () => (await navigator.storage.getDirectory()).getDirectoryHandle('library', { create: true });
+export const _opfsRoot = async () => (await navigator.storage.getDirectory()).getDirectoryHandle('library', { create: true });
 
 /**
  * The PDFs and images in Volti's own folder, by path, whether or not it is the root now: those
  * left there when a folder was linked.
  */
-export async function internalFiles(): Promise<{ path: string; file: File }[]> {
+export async function _internalFiles(): Promise<{ path: string; file: File }[]> {
   const found: [string, FileSystemFileHandle][] = [];
-  await walk(await opfsRoot(), '', 0, found);
+  await walk(await _opfsRoot(), '', 0, found);
   return Promise.all(found.map(async ([path, h]) => ({ path, file: await h.getFile() })));
 }
 
 /** Delete the file at `path` in Volti's own folder, as when it has been moved into the linked folder. */
-export async function removeInternalFile(path: string): Promise<void> {
+export async function _removeInternalFile(path: string): Promise<void> {
   const parts = path.split('/');
-  let d = await opfsRoot();
+  let d = await _opfsRoot();
   for (const p of parts.slice(0, -1)) d = await d.getDirectoryHandle(p);
   await d.removeEntry(parts.at(-1)!);
-  await kv.update<IdRecord>(keys.internalIds, (old) => without(old, path));
+  await kv.update<_IdRecord>(keys.internalIds, (old) => without(old, path));
 }
 
 /** How much room the files in Volti's own folder take, in bytes. */
 export async function internalBytes(): Promise<number> {
   const found: [string, FileSystemFileHandle][] = [];
-  await walk(await opfsRoot(), '', 0, found);
+  await walk(await _opfsRoot(), '', 0, found);
   let n = 0;
   for (const [, h] of found) n += (await h.getFile()).size;
   return n;
@@ -40,12 +41,12 @@ export async function internalBytes(): Promise<number> {
 /* ---------- its ids ---------- */
 
 /** Each file's id by its path in Volti's own folder. */
-export type IdRecord = Record<string, string>;
+export type _IdRecord = Record<string, string>;
 
-const without = (record: IdRecord | undefined, path: string): IdRecord => Object.fromEntries(Object.entries(record ?? {}).filter(([p]) => p !== path));
+const without = (record: _IdRecord | undefined, path: string): _IdRecord => Object.fromEntries(Object.entries(record ?? {}).filter(([p]) => p !== path));
 
 /** The record kept after a listing that found files at `found`: the ids of those paths only. */
-export function keptIds(record: IdRecord, found: Iterable<string>): IdRecord {
+export function _keptIds(record: _IdRecord, found: Iterable<string>): _IdRecord {
   const there = new Set(found);
   return Object.fromEntries(Object.entries(record).filter(([path]) => there.has(path)));
 }
@@ -57,8 +58,8 @@ export function keptIds(record: IdRecord, found: Iterable<string>): IdRecord {
  */
 class InternalIds implements Ids {
   private seen = new Set<string>();
-  private constructor(private record: IdRecord) {}
-  static async load() { return new InternalIds((await kv.get<IdRecord>(keys.internalIds)) ?? {}); }
+  private constructor(private record: _IdRecord) {}
+  static async load() { return new InternalIds((await kv.get<_IdRecord>(keys.internalIds)) ?? {}); }
 
   known(path: string) { return this.record[path]; }
 
@@ -70,18 +71,18 @@ class InternalIds implements Ids {
   }
 
   async remember(path: string, _file: File, id: string) {
-    await kv.update<IdRecord>(keys.internalIds, (old) => ({ ...old, [path]: id }));
+    await kv.update<_IdRecord>(keys.internalIds, (old) => ({ ...old, [path]: id }));
   }
 
   async moved(from: string, to: string, _file: File, id: string) {
-    await kv.update<IdRecord>(keys.internalIds, (old) => ({ ...without(old, from), [to]: id }));
+    await kv.update<_IdRecord>(keys.internalIds, (old) => ({ ...without(old, from), [to]: id }));
   }
 
   async forget(path: string) {
-    await kv.update<IdRecord>(keys.internalIds, (old) => without(old, path));
+    await kv.update<_IdRecord>(keys.internalIds, (old) => without(old, path));
   }
 
-  save() { return kv.set(keys.internalIds, keptIds(this.record, this.seen)); }
+  save() { return kv.set(keys.internalIds, _keptIds(this.record, this.seen)); }
 }
 
-export const internalIds = (): Promise<Ids> => InternalIds.load();
+export const _internalIds = (): Promise<Ids> => InternalIds.load();

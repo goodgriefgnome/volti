@@ -1,6 +1,6 @@
 // The layers of src/, kept: each directory imports only from its own files and from directories in
 // lower layers, so code low down never depends on screens or dialogs above it, and from another
-// directory only through its index.ts. ARCHITECTURE.md says what each layer is for. A new
+// directory only from modules not marked internal with a leading underscore. ARCHITECTURE.md says what each layer is for. A new
 // directory goes in LAYERS.
 
 import { describe, expect, it } from 'vitest';
@@ -30,7 +30,7 @@ const usesStorage = (file: string) => /\/store\.ts$/.test(file) || file.startsWi
 const sources = import.meta.glob<string>(['./**/*.ts', '!./**/*.test.ts', '!./**/*.d.ts'], { query: '?raw', import: 'default', eager: true });
 const files = Object.entries(sources).map(([path, text]) => ({ file: path.slice(2), text }));
 
-/** The directory a file is in, or that an import of a directory (its index.ts) leads to. */
+/** The directory a file is in. */
 const dirOf = (file: string) => (file.includes('/') ? file.slice(0, file.indexOf('/')) : file in LAYERS ? file : '.');
 
 /** Where a relative import from `file` leads, from src/. */
@@ -63,13 +63,13 @@ describe('layers', () => {
     expect(wrong).toEqual([]);
   });
 
-  it('imports from another directory only through its index', () => {
+  it('imports a module whose name starts with an underscore only from its own directory', () => {
     const wrong: string[] = [];
     for (const { file, text } of files) {
       const from = dirOf(file);
       for (const { spec } of imports(text)) {
-        const target = resolve(file, spec), to = dirOf(target);
-        if (to !== from && to !== '.' && target !== to) wrong.push(`${file} imports ${spec}`);
+        const target = resolve(file, spec);
+        if (dirOf(target) !== from && target.split('/').some((part) => part.startsWith('_'))) wrong.push(`${file} imports ${spec}`);
       }
     }
     expect(wrong).toEqual([]);

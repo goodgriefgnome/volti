@@ -1,9 +1,9 @@
 // Fitting frames to the screen: how many a screen shows, which way they sit, and how large. Pure
 // maths.
 
-import { isLandscape } from '../scores';
+import { isLandscape } from '../scores/frames';
 
-export interface Rect { x: number; y: number; w: number; h: number }
+export interface _Rect { x: number; y: number; w: number; h: number }
 
 /**
  * How many frames a screen shows, decided by its first frame (`aspect`, height / width): one of the
@@ -14,14 +14,14 @@ export function framesOnScreen(aspect: number, stageW: number, stageH: number): 
 }
 
 /** Two frames sit side by side when the first is portrait, one above the other when landscape. */
-export const sideBySide = (firstAspect: number) => !isLandscape({ aspect: firstAspect });
+export const _sideBySide = (firstAspect: number) => !isLandscape({ aspect: firstAspect });
 
 /**
  * Where frames of these shapes (height / width) go on a W x H stage, in whole pixels: each as
  * large as fits in its share of the stage (all of it, or half, side by side or one above the other),
  * together centred, `gap` apart.
  */
-export function placeFrames(aspects: readonly number[], W: number, H: number, gap: number, across: boolean): Rect[] {
+export function _placeFrames(aspects: readonly number[], W: number, H: number, gap: number, across: boolean): _Rect[] {
   const n = aspects.length;
   if (!n) return [];
   const cellW = across ? (W - gap * (n - 1)) / n : W, cellH = across ? H : (H - gap * (n - 1)) / n;

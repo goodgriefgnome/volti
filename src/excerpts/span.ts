@@ -3,7 +3,8 @@
 // are edited. A setlist entry is a span (setlists/); so is a named excerpt (names.ts). Pure: no
 // DOM, no storage.
 
-import { cutLetter, placeLabel, places, type Aspects, type Cut } from '../scores';
+import { cutLetter, placeLabel, places } from '../scores/frames';
+import { type Aspects, type Cut } from '../scores/model';
 
 /**
  * Which of a score's cuts are played: from `first` to `last`, in the score's order. A missing

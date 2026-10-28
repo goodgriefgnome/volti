@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clamp, MAX_ZOOM, NO_ZOOM, pan, pinch, scrollForPinch, visiblePart } from './zoom';
+import { _clamp, _MAX_ZOOM, NO_ZOOM, pan, pinch, scrollForPinch, visiblePart } from './zoom';
 
 const W = 1000, H = 800;
 
@@ -19,14 +19,14 @@ describe('pinch', () => {
   it('stays between 1x and the maximum', () => {
     const c = { x: 500, y: 400 };
     expect(pinch(NO_ZOOM, c, 100, c, 50, W, H).s).toBe(1);
-    expect(pinch(NO_ZOOM, c, 100, c, 10000, W, H).s).toBe(MAX_ZOOM);
+    expect(pinch(NO_ZOOM, c, 100, c, 10000, W, H).s).toBe(_MAX_ZOOM);
   });
 });
 
 describe('clamp and pan', () => {
   it('never shows anything beyond the spread', () => {
-    expect(clamp({ s: 2, x: 50, y: 50 }, W, H)).toEqual({ s: 2, x: 0, y: 0 });
-    expect(clamp({ s: 2, x: -5000, y: -5000 }, W, H)).toEqual({ s: 2, x: -1000, y: -800 });
+    expect(_clamp({ s: 2, x: 50, y: 50 }, W, H)).toEqual({ s: 2, x: 0, y: 0 });
+    expect(_clamp({ s: 2, x: -5000, y: -5000 }, W, H)).toEqual({ s: 2, x: -1000, y: -800 });
   });
   it('cannot move an unzoomed spread', () => {
     expect(pan(NO_ZOOM, 100, -100, W, H)).toEqual(NO_ZOOM);

@@ -1,8 +1,10 @@
 // Dialogs about a score's file, from the library's score rows and a score's reader: renaming its
 // PDF (or image), and moving it to a subfolder.
 
-import { fileNameProblem, NoAccess, folderOf, pathInFolder, pathWithTitle, titleOf, type SourceFile } from '../originals';
-import { askText, el } from '../ui';
+import { fileNameProblem, folderOf, pathInFolder, pathWithTitle, titleOf } from '../originals/path-utils';
+import { NoAccess, type SourceFile } from '../originals/types';
+import { askText } from '../ui/ask-text';
+import { el } from '../ui/dom';
 
 /** A score's file changed: it is `now` that original (renamed or moved), or it is `gone`. */
 export type FileChange = { now: SourceFile } | { gone: string };

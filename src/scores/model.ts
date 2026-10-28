@@ -3,7 +3,7 @@
 // frames.ts, storage store.ts. The images the cuts are cut from come from the score's original
 // (originals/).
 
-import type { Marking } from '../markings';
+import type { Marking } from '../markings/model';
 
 /** A horizontal band of one page of the original; y0 and y1 are fractions of the page height, 0 = top. */
 export interface Cut {
@@ -50,23 +50,23 @@ export type Aspects = readonly number[];
 export const A4 = 297 / 210;
 
 /** Tolerance when comparing positions on a page or a frame. */
-export const EPS = 1e-6;
+export const _EPS = 1e-6;
 
-export const newCutId = () => crypto.randomUUID();
+export const _newCutId = () => crypto.randomUUID();
 
-export const cutHeight = (c: Cut, aspects: Aspects) => (c.y1 - c.y0) * aspects[c.page];
+export const _cutHeight = (c: Cut, aspects: Aspects) => (c.y1 - c.y0) * aspects[c.page];
 
 /** The score of an original opened the first time: every page once, in order. */
 export function newScore(id: string, title: string, aspects: Aspects): Score {
   return {
     id, title, key: '',
-    cuts: aspects.map((_, page) => ({ id: newCutId(), page, y0: 0, y1: 1 })),
+    cuts: aspects.map((_, page) => ({ id: _newCutId(), page, y0: 0, y1: 1 })),
     archived: [],
   };
 }
 
 /** Drop cuts of pages the original no longer has; a score left with nothing starts again from the pages. */
-export function forPages(s: State, aspects: Aspects): State {
+export function _forPages(s: State, aspects: Aspects): State {
   const ok = (c: { page: number }) => c.page < aspects.length;
   const score: Score = { ...s.score, cuts: s.score.cuts.filter(ok), archived: s.score.archived.filter(ok) };
   if (!score.cuts.length) score.cuts = newScore(score.id, score.title, aspects).cuts;

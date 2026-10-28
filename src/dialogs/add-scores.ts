@@ -2,16 +2,19 @@
 // excerpts, or as excerpts chosen in its preview. The library ("New setlist", a setlist's ⋯ › Add
 // scores) and a setlist's reader (⋯ › Add scores) both open it.
 
-import { ends, excerptName, nameOf, sameSpan, sortedNames, type Span } from '../excerpts';
-import { byFolder, folderOf, titleOf, type SourceFile } from '../originals';
-import type { ExcerptName, Score } from '../scores';
-import type { Setlist } from '../setlists';
-import { button, buttonRow, closeOverlay, el, plural, showDialog, whenOverlayCloses } from '../ui';
-import { ExcerptStrip, namedExcerptMenu } from './excerpt-picker';
+import { ends, sameSpan, type Span } from '../excerpts/span';
+import { excerptName, nameOf, sortedNames } from '../excerpts/names';
+import { byFolder, folderOf, titleOf } from '../originals/path-utils';
+import { type SourceFile } from '../originals/types';
+import type { ExcerptName, Score } from '../scores/model';
+import type { Setlist } from '../setlists/model';
+import { button, el, plural } from '../ui/dom';
+import { buttonRow, closeOverlay, showDialog, whenOverlayCloses } from '../ui/overlay';
+import { _ExcerptStrip, _namedExcerptMenu } from './excerpt-picker';
 import type { ExcerptSource } from './thumb-strip';
 import type { LibraryScore } from './open-score';
 
-export interface AddScoresHost {
+export interface _AddScoresHost {
   setlist: Setlist;
   /** The library's scores, in the order shown. */
   originals: readonly SourceFile[];
@@ -45,7 +48,7 @@ function pickText(title: string, meta = ''): HTMLElement {
  * score: several, for a setlist that comes back to the score (the Kyrie, another piece, then the
  * Gloria).
  */
-export function openAddScores(h: AddScoresHost) {
+export function openAddScores(h: _AddScoresHost) {
   const s = h.setlist;
   /** By score, the entries to add, in the order chosen. */
   const chosen = new Map<string, Choice[]>();
@@ -192,7 +195,7 @@ export function openAddScores(h: AddScoresHost) {
     if (!sc || !d.isConnected) { sc?.close(); return; }
     closePreview();
     open = sc;
-    const strip = new ExcerptStrip(sc, span, 'Adds');
+    const strip = new _ExcerptStrip(sc, span, 'Adds');
     const use = button('Add this excerpt', () => {
       const span = strip.span, score = sc.state.score, name = nameOf(score, span);
       // An excerpt takes the place of the whole score ticked on its own; the same one twice is once.
@@ -204,7 +207,7 @@ export function openAddScores(h: AddScoresHost) {
       back();
     }, 'primary');
     heading.textContent = titleOf(o.path);
-    previewView.replaceChildren(namedExcerptMenu(strip, sc.state.score), strip.el, strip.hint, buttonRow(button('Back', back), use));
+    previewView.replaceChildren(_namedExcerptMenu(strip, sc.state.score), strip.el, strip.hint, buttonRow(button('Back', back), use));
     listView.hidden = true;
     previewView.hidden = false;
     strip.reveal();

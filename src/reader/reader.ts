@@ -1,31 +1,43 @@
 // The centre of the score screen: the frames on the screen, turning pages and scores, taking edits
 // (commit, undo, redo), and opening and closing. It joins the other reader files together: what is
-// read, and how edits carry to setlists, is reading.ts; the toolbar's menus and dialogs are
-// toolbar-menus.ts. Code that can stand on its own goes in one of them.
+// read, and how edits carry to setlists, is _reading.ts; the toolbar's menus and dialogs are
+// _toolbar-menus.ts. Code that can stand on its own goes in one of them.
 
-import type { FileChange } from '../dialogs';
-import { ends } from '../excerpts';
-import { PEN_COLORS, type Marking } from '../markings';
-import { knownTitles, NoAccess, PasswordNotGiven, titleOf, type SourceFile, type PageCache } from '../originals';
-import { framesOnScreen, isZoomed, NO_ZOOM, pageWidths, screenAt, type Hatches, type Zoom } from '../render';
-import { A4, frameOf, loadScore, pack, saveScorePosition, type Aspects, type Cut, type ExcerptName, type Frame, type State } from '../scores';
-import { loadSetlists, type Setlist } from '../setlists';
-import { closeOverlay, dpr, el, Toast } from '../ui';
-import { CutEditor } from './cuts/editor';
-import { Detail } from './detail';
-import type { Gesture } from './gestures';
-import { History } from './history';
-import { Input } from './input';
-import { OpenScores, openPages, type Item, type OpenScore } from './open-scores';
-import { Reading, setlistItems, type ReadingKind, type ReadingSnapshot } from './reading';
-import { Saver } from './saver';
-import { blankBox, ScoreCard, showSetlistTitle } from './setlist';
-import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './spread';
-import { backIcon, chromeIcon, Toolbar, type ToolChoice } from './toolbar';
-import { ReaderMenus } from './toolbar-menus';
-import { offerScore, turnFrom, type Offer } from './turning';
-import type { ToolName } from './tools';
-import type { ReaderView } from './view';
+import type { FileChange } from '../dialogs/score-files';
+import { ends } from '../excerpts/span';
+import { PEN_COLORS } from '../markings/stroke';
+import { type Marking } from '../markings/model';
+import { knownTitles } from '../originals/library-files';
+import { NoAccess, PasswordNotGiven, type SourceFile } from '../originals/types';
+import { titleOf } from '../originals/path-utils';
+import { type PageCache } from '../originals/original';
+import { framesOnScreen } from '../render/layout';
+import { isZoomed, NO_ZOOM, type Zoom } from '../render/zoom';
+import { pageWidths, screenAt } from '../render/screen';
+import { type Hatches } from '../render/paint';
+import { A4, type Aspects, type Cut, type ExcerptName, type State } from '../scores/model';
+import { frameOf, pack, type Frame } from '../scores/frames';
+import { loadScore, saveScorePosition } from '../scores/store';
+import { loadSetlists } from '../setlists/store';
+import { type Setlist } from '../setlists/model';
+import { closeOverlay } from '../ui/overlay';
+import { dpr, el } from '../ui/dom';
+import { Toast } from '../ui/toast';
+import { CutEditor } from './cuts/_editor';
+import { Detail } from './_detail';
+import type { Gesture } from './_gestures';
+import { History } from './_history';
+import { Input } from './_input';
+import { OpenScores, openPages, type Item, type OpenScore } from './_open-scores';
+import { Reading, setlistItems, type ReadingKind, type ReadingSnapshot } from './_reading';
+import { Saver } from './_saver';
+import { blankBox, ScoreCard, showSetlistTitle } from './_setlist';
+import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_spread';
+import { backIcon, chromeIcon, Toolbar, type ToolChoice } from './_toolbar';
+import { ReaderMenus } from './_toolbar-menus';
+import { offerScore, turnFrom, type Offer } from './_turning';
+import type { ToolName } from './tools/_tools';
+import type { ReaderView } from './_view';
 
 /**
  * Undo keeps whole states: each entry is a score's state before an edit, what was read with the

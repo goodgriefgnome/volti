@@ -2,8 +2,9 @@
 // changing them, and keeping every entry on the same music when a score's cuts change. Pure: no
 // DOM, no storage.
 
-import { ends, followEdit, sameSpan, setName, spanOf, type Span } from '../excerpts';
-import type { Cut, ExcerptName, Score } from '../scores';
+import { ends, followEdit, sameSpan, spanOf, type Span } from '../excerpts/span';
+import { setName } from '../excerpts/names';
+import type { Cut, ExcerptName, Score } from '../scores/model';
 
 /**
  * One excerpt of a score, in a setlist. It plays either
@@ -24,11 +25,11 @@ export interface Setlist {
   entries: Entry[];
 }
 
-export const newId = () => crypto.randomUUID();
+export const _newId = () => crypto.randomUUID();
 
-export const newEntry = (scoreId: string): Entry => ({ id: newId(), scoreId });
+export const newEntry = (scoreId: string): Entry => ({ id: _newId(), scoreId });
 
-export const newSetlist = (title: string): Setlist => ({ id: newId(), title, archived: false, entries: [] });
+export const newSetlist = (title: string): Setlist => ({ id: _newId(), title, archived: false, entries: [] });
 
 /** The setlists with `s` in place of the one with its id, or, when it is new, `s` first. */
 export function withSetlist(all: readonly Setlist[], s: Setlist): Setlist[] {
@@ -88,7 +89,7 @@ export function moveEntry(s: Setlist, from: number, to: number): Setlist {
 
 /** A copy with new entry ids, keeping each entry's excerpt. */
 export function duplicate(s: Setlist): Setlist {
-  return { id: newId(), title: `${s.title} (copy)`, archived: false, entries: s.entries.map((e) => ({ ...e, id: newId() })) };
+  return { id: _newId(), title: `${s.title} (copy)`, archived: false, entries: s.entries.map((e) => ({ ...e, id: _newId() })) };
 }
 
 /**

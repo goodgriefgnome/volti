@@ -3,9 +3,10 @@
 // library, plus importing the styles. Nothing that belongs to one screen goes here.
 
 import { registerSW } from 'virtual:pwa-register';
-import { Library } from './library';
-import { purgeRemoved } from './originals';
-import { el, followVisibleArea } from './ui';
+import { Library } from './library/library';
+import { purgeRemoved } from './originals/trash-fs';
+import { el } from './ui/dom';
+import { followVisibleArea } from './ui/overlay';
 import { takeUpdate, watchForUpdates } from './updates';
 // In this order: later files build on the earlier ones.
 import './styles/base.css';

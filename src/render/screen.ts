@@ -1,9 +1,9 @@
 // The frames on a screen: which frames a screen starting at a frame shows, where they sit, and the
 // widths their pages are drawn at. Pure: no DOM. The reader puts boxes where this says
-// (reader/spread.ts); saved pictures are drawn at the widths it gives (pictures/maker.ts).
+// (reader/_spread.ts); saved pictures are drawn at the widths it gives (pictures/maker.ts).
 
-import type { Frame } from '../scores';
-import { framesOnScreen, placeFrames, sideBySide } from './layout';
+import type { Frame } from '../scores/frames';
+import { framesOnScreen, _placeFrames, _sideBySide } from './layout';
 
 /** Space between frames on one screen, in CSS pixels. */
 const GAP = 6;
@@ -17,7 +17,7 @@ export interface ScreenBox { x: number; y: number; w: number; h: number; fw: num
  * drawn, without resampling.
  */
 export function placeScreen(aspects: readonly number[], W: number, H: number, scale: number): ScreenBox[] {
-  const rects = placeFrames(aspects, Math.round(W * scale), Math.round(H * scale), Math.round(GAP * scale), sideBySide(aspects[0]));
+  const rects = _placeFrames(aspects, Math.round(W * scale), Math.round(H * scale), Math.round(GAP * scale), _sideBySide(aspects[0]));
   return rects.map((r) => ({ x: r.x / scale, y: r.y / scale, w: r.w / scale, h: r.h / scale, fw: r.w, fh: r.h }));
 }
 

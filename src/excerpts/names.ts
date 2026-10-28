@@ -4,7 +4,7 @@
 // are edited. Moving a named excerpt, with the setlist entries that play it, is setlists/model.ts.
 // Pure: no DOM, no storage.
 
-import type { Aspects, Cut, ExcerptName, Score } from '../scores';
+import type { Aspects, Cut, ExcerptName, Score } from '../scores/model';
 import { followEdit, sameSpan, spanLabel, spanOf, type Span } from './span';
 
 /** The name on a span, if it has one. */
@@ -25,7 +25,7 @@ export function sortedNames(score: Score): ExcerptName[] {
 }
 
 /** Only the span's ends, without a name or anything else an object carries. */
-export const ends = ({ first, last }: Span): Span => ({ ...(first ? { first } : {}), ...(last ? { last } : {}) });
+export const _ends = ({ first, last }: Span): Span => ({ ...(first ? { first } : {}), ...(last ? { last } : {}) });
 
 /** Why a name can't go on a span, or null if it can. `except` is a name being changed, which doesn't count. */
 export function nameProblem(score: Score, span: Span, name: string, except?: ExcerptName): string | null {
@@ -40,7 +40,7 @@ export function nameProblem(score: Score, span: Span, name: string, except?: Exc
 
 /** Name a span (or rename `was`). Check `nameProblem` first. */
 export function setName(score: Score, span: Span, name: string, was?: ExcerptName): Score {
-  const named: ExcerptName = { ...ends(span), name: name.trim() };
+  const named: ExcerptName = { ..._ends(span), name: name.trim() };
   const names = was ? (score.names ?? []).map((n) => (n === was ? named : n)) : [...(score.names ?? []), named];
   return { ...score, names };
 }

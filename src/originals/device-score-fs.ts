@@ -2,20 +2,21 @@
 // code that holds it), linking and unlinking it, asking for access to it, the listing remembered for
 // while access is locked, the cache of its files' ids, and the Exports folder inside it that exported PDFs are written to.
 
-import { keys, kv } from '../storage';
-import { hashFile } from './filesystem-utils';
-import type { Ids } from './internal-types';
+import { keys } from '../storage/keys';
+import { kv } from '../storage/kv';
+import { hashFile } from './_filesystem-utils';
+import type { Ids } from './_types';
 import { NoAccess, type FolderState } from './types';
 
 let dir: FileSystemDirectoryHandle | undefined;
 
 /** The linked folder, if there is one. */
-export const linked = async () => (dir ??= await kv.get<FileSystemDirectoryHandle>(keys.folder));
+export const _linked = async () => (dir ??= await kv.get<FileSystemDirectoryHandle>(keys.folder));
 
 export const canLinkFolder = () => 'showDirectoryPicker' in window;
 
 export async function folderState(): Promise<FolderState> {
-  const dir = await linked();
+  const dir = await _linked();
   if (!dir) return { kind: 'none' };
   const perm = await dir.queryPermission({ mode: 'read' });
   return perm === 'granted' ? { kind: 'ready', name: dir.name } : { kind: 'locked', name: dir.name };
@@ -38,7 +39,7 @@ export async function linkFolder(): Promise<boolean> {
  * don't ask again this session; when that is refused, asks to read them only.
  */
 export async function unlockFolder(): Promise<boolean> {
-  const dir = await linked();
+  const dir = await _linked();
   if (!dir) return false;
   if ((await dir.requestPermission({ mode: 'readwrite' }).catch(() => 'denied')) === 'granted') return true;
   return (await dir.requestPermission({ mode: 'read' })) === 'granted';
@@ -49,8 +50,8 @@ export async function unlockFolder(): Promise<boolean> {
  * linked folder where it isn't allowed yet (the app's own needs none). Asking works only from a
  * tap: elsewhere, or when it is refused, throws NoAccess.
  */
-export async function needAccess(mode: 'read' | 'readwrite'): Promise<void> {
-  const dir = await linked();
+export async function _needAccess(mode: 'read' | 'readwrite'): Promise<void> {
+  const dir = await _linked();
   if (!dir) return;
   if ((await dir.queryPermission({ mode })) === 'granted') return;
   if ((await dir.requestPermission({ mode }).catch(() => 'denied')) !== 'granted') throw new NoAccess(`No access to the scores folder (${mode})`);
@@ -63,20 +64,20 @@ export async function unlinkFolder(): Promise<void> {
 }
 
 /** A PDF in the linked folder, as last read: listed from this while access is locked. */
-export interface ListingEntry { path: string; id: string }
+export interface _ListingEntry { path: string; id: string }
 
 /** The linked folder's PDFs as last read; none while no folder is linked. */
-export const rememberedListing = async () => (await kv.get<ListingEntry[]>(keys.folderListing)) ?? [];
+export const _rememberedListing = async () => (await kv.get<_ListingEntry[]>(keys.folderListing)) ?? [];
 
 /** Remember the root's PDFs, as just read, where it is a linked folder. */
-export const saveListing = async (listing: ListingEntry[]) => { if (await linked()) await kv.set(keys.folderListing, listing); };
+export const _saveListing = async (listing: _ListingEntry[]) => { if (await _linked()) await kv.set(keys.folderListing, listing); };
 
 /**
  * Note in the remembered listing that score `id`'s file is at `path` now (renamed or moved), or
  * with no `path`, that it is gone.
  */
-export const relist = async (id: string, path?: string) => {
-  if (await linked()) await kv.update<ListingEntry[]>(keys.folderListing, (old) => (old ?? []).flatMap((e) => (e.id !== id ? [e] : path ? [{ ...e, path }] : [])));
+export const _relist = async (id: string, path?: string) => {
+  if (await _linked()) await kv.update<_ListingEntry[]>(keys.folderListing, (old) => (old ?? []).flatMap((e) => (e.id !== id ? [e] : path ? [{ ...e, path }] : [])));
 };
 
 /* ---------- exports ---------- */
@@ -86,9 +87,9 @@ export const EXPORTS = 'Exports';
 
 /** The exports folder, made if it isn't there yet; asks for write access (from a tap), or throws NoAccess. */
 const exportsDir = async () => {
-  const dir = await linked();
+  const dir = await _linked();
   if (!dir) throw new Error('No folder linked');
-  await needAccess('readwrite');
+  await _needAccess('readwrite');
   return dir.getDirectoryHandle(EXPORTS, { create: true });
 };
 
@@ -113,7 +114,7 @@ export async function saveExport(name: string, data: Blob): Promise<void> {
 interface Hashed { size: number; modified: number; id: string }
 
 /** The linked folder's ids by path in it. */
-export type HashCache = Record<string, Hashed>;
+export type _HashCache = Record<string, Hashed>;
 
 /**
  * The cache of the linked folder's ids. Other apps can change files there at any time, so an id is
@@ -121,8 +122,8 @@ export type HashCache = Record<string, Hashed>;
  * again. Unlinking the folder doesn't clear it.
  */
 class DeviceIds implements Ids {
-  private constructor(private before: HashCache, private now: HashCache = {}) {}
-  static async load() { return new DeviceIds((await kv.get<HashCache>(keys.hashes)) ?? {}); }
+  private constructor(private before: _HashCache, private now: _HashCache = {}) {}
+  static async load() { return new DeviceIds((await kv.get<_HashCache>(keys.hashes)) ?? {}); }
 
   known(path: string, file: File): string | undefined {
     const was = this.before[path];
@@ -136,7 +137,7 @@ class DeviceIds implements Ids {
   }
 
   async remember(path: string, file: File, id: string) {
-    await kv.update<HashCache>(keys.hashes, (old) => ({ ...old, [path]: { size: file.size, modified: file.lastModified, id } }));
+    await kv.update<_HashCache>(keys.hashes, (old) => ({ ...old, [path]: { size: file.size, modified: file.lastModified, id } }));
   }
 
   /** The old path's entry stays until the next listing drops it. */
@@ -147,4 +148,4 @@ class DeviceIds implements Ids {
   save() { return kv.set(keys.hashes, this.now); }
 }
 
-export const deviceIds = (): Promise<Ids> => DeviceIds.load();
+export const _deviceIds = (): Promise<Ids> => DeviceIds.load();

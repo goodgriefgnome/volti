@@ -4,7 +4,7 @@
 import { button, el, focusHighlighted } from './dom';
 import { buttonRow, closeOverlay, showDialog } from './overlay';
 
-export interface AskText {
+export interface _AskText {
   title: string;
   /** What the field says to start with, highlighted so typing replaces it. */
   value?: string;
@@ -27,7 +27,7 @@ export interface AskText {
   done(text: string): void;
 }
 
-export function askText(h: AskText) {
+export function askText(h: _AskText) {
   const d = showDialog(h.title);
   const input = el('input', 'name');
   input.type = 'text';

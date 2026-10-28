@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { insertPages, joinNext, remove, split } from '../scores/edits';
-import type { Score } from '../scores';
+import type { Score } from '../scores/model';
 import { A4, cut, state } from '../scores/testing';
 import { excerptName, followNames, nameOf, nameProblem, removeName, setName, sortedNames } from './names';
 import { sameSpan } from './span';

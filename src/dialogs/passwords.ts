@@ -1,8 +1,9 @@
 // Asking for a PDF's password, over whatever is open, and making sure a file's is known before it is needed.
 // Opening the PDF, and remembering the password, is originals/.
 
-import { NoAccess, PasswordNotGiven, type AskPassword, type SourceFile } from '../originals';
-import { button, buttonRow, el, showOnTop } from '../ui';
+import { NoAccess, PasswordNotGiven, type AskPassword, type SourceFile } from '../originals/types';
+import { button, el } from '../ui/dom';
+import { buttonRow, showOnTop } from '../ui/overlay';
 
 /** Ask for a PDF's password, over whatever is open; null when it isn't given. */
 export const askPassword: AskPassword = (title, wrong) => new Promise((resolve) => {

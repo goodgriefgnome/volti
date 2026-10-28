@@ -126,7 +126,7 @@ Things to try on the tablet.
     `pos:` are choices that can't. One split: your work (`score:`, `ink:`, setlists), settings,
     passwords, file metadata cache, waiting to be added.
 - **Text and symbol markings**, beside the pen and highlighter, each exported as a PDF annotation
-  with its own vector appearance, as they are (`export/annotations.ts`; the drawing interface in
+  with its own vector appearance, as they are (`export/_annotations.ts`; the drawing interface in
   `markings/draw.ts` would need fills, and text or glyph outlines):
   - *Text:* typed on the music ("rit.", cues, bar numbers), with an optional shape behind it: a
     plain rectangle with a see-through fill, or a rectangle pointing left or right (a tag). A

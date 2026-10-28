@@ -7,11 +7,11 @@ import { describe, expect, it } from 'vitest';
 
 /** The files of originals/, each importing only from those before it. */
 const ORDER = [
-  'path-utils', 'filesystem-utils', 'types', 'internal-types', 'pdf-source', 'image-source', 'original',
+  'path-utils', '_filesystem-utils', 'types', '_types', '_pdf-source', '_image-source', 'original',
   'device-score-fs', 'internal-score-fs', 'inbox-fs', 'trash-fs', 'library-files', 'misc-files',
 ];
 
-const sources = import.meta.glob<string>(['./*.ts', '!./*.test.ts', '!./index.ts'], { query: '?raw', import: 'default', eager: true });
+const sources = import.meta.glob<string>(['./*.ts', '!./*.test.ts'], { query: '?raw', import: 'default', eager: true });
 
 /** The files a file imports values from: not `import type`, nor an import of only `type` names. */
 function valueImports(text: string): string[] {

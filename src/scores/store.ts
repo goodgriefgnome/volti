@@ -1,8 +1,9 @@
 // Loading and saving scores, their ink and reading positions in the kv store. The only place scores
 // touch storage.
 
-import { keys, kv } from '../storage';
-import { forPages, newScore, type Aspects, type Score, type ScoreInk, type State } from './model';
+import { keys } from '../storage/keys';
+import { kv } from '../storage/kv';
+import { _forPages, newScore, type Aspects, type Score, type ScoreInk, type State } from './model';
 
 /**
  * A score as saved, or a new one for an original opened the first time. The original's page
@@ -14,7 +15,7 @@ export async function loadScore(id: string, title: string, aspects: Aspects): Pr
   ]);
   if (!was || was.length !== aspects.length || was.some((a, i) => a !== aspects[i])) void kv.set(keys.aspects(id), [...aspects]);
   if (!score) return { state: { score: newScore(id, title, aspects), ink: {} } };
-  return { state: forPages({ score, ink: ink ?? {} }, aspects), position };
+  return { state: _forPages({ score, ink: ink ?? {} }, aspects), position };
 }
 
 /** The records a score and its ink are saved as, always together. */

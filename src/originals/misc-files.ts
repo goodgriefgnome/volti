@@ -3,14 +3,14 @@
 // outside the library (a MemoryFile), known by its id, which moving puts at the path chosen for it in
 // the library's root (arrivals.ts says what happens to each there).
 
-import { internalFiles, internalIds, removeInternalFile } from './internal-score-fs';
-import { hashBytes, writeFile } from './filesystem-utils';
-import { needAccess } from './device-score-fs';
-import { idsReady, makeFolder, rememberId, sourceFileOf } from './library-files';
-import { folderOf, importName, nameOf, shownFolder, tidyPath, unfoundName } from './path-utils';
-import type { Readable } from './internal-types';
-import { readOriginal } from './original';
-import { forgetRemoved, removedFile } from './trash-fs';
+import { _internalFiles, _internalIds, _removeInternalFile } from './internal-score-fs';
+import { hashBytes, writeFile } from './_filesystem-utils';
+import { _needAccess } from './device-score-fs';
+import { _idsReady, _makeFolder, _rememberId, _sourceFileOf } from './library-files';
+import { folderOf, _importName, _nameOf, _shownFolder, _tidyPath, _unfoundName } from './path-utils';
+import type { Readable } from './_types';
+import { _readOriginal } from './original';
+import { _forgetRemoved, _removedFile } from './trash-fs';
 import type { AskPassword, Original, Removed, SourceFile } from './types';
 
 /**
@@ -26,21 +26,21 @@ class MemoryFile implements Readable {
 
   get path() { return this.moved?.path ?? this.at; }
   async file() { return this.bytes; }
-  read(ask?: AskPassword): Promise<Original> { return this.moved ? this.moved.read(ask) : readOriginal(this, ask); }
+  read(ask?: AskPassword): Promise<Original> { return this.moved ? this.moved.read(ask) : _readOriginal(this, ask); }
   remove() { return this.moved ? this.moved.remove() : this.drop(); }
 
   async move(path: string): Promise<string | null> {
     if (this.moved) return this.moved.move(path);
-    const to = tidyPath(path), folder = folderOf(to), name = nameOf(to);
-    const unfound = unfoundName(to);
+    const to = _tidyPath(path), folder = folderOf(to), name = _nameOf(to);
+    const unfound = _unfoundName(to);
     if (unfound) return unfound;
-    await needAccess('readwrite');
-    const d = await makeFolder(folder);
-    if (await d.getFileHandle(name).then(() => true, () => false)) return `There is already a file called “${name}” in ${shownFolder(folder)}.`;
+    await _needAccess('readwrite');
+    const d = await _makeFolder(folder);
+    if (await d.getFileHandle(name).then(() => true, () => false)) return `There is already a file called “${name}” in ${_shownFolder(folder)}.`;
     await writeFile(d, name, this.bytes);
     // Its contents are known: no need to read it again.
-    await rememberId(to, await (await d.getFileHandle(name)).getFile(), this.id);
-    this.moved = sourceFileOf(this.id, to);
+    await _rememberId(to, await (await d.getFileHandle(name)).getFile(), this.id);
+    this.moved = _sourceFileOf(this.id, to);
     await this.drop();
     return null;
   }
@@ -60,7 +60,7 @@ const heldFile = (id: string, path: string, bytes: File, drop: () => Promise<voi
  */
 export async function readIncoming(f: File, path?: string): Promise<SourceFile> {
   const bytes = await f.arrayBuffer();
-  const file = new File([bytes], importName(f.name, f.type), { type: f.type, lastModified: f.lastModified });
+  const file = new File([bytes], _importName(f.name, f.type), { type: f.type, lastModified: f.lastModified });
   return heldFile(await hashBytes(bytes), path ?? file.name, file);
 }
 
@@ -71,15 +71,15 @@ export async function readIncoming(f: File, path?: string): Promise<SourceFile> 
  * longer there are dropped.
  */
 export async function leftInApp(): Promise<SourceFile[]> {
-  await idsReady();
-  const ids = await internalIds();
+  await _idsReady();
+  const ids = await _internalIds();
   const out: SourceFile[] = [];
-  for (const { path, file } of await internalFiles()) out.push(heldFile(await ids.id(path, file), path, file, () => removeInternalFile(path)));
+  for (const { path, file } of await _internalFiles()) out.push(heldFile(await ids.id(path, file), path, file, () => _removeInternalFile(path)));
   await ids.save();
   return out;
 }
 
 /** A file in Recently removed, at the path it had: moving it puts it back, and forgets it there. */
 export async function removedSource(r: Removed): Promise<SourceFile> {
-  return heldFile(r.id, r.path, await removedFile(r), () => forgetRemoved(r.key));
+  return heldFile(r.id, r.path, await _removedFile(r), () => _forgetRemoved(r.key));
 }

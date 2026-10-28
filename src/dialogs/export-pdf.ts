@@ -2,12 +2,15 @@
 // exporting a score, an excerpt or a setlist, and writing it into the scores folder's Exports
 // folder, or sharing it when no folder is linked.
 
-import { drawnOriginals, exportPdf, type ExportPart } from '../export';
-import { exportExists, EXPORTS, fileNameProblem, NoAccess, saveExport, titleOf } from '../originals';
-import { button, buttonRow, closeOverlay, el, focusHighlighted, showDialog } from '../ui';
+import { drawnOriginals, exportPdf, type ExportPart } from '../export/pdf';
+import { exportExists, EXPORTS, saveExport } from '../originals/device-score-fs';
+import { fileNameProblem, titleOf } from '../originals/path-utils';
+import { NoAccess } from '../originals/types';
+import { button, el, focusHighlighted } from '../ui/dom';
+import { buttonRow, closeOverlay, showDialog } from '../ui/overlay';
 import { askPassword } from './passwords';
 
-export interface ExportHost {
+export interface _ExportHost {
   /** What is exported, and the file's first name (characters a file name can't have become dashes). */
   title: string;
   parts: ExportPart[];
@@ -23,7 +26,7 @@ export interface ExportHost {
 const NO_ACCESS = 'Volti needs permission to write in the scores folder to export there.';
 
 /** Ask for a file name, then export. */
-export function openExportPdf(h: ExportHost) {
+export function openExportPdf(h: _ExportHost) {
   const d = showDialog(`Export “${h.title}” as PDF`);
   const input = el('input', 'name');
   input.type = 'text';

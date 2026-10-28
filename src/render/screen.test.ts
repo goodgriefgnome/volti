@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pack } from '../scores';
+import { pack } from '../scores/frames';
 import { aspects, cut, sarabande } from '../scores/testing';
 import { readPageWidths, screenAt } from './screen';
 

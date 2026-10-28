@@ -3,7 +3,7 @@
 // score id, page and width in device pixels. A score's id is its PDF's contents and a picture is of
 // a whole page, so one is never out of date; it goes when no setlist plays its page any more.
 
-import type { PagePictures } from '../originals';
+import type { PagePictures } from '../originals/types';
 
 const DIR = 'page-pictures';
 const fileName = (id: string, num: number, width: number) => `${id}-${num}-${width}.webp`;
@@ -26,13 +26,13 @@ function names(): Promise<Set<string>> {
 
 /** The pages each score's setlists play (1-based), by score id; as last worked out. */
 let wanted = new Map<string, Set<number>>();
-export const setWanted = (w: Map<string, Set<number>>) => { wanted = w; };
+export const _setWanted = (w: Map<string, Set<number>>) => { wanted = w; };
 
 /** Whether there is a picture of any of the score's pages. */
 export const hasPictures = async (id: string) => [...(await names())].some((n) => n.startsWith(id + '-'));
 
 /** Whether there is a picture of the page at this width. */
-export const hasPicture = async (id: string, num: number, width: number) => (await names()).has(fileName(id, num, width));
+export const _hasPicture = async (id: string, num: number, width: number) => (await names()).has(fileName(id, num, width));
 
 async function read(name: string): Promise<HTMLCanvasElement | null> {
   try {
@@ -80,7 +80,7 @@ export async function picturesBytes(): Promise<number> {
 }
 
 /** Delete the pictures of pages no setlist plays, but not those of the scores in `unsure`. */
-export async function tidyPictures(keep: Map<string, Set<number>>, unsure: Set<string>) {
+export async function _tidyPictures(keep: Map<string, Set<number>>, unsure: Set<string>) {
   const all = await names();
   const d = await dir();
   for (const name of [...all]) {

@@ -1,13 +1,15 @@
 // Making the saved pictures in the background: working out which original pages setlists play, at
 // the widths this screen shows them, drawing those not saved yet, and deleting the rest.
 
-import { spanCuts } from '../excerpts';
-import { titleOf, type SourceFile } from '../originals';
-import { readPageWidths } from '../render';
-import { loadAspects, loadScore, pack } from '../scores';
-import type { Setlist } from '../setlists';
-import { dpr } from '../ui';
-import { hasPicture, picturesOf, setWanted, tidyPictures } from './pictures';
+import { spanCuts } from '../excerpts/span';
+import { titleOf } from '../originals/path-utils';
+import { type SourceFile } from '../originals/types';
+import { readPageWidths } from '../render/screen';
+import { loadAspects, loadScore } from '../scores/store';
+import { pack } from '../scores/frames';
+import type { Setlist } from '../setlists/model';
+import { dpr } from '../ui/dom';
+import { _hasPicture, picturesOf, _setWanted, _tidyPictures } from './pictures';
 
 /** How long to wait after a change, so a burst of them is worked out once. */
 const SETTLE_MS = 2000;
@@ -58,13 +60,13 @@ async function make(mine: number, originals: readonly SourceFile[], setlists: re
     if (!original) continue;
     const pages: Job['pages'] = [];
     for (const [num, ws] of widths) {
-      for (const w of ws) if (!(await hasPicture(id, num, Math.round(w * scale)))) pages.push({ num, w, h: Math.round(w * aspects[num - 1]) });
+      for (const w of ws) if (!(await _hasPicture(id, num, Math.round(w * scale)))) pages.push({ num, w, h: Math.round(w * aspects[num - 1]) });
     }
     if (pages.length) jobs.push({ original, pages });
   }
   if (mine !== run) return;
-  setWanted(keep);
-  await tidyPictures(keep, unsure);
+  _setWanted(keep);
+  await _tidyPictures(keep, unsure);
   // Two scores at a time: each PDF has its own pdf.js worker, so they overlap; more would use up memory.
   const worker = async () => {
     for (let job = jobs.shift(); job && mine === run; job = jobs.shift()) await draw(job);

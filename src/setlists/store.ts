@@ -1,7 +1,8 @@
 // Loading, saving and deleting setlists in the kv store, and the setlist scores were last added to.
 // The only place setlists touch storage.
 
-import { keys, kv } from '../storage';
+import { keys } from '../storage/keys';
+import { kv } from '../storage/kv';
 import type { Setlist } from './model';
 
 export async function loadSetlists(): Promise<Setlist[]> {
@@ -14,14 +15,14 @@ const setlistEntry = (s: Setlist): [string, unknown] => [keys.setlist(s.id), s];
 const orderEntry = (all: readonly Setlist[]): [string, unknown] => [keys.setlists, all.map((s) => s.id)];
 
 /** The records to write for the setlists that changed since `before`, and their order. */
-export function changedEntries(all: readonly Setlist[], before: readonly Setlist[] = []): [string, unknown][] {
+export function _changedEntries(all: readonly Setlist[], before: readonly Setlist[] = []): [string, unknown][] {
   const was = new Map(before.map((s) => [s.id, s]));
   return [orderEntry(all), ...all.filter((s) => was.get(s.id) !== s).map(setlistEntry)];
 }
 
 /** Save the setlists that changed since `before`, with any other records that must agree with them. */
 export const saveChanged = (all: readonly Setlist[], before: readonly Setlist[] = [], also: [string, unknown][] = []) =>
-  kv.setMany([...also, ...changedEntries(all, before)]);
+  kv.setMany([...also, ..._changedEntries(all, before)]);
 
 export async function deleteSetlist(all: readonly Setlist[], id: string): Promise<void> {
   await kv.setMany([orderEntry(all.filter((s) => s.id !== id))]);

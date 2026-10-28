@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { A4, forPages, newScore } from './model';
+import { A4, _forPages, newScore } from './model';
 import { aspects } from './testing';
 
 const fresh = () => ({ score: newScore('s', 't', [A4, A4, A4]), ink: {} });
@@ -14,11 +14,11 @@ describe('newScore', () => {
 
 describe('forPages', () => {
   it('drops cuts of pages the original no longer has', () => {
-    expect(forPages(fresh(), [A4, A4]).score.cuts.map((c) => c.page)).toEqual([0, 1]);
+    expect(_forPages(fresh(), [A4, A4]).score.cuts.map((c) => c.page)).toEqual([0, 1]);
   });
   it('starts again from the pages when nothing is left', () => {
     const state = fresh();
     const s = { ...state, score: { ...state.score, cuts: state.score.cuts.slice(2) } };
-    expect(forPages(s, [A4]).score.cuts.map((c) => c.page)).toEqual([0]);
+    expect(_forPages(s, [A4]).score.cuts.map((c) => c.page)).toEqual([0]);
   });
 });

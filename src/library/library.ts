@@ -2,20 +2,35 @@
 // setlists), saving changes to them, and opening the reader. The parts it shows are their own
 // files: the folder banner, the setlists and the scores, each given this as its LibraryHost.
 
-import { chooseSetlist, givePassword, openExportPdf, openScore, type ExcerptHost, type ExcerptSource, type FileChange, type LibraryScore } from '../dialogs';
-import type { Span } from '../excerpts';
-import type { ExportPart } from '../export';
-import { arrivals, byFolder, byTitle, dropInbox, folderState, knownTitles, leftInApp, libraryFiles, linkFolder, NoAccess, PasswordNotGiven, peekInbox, titleOf, unlinkFolder, unlockFolder, type FolderState, type SourceFile } from '../originals';
-import { makePictures } from '../pictures';
-import { openReader, type ToRead } from '../reader';
-import { loadAspects, loadSavedScore, scoreEntry, type Aspects, type ExcerptName, type Score } from '../scores';
-import { addEntries, defaultSetlist, deleteSetlist, loadLastAddedTo, loadSetlists, saveChanged, saveLastAddedTo, withSetlist, type Setlist } from '../setlists';
-import { closeOverlay, el, plural, Toast, whenOverlayCloses, type MenuItem } from '../ui';
-import { FolderBanner } from './folder-banner';
-import type { LibraryHost } from './host';
-import { openIncoming } from './incoming';
-import { ScoresSection } from './scores-section';
-import { SetlistsSection } from './setlists-section';
+import { chooseSetlist } from '../dialogs/setlists';
+import { givePassword } from '../dialogs/passwords';
+import { openExportPdf } from '../dialogs/export-pdf';
+import { openScore, type LibraryScore } from '../dialogs/open-score';
+import { type ExcerptHost } from '../dialogs/excerpts';
+import { type ExcerptSource } from '../dialogs/thumb-strip';
+import { type FileChange } from '../dialogs/score-files';
+import type { Span } from '../excerpts/span';
+import type { ExportPart } from '../export/pdf';
+import { arrivals, byFolder, byTitle, titleOf } from '../originals/path-utils';
+import { dropInbox, peekInbox } from '../originals/inbox-fs';
+import { folderState, linkFolder, unlinkFolder, unlockFolder } from '../originals/device-score-fs';
+import { knownTitles, libraryFiles } from '../originals/library-files';
+import { leftInApp } from '../originals/misc-files';
+import { NoAccess, PasswordNotGiven, type FolderState, type SourceFile } from '../originals/types';
+import { makePictures } from '../pictures/maker';
+import { openReader, type ToRead } from '../reader/reader';
+import { loadAspects, loadSavedScore, scoreEntry } from '../scores/store';
+import { type Aspects, type ExcerptName, type Score } from '../scores/model';
+import { addEntries, defaultSetlist, withSetlist, type Setlist } from '../setlists/model';
+import { deleteSetlist, loadLastAddedTo, loadSetlists, saveChanged, saveLastAddedTo } from '../setlists/store';
+import { closeOverlay, whenOverlayCloses, type MenuItem } from '../ui/overlay';
+import { el, plural } from '../ui/dom';
+import { Toast } from '../ui/toast';
+import { FolderBanner } from './_folder-banner';
+import type { LibraryHost } from './_host';
+import { openIncoming } from './_incoming';
+import { ScoresSection } from './_scores-section';
+import { SetlistsSection } from './_setlists-section';
 
 /** How long Volti has to be out of view before the scores folder is read again on coming back. */
 const AWAY_MS = 30_000;

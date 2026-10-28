@@ -4,7 +4,7 @@ import {
   release, remove, setEdge, setInk, setPad, split, tidy,
 } from './edits';
 import { pack } from './frames';
-import { A4, aspects, cut, line, pages, sarabande, state } from './testing';
+import { A4, aspects, cut, _line, _pages, sarabande, state } from './testing';
 
 describe('edges', () => {
   const s = state([cut(0, 0.1, 0.4), cut(0, 0.4, 0.6), cut(0, 0.8, 1), cut(1, 0, 0.9), cut(0)]);
@@ -35,25 +35,25 @@ describe('edges', () => {
 describe('tidy', () => {
   it('drops slivers', () => {
     const s = tidy(state([cut(0, 0, 0.3), cut(0, 0.5, 0.502), cut(1)]));
-    expect(pages(s)).toEqual([[0, 0, 0.3], [1, 0, 1]]);
+    expect(_pages(s)).toEqual([[0, 0, 0.3], [1, 0, 1]]);
   });
   it('keeps cuts of one page that touch, even on one frame', () => {
     const s = tidy(state([cut(0, 0, 0.3), cut(0, 0.3, 0.6), cut(1)]));
-    expect(pages(s)).toEqual([[0, 0, 0.3], [0, 0.3, 0.6], [1, 0, 1]]);
+    expect(_pages(s)).toEqual([[0, 0, 0.3], [0, 0.3, 0.6], [1, 0, 1]]);
   });
 });
 
 describe('remove and archive', () => {
   it('deletes a cut without ink of its own, and any copied ink', () => {
     const a = cut(0), b = cut(1);
-    const s = remove(state([a, b], { [b.id]: [line(0.1, 0.2)] }), b.id);
+    const s = remove(state([a, b], { [b.id]: [_line(0.1, 0.2)] }), b.id);
     expect(s.score.cuts).toEqual([a]);
     expect(s.score.archived).toEqual([]);
     expect(s.ink[b.id]).toBeUndefined();
   });
   it('archives a cut whose ink was drawn on it, keeping the ink', () => {
     const a = cut(0), b = cut(1);
-    let s = setInk(state([a, b]), b.id, [line(0.1, 0.2)]);
+    let s = setInk(state([a, b]), b.id, [_line(0.1, 0.2)]);
     s = remove(s, b.id);
     expect(s.score.cuts.map((c) => c.id)).toEqual([a.id]);
     expect(s.score.archived.map((c) => c.id)).toEqual([b.id]);
@@ -70,7 +70,7 @@ describe('remove and archive', () => {
   });
   it('brings an archived cut back with its id and ink', () => {
     const a = cut(0), b = cut(1, 0.2, 0.7);
-    let s = remove(setInk(state([a, b]), b.id, [line(0.3, 0.4)]), b.id);
+    let s = remove(setInk(state([a, b]), b.id, [_line(0.3, 0.4)]), b.id);
     s = insertArchived(s, { id: a.id, after: false }, b.id);
     expect(s.score.cuts.map((c) => c.id)).toEqual([b.id, a.id]);
     expect(s.score.cuts[0]).toMatchObject({ y0: 0.2, y1: 0.7 });
@@ -79,14 +79,14 @@ describe('remove and archive', () => {
   });
   it('deletes an archived cut for good', () => {
     const a = cut(0), b = cut(1);
-    let s = remove(setInk(state([a, b]), b.id, [line(0.3, 0.4)]), b.id);
+    let s = remove(setInk(state([a, b]), b.id, [_line(0.3, 0.4)]), b.id);
     s = deleteArchived(s, b.id);
     expect(s.score.archived).toEqual([]);
     expect(s.ink[b.id]).toBeUndefined();
   });
   it('archives a cut dragged to nothing as it was before the drag', () => {
     const a = cut(0), b = cut(1, 0.2, 0.9);
-    const before = setInk(state([a, b]), b.id, [line(0.3, 0.4)]);
+    const before = setInk(state([a, b]), b.id, [_line(0.3, 0.4)]);
     const dragged = setEdge(before, b.id, 'bottom', 0, edgeRange(before.score.cuts, 1, 'bottom'));
     const s = release(dragged, before, b.id);
     expect(s.score.cuts.map((c) => c.id)).toEqual([a.id]);
@@ -97,8 +97,8 @@ describe('remove and archive', () => {
 describe('join and restore', () => {
   it('restores music cut out by merging the two cuts and their ink', () => {
     const a = cut(0, 0, 0.3), b = cut(0, 0.6, 1);
-    const s = joinNext(state([a, b], { [b.id]: [line(0.7, 0.8)] }), a.id);
-    expect(pages(s)).toEqual([[0, 0, 1]]);
+    const s = joinNext(state([a, b], { [b.id]: [_line(0.7, 0.8)] }), a.id);
+    expect(_pages(s)).toEqual([[0, 0, 1]]);
     expect(s.ink[a.id]).toHaveLength(1);
   });
   it('does not join cuts of different pages, or a repeat', () => {
@@ -110,9 +110,9 @@ describe('join and restore', () => {
 describe('split', () => {
   it('gives each stroke to the half that holds most of its length', () => {
     const c = cut(0);
-    const strokes = [line(0.1, 0.3), line(0.4, 0.55), line(0.45, 0.9)];
+    const strokes = [_line(0.1, 0.3), _line(0.4, 0.55), _line(0.45, 0.9)];
     const { state: s, lower } = split(state([c], { [c.id]: strokes }), c.id, 0.5, aspects);
-    expect(pages(s)).toEqual([[0, 0, 0.5], [0, 0.5, 1]]);
+    expect(_pages(s)).toEqual([[0, 0, 0.5], [0, 0.5, 1]]);
     expect(s.ink[c.id]).toEqual(strokes.slice(0, 2));
     expect(s.ink[lower]).toEqual(strokes.slice(2));
   });
@@ -127,7 +127,7 @@ describe('cutAt', () => {
   it('cuts a cut in two where you pressed, and the halves stay apart', () => {
     const c = cut(0, 0.1, 0.9);
     const s = cutAt(state([c, cut(1)]), c.id, 0.4, aspects)!;
-    expect(pages(s)).toEqual([[0, 0.1, 0.4], [0, 0.4, 0.9], [1, 0, 1]]);
+    expect(_pages(s)).toEqual([[0, 0.1, 0.4], [0, 0.4, 0.9], [1, 0, 1]]);
     expect(edgeKind(s.score.cuts, 0, 'bottom')).toBe('split');
   });
   it('lets a split carry the top of a page onto the frame before', () => {
@@ -146,15 +146,15 @@ describe('insertPages', () => {
   it('inserts a range of whole pages in page order, however it was picked', () => {
     const s = state([cut(0), cut(2)]);
     const r = insertPages(s, { id: s.score.cuts[0].id, after: true }, 2, 1, false, aspects);
-    expect(pages(r.state)).toEqual([[0, 0, 1], [1, 0, 1], [2, 0, 1], [2, 0, 1]]);
+    expect(_pages(r.state)).toEqual([[0, 0, 1], [1, 0, 1], [2, 0, 1], [2, 0, 1]]);
     expect(r.first).toBe(r.state.score.cuts[1].id);
   });
   it('copies the markings from the first time each part of the page is played', () => {
     const top = cut(1, 0, 0.5), bottom = cut(1, 0.5, 1), again = cut(1, 0.3, 1);
     const ink = {
-      [top.id]: [line(0.1, 0.2)],
-      [bottom.id]: [line(0.6, 0.7)],
-      [again.id]: [line(0.62, 0.72), line(0.35, 0.45)], // 2nd time: one over a walked part, one in the top half
+      [top.id]: [_line(0.1, 0.2)],
+      [bottom.id]: [_line(0.6, 0.7)],
+      [again.id]: [_line(0.62, 0.72), _line(0.35, 0.45)], // 2nd time: one over a walked part, one in the top half
     };
     const s = state([cut(0), top, bottom, cut(2), again], ink);
     const r = insertPages(s, { id: again.id, after: true }, 1, 1, true, aspects);
@@ -165,7 +165,7 @@ describe('insertPages', () => {
   });
   it('copies nothing with the option off', () => {
     const c = cut(0);
-    const r = insertPages(state([c], { [c.id]: [line(0.1, 0.2)] }), { id: c.id, after: true }, 0, 0, false, aspects);
+    const r = insertPages(state([c], { [c.id]: [_line(0.1, 0.2)] }), { id: c.id, after: true }, 0, 0, false, aspects);
     expect(r.state.ink[r.first]).toBeUndefined();
   });
 });

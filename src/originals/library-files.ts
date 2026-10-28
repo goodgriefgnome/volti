@@ -4,14 +4,15 @@
 // into another folder) and removed (into Recently removed), asking for the access that needs. Also
 // listing the root's files, known by the hash of their contents.
 
-import { keys, kv } from '../storage';
-import { deviceIds, linked, needAccess, relist, rememberedListing, saveListing, type HashCache } from './device-score-fs';
-import { walk } from './filesystem-utils';
-import { internalFiles, internalIds, opfsRoot, type IdRecord } from './internal-score-fs';
-import type { Ids, Readable } from './internal-types';
-import { readOriginal } from './original';
-import { byTitle, folderOf, nameOf, shownFolder, tidyPath, titleOf, unfoundName } from './path-utils';
-import { forgetRemoved, keepRemoved } from './trash-fs';
+import { keys } from '../storage/keys';
+import { kv } from '../storage/kv';
+import { _deviceIds, _linked, _needAccess, _relist, _rememberedListing, _saveListing, type _HashCache } from './device-score-fs';
+import { walk } from './_filesystem-utils';
+import { _internalFiles, _internalIds, _opfsRoot, type _IdRecord } from './internal-score-fs';
+import type { Ids, Readable } from './_types';
+import { _readOriginal } from './original';
+import { byTitle, folderOf, _nameOf, _shownFolder, _tidyPath, titleOf, _unfoundName } from './path-utils';
+import { _forgetRemoved, _keepRemoved } from './trash-fs';
 import type { AskPassword, FolderState, Original, SourceFile } from './types';
 
 /**
@@ -24,10 +25,10 @@ import type { AskPassword, FolderState, Original, SourceFile } from './types';
  * folder, and loses nothing.
  */
 async function splitIds(): Promise<void> {
-  if ((await kv.get<IdRecord>(keys.internalIds)) !== undefined) return;
-  const old = (await kv.get<HashCache>(keys.hashes)) ?? {};
-  const record: IdRecord = {};
-  for (const { path, file } of await internalFiles().catch(() => [])) {
+  if ((await kv.get<_IdRecord>(keys.internalIds)) !== undefined) return;
+  const old = (await kv.get<_HashCache>(keys.hashes)) ?? {};
+  const record: _IdRecord = {};
+  for (const { path, file } of await _internalFiles().catch(() => [])) {
     const was = old['app/' + path];
     if (was && was.size === file.size && was.modified === file.lastModified) record[path] = was.id;
   }
@@ -37,22 +38,22 @@ async function splitIds(): Promise<void> {
 
 let split: Promise<void> | undefined;
 /** Resolves once the id stores are in their present form (see splitIds): wait for it before using either. */
-export const idsReady = () => (split ??= splitIds());
+export const _idsReady = () => (split ??= splitIds());
 
 /** The ids of the files in the library's root: the linked folder's cache, or Volti's own folder's record. */
 async function idsOfRoot(): Promise<Ids> {
-  await idsReady();
-  return (await linked()) ? deviceIds() : internalIds();
+  await _idsReady();
+  return (await _linked()) ? _deviceIds() : _internalIds();
 }
 
 /** Note the id of a file at `path` in the root whose contents are known, such as one just added, so it isn't read again. */
-export async function rememberId(path: string, file: File, id: string) {
+export async function _rememberId(path: string, file: File, id: string) {
   await (await idsOfRoot()).remember(path, file, id);
 }
 
 /** The library's root: the linked folder, or the app's own. Access to a linked one must be allowed. */
 async function root(): Promise<FileSystemDirectoryHandle> {
-  return (await linked()) ?? opfsRoot();
+  return (await _linked()) ?? _opfsRoot();
 }
 
 /** The file at `path` in the root. Access must be allowed. */
@@ -73,14 +74,14 @@ async function placeOf(path: string): Promise<[FileSystemDirectoryHandle, string
  * The subfolder `path` of the root ('' for the root itself), making the folders on it that aren't
  * there yet. Write access must have been allowed.
  */
-export async function makeFolder(path: string): Promise<FileSystemDirectoryHandle> {
+export async function _makeFolder(path: string): Promise<FileSystemDirectoryHandle> {
   let d = await root();
   for (const p of path ? path.split('/') : []) d = await d.getDirectoryHandle(p, { create: true });
   return d;
 }
 
 /** The PDFs and images in the root, read now, by path; access must be granted. */
-export async function folderFiles(): Promise<{ path: string; file: File }[]> {
+export async function _folderFiles(): Promise<{ path: string; file: File }[]> {
   const found: [string, FileSystemFileHandle][] = [];
   await walk(await root(), '', 0, found);
   return Promise.all(found.map(async ([path, h]) => ({ path, file: await h.getFile() })));
@@ -93,32 +94,32 @@ class LibraryFile implements Readable {
   constructor(readonly id: string, public path: string) {}
 
   async file(): Promise<File> {
-    await needAccess('read');
+    await _needAccess('read');
     return fileAt(this.path);
   }
 
   read(ask?: AskPassword): Promise<Original> {
-    return readOriginal(this, ask);
+    return _readOriginal(this, ask);
   }
 
   async move(path: string): Promise<string | null> {
-    const to = tidyPath(path);
+    const to = _tidyPath(path);
     if (to === this.path) return null;
-    const unfound = unfoundName(to);
+    const unfound = _unfoundName(to);
     if (unfound) return unfound;
     return this.moveInRoot(to);
   }
 
   /** There is a file called `name` where it is being moved. */
   private taken(name: string, folder: string) {
-    return folder === folderOf(this.path) ? `There is already a file called “${name}” there.` : `There is already a file called “${name}” in ${shownFolder(folder)}.`;
+    return folder === folderOf(this.path) ? `There is already a file called “${name}” there.` : `There is already a file called “${name}” in ${_shownFolder(folder)}.`;
   }
 
   private async moveInRoot(to: string): Promise<string | null> {
-    await needAccess('readwrite');
+    await _needAccess('readwrite');
     const [from, old] = await placeOf(this.path);
-    const folder = folderOf(to), name = nameOf(to);
-    const into = folder === folderOf(this.path) ? from : await makeFolder(folder);
+    const folder = folderOf(to), name = _nameOf(to);
+    const into = folder === folderOf(this.path) ? from : await _makeFolder(folder);
     // The same folder, even when written differently (as a folder that ignores case can be).
     const same = into === from || (await into.isSameEntry(from));
     const now = same ? (folderOf(this.path) ? folderOf(this.path) + '/' : '') + name : to;
@@ -145,29 +146,29 @@ class LibraryFile implements Readable {
       // Both are the same score now, so one left behind only shows twice in the Files app.
       if (!(await from.removeEntry(old).then(() => true, () => false))) {
         return same ? `Copied it as “${name}”, but couldn't delete “${old}”. Delete it in the Files app.`
-          : `Copied it into ${shownFolder(folder)}, but couldn't delete it here. Delete it in the Files app.`;
+          : `Copied it into ${_shownFolder(folder)}, but couldn't delete it here. Delete it in the Files app.`;
       }
     }
     // The same contents, so the same id: no need to read it again.
     await (await idsOfRoot()).moved(this.path, now, await (await into.getFileHandle(name)).getFile(), this.id);
-    await relist(this.id, now);
+    await _relist(this.id, now);
     this.path = now;
     return null;
   }
 
   async remove(): Promise<void> {
-    await needAccess('readwrite');
+    await _needAccess('readwrite');
     const [d, name] = await placeOf(this.path);
-    const key = await keepRemoved(this.id, this.path, await (await d.getFileHandle(name)).getFile());
+    const key = await _keepRemoved(this.id, this.path, await (await d.getFileHandle(name)).getFile());
     try {
       await d.removeEntry(name);
     } catch (e) {
       // Still in the library: not removed after all.
-      await forgetRemoved(key);
+      await _forgetRemoved(key);
       throw e;
     }
     await (await idsOfRoot()).forget(this.path);
-    await relist(this.id);
+    await _relist(this.id);
   }
 }
 
@@ -175,7 +176,7 @@ class LibraryFile implements Readable {
 const made = new Map<string, LibraryFile>();
 
 /** The file in the root with id `id` at `path`: the one already made for it, brought up to date. */
-export function sourceFileOf(id: string, path: string): SourceFile {
+export function _sourceFileOf(id: string, path: string): SourceFile {
   let o = made.get(id);
   if (!o) made.set(id, (o = new LibraryFile(id, path)));
   else o.path = path;
@@ -200,13 +201,13 @@ type Progress = (originals: SourceFile[], left: number) => void;
 export async function libraryFiles(state: FolderState, progress?: Progress): Promise<SourceFile[]> {
   const hashes = await idsOfRoot();
   const locked = state.kind === 'locked';
-  const remembered = locked ? await rememberedListing() : [];
-  const files = locked ? [] : await folderFiles();
+  const remembered = locked ? await _rememberedListing() : [];
+  const files = locked ? [] : await _folderFiles();
   const ids = new Map<string, string>();
   const known = () => {
     const seen = new Map<string, string>();
     for (const e of [...remembered, ...files.filter((f) => ids.has(f.path)).map((f) => ({ id: ids.get(f.path)!, path: f.path }))]) if (!seen.has(e.id)) seen.set(e.id, e.path);
-    return [...seen].map(([id, path]) => sourceFileOf(id, path)).sort(byTitle);
+    return [...seen].map(([id, path]) => _sourceFileOf(id, path)).sort(byTitle);
   };
   const fresh: number[] = [];
   for (const [i, f] of files.entries()) {
@@ -219,7 +220,7 @@ export async function libraryFiles(state: FolderState, progress?: Progress): Pro
   }
   // A locked folder wasn't read, so neither store has anything new to keep or drop.
   if (!locked) {
-    await saveListing(files.map((f) => ({ path: f.path, id: ids.get(f.path)! })));
+    await _saveListing(files.map((f) => ({ path: f.path, id: ids.get(f.path)! })));
     await hashes.save();
   }
   const found = known();

@@ -2,17 +2,20 @@
 // the dialog around them. The reader and the library both use it; where the pages come from is
 // the caller's business.
 
-import { nameOf, sortedNames, spanFor, spanLabel, spanOf, type Span } from '../excerpts';
-import { placeLabel, places, type Place, type Score } from '../scores';
-import { button, buttonRow, closeOverlay, el, showDialog } from '../ui';
-import { ThumbStrip, u, type ExcerptSource } from './thumb-strip';
+import { nameOf, sortedNames } from '../excerpts/names';
+import { spanFor, spanLabel, spanOf, type Span } from '../excerpts/span';
+import { placeLabel, places, type Place } from '../scores/frames';
+import { type Score } from '../scores/model';
+import { button, el } from '../ui/dom';
+import { buttonRow, closeOverlay, showDialog } from '../ui/overlay';
+import { ThumbStrip, _u, type ExcerptSource } from './thumb-strip';
 
 /**
  * The score's frames as thumbnails, with each cut a band over them. Tap the first cut to play,
  * then the last, as when choosing pages to insert. Cuts outside the excerpt are shaded. Pinch to
  * zoom the thumbnails, and drag to move along them.
  */
-export class ExcerptStrip {
+export class _ExcerptStrip {
   readonly el: HTMLElement;
   /** Says what is chosen, and what a tap does next. */
   readonly hint = el('p', 'hint');
@@ -44,7 +47,7 @@ export class ExcerptStrip {
         b.type = 'button';
         const at = placeLabel(this.places[p.index]);
         b.dataset.n = at;
-        Object.assign(b.style, { top: u(p.top * W), height: u(p.h * W) });
+        Object.assign(b.style, { top: _u(p.top * W), height: _u(p.h * W) });
         b.setAttribute('aria-label', `Page ${at}, from original page ${p.cut.page + 1}`);
         b.addEventListener('click', () => this.tap(p.index));
         this.bands[p.index] = b;
@@ -100,7 +103,7 @@ export class ExcerptStrip {
  * A dropdown of the score's named excerpts, with Whole score and Custom: choosing one selects its
  * cuts in the strip, and tapping cuts shows the name of the span they make, if it has one.
  */
-export function namedExcerptMenu(strip: ExcerptStrip, score: Score): HTMLSelectElement {
+export function _namedExcerptMenu(strip: _ExcerptStrip, score: Score): HTMLSelectElement {
   const names = sortedNames(score);
   const menu = el('select', 'excerpt-menu');
   menu.setAttribute('aria-label', 'Named excerpt');
@@ -120,7 +123,7 @@ export function namedExcerptMenu(strip: ExcerptStrip, score: Score): HTMLSelectE
   return menu;
 }
 
-export interface ExcerptPicker extends ExcerptSource {
+export interface _ExcerptPicker extends ExcerptSource {
   question: string;
   span: Span;
   /** Starts the hint, such as "This entry plays". */
@@ -136,9 +139,9 @@ export interface ExcerptPicker extends ExcerptSource {
 }
 
 /** A dialog for choosing which of a score's cuts to play, and perhaps naming them. */
-export function openExcerptPicker(h: ExcerptPicker) {
+export function openExcerptPicker(h: _ExcerptPicker) {
   const d = showDialog(h.question, 'wide');
-  const strip = new ExcerptStrip(h, h.span, h.verb);
+  const strip = new _ExcerptStrip(h, h.span, h.verb);
   const input = el('input', 'name');
   input.type = 'text';
   input.value = h.name ?? '';
@@ -156,7 +159,7 @@ export function openExcerptPicker(h: ExcerptPicker) {
   };
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok(); });
   const done = button(h.okLabel ?? 'Done', ok, 'primary');
-  d.append(...(h.named ? [namedExcerptMenu(strip, h.state.score)] : []), input, strip.el, strip.hint, error, buttonRow(button('Cancel', closeOverlay), done));
+  d.append(...(h.named ? [_namedExcerptMenu(strip, h.state.score)] : []), input, strip.el, strip.hint, error, buttonRow(button('Cancel', closeOverlay), done));
   strip.reveal();
   (input.hidden ? done : input).focus();
 }

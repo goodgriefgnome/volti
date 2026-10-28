@@ -2,19 +2,19 @@
 // about the stage's top-left corner, then a shift by (x, y), as in the CSS transform
 // `translate(x, y) scale(s)`.
 
-import type { Rect } from './layout';
+import type { _Rect } from './layout';
 
 export interface Zoom { s: number; x: number; y: number }
 export interface Pt { x: number; y: number }
 
 export const NO_ZOOM: Zoom = { s: 1, x: 0, y: 0 };
-export const MAX_ZOOM = 5;
+export const _MAX_ZOOM = 5;
 
 export const isZoomed = (z: Zoom) => z.s > 1.001;
 
 /** Keep the zoom between 1x and MAX_ZOOM, with the stage always covered by the zoomed spread. */
-export function clamp(z: Zoom, W: number, H: number): Zoom {
-  const s = Math.min(MAX_ZOOM, Math.max(1, z.s));
+export function _clamp(z: Zoom, W: number, H: number): Zoom {
+  const s = Math.min(_MAX_ZOOM, Math.max(1, z.s));
   return {
     s,
     x: Math.min(0, Math.max(W - W * s, z.x)),
@@ -27,21 +27,21 @@ export function clamp(z: Zoom, W: number, H: number): Zoom {
  * keeping the point that was under the fingers' centre under it.
  */
 export function pinch(start: Zoom, c0: Pt, d0: number, c: Pt, d: number, W: number, H: number): Zoom {
-  const s = Math.min(MAX_ZOOM, Math.max(1, start.s * (d / d0)));
+  const s = Math.min(_MAX_ZOOM, Math.max(1, start.s * (d / d0)));
   const px = (c0.x - start.x) / start.s;
   const py = (c0.y - start.y) / start.s;
-  return clamp({ s, x: c.x - px * s, y: c.y - py * s }, W, H);
+  return _clamp({ s, x: c.x - px * s, y: c.y - py * s }, W, H);
 }
 
 export function pan(start: Zoom, dx: number, dy: number, W: number, H: number): Zoom {
-  return clamp({ ...start, x: start.x + dx, y: start.y + dy }, W, H);
+  return _clamp({ ...start, x: start.x + dx, y: start.y + dy }, W, H);
 }
 
 /**
  * The part of a page (placed at `box` in unzoomed stage coordinates) that is visible on a
  * W x H stage, in the page's own unzoomed coordinates; null when none of it is visible.
  */
-export function visiblePart(z: Zoom, W: number, H: number, box: Rect): Rect | null {
+export function visiblePart(z: Zoom, W: number, H: number, box: _Rect): _Rect | null {
   const left = Math.max(box.x, -z.x / z.s);
   const top = Math.max(box.y, -z.y / z.s);
   const right = Math.min(box.x + box.w, (W - z.x) / z.s);

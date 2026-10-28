@@ -5,7 +5,7 @@
 /** How a line looks: its colour, how see-through it is, and whether it only darkens what is under it. */
 export interface Look { color: string; opacity: number; multiply: boolean }
 
-export const SOLID = (color: string): Look => ({ color, opacity: 1, multiply: false });
+export const _SOLID = (color: string): Look => ({ color, opacity: 1, multiply: false });
 
 /** Something markings can be drawn on, in its own units (pixels, or points), y downwards. */
 export interface Drawing {

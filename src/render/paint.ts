@@ -2,8 +2,11 @@
 // shown while a cut is dragged. Canvas drawing only, used by the reader, the excerpt picker and
 // exports; where frames sit on the screen is screen.ts.
 
-import { canvasDrawing, drawMarkings, type Drawing, type DrawTarget, type Marking } from '../markings';
-import { visible, type Aspects, type Frame, type Placed, type ScoreInk } from '../scores';
+import { canvasDrawing, type Drawing } from '../markings/draw';
+import { drawMarkings, type DrawTarget, type Marking } from '../markings/model';
+import { visible } from '../scores/ownership';
+import { type Aspects, type ScoreInk } from '../scores/model';
+import { type Frame, type Placed } from '../scores/frames';
 
 /** Music being cut away during a drag, by cut id: page fractions y0..y1 drawn hatched. */
 export type Hatches = Map<string, [number, number][]>;
@@ -29,12 +32,12 @@ export function drawFrame(
       const sy = p.cut.y0 * src.height, sh = (p.cut.y1 - p.cut.y0) * src.height;
       ctx.drawImage(src, 0, sy, src.width, sh, 0, y0, W, y1 - y0);
     }
-    for (const [a, b] of hatches?.get(p.cut.id) ?? []) hatch(ctx, W, y0 + (a - p.cut.y0) * aspects[p.cut.page] * W, (b - a) * aspects[p.cut.page] * W);
+    for (const [a, b] of hatches?.get(p.cut.id) ?? []) _hatch(ctx, W, y0 + (a - p.cut.y0) * aspects[p.cut.page] * W, (b - a) * aspects[p.cut.page] * W);
   }
 }
 
 /** A dark wash with white diagonal lines over music that is about to be cut away. */
-export function hatch(ctx: CanvasRenderingContext2D, W: number, y: number, h: number) {
+export function _hatch(ctx: CanvasRenderingContext2D, W: number, y: number, h: number) {
   if (h <= 0) return;
   ctx.save();
   ctx.beginPath();

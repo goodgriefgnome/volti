@@ -2,26 +2,26 @@
 // cuts, inserting pages, and setting a cut's ink. Each takes a State and returns a new one, keeping
 // the ink in step. Pure: no DOM, no storage.
 
-import { copyMarking, type Marking } from '../markings';
-import { EPS, newCutId, type Aspects, type Cut, type State } from './model';
-import { claimFirstPass, splitMarkings } from './ownership';
+import { copyMarking, type Marking } from '../markings/model';
+import { _EPS, _newCutId, type Aspects, type Cut, type State } from './model';
+import { _claimFirstPass, _splitMarkings } from './ownership';
 
-export const MIN_CUT = 0.004;
-export const MIN_SPLIT = 0.01;
-export const MAX_PAD = 0.6;
+export const _MIN_CUT = 0.004;
+export const _MIN_SPLIT = 0.01;
+export const _MAX_PAD = 0.6;
 
 /** Same page and in page order, so the gap between them (if any) is music cut out. */
-const inOrder = (a: Cut, b: Cut) => a.page === b.page && b.y0 >= a.y1 - EPS;
+const inOrder = (a: Cut, b: Cut) => a.page === b.page && b.y0 >= a.y1 - _EPS;
 
-export type EdgeKind = 'cutOut' | 'split' | 'trimmed' | 'whole';
+export type _EdgeKind = 'cutOut' | 'split' | 'trimmed' | 'whole';
 
 /** What lies at a cut's top or bottom edge, which decides what its tab's menu offers. */
-export function edgeKind(cuts: readonly Cut[], i: number, edge: 'top' | 'bottom'): EdgeKind {
+export function edgeKind(cuts: readonly Cut[], i: number, edge: 'top' | 'bottom'): _EdgeKind {
   const c = cuts[i], top = edge === 'top';
   const other = cuts[i + (top ? -1 : 1)];
   if (other) {
     const [a, b] = top ? [other, c] : [c, other];
-    if (inOrder(a, b)) return b.y0 - a.y1 > EPS ? 'cutOut' : 'split';
+    if (inOrder(a, b)) return b.y0 - a.y1 > _EPS ? 'cutOut' : 'split';
   }
   return (top ? c.y0 > 0.001 : c.y1 < 0.999) ? 'trimmed' : 'whole';
 }
@@ -48,7 +48,7 @@ export function setEdge(s: State, id: string, edge: 'top' | 'bottom', v: number,
 
 export function setPad(s: State, id: string, pad: number, aspects: Aspects): State {
   const page = s.score.cuts.find((c) => c.id === id)?.page ?? 0;
-  const p = Math.min(MAX_PAD * aspects[page], Math.max(0, pad));
+  const p = Math.min(_MAX_PAD * aspects[page], Math.max(0, pad));
   return mapCut(s, id, (c) => {
     const { pad: _, ...rest } = c;
     return p > 0.001 ? { ...rest, pad: p } : rest;
@@ -58,7 +58,7 @@ export function setPad(s: State, id: string, pad: number, aspects: Aspects): Sta
 /** End a drag. A cut dragged to nothing is removed as it was before the drag, so its ink is archived whole. */
 export function release(s: State, before: State, id: string): State {
   const c = s.score.cuts.find((c) => c.id === id);
-  if (c && c.y1 - c.y0 <= MIN_CUT) return tidy(remove(before, id));
+  if (c && c.y1 - c.y0 <= _MIN_CUT) return tidy(remove(before, id));
   return tidy(s);
 }
 
@@ -107,8 +107,8 @@ export function split(s: State, id: string, y: number, aspects: Aspects): { stat
   const c = cuts[i];
   const upper: Cut = { ...c, y1: y };
   const { pad: _, ...rest } = c;
-  const lower: Cut = { ...rest, id: newCutId(), y0: y };
-  const [up, down] = splitMarkings(s.ink[c.id] ?? [], y, aspects[c.page]);
+  const lower: Cut = { ...rest, id: _newCutId(), y0: y };
+  const [up, down] = _splitMarkings(s.ink[c.id] ?? [], y, aspects[c.page]);
   const ink = { ...s.ink };
   delete ink[c.id];
   if (up.length) ink[upper.id] = up;
@@ -121,14 +121,14 @@ export function split(s: State, id: string, y: number, aspects: Aspects): { stat
 
 /** Drop cuts thinner than MIN_CUT. */
 export function tidy(s: State): State {
-  for (const c of s.score.cuts) if (c.y1 - c.y0 <= MIN_CUT) s = remove(s, c.id);
+  for (const c of s.score.cuts) if (c.y1 - c.y0 <= _MIN_CUT) s = remove(s, c.id);
   return s;
 }
 
 /** Cut a cut in two at y (a fraction of its page's height), unless either half would be a sliver. */
 export function cutAt(s: State, id: string, y: number, aspects: Aspects): State | null {
   const c = s.score.cuts.find((c) => c.id === id);
-  if (!c || y - c.y0 < MIN_SPLIT || c.y1 - y < MIN_SPLIT) return null;
+  if (!c || y - c.y0 < _MIN_SPLIT || c.y1 - y < _MIN_SPLIT) return null;
   return split(s, id, y, aspects).state;
 }
 
@@ -149,11 +149,11 @@ export function insertPages(
   s: State, at: InsertAt, from: number, to: number, copyInk: boolean, aspects: Aspects,
 ): { state: State; first: string } {
   const add: Cut[] = [];
-  for (let p = Math.min(from, to); p <= Math.max(from, to); p++) add.push({ id: newCutId(), page: p, y0: 0, y1: 1 });
+  for (let p = Math.min(from, to); p <= Math.max(from, to); p++) add.push({ id: _newCutId(), page: p, y0: 0, y1: 1 });
   const ink = { ...s.ink };
   if (copyInk) {
     for (const c of add) {
-      const markings = claimFirstPass(s.score.cuts.filter((x) => x.page === c.page), s.ink, aspects[c.page]);
+      const markings = _claimFirstPass(s.score.cuts.filter((x) => x.page === c.page), s.ink, aspects[c.page]);
       if (markings.length) ink[c.id] = markings.map(copyMarking);
     }
   }

@@ -1,13 +1,13 @@
 // Pen and highlighter strokes: their data, sizes and colours, geometry and drawing. Only what is
 // particular to strokes; what all markings share is in model.ts.
 
-import { SOLID } from './draw';
-import type { DrawTarget, KindBehaviour, Point } from './model';
+import { _SOLID } from './draw';
+import type { DrawTarget, _KindBehaviour, Point } from './model';
 
-export type InkTool = 'pen' | 'highlighter';
+export type _InkTool = 'pen' | 'highlighter';
 
 export interface Stroke {
-  tool: InkTool;
+  tool: _InkTool;
   color: string;
   /** Line width as a fraction of the page width. */
   size: number;
@@ -20,7 +20,7 @@ export const PEN_SIZE = 0.0022;
 export const HIGHLIGHT_SIZE = 0.018;
 
 /** Width in pixels for one segment of a stroke drawn on a page `pageWidthPx` wide. */
-export function widthPx(stroke: Stroke, pressure: number, pageWidthPx: number): number {
+export function _widthPx(stroke: Stroke, pressure: number, pageWidthPx: number): number {
   if (stroke.tool === 'highlighter') return stroke.size * pageWidthPx;
   return stroke.size * pageWidthPx * (0.35 + 1.3 * pressure);
 }
@@ -42,7 +42,7 @@ function segDist(px: number, py: number, ax: number, ay: number, bx: number, by:
  * Whether the eraser at `p` touches the stroke. Works in page-width units, so `aspect`
  * (page height / width) is needed to measure vertical distance correctly.
  */
-export function touches(stroke: Stroke, p: Point, aspect: number, radius: number): boolean {
+export function _touches(stroke: Stroke, p: Point, aspect: number, radius: number): boolean {
   const reach = radius + stroke.size / 2;
   const pts = stroke.points;
   if (pts.length === 1) return Math.hypot(pts[0][0] - p[0], (pts[0][1] - p[1]) * aspect) <= reach;
@@ -82,14 +82,14 @@ const highlight = (color: string) => ({ color, opacity: 0.35, multiply: true });
 
 /** Draw the newest segment of a pen stroke while it is being written. */
 export function drawPenSegment(t: DrawTarget, s: Stroke, a: Point, b: Point) {
-  t.draw.path([at(t, a), at(t, b)], widthPx(s, (a[2] + b[2]) / 2, t.w), SOLID(s.color));
+  t.draw.path([at(t, a), at(t, b)], _widthPx(s, (a[2] + b[2]) / 2, t.w), _SOLID(s.color));
 }
 
 function drawStroke(t: DrawTarget, s: Stroke) {
   const pts = s.points;
   if (s.tool === 'highlighter') {
     // One path, so overlapping parts of the same stroke don't darken.
-    t.draw.path(pts.map((p) => at(t, p)), widthPx(s, 1, t.w), highlight(s.color));
+    t.draw.path(pts.map((p) => at(t, p)), _widthPx(s, 1, t.w), highlight(s.color));
     return;
   }
   // Segment by segment, each as wide as the pen's pressure there.
@@ -98,13 +98,13 @@ function drawStroke(t: DrawTarget, s: Stroke) {
 }
 
 /** What markings/model.ts needs to know about strokes. */
-export const strokes: KindBehaviour<Stroke> = {
+export const _strokes: _KindBehaviour<Stroke> = {
   share: (s, lo, hi, aspect) => share(s.points, lo, hi, aspect),
   anchor: (s) => s.points[0],
   map: (s, f) => ({ ...s, points: s.points.map(f) }),
-  hits: touches,
+  hits: _touches,
   draw: drawStroke,
-  annotation: (t, s) => ({ subtype: 'Ink', paths: [s.points.map((p) => at(t, p))], color: s.color, width: widthPx(s, 0.5, t.w) }),
+  annotation: (t, s) => ({ subtype: 'Ink', paths: [s.points.map((p) => at(t, p))], color: s.color, width: _widthPx(s, 0.5, t.w) }),
   compact: (s) => ({ ...s, points: compact(s.points) }),
   copy: (s) => ({ ...s, points: s.points.map((p) => [...p]) }),
 };

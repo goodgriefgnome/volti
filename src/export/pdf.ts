@@ -5,12 +5,16 @@
 // pdf-decrypt doesn't know, say). pdf-lib is only loaded to export.
 
 import type { PDFDocument, PDFEmbeddedPage, PDFPage } from 'pdf-lib';
-import { spanCuts, type Span } from '../excerpts';
-import { NoAccess, PasswordNotGiven, titleOf, type AskPassword, type Original, type PageCache, type SourceFile } from '../originals';
-import { cutTarget, drawFrame, shownOn } from '../render';
-import { loadScore, pack, type Aspects, type Frame, type State } from '../scores';
-import { annotate } from './annotations';
-import { placeCut, shownSize, type SourcePage } from './placement';
+import { spanCuts, type Span } from '../excerpts/span';
+import { NoAccess, PasswordNotGiven, type AskPassword, type Original, type SourceFile } from '../originals/types';
+import { titleOf } from '../originals/path-utils';
+import { type PageCache } from '../originals/original';
+import { cutTarget, drawFrame, shownOn } from '../render/paint';
+import { loadScore } from '../scores/store';
+import { pack, type Frame } from '../scores/frames';
+import { type Aspects, type State } from '../scores/model';
+import { annotate } from './_annotations';
+import { placeCut, shownSize, type SourcePage } from './_placement';
 
 /** One part of an export: a score, whole or the excerpt `span` of it. Each starts on a new page. */
 export interface ExportPart { original: SourceFile; span?: Span }

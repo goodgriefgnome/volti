@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cutLetter, isLandscape, pack, placeLabel, places, roomBefore, sameShape } from './frames';
+import { cutLetter, isLandscape, pack, placeLabel, places, roomBefore, _sameShape } from './frames';
 import { A4, aspects, cut, sarabande } from './testing';
 
 describe('pack', () => {
@@ -36,8 +36,8 @@ describe('pack, with pages of different shapes', () => {
     expect(frames.map((f) => f.items.length)).toEqual([1, 1]);
   });
   it('lets A4 and US Letter share a frame, but not a page and the same page turned', () => {
-    expect(sameShape(A4, LETTER)).toBe(true);
-    expect(sameShape(A4, WIDE)).toBe(false);
+    expect(_sameShape(A4, LETTER)).toBe(true);
+    expect(_sameShape(A4, WIDE)).toBe(false);
     const frames = pack([cut(0, 0, 0.5), cut(1, 0, 0.5)], [A4, LETTER]);
     expect(frames).toHaveLength(1);
   });

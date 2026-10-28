@@ -1,20 +1,20 @@
-// Reading a source file into an original, and the page cache an original gives. `readOriginal`
-// picks how the file is read by its first bytes (a PDF: pdf-source.ts, else an image:
-// image-source.ts) and wraps what that gives with the file in an original that passes its id, path,
+// Reading a source file into an original, and the page cache an original gives. `_readOriginal`
+// picks how the file is read by its first bytes (a PDF: _pdf-source.ts, else an image:
+// _image-source.ts) and wraps what that gives with the file in an original that passes its id, path,
 // moving and removing to the file. `PageCache` keeps the pages drawn from a PageSource: it draws a
 // couple at a time, those for the screen first, keeps those around the current screen, and uses
 // saved pictures where there are some.
 
-import { readImage } from './image-source';
-import type { Content, PageSource, Readable } from './internal-types';
-import { isPdf, readPdf } from './pdf-source';
-import type { AskPassword, Original, PagePictures, RenderedPdf } from './types';
+import { readImage } from './_image-source';
+import type { Content, PageSource, Readable } from './_types';
+import { isPdf, readPdf } from './_pdf-source';
+import type { AskPassword, Original, PagePictures, _RenderedPdf } from './types';
 
 /**
  * Read a source file: an image as it is; a PDF asks for its password now if it has one Volti
  * doesn't know yet, and otherwise reads its music only when its pages or its PDF are wanted.
  */
-export async function readOriginal(f: Readable, ask?: AskPassword): Promise<Original> {
+export async function _readOriginal(f: Readable, ask?: AskPassword): Promise<Original> {
   const file = await f.file();
   const bytes = new Uint8Array(await file.slice(0, 2048).arrayBuffer());
   return new FileOriginal(f, isPdf(bytes) ? await readPdf(f, ask) : readImage(f));
@@ -28,7 +28,7 @@ class FileOriginal implements Original {
   move(path: string) { return this.f.move(path); }
   remove() { return this.f.remove(); }
   async read() { return this; }
-  pdf(): Promise<RenderedPdf> { return this.content.pdf(); }
+  pdf(): Promise<_RenderedPdf> { return this.content.pdf(); }
   /** Awaits the source first, so a NoAccess or PasswordNotGiven rejects here. */
   async pages(): Promise<PageCache> { return new PageCache(Promise.resolve(await this.content.pages())); }
 }
@@ -37,7 +37,7 @@ class FileOriginal implements Original {
  * How soon a page is wanted: `now` on the screen, `ahead` on a neighbouring screen, `later` in
  * the background (it also waits while any page is drawn for the screen, in any score).
  */
-export type When = 'now' | 'ahead' | 'later';
+export type _When = 'now' | 'ahead' | 'later';
 
 /** Pages being drawn for the screen, in any score, and what waits for there to be none. */
 let forScreen = 0;
@@ -101,7 +101,7 @@ export class PageCache {
   has(num: number, cssW: number, cssH: number) { return this.cache.has(this.key(num, cssW, cssH)); }
 
   /** Wait for a turn to draw, then hand it on when done. */
-  private async turn<T>(when: When, draw: (waited: boolean) => Promise<T>): Promise<T> {
+  private async turn<T>(when: _When, draw: (waited: boolean) => Promise<T>): Promise<T> {
     if (when === 'later') await whenQuiet();
     const waited = this.drawing >= AT_ONCE;
     if (waited) await new Promise<void>((go) => this.waiting[when === 'now' ? 'now' : 'later'].push(go));
@@ -122,7 +122,7 @@ export class PageCache {
    * any that is, so drawing ahead never holds up the page asked for for long. One drawn to `save`
    * (read at a size the reader shows, not a thumbnail) is offered to the saved pictures.
    */
-  render(num: number, cssW: number, cssH: number, dpr: number, when: When = 'now', save = false): Promise<HTMLCanvasElement> {
+  render(num: number, cssW: number, cssH: number, dpr: number, when: _When = 'now', save = false): Promise<HTMLCanvasElement> {
     const k = this.key(num, cssW, cssH);
     let p = this.cache.get(k);
     if (p) return p;

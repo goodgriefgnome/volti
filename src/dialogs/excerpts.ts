@@ -1,10 +1,13 @@
 // Named excerpt dialogs that both the library and the reader use: adding one, renaming it, changing
 // its cuts and deleting it. Where the score comes from and how it is saved is the caller's.
 
-import { nameProblem, removeName, sameSpan, setName, spanLabel, type Span } from '../excerpts';
-import type { Aspects, ExcerptName, Score } from '../scores';
-import { moveExcerpt, type Setlist } from '../setlists';
-import { askText, button, buttonRow, closeOverlay, el, plural, showDialog } from '../ui';
+import { nameProblem, removeName, setName } from '../excerpts/names';
+import { sameSpan, spanLabel, type Span } from '../excerpts/span';
+import type { Aspects, ExcerptName, Score } from '../scores/model';
+import { moveExcerpt, type Setlist } from '../setlists/model';
+import { askText } from '../ui/ask-text';
+import { button, el, plural } from '../ui/dom';
+import { buttonRow, closeOverlay, showDialog } from '../ui/overlay';
 import { openExcerptPicker } from './excerpt-picker';
 import type { ExcerptSource } from './thumb-strip';
 
@@ -19,7 +22,7 @@ export interface ExcerptHost {
 }
 
 /** The setlists with an entry that plays this span of the score. */
-export const setlistsPlaying = (setlists: readonly Setlist[], score: Score, span: Span) =>
+export const _setlistsPlaying = (setlists: readonly Setlist[], score: Score, span: Span) =>
   setlists.filter((s) => s.entries.some((e) => e.scoreId === score.id && sameSpan(score.cuts, e, span)));
 
 /** Name part of a score, in the excerpt picker. */
@@ -57,7 +60,7 @@ export function renameExcerpt(score: Score, x: ExcerptName, h: ExcerptHost) {
  */
 export function changeExcerptCuts(src: ExcerptSource, x: ExcerptName, h: ExcerptHost, moved?: (to: Span) => void) {
   const score = src.state.score, now = score.names?.find((n) => n.name === x.name) ?? x;
-  const using = setlistsPlaying(h.setlists, score, now);
+  const using = _setlistsPlaying(h.setlists, score, now);
   openExcerptPicker({
     ...src,
     question: `Which cuts are “${now.name}”?`,
@@ -77,7 +80,7 @@ export function changeExcerptCuts(src: ExcerptSource, x: ExcerptName, h: Excerpt
 
 /** Take the name off an excerpt. Setlists that play it keep playing the same music. */
 export function deleteExcerpt(score: Score, x: ExcerptName, h: ExcerptHost) {
-  const using = setlistsPlaying(h.setlists, score, x);
+  const using = _setlistsPlaying(h.setlists, score, x);
   const pages = spanLabel(score.cuts, x, h.aspects);
   const d = showDialog(`Delete “${x.name}”?`);
   d.append(

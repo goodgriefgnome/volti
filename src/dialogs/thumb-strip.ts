@@ -2,9 +2,11 @@
 // shows at once: a pinch zooms it, and a finger drags along it. The excerpt picker puts a band over
 // each cut; the screen for incoming files shows a file's pages as they are.
 
-import { drawFrame, drawFrameInk, scrollForPinch, type Pt } from '../render';
-import { pack, type Aspects, type Frame, type State } from '../scores';
-import { dpr, el } from '../ui';
+import { drawFrame, drawFrameInk } from '../render/paint';
+import { scrollForPinch, type Pt } from '../render/zoom';
+import { pack, type Frame } from '../scores/frames';
+import { type Aspects, type State } from '../scores/model';
+import { dpr, el } from '../ui/dom';
 
 /** How tall the thumbnails are, unzoomed, as a share of the screen's height; and how narrow they may get. */
 const THUMB_SHARE = 1 / 3;
@@ -23,7 +25,7 @@ export interface ExcerptSource {
 }
 
 /** A length in the strip, `n` CSS pixels unzoomed: sizes are in --u, so zooming changes one property. */
-export const u = (n: number) => `calc(var(--u) * ${n})`;
+export const _u = (n: number) => `calc(var(--u) * ${n})`;
 
 /**
  * The score's frames as thumbnails, in boxes to put more over. Pinch to zoom them, and drag to
@@ -48,7 +50,7 @@ export class ThumbStrip {
     this.drawnAt = frames.map(() => 0);
     this.boxes = frames.map((f, i) => {
       const box = el('div', 'thumb-frame'), W = widths[i];
-      Object.assign(box.style, { width: u(W), height: u(W * f.aspect) });
+      Object.assign(box.style, { width: _u(W), height: _u(W * f.aspect) });
       this.el.append(box);
       return box;
     });

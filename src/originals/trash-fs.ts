@@ -4,8 +4,9 @@
 // (cuts, markings, named excerpts) is kept by its id all along, as for any score whose file is
 // missing. Files deleted outside Volti aren't here.
 
-import { keys, kv } from '../storage';
-import { writeFile } from './filesystem-utils';
+import { keys } from '../storage/keys';
+import { kv } from '../storage/kv';
+import { writeFile } from './_filesystem-utils';
 import type { Removed } from './types';
 
 /** How long a removed file is kept. */
@@ -16,7 +17,7 @@ const removedDir = async () => (await navigator.storage.getDirectory()).getDirec
 type Records = Record<string, Removed>;
 const load = async () => (await kv.get<Records>(keys.removed)) ?? {};
 /** Forget a removed file, and delete what was kept of it, as when it has been put back. */
-export async function forgetRemoved(key: string) {
+export async function _forgetRemoved(key: string) {
   await kv.update<Records>(keys.removed, (old) => {
     const { [key]: _, ...rest } = old ?? {};
     return rest;
@@ -28,7 +29,7 @@ export async function forgetRemoved(key: string) {
  * Keep score `id`'s file, which was at `path` in the library, in Recently removed, as its file is
  * removed from there: the key it is kept under, to forget it by if removing it fails.
  */
-export async function keepRemoved(id: string, path: string, file: File): Promise<string> {
+export async function _keepRemoved(id: string, path: string, file: File): Promise<string> {
   const at = Date.now(), key = `${at}-${id}`;
   await writeFile(await removedDir(), key, file);
   await kv.update<Records>(keys.removed, (old) => ({ ...old, [key]: { key, id, path, at } }));
@@ -41,7 +42,7 @@ export async function recentlyRemoved(): Promise<Removed[]> {
 }
 
 /** A removed file's file, as it was. */
-export const removedFile = async (r: Removed) => (await (await removedDir()).getFileHandle(r.key)).getFile();
+export const _removedFile = async (r: Removed) => (await (await removedDir()).getFileHandle(r.key)).getFile();
 
 /** Delete for good the files removed a week ago or more, and any kept that nothing says where it was. */
 export async function purgeRemoved(now = Date.now()): Promise<void> {

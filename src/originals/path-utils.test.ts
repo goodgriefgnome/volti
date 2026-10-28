@@ -1,38 +1,38 @@
 import { describe, expect, it } from 'vitest';
-import { arrivals, byFolder, endingOf, folderOf, importName, isOriginalName, pathInFolder, pathWithTitle, shownFolder, tidyFolder, tidyPath, titleOf, unfoundName } from './path-utils';
+import { arrivals, byFolder, _endingOf, folderOf, _importName, _isOriginalName, pathInFolder, pathWithTitle, _shownFolder, _tidyFolder, _tidyPath, titleOf, _unfoundName } from './path-utils';
 import type { SourceFile } from './types';
 
 describe('importName', () => {
   it('keeps a PDF\'s own name', () => {
-    expect(importName('Sonata 3.pdf')).toBe('Sonata 3.pdf');
-    expect(importName('Mass.PDF')).toBe('Mass.PDF');
+    expect(_importName('Sonata 3.pdf')).toBe('Sonata 3.pdf');
+    expect(_importName('Mass.PDF')).toBe('Mass.PDF');
   });
 
   it('keeps digits a name ends in, adding .pdf to a name without it', () => {
-    expect(importName('Come_People_Of_The_Risen_King3420.pdf')).toBe('Come_People_Of_The_Risen_King3420.pdf');
-    expect(importName('Come_People_Of_The_Risen_King3420')).toBe('Come_People_Of_The_Risen_King3420.pdf');
+    expect(_importName('Come_People_Of_The_Risen_King3420.pdf')).toBe('Come_People_Of_The_Risen_King3420.pdf');
+    expect(_importName('Come_People_Of_The_Risen_King3420')).toBe('Come_People_Of_The_Risen_King3420.pdf');
   });
 });
 
 describe('images', () => {
   it('counts images as originals, by their endings', () => {
-    expect(isOriginalName('Ave verum.JPG')).toBe(true);
-    expect(isOriginalName('Ave verum.heic')).toBe(true);
-    expect(isOriginalName('notes.txt')).toBe(false);
+    expect(_isOriginalName('Ave verum.JPG')).toBe(true);
+    expect(_isOriginalName('Ave verum.heic')).toBe(true);
+    expect(_isOriginalName('notes.txt')).toBe(false);
   });
   it('titles an image without its ending, and keeps the ending when importing', () => {
     expect(titleOf('Ave verum.jpeg')).toBe('Ave verum');
-    expect(importName('Ave verum.jpg', 'image/jpeg')).toBe('Ave verum.jpg');
-    expect(importName('IMG_0042', 'image/jpeg')).toBe('IMG_0042.jpg');
-    expect(importName('scan', 'image/png')).toBe('scan.png');
-    expect(endingOf('Ave verum.webp')).toBe('.webp');
+    expect(_importName('Ave verum.jpg', 'image/jpeg')).toBe('Ave verum.jpg');
+    expect(_importName('IMG_0042', 'image/jpeg')).toBe('IMG_0042.jpg');
+    expect(_importName('scan', 'image/png')).toBe('scan.png');
+    expect(_endingOf('Ave verum.webp')).toBe('.webp');
   });
 });
 
 describe('tidyFolder', () => {
   it('trims the parts of a path and drops empty ones', () => {
-    expect(tidyFolder(' Masses / Latin/ ')).toBe('Masses/Latin');
-    expect(tidyFolder(' / ')).toBe('');
+    expect(_tidyFolder(' Masses / Latin/ ')).toBe('Masses/Latin');
+    expect(_tidyFolder(' / ')).toBe('');
   });
 });
 
@@ -51,22 +51,22 @@ describe('paths', () => {
     expect(pathInFolder('Masses/Mass.pdf', '')).toBe('Mass.pdf');
   });
   it('tidies a path\'s folders', () => {
-    expect(tidyPath(' Masses //Latin /Mass.pdf')).toBe('Masses/Latin/Mass.pdf');
+    expect(_tidyPath(' Masses //Latin /Mass.pdf')).toBe('Masses/Latin/Mass.pdf');
   });
 });
 
 describe('unfoundName', () => {
   it('takes a PDF or image name, and says why Volti wouldn\'t find any other', () => {
-    expect(unfoundName('Masses/Mass.pdf')).toBeNull();
-    expect(unfoundName('Ave verum.HEIC')).toBeNull();
-    expect(unfoundName('Masses/Mass.txt')).toBe('“Mass.txt” doesn’t end in .pdf or an image’s ending, so Volti wouldn’t find it.');
+    expect(_unfoundName('Masses/Mass.pdf')).toBeNull();
+    expect(_unfoundName('Ave verum.HEIC')).toBeNull();
+    expect(_unfoundName('Masses/Mass.txt')).toBe('“Mass.txt” doesn’t end in .pdf or an image’s ending, so Volti wouldn’t find it.');
   });
 });
 
 describe('shownFolder', () => {
   it('reads a folder as the user would, and the top as the top', () => {
-    expect(shownFolder('Masses/Latin')).toBe('Masses / Latin');
-    expect(shownFolder('')).toBe('the top of the library');
+    expect(_shownFolder('Masses/Latin')).toBe('Masses / Latin');
+    expect(_shownFolder('')).toBe('the top of the library');
   });
 });
 
