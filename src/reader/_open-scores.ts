@@ -1,32 +1,34 @@
-// Opening and closing the scores being read: each score's saved state and its original's pages,
-// opened when first needed and closed when far from the score being read.
+// Opening and closing the scores being read: each score's saved state and a way to draw its pages,
+// opened when first needed and dropped when far from the score being read.
 
 import { askPassword } from '../dialogs/passwords';
-import { NoAccess, PasswordNotGiven, type Original, type SourceFile } from '../originals/types';
-import { knownAspects, PageCache } from '../originals/original';
-import { hasPictures, picturesOf } from '../pictures/pictures';
+import { knownAspects } from '../originals/original';
+import { NoAccess, PasswordNotGiven, type DrawOptions, type SourceFile } from '../originals/types';
+import { drawPage, hasSaved } from '../page-cache/cache';
+import type { Drawn } from '../page-cache/types';
 import { loadScore } from '../scores/store';
 import { type Aspects, type State } from '../scores/model';
 
-/**
- * A file's pages, to read: at once where its pages are saved as pictures and their shapes are
- * known, the file read behind them (for pages not saved, and close-ups); otherwise once it is
- * read. Only with `ask` is its password asked for.
- */
-export async function openPages(o: SourceFile, ask: boolean): Promise<{ cache: PageCache; aspects: Aspects }> {
-  const [shapes, saved] = await Promise.all([knownAspects(o.id), hasPictures(o.id)]);
-  const pages = o.read(ask ? askPassword : undefined).then((r) => r.pages());
-  const cache = shapes && saved ? PageCache.opening(pages, o.id) : await pages;
-  cache.pictures = picturesOf(o.id);
-  return { cache, aspects: shapes && saved ? shapes : await cache.allAspects() };
-}
+/** Draw a page of the score (from 1), `pxWidth` device pixels wide. */
+export type DrawPage = (page: number, pxWidth: number, options?: DrawOptions) => Promise<Drawn>;
 
-/** The score's original, read once for drawing thumbnails. */
-const originals = new WeakMap<OpenScore, Promise<Original>>();
-export function originalOf(s: OpenScore): Promise<Original> {
-  let p = originals.get(s);
-  if (!p) originals.set(s, (p = s.original.read()));
-  return p;
+/**
+ * A file's pages, to read: drawn from the file where it can be read; where it can't (no access to
+ * the scores folder yet, or no password given) but its pages are saved and their shapes known,
+ * drawn by id, which can show only the pages saved. Only with `ask` is its password asked for.
+ */
+export async function openPages(o: SourceFile, ask: boolean): Promise<{ draw: DrawPage; aspects: Aspects; readable: boolean }> {
+  try {
+    const original = await o.read(ask ? askPassword : undefined);
+    return { draw: (page, pxWidth, options) => original.draw(page, pxWidth, options), aspects: await original.aspects(), readable: true };
+  } catch (e) {
+    if (!(e instanceof NoAccess || e instanceof PasswordNotGiven)) throw e;
+    const [aspects, saved] = await Promise.all([knownAspects(o.id), hasSaved(o.id)]);
+    if (!aspects || !saved) throw e;
+    const draw: DrawPage = (page, pxWidth, options) =>
+      drawPage({ id: o.id, page, pxWidth, aspect: aspects[page - 1], priority: options?.priority ?? 'now', crop: options?.crop, signal: options?.signal });
+    return { draw, aspects, readable: false };
+  }
 }
 
 /** A score open in the reader. Every entry of a setlist that plays the score shares it. */
@@ -35,8 +37,10 @@ export interface OpenScore {
   original: SourceFile;
   aspects: Aspects;
   state: State;
-  /** Closed while the score is far from the one being read, and opened again when needed. */
-  cache?: PageCache;
+  /** Dropped while the score is far from the one being read, and opened again when needed. */
+  draw?: DrawPage;
+  /** Its file can be read; false when its pages are drawn by id, so only those saved can be shown. */
+  readable?: boolean;
 }
 
 /** A score in the order read: the score itself, or one entry of a setlist. */
@@ -76,7 +80,7 @@ export class OpenScores {
     const it = this.items[k];
     if (!it || it.missing || it.needsAccess || !it.original) return Promise.resolve(null);
     const have = this.scores.get(it.scoreId);
-    if (have?.cache) return Promise.resolve(have);
+    if (have?.draw) return Promise.resolve(have);
     let p = this.opening.get(it.scoreId);
     if (!p) {
       const original = it.original;
@@ -95,12 +99,12 @@ export class OpenScores {
   }
 
   private async open(it: Item, original: SourceFile, ask: boolean): Promise<OpenScore> {
-    const { cache, aspects } = await openPages(original, ask);
-    if (this.closed) { cache.destroy(); throw new Error('Closed'); }
+    const { draw, aspects, readable } = await openPages(original, ask);
+    if (this.closed) throw new Error('Closed');
     const have = this.scores.get(it.scoreId);
-    if (have) { have.cache = cache; return have; }
+    if (have) { have.draw = draw; have.readable = readable; return have; }
     const { state } = await loadScore(it.scoreId, it.title, aspects);
-    const s: OpenScore = { id: it.scoreId, original, aspects, state, cache };
+    const s: OpenScore = { id: it.scoreId, original, aspects, state, draw, readable };
     this.scores.set(s.id, s);
     return s;
   }
@@ -108,24 +112,19 @@ export class OpenScores {
   /** Access to the scores folder was allowed: open the scores again, now from their PDFs too. */
   accessAllowed() {
     for (const it of this.items) it.needsAccess = false;
-    for (const s of this.scores.values()) {
-      s.cache?.destroy();
-      s.cache = undefined;
-    }
+    for (const s of this.scores.values()) s.draw = undefined;
   }
 
   /** Open the score after item k ahead of time, and close the originals of scores further away. */
   keepNear(k: number) {
     const near = new Set([k - 1, k, k + 1].map((i) => this.items[i]?.scoreId));
     for (const s of this.scores.values()) {
-      if (near.has(s.id) || !s.cache) continue;
-      s.cache.destroy();
-      s.cache = undefined;
+      if (!near.has(s.id)) s.draw = undefined;
     }
     if (k + 1 < this.items.length) void this.ensure(k + 1);
   }
 
   destroy() {
-    for (const s of this.scores.values()) s.cache?.destroy();
+    for (const s of this.scores.values()) s.draw = undefined;
   }
 }

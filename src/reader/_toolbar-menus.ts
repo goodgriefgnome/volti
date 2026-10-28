@@ -24,7 +24,7 @@ import { addEntries, defaultSetlist, duplicate, moveEntry, withSetlist, type Ent
 import { deleteSetlist, loadLastAddedTo, saveLastAddedTo } from '../setlists/store';
 import { button, dpr, el, plural } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog, showMenu, type MenuItem } from '../ui/overlay';
-import { originalOf, type OpenScore } from './_open-scores';
+import type { OpenScore } from './_open-scores';
 import type { Reading } from './_reading';
 import type { Saver } from './_saver';
 import type { Toolbar } from './_toolbar';
@@ -296,7 +296,7 @@ export class ReaderMenus {
 
   /** An open score's pages, for the excerpt picker. */
   private source(cur: OpenScore): ExcerptSource {
-    return { state: cur.state, aspects: cur.aspects, page: async (p, w) => (await (await originalOf(cur)).draw(p + 1, Math.round(w * dpr()))).canvas };
+    return { state: cur.state, aspects: cur.aspects, page: async (p, w) => (await cur.draw!(p + 1, Math.round(w * dpr()))).canvas };
   }
 
   /** Changing the open score's named excerpts from the reader, saved with the score. */
@@ -316,8 +316,8 @@ export class ReaderMenus {
 
   /** In a score's own reader: its named excerpts, to go to one, add one or change them. */
   excerpts() {
-    const cur = this.current, cache = cur?.cache;
-    if (!cur || !cache) return;
+    const cur = this.current;
+    if (!cur?.draw) return;
     this.h.dismiss();
     const score = cur.state.score, title = this.h.reading.items[0].title, names = sortedNames(score);
     const d = showDialog(`Excerpts of “${title}”`);
@@ -352,7 +352,7 @@ export class ReaderMenus {
   /** In a setlist: choose which of the score's cuts this entry plays. In an excerpt: change the excerpt's cuts. */
   excerpt() {
     const cur = this.current, { reading } = this.h, k = this.h.k();
-    if (!cur?.cache) return;
+    if (!cur?.draw) return;
     this.h.dismiss();
     const pages = this.source(cur);
     const play = (span: Span) => {

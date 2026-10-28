@@ -15,6 +15,7 @@ const DETAIL_DELAY_MS = 150;
 export class Detail {
   private timer: ReturnType<typeof setTimeout> | undefined;
   private seq = 0;
+  private drawing = new AbortController();
 
   constructor(private host: ReaderView) {}
 
@@ -25,8 +26,15 @@ export class Detail {
     this.timer = setTimeout(() => void this.draw(), DETAIL_DELAY_MS);
   }
 
-  drop() {
+  /** Supersede any close-up being drawn. */
+  private restart(): AbortSignal {
     this.seq++;
+    this.drawing.abort();
+    return (this.drawing = new AbortController()).signal;
+  }
+
+  drop() {
+    this.restart();
     for (const s of this.host.slots()) {
       s.detail?.canvas.remove();
       s.detail?.ink.remove();
@@ -37,12 +45,12 @@ export class Detail {
   /** Stop drawing for good, as when the reader closes. */
   stop() {
     clearTimeout(this.timer);
-    this.seq++;
+    this.restart();
   }
 
   private async draw() {
-    const seq = ++this.seq;
-    const { stage } = this.host, cache = this.host.cache(), aspects = this.host.aspects();
+    const signal = this.restart(), seq = this.seq;
+    const { stage } = this.host, draw = this.host.draw(), aspects = this.host.aspects();
     const z = this.host.zoom();
     const W = stage.clientWidth, H = stage.clientHeight;
     const k = dpr() * z.s;
@@ -58,11 +66,13 @@ export class Detail {
       ctx.fillRect(0, 0, region.w, region.h);
       try {
         for (const b of regionBands(slot.frame, fw, aspects, region)) {
-          const part = await cache.renderRegion(b.p.cut.page + 1, fw, { x, y: b.pageY, w: region.w, h: b.h });
+          const part = await draw(b.p.cut.page + 1, fw, { crop: { x, y: b.pageY, w: region.w, h: b.h }, priority: 'now', signal });
           if (seq !== this.seq) return;
-          ctx.drawImage(part, 0, b.destY);
+          // From a page drawn at an equivalent width, it may be a pixel or two off the size asked for.
+          ctx.drawImage(part.canvas, 0, b.destY, region.w, b.h);
         }
       } catch (e) {
+        if (seq !== this.seq) return;
         console.error(e);
         continue;
       }

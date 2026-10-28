@@ -9,8 +9,8 @@ import { PEN_COLORS } from '../markings/stroke';
 import { type Marking } from '../markings/model';
 import { knownTitles } from '../originals/library-files';
 import { NoAccess, PasswordNotGiven, type SourceFile } from '../originals/types';
+import { NotSaved } from '../page-cache/types';
 import { titleOf } from '../originals/path-utils';
-import { type PageCache } from '../originals/original';
 import { framesOnScreen } from '../render/layout';
 import { isZoomed, NO_ZOOM, type Zoom } from '../render/zoom';
 import { pageWidths, screenAt } from '../render/screen';
@@ -28,7 +28,7 @@ import { Detail } from './_detail';
 import type { Gesture } from './_gestures';
 import { History } from './_history';
 import { Input } from './_input';
-import { OpenScores, openPages, originalOf, type Item, type OpenScore } from './_open-scores';
+import { OpenScores, openPages, type DrawPage, type Item, type OpenScore } from './_open-scores';
 import { Reading, setlistItems, type ReadingKind, type ReadingSnapshot } from './_reading';
 import { Saver } from './_saver';
 import { blankBox, ScoreCard, showSetlistTitle } from './_setlist';
@@ -65,9 +65,9 @@ export async function openReader(what: ToRead, onClose: (fileChanges: FileChange
   const setlists = await loadSetlists();
   if (what.kind !== 'setlist') {
     const { original } = what;
-    const { cache, aspects } = await openPages(original, true);
+    const { draw, aspects, readable } = await openPages(original, true);
     const { state, position } = await loadScore(original.id, titleOf(original.path), aspects);
-    const first: OpenScore = { id: original.id, original, aspects, state, cache };
+    const first: OpenScore = { id: original.id, original, aspects, state, draw, readable };
     const item = { scoreId: original.id, title: titleOf(original.path), original };
     // An excerpt starts at its start each time: its place isn't kept.
     if (what.kind === 'excerpt') new Reader([item], { kind: 'excerpt', span: ends(what.excerpt) }, setlists, first, 0, undefined, onClose);
@@ -108,6 +108,8 @@ class Reader {
   private loading = false;
   private card = new ScoreCard(this.root);
   private seq = 0;
+  /** Aborted when the screen changes: the pages drawn ahead for it are no longer wanted. */
+  private ahead = new AbortController();
   private slots: FrameSlot[] = [];
   /** Page canvases drawn at the frame's width, by 0-based page, for the frames on screen. */
   private pages = new Map<number, HTMLCanvasElement>();
@@ -155,7 +157,7 @@ class Reader {
     const view: ReaderView = {
       stage: this.stage,
       aspects: () => this.aspects,
-      cache: () => this.cache,
+      draw: () => this.draw,
       state: () => this.state,
       frames: () => this.frames,
       slots: () => this.slots,
@@ -165,7 +167,7 @@ class Reader {
       ...view,
       commit: (s, focus) => this.commit(s, focus),
       preview: (s, frames, hatches) => this.preview(s, frames, hatches),
-      thumb: async (page, w) => (await (await originalOf(this.current!)).draw(page + 1, Math.round(w * dpr()))).canvas,
+      thumb: async (page, w) => (await this.draw(page + 1, Math.round(w * dpr()))).canvas,
       inking: () => this.tool !== 'none',
       cancelGesture: () => this.input.cancelGesture(),
       say: (t) => this.say(t),
@@ -266,7 +268,7 @@ class Reader {
   private get current(): OpenScore | undefined { return this.scores.get(this.items[this.k].scoreId); }
   private get state(): State { return this.current!.state; }
   private get aspects(): Aspects { return this.current!.aspects; }
-  private get cache(): PageCache { return this.current!.cache!; }
+  private get draw(): DrawPage { return this.current!.draw!; }
 
   private framesFor(k: number): Frame[] {
     const cur = this.scores.get(this.items[k].scoreId);
@@ -378,8 +380,6 @@ class Reader {
     return n >= 2 && framesOnScreen(frames[n - 2].aspect, W, H) === 2 ? n - 2 : n - 1;
   }
 
-  private pageSize(page: number, w: number) { return { w, h: Math.round(w * this.aspects[page]) }; }
-
   /** In a setlist, what fills the rest of a score's last screen. */
   private blank(missing?: string): HTMLElement {
     return blankBox(this.items[this.k + 1]?.title, missing);
@@ -387,12 +387,14 @@ class Reader {
 
   private async show() {
     const seq = ++this.seq; // a newer show() (turn, resize, edit) supersedes this one
+    this.ahead.abort();
+    this.ahead = new AbortController();
     const W = this.stage.clientWidth;
     const H = this.stage.clientHeight;
     if (!W || !H || this.loading) return;
     this.showTitle();
     const it = this.items[this.k];
-    if (!this.current?.cache) {
+    if (!this.current?.draw) {
       // A score that can't be opened: say so, and carry on with the next one.
       this.showUnread(it.title, !!it.needsAccess, W, H);
       return;
@@ -404,11 +406,12 @@ class Reader {
     const widths = pageWidths(on, rects.map((r) => r.w));
     let canvases: HTMLCanvasElement[];
     try {
-      canvases = await Promise.all([...widths].map(([p, w]) => this.cache.render(p + 1, w, this.pageSize(p, w).h, scale, 'now', true)));
+      const draw = this.draw;
+      canvases = (await Promise.all([...widths].map(([p, w]) => draw(p + 1, Math.round(w * scale), { priority: 'now' })))).map((d) => d.canvas);
     } catch (e) {
       if (seq !== this.seq) return;
       // A page not saved as a picture, of a PDF that can't be read until access is allowed.
-      if (e instanceof NoAccess) { this.showUnread(it.title, true, W, H); return; }
+      if (e instanceof NoAccess || e instanceof NotSaved) { this.showUnread(it.title, true, W, H); return; }
       this.toolbar.info.textContent = 'Could not draw this page';
       console.error(e);
       return;
@@ -456,8 +459,8 @@ class Reader {
   /** Whether the score read can be read from its PDF, or couldn't be as access to the scores folder isn't allowed. */
   private async readable(): Promise<boolean> {
     if (this.items[this.k]?.needsAccess) return false;
-    const cache = this.current?.cache;
-    return !cache || cache.ready().then(() => true, (e) => !(e instanceof NoAccess));
+    const cur = this.current;
+    return !cur?.draw || !!cur.readable;
   }
 
   /**
@@ -524,17 +527,16 @@ class Reader {
       for (const [p, w] of pageWidths(on, rects.map((r) => r.w))) near.set(p, w);
     }
     for (const [p, w] of widths) near.set(p, w);
-    this.cache.keepOnly([...near.keys()].map((p) => p + 1), (n) => this.pageSize(n - 1, near.get(n - 1)!));
-    const cache = this.cache;
-    await Promise.all([...near].map(([p, w]) => cache.render(p + 1, w, this.pageSize(p, w).h, scale, 'ahead', true).catch(() => {})));
+    const { signal } = this.ahead, draw = this.draw;
+    await Promise.all([...near].map(([p, w]) => draw(p + 1, Math.round(w * scale), { priority: 'ahead', signal }).catch(() => {})));
     if (seq !== this.seq) return;
     // On a score's last screen in a setlist, draw the next score's first screen too.
     if (!this.reading.setlistId || this.frame + this.shown < this.frames.length || this.k + 1 >= this.items.length) return;
     const cur = await this.scores.ensure(this.k + 1);
-    if (seq !== this.seq || !cur?.cache) return;
+    if (seq !== this.seq || !cur?.draw) return;
     const { on, rects } = this.screenAt(this.framesFor(this.k + 1), 0, W, H, scale);
-    const next = cur.cache;
-    await Promise.all([...pageWidths(on, rects.map((r) => r.w))].map(([p, w]) => next.render(p + 1, w, Math.round(w * cur.aspects[p]), scale, 'ahead', true).catch(() => {})));
+    const next = cur.draw;
+    await Promise.all([...pageWidths(on, rects.map((r) => r.w))].map(([p, w]) => next(p + 1, Math.round(w * scale), { priority: 'ahead', signal }).catch(() => {})));
   }
 
 
@@ -580,10 +582,10 @@ class Reader {
     this.toolbar.info.textContent = 'Opening…';
     let open: OpenScore;
     try {
-      const { cache, aspects } = await openPages(o, true);
-      if (this.scores.closed) { cache.destroy(); return; }
+      const { draw, aspects, readable } = await openPages(o, true);
+      if (this.scores.closed) return;
       const { state } = await loadScore(o.id, titleOf(o.path), aspects);
-      open = { id: o.id, original: o, aspects, state, cache };
+      open = { id: o.id, original: o, aspects, state, draw, readable };
     } catch (e) {
       // Not opened (its password not given, say): stay where you were.
       this.loading = false;
@@ -707,6 +709,7 @@ class Reader {
     this.observer.disconnect();
     this.detail.stop();
     this.seq++;
+    this.ahead.abort();
     this.editor.dismiss();
     this.card.stop();
     await this.saver.flush();
