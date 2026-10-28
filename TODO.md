@@ -56,6 +56,8 @@ checks are `npm test` and `npm run build` (which type-checks every moved import)
     `library/` row that it keeps setlists' pages offline (`_offline-pages`). The comment at the top of
     `render/screen.ts` names `pictures/maker.ts`: make it `library/_offline-pages.ts`.
 
+- **Move storage to the format in `STORAGE.md`:** follow `STORAGE-PLAN.md`, stage by stage.
+
 ## Manual check
 
 Things to try on the tablet.
