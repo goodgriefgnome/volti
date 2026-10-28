@@ -22,20 +22,21 @@ export interface Ids {
 /** A source file's bytes, for reading what only originals/ reads from it. */
 export interface Readable extends SourceFile { file(): Promise<File> }
 
-/** An original's pages, to draw. Pages are numbered from 1. */
-export interface PageSource {
+/** A part of a page drawn `pxWidth` device pixels wide, in those pixels. */
+export interface Crop { x: number; y: number; w: number; h: number }
+
+/** An original's pages, open: pdf.js's document, or an image's bitmap. Pages are numbered from 1. */
+export interface OpenPages {
   readonly pages: number;
   /** Page height / width. */
   aspect(num: number): Promise<number>;
-  /** Draw a page `width` device pixels wide. */
-  draw(num: number, width: number): Promise<HTMLCanvasElement>;
-  /** Draw a page `pageWidth` pixels wide, and cut `region` (in those pixels) out of it. */
-  region(num: number, pageWidth: number, region: { x: number; y: number; w: number; h: number }): Promise<HTMLCanvasElement>;
+  /** Draw a page `pxWidth` device pixels wide, or `crop` of it; stops when `signal` aborts. */
+  draw(num: number, pxWidth: number, crop: Crop | undefined, signal: AbortSignal): Promise<HTMLCanvasElement>;
   destroy(): void;
 }
 
 /** What a file's bytes are, read as music: its pages to draw, and its music as a PDF. */
 export interface Content {
-  pages(): Promise<PageSource>;
+  pages(): Promise<OpenPages>;
   pdf(): Promise<RenderedPdf>;
 }

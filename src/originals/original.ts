@@ -1,12 +1,12 @@
 // Reading a source file into an original, and the page cache an original gives. `_readOriginal`
 // picks how the file is read by its first bytes (a PDF: _pdf-source.ts, else an image:
 // _image-source.ts) and wraps what that gives with the file in an original that passes its id, path,
-// moving and removing to the file. `PageCache` keeps the pages drawn from a PageSource: it draws a
+// moving and removing to the file. `PageCache` keeps the pages drawn from an OpenPages: it draws a
 // couple at a time, those for the screen first, keeps those around the current screen, and uses
 // saved pictures where there are some.
 
 import { readImage } from './_image-source';
-import type { Content, PageSource, Readable } from './_types';
+import type { Content, OpenPages, Readable } from './_types';
 import { isPdf, readPdf } from './_pdf-source';
 import type { AskPassword, Original, PagePictures, RenderedPdf } from './types';
 
@@ -66,7 +66,7 @@ export class PageCache {
   /** Saved pictures of the pages, used instead of drawing them. */
   pictures?: PagePictures;
 
-  constructor(private opened: Promise<PageSource>) {
+  constructor(private opened: Promise<OpenPages>) {
     opened.catch(() => {}); // a failure shows where a page is drawn
   }
 
@@ -134,7 +134,7 @@ export class PageCache {
       const canvas = await this.turn(when, (waited) => {
         // Turned past while it waited: no longer kept, so not worth drawing.
         if (when === 'ahead' && waited && !this.cache.has(k)) throw new Error('No longer wanted');
-        return this.opened.then((s) => s.draw(num, width));
+        return this.opened.then((s) => s.draw(num, width, undefined, new AbortController().signal));
       });
       if (save) this.pictures?.put(num, width, canvas);
       return canvas;
@@ -149,7 +149,7 @@ export class PageCache {
    * `region` (in those pixels) is cut out of it. Not cached, as it changes with every pan and pinch.
    */
   async renderRegion(num: number, pageWidth: number, region: { x: number; y: number; w: number; h: number }): Promise<HTMLCanvasElement> {
-    return (await this.opened).region(num, pageWidth, region);
+    return (await this.opened).draw(num, pageWidth, region, new AbortController().signal);
   }
 
   /** Drop everything except the given pages at the given size. */

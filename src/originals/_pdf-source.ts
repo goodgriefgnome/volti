@@ -18,7 +18,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
-import type { Content, PageSource, Readable } from './_types';
+import type { Content, Crop, OpenPages, Readable } from './_types';
 import { titleOf } from './path-utils';
 import { PasswordNotGiven, type AskPassword, type RenderedPdf, type SourceFile } from './types';
 
@@ -125,7 +125,7 @@ class PdfContent implements Content {
     return held ?? pdfOf(this.f, await this.f.file());
   }
 
-  async pages(): Promise<PageSource> {
+  async pages(): Promise<OpenPages> {
     return openPdf((await this.pdf()).bytes);
   }
 }
@@ -191,7 +191,7 @@ async function pagesDrawn(o: SourceFile, bytes: Uint8Array, ask: AskPassword | u
     const out = await lib.PDFDocument.create();
     for (let num = 1; num <= source.pages; num++) {
       const aspect = await source.aspect(num);
-      const canvas = await source.draw(num, DRAWN_W);
+      const canvas = await source.draw(num, DRAWN_W, undefined, new AbortController().signal);
       const image = await out.embedJpg(await encode(canvas, 'image/jpeg'));
       canvas.width = canvas.height = 0; // free its memory now rather than at garbage collection
       out.addPage([A4_W, A4_W * aspect]).drawImage(image, { x: 0, y: 0, width: A4_W, height: A4_W * aspect });
@@ -240,7 +240,7 @@ export function supersample(width: number, height: number): number {
 }
 
 /** A PDF's pages, drawn by pdf.js. */
-export class PdfSource implements PageSource {
+export class PdfSource implements OpenPages {
   constructor(private doc: pdfjs.PDFDocumentProxy) {}
 
   get pages() { return this.doc.numPages; }
@@ -250,46 +250,54 @@ export class PdfSource implements PageSource {
     return vp.height / vp.width;
   }
 
-  /** Draw a page `width` device pixels wide. */
-  async draw(num: number, width: number): Promise<HTMLCanvasElement> {
+  /** Draw a page `pxWidth` device pixels wide, or `crop` of it (in those pixels). */
+  async draw(num: number, pxWidth: number, crop: Crop | undefined, signal: AbortSignal): Promise<HTMLCanvasElement> {
+    signal.throwIfAborted();
     const page = await this.doc.getPage(num);
-    const base = page.getViewport({ scale: 1 });
-    const scale = width / base.width;
-    const height = Math.round(base.height * scale);
-    // Draw larger, then shrink with high-quality smoothing: this keeps staff lines even
-    // and stops scanned pages from looking jagged.
-    const ss = supersample(width, height);
-    const big = document.createElement('canvas');
-    const viewport = page.getViewport({ scale: scale * ss });
-    big.width = Math.round(viewport.width);
-    big.height = Math.round(viewport.height);
     try {
-      await page.render({ canvas: big, viewport, background: '#ffffff' }).promise;
+      signal.throwIfAborted();
+      const base = page.getViewport({ scale: 1 });
+      const scale = pxWidth / base.width;
+      const height = Math.round(base.height * scale);
+      // Draw larger, then shrink with high-quality smoothing: this keeps staff lines even
+      // and stops scanned pages from looking jagged. Depends on the page only, not the crop.
+      const ss = supersample(pxWidth, height);
+      const outW = crop?.w ?? pxWidth, outH = crop?.h ?? height;
+      const big = document.createElement('canvas');
+      const viewport = page.getViewport({ scale: scale * ss });
+      big.width = crop ? Math.round(crop.w * ss) : Math.round(viewport.width);
+      big.height = crop ? Math.round(crop.h * ss) : Math.round(viewport.height);
+      const task = page.render({
+        canvas: big,
+        viewport,
+        background: '#ffffff',
+        ...(crop && { transform: [1, 0, 0, 1, -crop.x * ss, -crop.y * ss] }),
+      });
+      const cancel = () => task.cancel();
+      signal.addEventListener('abort', cancel, { once: true });
+      try {
+        await task.promise;
+      } catch (e) {
+        big.width = big.height = 0;
+        if (signal.aborted) signal.throwIfAborted();
+        throw e;
+      } finally {
+        signal.removeEventListener('abort', cancel);
+      }
+      signal.throwIfAborted();
+      if (ss === 1) return big;
+      const canvas = document.createElement('canvas');
+      canvas.width = outW;
+      canvas.height = outH;
+      const ctx = canvas.getContext('2d', { alpha: false })!;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(big, 0, 0, outW, outH);
+      big.width = big.height = 0; // free its memory now rather than at garbage collection
+      return canvas;
     } finally {
       page.cleanup();
     }
-    if (ss === 1) return big;
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d', { alpha: false })!;
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(big, 0, 0, width, height);
-    big.width = big.height = 0; // free its memory now rather than at garbage collection
-    return canvas;
-  }
-
-  /** Draw a page `pageWidth` pixels wide, and cut `region` (in those pixels) out of it. */
-  async region(num: number, pageWidth: number, region: { x: number; y: number; w: number; h: number }): Promise<HTMLCanvasElement> {
-    const page = await this.doc.getPage(num);
-    const base = page.getViewport({ scale: 1 });
-    const viewport = page.getViewport({ scale: pageWidth / base.width });
-    const canvas = document.createElement('canvas');
-    canvas.width = region.w;
-    canvas.height = region.h;
-    await page.render({ canvas, viewport, transform: [1, 0, 0, 1, -region.x, -region.y], background: '#ffffff' }).promise;
-    return canvas;
   }
 
   /** Close the document, freeing it in the worker: its loading task does that. */

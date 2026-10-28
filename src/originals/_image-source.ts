@@ -3,7 +3,7 @@
 // one-page PDF, put in as it is where that loses nothing. Telling a JPEG or a PNG by its first bytes
 // and which way up a JPEG is meant to be shown is pure. pdf-lib is only loaded when it is needed.
 
-import type { Content, PageSource, Readable } from './_types';
+import type { Content, Crop, OpenPages, Readable } from './_types';
 import { A4_W, encode } from './_pdf-source';
 import type { RenderedPdf } from './types';
 
@@ -98,29 +98,32 @@ function sheet(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext
 }
 
 /** An image's page, from its bitmap, held while it is open. */
-export class ImageSource implements PageSource {
+export class ImageSource implements OpenPages {
   readonly pages = 1;
 
   constructor(private bitmap: ImageBitmap) {}
 
   async aspect() { return this.bitmap.height / this.bitmap.width; }
 
-  /** Draw it `width` device pixels wide, resized by the browser at high quality. */
-  async draw(_num: number, width: number): Promise<HTMLCanvasElement> {
-    const height = Math.round(width * this.bitmap.height / this.bitmap.width);
-    const resized = await createImageBitmap(this.bitmap, { resizeWidth: width, resizeHeight: height, resizeQuality: 'high' });
-    const [canvas, ctx] = sheet(width, height);
-    ctx.drawImage(resized, 0, 0);
-    resized.close();
-    return canvas;
-  }
-
-  /** Draw it `pageWidth` pixels wide, and cut `region` (in those pixels) out of it. */
-  async region(_num: number, pageWidth: number, region: { x: number; y: number; w: number; h: number }): Promise<HTMLCanvasElement> {
-    const s = this.bitmap.width / pageWidth;
-    const [canvas, ctx] = sheet(region.w, region.h);
-    ctx.drawImage(this.bitmap, region.x * s, region.y * s, region.w * s, region.h * s, 0, 0, region.w, region.h);
-    return canvas;
+  /** Draw it `pxWidth` device pixels wide, or `crop` of it (in those pixels). */
+  async draw(_num: number, pxWidth: number, crop: Crop | undefined, signal: AbortSignal): Promise<HTMLCanvasElement> {
+    signal.throwIfAborted();
+    if (crop) {
+      const s = this.bitmap.width / pxWidth;
+      const [canvas, ctx] = sheet(crop.w, crop.h);
+      ctx.drawImage(this.bitmap, crop.x * s, crop.y * s, crop.w * s, crop.h * s, 0, 0, crop.w, crop.h);
+      return canvas;
+    }
+    const height = Math.round(pxWidth * this.bitmap.height / this.bitmap.width);
+    const resized = await createImageBitmap(this.bitmap, { resizeWidth: pxWidth, resizeHeight: height, resizeQuality: 'high' });
+    try {
+      signal.throwIfAborted();
+      const [canvas, ctx] = sheet(pxWidth, height);
+      ctx.drawImage(resized, 0, 0);
+      return canvas;
+    } finally {
+      resized.close();
+    }
   }
 
   destroy() {
