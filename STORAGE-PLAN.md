@@ -368,12 +368,14 @@ Update `folder`'s comment.
     - for `setlist` with no `startEntry`, use `resumeAt` to get `entry` and `cut`, find `k` by
       `entryId`, and pass `cut` as the position. If the entry isn't found, use `k = 0` and no
       position.
-    - with a `startEntry`, as now.
-    - an excerpt: as now.
+    - with a `startEntry`, as now: it starts at that entry's start. `saveSpot` then makes
+      `last-read` name the setlist at that entry, as for any setlist.
+    - an excerpt: as now, and call `clearLastRead()` (add it to `reader/_store.ts`: `kv.del` of
+      the key).
   - `saveSpot(cut)`:
     - for `score`, save `{ kind: 'score', id: this.items[this.k].scoreId, cut }`
     - for `setlist`, save `{ kind: 'setlist', id: <the setlist id>, entry: this.items[this.k].entryId!, cut }`
-    - for an excerpt, save nothing
+    - for an excerpt, save nothing (opening it already cleared `last-read`)
 
     The setlist id is in `this.reading.what` when its kind is `'setlist'`.
   - A cut that no longer exists: check that `goTo(k, cut)` falls back to the start. If not, make
@@ -434,8 +436,10 @@ Open DevTools → Application → IndexedDB → `volti-scores` → `kv` to watch
     - Open B, then A again: A starts at the beginning.
     - Play a setlist, turn into its second entry, close and reopen the app, play it again: same
       place.
-    - Tap one entry of the setlist instead: it starts at that entry.
-    - Open an excerpt in between: the setlist still resumes.
+    - Tap one entry of the setlist instead: it starts at that entry. Turn a page, go back, and
+      play the setlist: it resumes there.
+    - Open an excerpt, then the setlist (or score) read before it: it starts at the beginning.
+      `last-read` is gone from IndexedDB while the excerpt is open.
 13. **Purge.** Set a removed record's `removedAt` to 8 days ago in DevTools and reload: the record
     is `gone`, and its bytes are deleted.
 14. **Old data.** On a device that had the previous version, after the first start the old keys

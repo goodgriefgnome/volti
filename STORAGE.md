@@ -203,8 +203,11 @@ is read.
   includes after the app is closed and reopened.
 - **Opening any other score or setlist** starts at its beginning, and this key then names it.
 - **Turning from one score to the next** in a score's reader makes the new score the one named.
-- **Excerpts**, opened on their own, always start at their start and leave this key as it is.
-- **Tapping one entry** of a setlist in the library starts at that entry, whatever this key says.
+- **Opening an excerpt** on its own starts at its start, and deletes this key: the next score or
+  setlist opened starts at its beginning.
+- **Tapping one entry** of a setlist in the library is the same as opening the setlist and moving
+  to that entry's start. It starts there, whatever this key says, and this key then names the
+  setlist at that entry.
 - **If the cut or the entry can't be found** (edited away, or the setlist deleted), opening
   starts at the beginning.
 
