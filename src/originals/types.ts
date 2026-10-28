@@ -1,9 +1,8 @@
 // The public types of originals/: source files and originals, what an original gives as a PDF, the
-// state of the linked folder, passwords, saved page pictures, removed files, and the errors thrown
+// state of the linked folder, passwords, removed files, and the errors thrown
 // when a file can't be read for want of access or a password.
 
 import type { Crop, Drawn, Priority } from '../page-cache/types';
-import type { PageCache } from './original';
 
 /** What a draw may ask besides the page and its width. */
 export interface DrawOptions { crop?: Crop; priority?: Priority; signal?: AbortSignal }
@@ -39,8 +38,6 @@ export interface Original extends SourceFile {
   draw(page: number, pxWidth: number, options?: DrawOptions): Promise<Drawn>;
   /** As draw, with stand-ins first (page-cache's drawPageProgressive). */
   drawProgressive(page: number, pxWidth: number, options?: DrawOptions): AsyncIterable<Drawn>;
-  /** Its pages, to draw. */
-  pages(): Promise<PageCache>;
   /** Its music as a PDF, for export (_pdf-source.ts, _image-source.ts). */
   pdf(): Promise<RenderedPdf>;
 }
@@ -77,13 +74,6 @@ export interface RenderedPdf {
 /** The scores folder can't be read, or changed, as access to it isn't allowed. */
 export class NoAccess extends Error {
   name = 'NoAccess';
-}
-
-/** Saved pictures of a score's pages, by page number and width in device pixels: looked at before a page is drawn. */
-export interface PagePictures {
-  get(num: number, width: number): Promise<HTMLCanvasElement | null>;
-  /** Offered each page drawn for reading: kept if it is one to keep. */
-  put(num: number, width: number, canvas: HTMLCanvasElement): void;
 }
 
 /** A removed file: kept under `key`, with its id, where it was in the library, and when it was removed (ms since 1970). */

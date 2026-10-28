@@ -3,7 +3,7 @@
 // first bytes and an encrypted one by its ends, and the music as a PDF pdf.js and pdf-lib can both
 // read: the PDF as it is, decrypted, or where it can't be had as it is (an encryption pdf-decrypt
 // doesn't know, or a PDF pdf-lib can't read), its pages drawn into a PDF of pictures. All use of
-// pdf.js is here; the page cache (original.ts) keeps what is drawn. pdf-lib and pdf-decrypt are
+// pdf.js is here; the page cache (page-cache/) keeps what is drawn. pdf-lib and pdf-decrypt are
 // only loaded when needed.
 //
 // The password that opened a PDF is remembered on the tablet by its file's id, so it is asked for

@@ -253,7 +253,7 @@ export class Library implements LibraryHost {
   setlist(id: string) { return this.setlists.find((s) => s.id === id); }
 
   private renderSetlists() {
-    // Shown afresh whenever they change, or the scores do: keep their pages' pictures up to date.
+    // Shown afresh whenever they change, or the scores do: keep their pages saved offline.
     makePictures(this.originals, this.setlists);
     this.setlistsSection.render();
   }
@@ -429,7 +429,7 @@ export class Library implements LibraryHost {
     };
     try {
       // Opening is a tap, so a score's original can ask for access to the scores folder for this
-      // session. A setlist plays without it from its saved pictures, asking for a page that isn't.
+      // session. A setlist plays without it from its saved pages, asking for a page that isn't.
       await openReader(what, back);
     } catch (e) {
       this.root.hidden = false;

@@ -82,6 +82,10 @@ Things to try on the tablet.
   it was rasterized; plain PDFs and images export at original quality, as before.
 - **New PDFs appear on coming back:** add a PDF to the scores folder in the Files app, switch
   back to Volti after half a minute or more: it appears in the library without asking.
+- **The page cache:** reading, turning quickly, zooming in and out, and close-ups on a PDF and a
+  photo look as before; setlists before Allow access play their saved pages (a page not saved says
+  Volti needs access); the storage view shows Setlist pages and Page cache as two parts; a long
+  setlist doesn't run the tablet out of memory.
 
 ## Confirmed features which require more thought
 
@@ -92,25 +96,20 @@ Things to try on the tablet.
   removed file isn't read to preview it in Recently removed; and there is no way yet to take a
   PDF's password off as it comes in (a copy kept without it, by choice), which would leave Volti
   nothing to remember.
-- **One page cache for the app, kept between sessions** [needs discussion]: today each opener
-  (the reader's scores, a dialog's score, an export, the pictures maker, an incoming preview)
-  opens its own `PageCache`, so one original can be open in pdf.js twice, with its pages drawn
-  twice. Instead, one cache keyed by original id (a hash, so never stale): openers take and
-  release a hold on an original, pdf.js closes it once none is held, and drawn pages share one
-  memory budget, the least recently used dropped first. Kept between sessions, it would take over
-  from the saved pictures (`pictures/`), which are already a stored page cache for the pages
-  setlists play: the pictures maker would only mark those pages to keep. To think through: how
-  much room it may take, and which pages are worth storing (thumbnails, zoom steps, sizes no
-  longer shown); the cost of encoding WebP against drawing again (small for vector pages, large
-  for scans); a version in its keys, as a new pdf.js or supersampling draws differently; that a
-  password-protected PDF's pages are stored readable, as pictures are now; and Trash in the
-  storage view for a removed score's pages.
+- **Progressive drawing for thumbnails when they are first drawn** [needs thought]: the page
+  cache can give stand-ins (`Original.drawProgressive`), but no caller uses it yet; thumbnails
+  would show a nearby width at once and sharpen.
+- **The cache giving room back when the origin runs short of quota** [needs thought]: pinned
+  pages are never evicted and the others only to stay within 30% of the quota; nothing shrinks the
+  cache when the origin as a whole (scores added, metadata) runs out of room.
+- **Showing offline progress on the setlist's row:** `keepPagesOffline` reports how many of the
+  pages setlists play are saved; nothing shows it yet.
 - **An original whose pages have to be drawn is drawn three times to export it** [needs
   refinement]: where a PDF's music can't be had as it is (an encryption pdf-decrypt doesn't know,
   or a PDF pdf-lib can't read), `pdfOf` draws every page with pdf.js into a PDF of pictures
   (`pagesDrawn`), and nothing keeps it. The export dialog (`openExportPdf`) draws it once to learn
   `lossyReason` in `drawnOriginals`, and exporting (`open` in `export/pdf.ts`) draws it again for
-  `o.pages()`, only for the pages' aspects, and again for `o.pdf()`, as `PdfContent` holds what it
+  `o.aspects()`, which draws them to count the pages, and again for `o.pdf()`, as `PdfContent` holds what it
   worked out only until the first `pdf()` takes it (pdf.js takes the bytes it is given). Reading
   such a score draws every page up front too. To work out: where the drawn PDF should be kept, and
   for how long (it can be large), and whether the reason can be known without drawing.

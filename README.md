@@ -25,8 +25,8 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   markings and setlists stay, for when the folder is linked again.
 - The **⋯** beside the name has the scores folder's **Check for new scores**, **Change folder…**
   and **Unlink**, **Recently removed…**, and the storage Volti uses on the tablet: metadata (cuts,
-  markings, setlists), added scores (those in Volti's own folder), the setlist cache (pictures of
-  the pages setlists play), the trash (Recently removed) and the offline binary (the app itself,
+  markings, setlists), added scores (those in Volti's own folder), setlist pages (the pages
+  setlists play, saved so they show at once), the page cache (other pages saved), the trash (Recently removed) and the offline binary (the app itself,
   kept for working offline).
 - The scores at the top of the folder come first, then a list for each subfolder ("Masses /
   Latin"), which its heading opens and closes; Volti remembers which are closed.
@@ -115,7 +115,7 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   - Cuts and markings always belong to the score: changing them in a setlist changes the score,
     and every setlist's excerpts follow the change.
   - **Archive** hides a setlist behind **Show archived**; only archived setlists can be deleted.
-  - Volti keeps pictures of the pages setlists play (not archived ones), drawn for this tablet's
+  - Volti keeps the pages setlists play (not archived ones) saved, drawn for this tablet's
     screen in the background, so a setlist opens, and turns between its scores, at once. A page
     read at a new size (the tablet turned, say) is kept at that size too once it has been drawn.
 
