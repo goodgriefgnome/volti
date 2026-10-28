@@ -9,7 +9,7 @@ import { diskBudget, worthSaving } from './_budget';
 import { Held } from './_memory';
 import { resetScheduler, schedule } from './_scheduler';
 import { Saved } from './_disk';
-import { NotSaved, type Crop, type DrawRequest, type Drawn, type OfflineProgress, type OfflineScore } from './types';
+import { NotSaved, type Crop, type DrawRequest, type Drawn, type OfflineKey, type OfflineProgress, type OfflineScore } from './types';
 
 let held = new Held();
 let saved = new Saved();
@@ -137,18 +137,21 @@ async function* keepRun(scores: readonly OfflineScore[], keep: readonly string[]
   let done = 0;
   const todo: { score: OfflineScore; page: number; pxWidth: number; aspect: number }[] = [];
   let of = 0;
+  const already: OfflineKey[] = [];
   for (const score of scores) {
     for (const p of score.pages) {
       of++;
       if (signal.aborted) return;
-      if ((await saved.widths(score.id, p.page)).includes(p.pxWidth)) done++;
-      else todo.push({ score, ...p });
+      if ((await saved.widths(score.id, p.page)).includes(p.pxWidth)) {
+        done++;
+        already.push({ id: score.id, page: p.page, pxWidth: p.pxWidth });
+      } else todo.push({ score, ...p });
     }
   }
-  yield { done, of };
+  yield { done, of, saved: already };
   // Pages finished, handed to the loop below as they come.
   let wake: (() => void) | undefined;
-  const finished: boolean[] = [];
+  const finished: (OfflineKey | null)[] = [];
   let working = 0;
   const next = () => {
     const job = todo.shift();
@@ -164,9 +167,9 @@ async function* keepRun(scores: readonly OfflineScore[], keep: readonly string[]
         const { canvas } = await render({ id: score.id, source: score.source, page, pxWidth, aspect, priority: 'later', signal });
         await saved.write(score.id, page, pxWidth, canvas, true); // the write render began, if it has not finished
       }
-    })().then(() => finished.push(true), (e) => {
+    })().then(() => finished.push({ id: score.id, page, pxWidth }), (e) => {
       if (!signal.aborted) console.warn('Could not draw a page to keep offline:', e);
-      finished.push(false);
+      finished.push(null);
     }).finally(() => {
       working--;
       next();
@@ -178,9 +181,9 @@ async function* keepRun(scores: readonly OfflineScore[], keep: readonly string[]
   while (working || finished.length) {
     if (!finished.length) await new Promise<void>((r) => { wake = r; });
     if (signal.aborted) return;
-    for (const ok of finished.splice(0)) {
-      if (ok) done++;
-      yield { done, of };
+    for (const key of finished.splice(0)) {
+      if (key) done++;
+      yield { done, of, saved: key ? [key] : [] };
     }
   }
 }

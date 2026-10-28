@@ -11,13 +11,28 @@ import { addEntries, duplicate, moveEntry, newSetlist, setEntryExcerpt, withSetl
 import { button, el, plural } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog, showMenu } from '../ui/overlay';
 import type { LibraryHost } from './_host';
+import { offlineText, type OfflineStatus } from './_offline-status';
 import { expandableRow, moreButton } from './_rows';
+
+const RING_R = 9, RING_LENGTH = 2 * Math.PI * RING_R;
+
+/** The 22 px ring for a status: a track and an arc filling as pages save; a filled circle with a tick when all are; a dashed warning ring with "!" when some can't be. */
+function ringSvg(s: OfflineStatus): string {
+  const body = s.kind === 'ready'
+    ? '<circle class="ring-fill" cx="11" cy="11" r="11"/><path class="ring-tick" d="M6.2 11.4l3.3 3.2 6.3-6.6"/>'
+    : s.kind === 'blocked'
+      ? `<circle class="ring-warn" cx="11" cy="11" r="${RING_R}"/><text class="ring-mark" x="11" y="15.2" text-anchor="middle">!</text>`
+      : `<circle class="ring-track" cx="11" cy="11" r="${RING_R}"/><circle class="ring-arc" cx="11" cy="11" r="${RING_R}" stroke-dasharray="${(s.of ? s.done / s.of : 0) * RING_LENGTH} ${RING_LENGTH}"/>`;
+  return `<svg viewBox="0 0 22 22" width="22" height="22" aria-hidden="true">${body}</svg>`;
+}
 
 export class SetlistsSection {
   /** The buttons beside the heading: Show archived, New setlist. */
   readonly tools = el('div', 'head-tools');
   readonly list = el('ul', 'list setlists');
   private showArchived = false;
+  /** Each row shown, by setlist id: its ⋯ button, and the ring before it while the setlist has a status. */
+  private rows = new Map<string, { more: HTMLElement; ring?: HTMLButtonElement }>();
 
   constructor(private lib: LibraryHost) {}
 
@@ -41,6 +56,7 @@ export class SetlistsSection {
     })));
 
     this.list.replaceChildren();
+    this.rows.clear();
     if (!active.length) this.list.append(el('li', 'empty', 'No setlists yet. Use New setlist to make one.'));
     for (const s of active) this.list.append(this.row(s));
     // Archived setlists follow the others, in grey, only when asked for.
@@ -68,6 +84,10 @@ export class SetlistsSection {
       s.archived && { label: 'Delete…', run: () => this.confirmDelete(s) },
     ]));
 
+    const row = { more, ring: undefined as HTMLButtonElement | undefined };
+    this.rows.set(s.id, row);
+    this.showRing(s.id, row);
+
     const entries = el('ol', 'entries');
     entries.setAttribute('aria-label', `Scores in ${s.title}`);
     s.entries.forEach((e, i) => entries.append(this.entryRow(s, e, i, entries)));
@@ -81,9 +101,34 @@ export class SetlistsSection {
       id: s.id,
       open: lib.openRows,
       label: `Scores in ${s.title}`,
-      head: [play, more],
+      head: [play, ...(row.ring ? [row.ring] : []), more],
       inner: entries,
     });
+  }
+
+  /** The setlists' offline status changed: update the rings in place, without rebuilding the rows. */
+  showOffline() {
+    for (const [id, row] of this.rows) this.showRing(id, row);
+  }
+
+  /** Give a row the ring for its setlist's status, or take it off when it has none. */
+  private showRing(id: string, row: { more: HTMLElement; ring?: HTMLButtonElement }) {
+    const { lib } = this, status = lib.offline.get(id);
+    if (!status) {
+      row.ring?.remove();
+      row.ring = undefined;
+      return;
+    }
+    if (!row.ring) {
+      row.ring = button('', () => {
+        const now = lib.offline.get(id);
+        if (now) lib.toast.say(offlineText(now));
+      }, 'quiet ring');
+      row.more.before(row.ring);
+    }
+    row.ring.dataset.status = status.kind;
+    row.ring.setAttribute('aria-label', offlineText(status));
+    row.ring.innerHTML = ringSvg(status);
   }
 
   private entryRow(s: Setlist, e: Entry, i: number, list: HTMLElement): HTMLLIElement {

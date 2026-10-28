@@ -12,6 +12,7 @@ import type { Aspects, NamedExcerpt, Score } from '../scores/model';
 import type { Setlist } from '../setlists/model';
 import type { MenuItem } from '../ui/overlay';
 import type { Toast } from '../ui/toast';
+import type { OfflineStatus } from './_offline-status';
 
 export interface LibraryHost {
   readonly folder: FolderState;
@@ -29,6 +30,8 @@ export interface LibraryHost {
   /** The rows opened (a setlist's scores, a score's named excerpts), by id, while the app runs. */
   readonly openRows: Set<string>;
   readonly toast: Toast;
+  /** How much of each setlist is saved for offline, by setlist id; none for a setlist not kept (empty, archived) or before the first report. */
+  readonly offline: ReadonlyMap<string, OfflineStatus>;
 
   /** Say something in the status line under the name. */
   say(text: string): void;

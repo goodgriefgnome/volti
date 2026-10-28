@@ -13,97 +13,18 @@ scores.
 
 ## Work for the immediate future
 
-- **Each setlist's row shows how much of it is saved for offline: a ring by its ⋯ button.**
-  Mock-up C at https://claude.ai/artifact/6rNbsaf5VYmBqJZERRrcRC.
-  - The ring fills (green, `--part-setlists`) as the setlist's pages save.
-  - It becomes a filled green circle with a tick when every page is saved.
-  - It becomes a dashed warning ring with "!" when the keeper has finished but some pages can't
-    be saved.
-
-  Today `keepPagesOffline` reports one `{ done, of }` for all setlists together, and nothing shows
-  it. One commit.
-  - **The page cache says which pages are saved** (`page-cache/types.ts`, `page-cache/cache.ts`):
-    ```ts
-    export interface OfflineKey { id: string; page: number; pxWidth: number }
-    export interface OfflineProgress {
-      done: number; of: number;
-      /** Pages saved since the last progress: on the first, every page already saved. */
-      saved: OfflineKey[];
-    }
-    ```
-    `keepRun` fills `saved`: on its first yield, the pages it found saved already; then each page
-    as it is written. When the generator ends, every page not in any `saved` is one it couldn't
-    save (its score has no `source`, or drawing it failed). Nothing else changes in the cache.
-  - **A pure file for the status, `library/_offline-status.ts`** (**Pure**, with a test):
-    ```ts
-    /** Why a score's pages can't be saved now. */
-    export type Blocked = 'access' | 'password' | 'missing';
-    export type OfflineStatus =
-      | { kind: 'saving'; done: number; of: number }
-      | { kind: 'ready' }
-      | { kind: 'blocked'; done: number; of: number; why: Blocked; title: string }; // title: the first blocked score's
-    /**
-     * Each setlist's status, from the pages each needs (keys as `${id}/${page}/${pxWidth}`), the
-     * pages saved so far, whether the keeper has finished, and why each blocked score is blocked.
-     */
-    export function offlineStatus(needs: ReadonlyMap<string, readonly string[]>, saved: ReadonlySet<string>, finished: boolean, blocked: ReadonlyMap<string, { why: Blocked; title: string }>): Map<string, OfflineStatus>
-    ```
-    - All pages saved: `ready` (even while the keeper is still running).
-    - Otherwise, while running: `saving`.
-    - Otherwise, once finished: `blocked`, with the reason of the first score in the setlist
-      whose pages are missing. If that score isn't in `blocked` (drawing failed), use `'missing'`.
-
-    Test those three cases, a page needed by two setlists counting for both, and an empty
-    `needs` list (no status).
-  - **`library/_offline-pages.ts`:**
-    - `make()` already works out each score's pages. It also builds `needs` per setlist (the keys
-      of every page its entries play), and `blocked` per score:
-      - no file in the library: `'missing'`
-      - `read()` throws `NoAccess`: `'access'`
-      - `read()` throws `PasswordNotGiven`: `'password'`
-
-      Today it swallows that error with `.catch(() => undefined)`. Keep swallowing it, but note
-      the reason.
-    - A score whose aspects are unknown (the `keep` list) has no pages to count. Its setlist is
-      `blocked` with that score's reason until it is opened once.
-    - `keepSetlistPagesOffline` gains a third argument, `heard: (s: Map<string, OfflineStatus>) =>
-      void`. It is called after each progress, at most every 250 ms, and once when the run ends
-      (`finished` true).
-    - Archived setlists aren't kept, so they get no status.
-  - **`library/library.ts`:** keep the latest map as `offline: Map<string, OfflineStatus>` (on
-    `LibraryHost`, `library/_host.ts`). Pass `heard` to both calls of `keepSetlistPagesOffline`.
-    On each update, call `setlistsSection.showOffline()` rather than re-rendering the list.
-  - **`library/_setlists-section.ts`:**
-    - Each row with a status gets a ring button (`button('', …, 'quiet ring')`, 44 px wide, the
-      22 px ring drawn in an inline SVG) between the row's `open` button and its `more` button.
-    - Rows with no status (empty, archived, or before the first progress) get none.
-    - `showOffline()` updates each row's ring in place, without rebuilding the rows. Keep each
-      ring element by setlist id.
-    - The SVG is as in the mock-up:
-      - `saving`: a `--line` track, with a `--part-setlists` arc of `done / of`
-      - `ready`: a filled `--part-setlists` circle with a white tick
-      - `blocked`: a dashed `--warn` ring with "!"
-    - Its `aria-label` is the toast's words (below).
-    - Tapping it says in a toast:
-      - saving: "18 of 40 pages saved for offline."
-      - ready: "Ready to play offline."
-      - access: "Volti needs access to the scores folder to save the rest (22 pages)."
-      - password: "“<title>” needs its password before its pages can be saved."
-      - missing: "“<title>” can’t be found, so 6 of its pages can’t be saved."
-    - CSS in `styles/library.css`: `.ring` and its parts, using the existing tokens, so both
-      themes work.
-  - **Manual check** (add under Manual check):
-    1. Make a new setlist with three scores: its ring fills, then turns into a tick.
-    2. Reload: the tick shows straight away (pages already saved).
-    3. Add a score: the ring goes back to filling, then a tick.
-    4. Reload with the linked folder locked, after adding a score never opened: that setlist's
-       ring is the warning ring. Tapping it says Volti needs access.
-    5. Archive a setlist: it has no ring.
-    6. Check both themes.
-
 ## Manual check
 
 Things to try on the tablet.
+
+- **Each setlist's row shows how much is saved offline (a ring by its ⋯ button):**
+  1. Make a new setlist with three scores: its ring fills, then turns into a tick.
+  2. Reload: the tick shows straight away (pages already saved).
+  3. Add a score: the ring goes back to filling, then a tick.
+  4. Reload with the linked folder locked, after adding a score never opened: that setlist's
+     ring is the warning ring. Tapping it says Volti needs access.
+  5. Archive a setlist: it has no ring.
+  6. Check both themes.
 
 - **The reader and thumbnails draw progressively:**
   1. Open a score, rotate the tablet: pages show at once, soft, then sharpen.

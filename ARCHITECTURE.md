@@ -44,7 +44,7 @@ takes `putInbox` without pdf.js): keep it true, and do any start-up work from `m
 | Layer | Directory | What it holds |
 | --- | --- | --- |
 | 9 | `src/*.ts` | Start-up (`main.ts`), taking new versions (`updates.ts`), the service worker (`sw.ts`) |
-| 8 | `library/` | The Library screen; keeping the pages setlists play offline (`_offline-pages`) |
+| 8 | `library/` | The Library screen; keeping the pages setlists play offline (`_offline-pages`) and saying how much of each is saved (`_offline-status`) |
 | 7 | `reader/` | The score screen: reading a score, an excerpt or a setlist, writing on it, editing its cuts |
 | 6 | `dialogs/` | Dialogs both screens open: choosing an excerpt (over a strip of a score's frames, `thumb-strip`), the named excerpt dialogs, adding scores to a setlist, renaming and filing a score's file, exporting, setlist names and menus, a PDF's password |
 | 5 | `export/` | Exporting PDFs (with pdf-lib) |

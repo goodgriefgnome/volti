@@ -30,6 +30,7 @@ import type { LibraryHost } from './_host';
 import { openIncoming } from './_incoming';
 import { ScoresSection } from './_scores-section';
 import { keepSetlistPagesOffline } from './_offline-pages';
+import type { OfflineStatus } from './_offline-status';
 import { SetlistsSection } from './_setlists-section';
 
 /** How long Volti has to be out of view before the scores folder is read again on coming back. */
@@ -49,6 +50,7 @@ export class Library implements LibraryHost {
   shapes = new Map<string, Aspects>();
   openRows = new Set<string>();
   toast = new Toast();
+  offline = new Map<string, OfflineStatus>();
   /** Every original's title as last seen, for scores whose original is missing. */
   private titles: Record<string, string> = {};
   /** The setlist a score was last added to: see `defaultSetlist`. */
@@ -251,9 +253,17 @@ export class Library implements LibraryHost {
   titleOf(scoreId: string) { const o = this.originalOf(scoreId); return (o && titleOf(o.path)) ?? this.titles[scoreId] ?? 'Missing score'; }
   setlist(id: string) { return this.setlists.find((s) => s.id === id); }
 
+  /** Keep the setlists' pages saved offline, and show how much is. */
+  private keepOffline() {
+    keepSetlistPagesOffline(this.originals, this.setlists, (s) => {
+      this.offline = s;
+      this.setlistsSection.showOffline();
+    });
+  }
+
   private renderSetlists() {
     // Shown afresh whenever they change, or the scores do: keep their pages saved offline.
-    keepSetlistPagesOffline(this.originals, this.setlists);
+    this.keepOffline();
     this.setlistsSection.render();
   }
 
@@ -387,7 +397,7 @@ export class Library implements LibraryHost {
   private accessAllowed() {
     if (this.folder.kind === 'locked') void this.refresh();
     // The scores can be read now, so the setlists' pages missing offline can be drawn.
-    keepSetlistPagesOffline(this.originals, this.setlists);
+    this.keepOffline();
   }
 
   /* ---------- opening the reader ---------- */
