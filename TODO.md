@@ -13,60 +13,14 @@ scores.
 
 ## Work for the immediate future
 
-- **Drop the word "span": an excerpt is the value as well as the music.** Today a span is which
-  cuts are played (the ids of the first and last) and an excerpt is the music a span plays; the
-  header of `scores/excerpts.ts` already says "An excerpt is its span and nothing more". After
-  this, "excerpt" means both, and a whole score is an excerpt with neither end. One commit.
-  Nothing changes in what the app does, except that named excerpts saved before this are dropped
-  (below). Checks: `npm test`, `npm run build`, and naming an excerpt in the app and reloading.
-  - **Types** (`scores/excerpts.ts`, `scores/model.ts`): `Span` becomes `Excerpt`;
-    `ExcerptName` becomes `NamedExcerpt` (an `Excerpt` with a `name`).
-  - **The score's field:** `Score.names` becomes `Score.excerpts?: NamedExcerpt[]`. Its comment
-    says these are the score's named excerpts, the only excerpts a score keeps. **No migration:**
-    the `names` field stored in `score:<id>` records is dropped. In `scores/store.ts`, `loaded`
-    strips `names` with `id` and `title`, so it goes at the next save. Say so in its comment.
-  - **Functions in `scores/excerpts.ts`**, with every caller:
-    - `spanOf` → `excerptRange`, `spanCuts` → `excerptCuts`, `spanLabel` → `excerptLabel`,
-      `spanFor` → `excerptFor`, `sameSpan` → `sameExcerpt`
-    - `nameOf` → `namedExcerptOf`, `sortedNames` → `sortedExcerpts`, `followNames` →
-      `followExcerpts`
-    - `setName`, `removeName`, `nameProblem`, `excerptName`, `followEdit` and `ends` keep their
-      names: they are about the name itself, or already fit.
-    - `page-cache/_disk.ts` has a local `nameOf` of its own (file names). It is not this one:
-      leave it.
-  - **Elsewhere:**
-    - `setEntrySpan` → `setEntryExcerpt` (`setlists/model.ts`)
-    - `tidySpan` → `tidyExcerpt` (private, in `scores/excerpts.ts`)
-    - `ReaderMenus`' `readSpan` → `playExcerpt` (`reader/_toolbar-menus.ts`, `reader/reader.ts`).
-      The library's `readExcerpt` keeps its name.
-    - `ReadingKind`'s `{ kind: 'excerpt'; span: Span }` becomes `{ kind: 'excerpt'; excerpt:
-      Excerpt }`, and `Reading.span(k)` becomes `Reading.excerpt(k)` (`reader/_reading.ts`).
-    - The reader's private `excerptLabel` method (`reader/_toolbar-menus.ts`), which would clash
-      with the renamed function, becomes `itemSuffix`.
-  - **Variables, parameters, fields and comments:** rename `span`/`spans` to `excerpt`/`excerpts`
-    where they mean this, and "span" in comments the same way, rewording where the sentence then
-    reads badly. Where a function already has an `excerpt` holding a named excerpt, call that one
-    `named`. **Leave alone** every HTML span: `el('span', …)`, CSS and the like. When done, every
-    remaining match of `grep -rnwi 'spans\?' src` is an HTML span.
-  - **Tests:** rename the `describe` and `it` names that use the old names, in
-    `scores/excerpts.test.ts`, `setlists/model.test.ts`, `reader/_reading.test.ts` and
-    `reader/_last-read.test.ts`.
-  - **Docs:**
-    - `ARCHITECTURE.md`: remove the glossary's **span** row. The **excerpt** row becomes "Which of
-      a score's cuts are played, as the ids of the first and last; a missing end is the score's
-      start or end, so no ends is the whole score. Excerpts follow edits to the cuts. A **named
-      excerpt** ("Kyrie") is an excerpt with a name, kept on the score", with types `Excerpt`,
-      `NamedExcerpt` (`scores/excerpts.ts`). The **setlist** row says each entry plays an excerpt
-      of a score. The `scores/` row says "excerpts of its cuts and their names". The recipe says
-      "Excerpts and their names follow it by themselves".
-    - `STORAGE.md`: in `score:<id>`, `names?: ExcerptName[]` becomes `excerpts?: NamedExcerpt[]`,
-      and `interface ExcerptName` becomes `interface NamedExcerpt`. Add that a `names` field from
-      an earlier version is dropped on loading. In `last-read`, the excerpt kind's comment says
-      "the excerpt it plays", not "the span … (as Span)". Reword "span" in the paragraph below it.
-
 ## Manual check
 
 Things to try on the tablet.
+
+- **Excerpts, one word for both:** name an excerpt of a score (Excerpts → Add excerpt), reload: it is
+  still there, and plays the same pages. Play it from the library and from a setlist entry, change
+  its cuts, and add it to a setlist. On a device that had named excerpts from before this change,
+  they are gone (dropped, not migrated).
 
 - **Storage (`STORAGE.md`):** open DevTools → Application → IndexedDB → `volti-scores` → `kv` to watch the records as you go.
   - **Fresh start, no folder linked.** Add two PDFs with Add PDFs. There are two `original:`

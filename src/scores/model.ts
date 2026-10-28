@@ -31,14 +31,15 @@ export interface Score {
   /** Removed cuts that had their own ink; their markings stay in the ink record. */
   archived: Cut[];
   /**
-   * Named excerpts: names on spans of the cuts, kept as setlist entries keep theirs (scores/excerpts.ts).
-   * At most one name per span, and none on the whole score. Missing in scores saved before names.
+   * The score's named excerpts, the only excerpts a score keeps; they follow edits to the cuts as
+   * setlist entries do (scores/excerpts.ts). At most one name per excerpt, and none on the whole
+   * score. Missing until one is named.
    */
-  names?: ExcerptName[];
+  excerpts?: NamedExcerpt[];
 }
 
 /** A name on the cuts from `first` to `last`; a missing end is the score's start or end. */
-export interface ExcerptName { first?: string; last?: string; name: string }
+export interface NamedExcerpt { first?: string; last?: string; name: string }
 
 /** A score's ink: its markings by cut id, in the coordinates of the original's pages. */
 export type ScoreInk = Record<string, Marking[]>;

@@ -3,7 +3,7 @@
 
 /** What is stored under `last-read` (STORAGE.md). */
 export type LastRead =
-  /** An excerpt of score `id`: the span it plays (as Span). With neither end, the whole score. */
+  /** An excerpt of score `id`: the excerpt it plays. With neither end, the whole score. */
   | { kind: 'excerpt'; id: string; first?: string; last?: string; cut: string }
   | { kind: 'setlist'; id: string; entry: string; cut: string };
 

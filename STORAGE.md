@@ -162,14 +162,15 @@ interface Score {           // scores/model.ts, in memory
   key: string;              // the musical key; nothing sets it yet
   cuts: Cut[];              // the played order
   archived: Cut[];          // removed cuts that had their own ink
-  names?: ExcerptName[];    // missing in scores saved before names
+  excerpts?: NamedExcerpt[]; // the score's named excerpts; missing until one is named
 }
 interface Cut { id: string; page: number; y0: number; y1: number; pad?: number; ownInk?: boolean }
-interface ExcerptName { first?: string; last?: string; name: string }
+interface NamedExcerpt { first?: string; last?: string; name: string }
 ```
 
 `Score` has no `title`: a score's title is always its original's (`titleOf(record.path)`). Loading
-ignores a `title` or `id` a stored score has from an earlier version.
+ignores a `title` or `id` a stored score has from an earlier version, and drops a `names` field (the
+named excerpts of an earlier version, now `excerpts`) without carrying it over.
 
 ### `ink:<id>`
 
@@ -190,7 +191,7 @@ A score and its ink are always written in one transaction, so they never disagre
 
 ```ts
 type LastRead =
-  /** An excerpt of score `id`: the span it plays (as Span). With neither end, the whole score. */
+  /** An excerpt of score `id`: the excerpt it plays. With neither end, the whole score. */
   | { kind: 'excerpt'; id: string; first?: string; last?: string; cut: string }
   | { kind: 'setlist'; id: string; entry: string; cut: string };
 ```
@@ -198,9 +199,9 @@ type LastRead =
 The one thing last read and where in it, as the first cut on the screen. Missing until something
 is read.
 
-A score's reader is an excerpt's reader with no span, so a whole score is an excerpt with neither
+A score's reader is an excerpt's reader with no ends, so a whole score is an excerpt with neither
 `first` nor `last`. An excerpt opened on its own from the library has
-its span's ends, as they are when the key is written (they follow cut edits made while it is
+its ends, as they are when the key is written (they follow cut edits made while it is
 read). A whole score and an excerpt of it are different things to resume, as are two excerpts.
 They match only when `id`, `first` and `last` are all equal. A setlist entry playing an excerpt is
 part of its setlist, not an excerpt here.

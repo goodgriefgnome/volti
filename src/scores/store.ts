@@ -11,9 +11,12 @@ type StoredScore = Omit<Score, 'id'>;
 /** A score as stored, without its id. */
 const stored = ({ id: _, ...rest }: Score): StoredScore => rest;
 
-/** A score as loaded: its id from the key, and no `id` or `title` an earlier version stored in it. */
+/**
+ * A score as loaded: its id from the key, and no `id`, `title` or `names` an earlier version stored
+ * in it. The `names` (now `excerpts`) are dropped, not migrated, and go at the next save.
+ */
 const loaded = (id: string, s: StoredScore): Score => {
-  const { id: _, title: __, ...rest } = s as StoredScore & { id?: string; title?: string };
+  const { id: _, title: __, names: ___, ...rest } = s as StoredScore & { id?: string; title?: string; names?: unknown };
   return { ...rest, id };
 };
 

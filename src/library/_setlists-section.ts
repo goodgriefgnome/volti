@@ -7,7 +7,7 @@ import { openExcerptPicker } from '../dialogs/excerpt-picker';
 import { excerptName } from '../scores/excerpts';
 import { titleOf } from '../originals/path-utils';
 import { scoreEntries } from '../scores/store';
-import { addEntries, duplicate, moveEntry, newSetlist, setEntrySpan, withSetlist, type Entry, type Setlist } from '../setlists/model';
+import { addEntries, duplicate, moveEntry, newSetlist, setEntryExcerpt, withSetlist, type Entry, type Setlist } from '../setlists/model';
 import { button, el, plural } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog, showMenu } from '../ui/overlay';
 import type { LibraryHost } from './_host';
@@ -181,7 +181,7 @@ export class SetlistsSection {
         lib.openRows.add(id);
         lib.addedTo(id);
         for (const x of scores) lib.remember(x);
-        // The scores excerpts were chosen from too, so the spans and the cuts they name agree.
+        // The scores excerpts were chosen from too, so the excerpts and the cuts they name agree.
         void lib.change(withSetlist(lib.setlists, addEntries(now, entries)), scores.flatMap((x) => scoreEntries(x.state)));
         lib.toast.say(`Added ${plural(entries.length, 'score')} to “${now.title}”.`);
       },
@@ -199,13 +199,13 @@ export class SetlistsSection {
       question: `Which part of “${titleOf(o.path)}” does entry ${s.entries.indexOf(e) + 1} play?`,
       verb: 'This entry plays',
       named: true,
-      span: e,
-      done: (span) => {
+      excerpt: e,
+      done: (excerpt) => {
         const now = lib.setlist(s.id);
         if (!now) return;
         lib.remember(sc);
-        // The score too: one never opened isn't saved yet, and the span names its cuts.
-        void lib.change(withSetlist(lib.setlists, setEntrySpan(now, e.id, span)), scoreEntries(sc.state));
+        // The score too: one never opened isn't saved yet, and the excerpt names its cuts.
+        void lib.change(withSetlist(lib.setlists, setEntryExcerpt(now, e.id, excerpt)), scoreEntries(sc.state));
       },
     });
   }

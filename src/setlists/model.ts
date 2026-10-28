@@ -1,17 +1,17 @@
-// Setlists and their entries, each playing a span of a score (scores/excerpts.ts): making and
+// Setlists and their entries, each playing an excerpt of a score (scores/excerpts.ts): making and
 // changing them, and keeping every entry on the same music when a score's cuts change. Pure: no
 // DOM, no storage.
 
-import { type Span, ends, followEdit, sameSpan, setName, spanOf } from '../scores/excerpts';
-import type { Cut, ExcerptName, Score } from '../scores/model';
+import { type Excerpt, ends, followEdit, sameExcerpt, setName, excerptRange } from '../scores/excerpts';
+import type { Cut, NamedExcerpt, Score } from '../scores/model';
 
 /**
  * One excerpt of a score, in a setlist. It plays either
- * - the whole score: no span, so `first` and `last` are both missing; or
- * - part of it: a span. A named excerpt is a name on a span (scores/excerpts.ts), so an entry
- *   whose span has a name plays that named excerpt.
+ * - the whole score: no excerpt, so `first` and `last` are both missing; or
+ * - part of it: an excerpt. A named excerpt is a name on an excerpt (scores/excerpts.ts), so an entry
+ *   whose excerpt has a name plays that named excerpt.
  */
-export interface Entry extends Span {
+export interface Entry extends Excerpt {
   id: string;
   scoreId: string;
 }
@@ -35,16 +35,16 @@ export function withSetlist(all: readonly Setlist[], s: Setlist): Setlist[] {
   return all.some((x) => x.id === s.id) ? all.map((x) => (x.id === s.id ? s : x)) : [s, ...all];
 }
 
-/** The setlist with entries playing these spans of the score added at its end, each its own entry. */
-export const addEntries = (s: Setlist, add: readonly { scoreId: string; span?: Span }[]): Setlist =>
-  ({ ...s, entries: [...s.entries, ...add.map(({ scoreId, span }) => ({ ...newEntry(scoreId), ...ends(span ?? {}) }))] });
+/** The setlist with entries playing these excerpts of the score added at its end, each its own entry. */
+export const addEntries = (s: Setlist, add: readonly { scoreId: string; excerpt?: Excerpt }[]): Setlist =>
+  ({ ...s, entries: [...s.entries, ...add.map(({ scoreId, excerpt }) => ({ ...newEntry(scoreId), ...ends(excerpt ?? {}) }))] });
 
-/** An entry that plays `span` of its score instead. */
-const playing = (e: Entry, span: Span): Entry => ({ id: e.id, scoreId: e.scoreId, ...ends(span) });
+/** An entry that plays `excerpt` of its score instead. */
+const playing = (e: Entry, excerpt: Excerpt): Entry => ({ id: e.id, scoreId: e.scoreId, ...ends(excerpt) });
 
-/** The setlist with entry `entryId` playing `span` of its score instead. */
-export const setEntrySpan = (s: Setlist, entryId: string, span: Span): Setlist =>
-  ({ ...s, entries: s.entries.map((e) => (e.id === entryId ? playing(e, span) : e)) });
+/** The setlist with entry `entryId` playing `excerpt` of its score instead. */
+export const setEntryExcerpt = (s: Setlist, entryId: string, excerpt: Excerpt): Setlist =>
+  ({ ...s, entries: s.entries.map((e) => (e.id === entryId ? playing(e, excerpt) : e)) });
 
 /**
  * The setlist scores are added to by default: the one a score was last added to (`last`), or,
@@ -57,17 +57,16 @@ export function defaultSetlist(setlists: readonly Setlist[], last: string | unde
 
 /**
  * Apply an edit of a score's cuts to every entry that plays the score. Entries that play `grow`,
- * the span being read, take in pages inserted at its edges: an excerpt is its span, so they all
- * stay the same excerpt. Unchanged setlists stay the same objects.
+ * the excerpt being read, take in pages inserted at its edges, so they all stay the same excerpt. Unchanged setlists stay the same objects.
  */
-export function followScore(setlists: readonly Setlist[], scoreId: string, before: readonly Cut[], after: readonly Cut[], grow?: Span): Setlist[] {
+export function followScore(setlists: readonly Setlist[], scoreId: string, before: readonly Cut[], after: readonly Cut[], grow?: Excerpt): Setlist[] {
   if (before === after) return setlists as Setlist[];
-  const g = grow && spanOf(before, grow);
+  const g = grow && excerptRange(before, grow);
   return setlists.map((s) => {
     let changed = false;
     const entries = s.entries.map((e) => {
       if (e.scoreId !== scoreId) return e;
-      const at = g && spanOf(before, e);
+      const at = g && excerptRange(before, e);
       const f = followEdit(e, before, after, !!at && at.i0 === g.i0 && at.i1 === g.i1);
       if (f !== e) changed = true;
       return f;
@@ -93,14 +92,14 @@ export function duplicate(s: Setlist): Setlist {
 
 /**
  * Give a named excerpt other cuts: the name moves to `to`, and so does every entry, in every
- * setlist, that played the old span, as the excerpt is its span. Check `nameProblem` first.
+ * setlist, that played the old excerpt. Check `nameProblem` first.
  */
-export function moveExcerpt(score: Score, setlists: readonly Setlist[], name: ExcerptName, to: Span): { score: Score; setlists: Setlist[] } {
+export function moveExcerpt(score: Score, setlists: readonly Setlist[], name: NamedExcerpt, to: Excerpt): { score: Score; setlists: Setlist[] } {
   const cuts = score.cuts;
   const out = setlists.map((s) => {
     let changed = false;
     const entries = s.entries.map((e) => {
-      if (e.scoreId !== score.id || !sameSpan(cuts, e, name)) return e;
+      if (e.scoreId !== score.id || !sameExcerpt(cuts, e, name)) return e;
       changed = true;
       return playing(e, to);
     });

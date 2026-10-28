@@ -1,8 +1,8 @@
 // Named excerpt dialogs that both the library and the reader use: adding one, renaming it, changing
 // its cuts and deleting it. Where the score comes from and how it is saved is the caller's.
 
-import { type Span, nameProblem, removeName, sameSpan, setName, spanLabel } from '../scores/excerpts';
-import type { Aspects, ExcerptName, Score } from '../scores/model';
+import { type Excerpt, nameProblem, removeName, sameExcerpt, setName, excerptLabel } from '../scores/excerpts';
+import type { Aspects, NamedExcerpt, Score } from '../scores/model';
 import { moveExcerpt, type Setlist } from '../setlists/model';
 import { askText } from '../ui/ask-text';
 import { button, el, plural } from '../ui/dom';
@@ -13,16 +13,16 @@ import type { ExcerptSource } from './thumb-strip';
 /** Where a score's named excerpts are changed. */
 export interface ExcerptHost {
   setlists: readonly Setlist[];
-  /** The original's page shapes, for naming spans by pages; by original pages without them. */
+  /** The original's page shapes, for naming excerpts by pages; by original pages without them. */
   aspects?: Aspects;
   /** Keep a change to the score's names, with the setlists when they changed too. */
   save(score: Score, setlists?: Setlist[]): void;
   say(text: string): void;
 }
 
-/** The setlists with an entry that plays this span of the score. */
-export const _setlistsPlaying = (setlists: readonly Setlist[], score: Score, span: Span) =>
-  setlists.filter((s) => s.entries.some((e) => e.scoreId === score.id && sameSpan(score.cuts, e, span)));
+/** The setlists with an entry that plays this excerpt of the score. */
+export const _setlistsPlaying = (setlists: readonly Setlist[], score: Score, excerpt: Excerpt) =>
+  setlists.filter((s) => s.entries.some((e) => e.scoreId === score.id && sameExcerpt(score.cuts, e, excerpt)));
 
 /** Name part of a score, in the excerpt picker. */
 export function addExcerpt(src: ExcerptSource, title: string, h: ExcerptHost) {
@@ -31,18 +31,18 @@ export function addExcerpt(src: ExcerptSource, title: string, h: ExcerptHost) {
     ...src,
     question: `Add an excerpt of “${title}”`,
     verb: 'It plays',
-    span: {},
+    excerpt: {},
     name: '',
     okLabel: 'Add excerpt',
-    problem: (span, name) => nameProblem(score, span, name),
-    done: (span, name) => {
-      h.save(setName(score, span, name));
+    problem: (excerpt, name) => nameProblem(score, excerpt, name),
+    done: (excerpt, name) => {
+      h.save(setName(score, excerpt, name));
       h.say(`Added “${name}” to “${title}”.`);
     },
   });
 }
 
-export function renameExcerpt(score: Score, x: ExcerptName, h: ExcerptHost) {
+export function renameExcerpt(score: Score, x: NamedExcerpt, h: ExcerptHost) {
   askText({
     title: `Rename “${x.name}”`,
     value: x.name,
@@ -57,30 +57,30 @@ export function renameExcerpt(score: Score, x: ExcerptName, h: ExcerptHost) {
  * Choose other cuts for a named excerpt. Every entry that plays it moves with it. `moved` hears
  * where it went.
  */
-export function changeExcerptCuts(src: ExcerptSource, x: ExcerptName, h: ExcerptHost, moved?: (to: Span) => void) {
-  const score = src.state.score, now = score.names?.find((n) => n.name === x.name) ?? x;
+export function changeExcerptCuts(src: ExcerptSource, x: NamedExcerpt, h: ExcerptHost, moved?: (to: Excerpt) => void) {
+  const score = src.state.score, now = score.excerpts?.find((n) => n.name === x.name) ?? x;
   const using = _setlistsPlaying(h.setlists, score, now);
   openExcerptPicker({
     ...src,
     question: `Which cuts are “${now.name}”?`,
     verb: 'It plays',
-    span: now,
-    problem: (span) => (sameSpan(score.cuts, span, now) ? null : nameProblem(score, span, now.name, now)),
+    excerpt: now,
+    problem: (excerpt) => (sameExcerpt(score.cuts, excerpt, now) ? null : nameProblem(score, excerpt, now.name, now)),
     okLabel: using.length ? `Change in ${plural(using.length, 'setlist')}` : 'Done',
-    done: (span) => {
-      if (sameSpan(score.cuts, span, now)) return;
-      const r = moveExcerpt(score, h.setlists, now, span);
+    done: (excerpt) => {
+      if (sameExcerpt(score.cuts, excerpt, now)) return;
+      const r = moveExcerpt(score, h.setlists, now, excerpt);
       h.save(r.score, r.setlists);
-      moved?.(span);
+      moved?.(excerpt);
       if (using.length) h.say(`Changed “${now.name}” in ${plural(using.length, 'setlist')}.`);
     },
   });
 }
 
 /** Take the name off an excerpt. Setlists that play it keep playing the same music. */
-export function deleteExcerpt(score: Score, x: ExcerptName, h: ExcerptHost) {
+export function deleteExcerpt(score: Score, x: NamedExcerpt, h: ExcerptHost) {
   const using = _setlistsPlaying(h.setlists, score, x);
-  const pages = spanLabel(score.cuts, x, h.aspects);
+  const pages = excerptLabel(score.cuts, x, h.aspects);
   const d = showDialog(`Delete “${x.name}”?`);
   d.append(
     el('p', '', using.length

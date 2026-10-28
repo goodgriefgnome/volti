@@ -1,22 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { type Span, nameOf, setName, spanCuts } from '../scores/excerpts';
+import { type Excerpt, namedExcerptOf, setName, excerptCuts } from '../scores/excerpts';
 import { insertPages, split } from '../scores/edits';
 import type { Score, State } from '../scores/model';
 import { A4, cut, state } from '../scores/testing';
 import {
-  addEntries, defaultSetlist, duplicate, followScore, moveEntry, moveExcerpt, newEntry, newSetlist, setEntrySpan, withSetlist, type Setlist,
+  addEntries, defaultSetlist, duplicate, followScore, moveEntry, moveExcerpt, newEntry, newSetlist, setEntryExcerpt, withSetlist, type Setlist,
 } from './model';
 
 const aspects = [A4, A4, A4, A4];
 
-/** The cuts a span plays, as [page, y0, y1]. */
-const plays = (s: State, span: Span) => spanCuts(s.score.cuts, span).map((c) => [c.page, c.y0, c.y1]);
+/** The cuts an excerpt plays, as [page, y0, y1]. */
+const plays = (s: State, excerpt: Excerpt) => excerptCuts(s.score.cuts, excerpt).map((c) => [c.page, c.y0, c.y1]);
 
-/** Four whole pages; the span plays pages 2–3. */
+/** Four whole pages; the excerpt plays pages 2–3. */
 const four = () => {
   const s = state([cut(0), cut(1), cut(2), cut(3)]);
   const [, b, c] = s.score.cuts;
-  return { s, span: { first: b.id, last: c.id } as Span };
+  return { s, excerpt: { first: b.id, last: c.id } as Excerpt };
 };
 
 /** Four whole pages: the Kyrie is pages 1–2, the Gloria pages 3–4. */
@@ -29,14 +29,14 @@ const mass = () => {
 };
 
 describe('followScore', () => {
-  const { s, span } = four();
+  const { s, excerpt } = four();
   const other = newEntry('q');
   const list = (id: string, ...entries: Setlist['entries']): Setlist => ({ id, title: id, archived: false, entries });
-  const e1 = { ...newEntry('p'), ...span }, e2 = { ...newEntry('p'), ...span };
+  const e1 = { ...newEntry('p'), ...excerpt }, e2 = { ...newEntry('p'), ...excerpt };
   const setlists = [list('a', e1, other), list('b', e2), list('c', other)];
 
   it('updates every entry of the score and leaves other setlists as they were', () => {
-    const r = split(s, span.last!, 0.5, aspects);
+    const r = split(s, excerpt.last!, 0.5, aspects);
     const out = followScore(setlists, 'p', s.score.cuts, r.state.score.cuts);
     expect(out[0].entries[0].last).toBe(r.lower);
     expect(out[0].entries[1]).toBe(other);
@@ -44,9 +44,9 @@ describe('followScore', () => {
     expect(out[2]).toBe(setlists[2]);
   });
   it('grows every entry of the excerpt being read, and no other', () => {
-    const r = insertPages(s, { id: span.first!, after: false }, 0, 0, false, aspects);
-    const third = { ...newEntry('p'), first: span.first }, mixed = [...setlists, list('d', third)];
-    const out = followScore(mixed, 'p', s.score.cuts, r.state.score.cuts, span);
+    const r = insertPages(s, { id: excerpt.first!, after: false }, 0, 0, false, aspects);
+    const third = { ...newEntry('p'), first: excerpt.first }, mixed = [...setlists, list('d', third)];
+    const out = followScore(mixed, 'p', s.score.cuts, r.state.score.cuts, excerpt);
     expect(out[0].entries[0].first).toBe(r.first);
     expect(out[1].entries[0].first).toBe(r.first);
     expect(out[3]).toBe(mixed[3]);
@@ -87,14 +87,14 @@ describe('setlist edits', () => {
     expect(d.entries.map((e) => [e.scoreId, e.last])).toEqual([['a', undefined], ['b', 'x'], ['c', undefined]]);
     expect(d.entries.some((e, i) => e.id === s.entries[i].id)).toBe(false);
   });
-  it('adds entries at the end, each with only the ends of its span', () => {
+  it('adds entries at the end, each with only the ends of its excerpt', () => {
     const named = { first: 'p', name: 'Kyrie' };
-    const t = addEntries(s, [{ scoreId: 'd' }, { scoreId: 'e', span: named }]);
+    const t = addEntries(s, [{ scoreId: 'd' }, { scoreId: 'e', excerpt: named }]);
     expect(t.entries.slice(0, 3)).toEqual(s.entries);
     expect(t.entries.slice(3).map(({ id: _, ...e }) => e)).toEqual([{ scoreId: 'd' }, { scoreId: 'e', first: 'p' }]);
   });
-  it('sets the span an entry plays', () => {
-    const t = setEntrySpan(s, s.entries[1].id, { first: 'y' });
+  it('sets the excerpt an entry plays', () => {
+    const t = setEntryExcerpt(s, s.entries[1].id, { first: 'y' });
     expect(t.entries[1]).toEqual({ id: s.entries[1].id, scoreId: 'b', first: 'y' });
     expect(t.entries[0]).toBe(s.entries[0]);
   });
@@ -125,9 +125,9 @@ describe('defaultSetlist', () => {
 });
 
 describe('moveExcerpt', () => {
-  it('moves the name and every entry of its span, in every setlist', () => {
+  it('moves the name and every entry of its excerpt, in every setlist', () => {
     const { s, a, b } = mass();
-    const kyrie = nameOf(s.score, { last: b.id })!;
+    const kyrie = namedExcerptOf(s.score, { last: b.id })!;
     const e1 = { ...newEntry('p'), last: b.id }, e2 = { ...newEntry('p'), first: a.id, last: b.id }, other = { ...newEntry('p'), last: a.id };
     const setlists: Setlist[] = [
       { id: 'x', title: 'x', archived: false, entries: [e1, other] },
@@ -135,8 +135,8 @@ describe('moveExcerpt', () => {
       { id: 'z', title: 'z', archived: false, entries: [newEntry('q')] },
     ];
     const r = moveExcerpt(s.score, setlists, kyrie, { last: a.id });
-    expect(nameOf(r.score, { last: a.id })?.name).toBe('Kyrie');
-    expect(nameOf(r.score, { last: b.id })).toBeUndefined();
+    expect(namedExcerptOf(r.score, { last: a.id })?.name).toBe('Kyrie');
+    expect(namedExcerptOf(r.score, { last: b.id })).toBeUndefined();
     expect(r.setlists[0].entries[0]).toEqual({ id: e1.id, scoreId: 'p', last: a.id });
     expect(r.setlists[0].entries[1]).toBe(other);
     expect(r.setlists[1].entries[0]).toEqual({ id: e2.id, scoreId: 'p', last: a.id });

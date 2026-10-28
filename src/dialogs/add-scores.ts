@@ -2,10 +2,10 @@
 // excerpts, or as excerpts chosen in its preview. The library ("New setlist", a setlist's ⋯ › Add
 // scores) and a setlist's reader (⋯ › Add scores) both open it.
 
-import { type Span, ends, excerptName, nameOf, sameSpan, sortedNames } from '../scores/excerpts';
+import { type Excerpt, ends, excerptName, namedExcerptOf, sameExcerpt, sortedExcerpts } from '../scores/excerpts';
 import { byFolder, folderOf, titleOf } from '../originals/path-utils';
 import { type SourceFile } from '../originals/types';
-import type { ExcerptName, Score } from '../scores/model';
+import type { NamedExcerpt, Score } from '../scores/model';
 import type { Setlist } from '../setlists/model';
 import { button, el, plural } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog } from '../ui/overlay';
@@ -24,14 +24,14 @@ export interface _AddScoresHost {
   /** Make sure a score's file can be read, asking for its password if need be; false when it isn't given. */
   givePassword(o: SourceFile): Promise<boolean>;
   /** Add entries playing these to the end of the setlist; `scores` are the ones they choose excerpts of. */
-  add(entries: { scoreId: string; span: Span }[], scores: ExcerptSource[]): void;
+  add(entries: { scoreId: string; excerpt: Excerpt }[], scores: ExcerptSource[]): void;
 }
 
 /**
  * One entry to add: the whole score, a named excerpt ticked under it, or an excerpt chosen in its
  * preview.
  */
-interface Choice { span: Span; label: string | null; named?: boolean; src?: ExcerptSource }
+interface Choice { excerpt: Excerpt; label: string | null; named?: boolean; src?: ExcerptSource }
 
 /** A row's title, with what else it says ("in this setlist"), wrapping beside its checkbox. */
 function pickText(title: string, meta = ''): HTMLElement {
@@ -66,7 +66,7 @@ export function openAddScores(h: _AddScoresHost) {
     closeOverlay();
     const picked = h.originals.flatMap((o) => (chosen.get(o.id) ?? []).map((c) => [o.id, c] as const));
     h.add(
-      picked.map(([scoreId, c]) => ({ scoreId, span: c.span })),
+      picked.map(([scoreId, c]) => ({ scoreId, excerpt: c.excerpt })),
       [...new Set(picked.flatMap(([, c]) => (c.src ? [c.src] : [])))],
     );
   };
@@ -79,7 +79,7 @@ export function openAddScores(h: _AddScoresHost) {
 
   /** The score's named excerpts to list: all of them, or when searching, those that match unless the score does. */
   const namesShown = (sc: SourceFile, q: string) => {
-    const score = h.saved.get(sc.id), names = score ? sortedNames(score) : [];
+    const score = h.saved.get(sc.id), names = score ? sortedExcerpts(score) : [];
     return !q || `${titleOf(sc.path)} ${folderOf(sc.path)}`.toLowerCase().includes(q) ? names : names.filter((x) => x.name.toLowerCase().includes(q));
   };
 
@@ -120,7 +120,7 @@ export function openAddScores(h: _AddScoresHost) {
     if (next.length) chosen.set(scoreId, next); else chosen.delete(scoreId);
   };
 
-  const row = (sc: SourceFile, names: ExcerptName[]): HTMLElement => {
+  const row = (sc: SourceFile, names: NamedExcerpt[]): HTMLElement => {
     const r = el('div', 'pick-row');
     const label = el('label', 'check');
     const box = el('input');
@@ -129,8 +129,8 @@ export function openAddScores(h: _AddScoresHost) {
     box.checked = mine.some((c) => !c.named);
     box.addEventListener('change', () => {
       // Ticked alone, the whole score; unticked, it and the excerpts chosen in its preview.
-      if (box.checked) toggle(sc.id, { span: {}, label: null }, true, (c) => !c.label);
-      else toggle(sc.id, { span: {}, label: null }, false, (c) => !c.named);
+      if (box.checked) toggle(sc.id, { excerpt: {}, label: null }, true, (c) => !c.label);
+      else toggle(sc.id, { excerpt: {}, label: null }, false, (c) => !c.named);
       redraw();
     });
     const redraw = () => { sync(); r.replaceWith(row(sc, names)); };
@@ -146,10 +146,10 @@ export function openAddScores(h: _AddScoresHost) {
       const named = el('label', 'check excerpt');
       const b = el('input');
       b.type = 'checkbox';
-      const isIt = (c: Choice) => !!c.named && sameSpan(score!.cuts, c.span, x);
+      const isIt = (c: Choice) => !!c.named && sameExcerpt(score!.cuts, c.excerpt, x);
       b.checked = mine.some(isIt);
       b.addEventListener('change', () => {
-        toggle(sc.id, { span: ends(x), label: x.name, named: true }, b.checked, isIt);
+        toggle(sc.id, { excerpt: ends(x), label: x.name, named: true }, b.checked, isIt);
         redraw();
       });
       named.append(b, pickText(x.name));
@@ -184,17 +184,17 @@ export function openAddScores(h: _AddScoresHost) {
     heading.textContent = `Add scores to “${s.title}”`;
     fill(find.value);
   };
-  /** Show a score's pages to choose an excerpt of it, starting from `span` (a named excerpt, say). */
-  const showPreview = async (o: SourceFile, span: Span = {}) => {
+  /** Show a score's pages to choose an excerpt of it, starting from `excerpt` (a named excerpt, say). */
+  const showPreview = async (o: SourceFile, excerpt: Excerpt = {}) => {
     const sc = await h.open(o);
     if (!sc || !d.isConnected) return;
-    const strip = new _ExcerptStrip(sc, span, 'Adds');
+    const strip = new _ExcerptStrip(sc, excerpt, 'Adds');
     const use = button('Add this excerpt', () => {
-      const span = strip.span, score = sc.state.score, name = nameOf(score, span);
+      const excerpt = strip.excerpt, score = sc.state.score, name = namedExcerptOf(score, excerpt);
       // An excerpt takes the place of the whole score ticked on its own; the same one twice is once.
       // A named excerpt is ticked under its score, rather than shown apart.
-      const was = (chosen.get(o.id) ?? []).filter((c) => c.label && !sameSpan(score.cuts, c.span, span));
-      const choice: Choice = name ? { span: ends(name), label: name.name, named: true, src: sc } : { span, label: excerptName(score, span, sc.aspects), src: sc };
+      const was = (chosen.get(o.id) ?? []).filter((c) => c.label && !sameExcerpt(score.cuts, c.excerpt, excerpt));
+      const choice: Choice = name ? { excerpt: ends(name), label: name.name, named: true, src: sc } : { excerpt, label: excerptName(score, excerpt, sc.aspects), src: sc };
       chosen.set(o.id, [...was, choice]);
       sync();
       back();

@@ -2,7 +2,7 @@
 // setlists play, at the widths this screen shows them, and telling the page cache to keep exactly
 // those (it draws those not saved yet, and lets go of the rest).
 
-import { spanCuts } from '../scores/excerpts';
+import { excerptCuts } from '../scores/excerpts';
 import { keepPagesOffline, knownAspects } from '../originals/original';
 import { type Original, type SourceFile } from '../originals/types';
 import type { OfflinePage } from '../page-cache/types';
@@ -47,7 +47,7 @@ async function make(signal: AbortSignal, originals: readonly SourceFile[], setli
     const { state } = await loadScore(id, aspects);
     const widths = new Map<number, Set<number>>();
     for (const e of entries.filter((e) => e.scoreId === id)) {
-      for (const [p, ws] of readPageWidths(pack(spanCuts(state.score.cuts, e), aspects), W, H, scale)) {
+      for (const [p, ws] of readPageWidths(pack(excerptCuts(state.score.cuts, e), aspects), W, H, scale)) {
         for (const w of ws) widths.set(p + 1, (widths.get(p + 1) ?? new Set()).add(Math.round(w * scale)));
       }
     }

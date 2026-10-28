@@ -6,9 +6,9 @@ import type { ExcerptHost } from '../dialogs/excerpts';
 import type { ExcerptSource } from '../dialogs/thumb-strip';
 import type { FileChange } from '../dialogs/score-files';
 import type { LibraryScore } from '../dialogs/open-score';
-import type { Span } from '../scores/excerpts';
+import type { Excerpt } from '../scores/excerpts';
 import type { FolderState, SourceFile } from '../originals/types';
-import type { Aspects, ExcerptName, Score } from '../scores/model';
+import type { Aspects, NamedExcerpt, Score } from '../scores/model';
 import type { Setlist } from '../setlists/model';
 import type { MenuItem } from '../ui/overlay';
 import type { Toast } from '../ui/toast';
@@ -59,10 +59,10 @@ export interface LibraryHost {
   unlock(): Promise<boolean>;
   unlink(): Promise<void>;
 
-  /** "Add to <default setlist>" and "Add to setlist…" for a score, or the excerpt `span` of it, called `what`. */
-  addToItems(anchor: Element, scoreId: string, what: string, span?: Span): MenuItem[];
+  /** "Add to <default setlist>" and "Add to setlist…" for a score, or `excerpt` of it, called `what`. */
+  addToItems(anchor: Element, scoreId: string, what: string, excerpt?: Excerpt): MenuItem[];
   /** Export scores (whole or excerpts of them) as one PDF, named `title` to start with. */
-  exportPdf(title: string, what: (Span & { scoreId: string })[]): void;
+  exportPdf(title: string, what: (Excerpt & { scoreId: string })[]): void;
   /** Changing a score's named excerpts here, saving them as they change. */
   excerptHost(scoreId: string): ExcerptHost;
   /** Open a score's original for a dialog over the library; null, having said why, when it can't be. */
@@ -81,7 +81,7 @@ export interface LibraryHost {
   /** Read a score from where it was left. */
   open(o: SourceFile): void;
   /** Read a named excerpt, from its start. */
-  readExcerpt(o: SourceFile, x: ExcerptName): void;
+  readExcerpt(o: SourceFile, x: NamedExcerpt): void;
   /** Play a setlist from its first entry, or from one of its entries. */
   play(s: Setlist, startEntry?: string): void;
 }

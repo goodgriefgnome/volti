@@ -5,7 +5,7 @@
 // pdf-lib is only loaded to export.
 
 import type { PDFDocument, PDFEmbeddedPage, PDFPage } from 'pdf-lib';
-import { type Span, spanCuts } from '../scores/excerpts';
+import { type Excerpt, excerptCuts } from '../scores/excerpts';
 import { NoAccess, PasswordNotGiven, type AskPassword, type LossyReason, type SourceFile } from '../originals/types';
 import { cutTarget, shownOn } from '../render/paint';
 import { loadScore } from '../scores/store';
@@ -14,8 +14,8 @@ import { type Aspects, type State } from '../scores/model';
 import { annotate } from './_annotations';
 import { placeCut, shownSize, type SourcePage } from './_placement';
 
-/** One part of an export: a score, whole or the excerpt `span` of it. Each starts on a new page. */
-export interface ExportPart { original: SourceFile; span?: Span }
+/** One part of an export: a score, whole or `excerpt` of it. Each starts on a new page. */
+export interface ExportPart { original: SourceFile; excerpt?: Excerpt }
 
 type PdfLib = typeof import('pdf-lib');
 
@@ -117,7 +117,7 @@ export async function exportPdf(parts: readonly ExportPart[], title: string, ask
     let p = sources.get(o.id);
     if (!p) sources.set(o.id, p = open(lib, o, ask));
     const src = await p;
-    const cuts = part.span ? spanCuts(src.state.score.cuts, part.span) : src.state.score.cuts;
+    const cuts = part.excerpt ? excerptCuts(src.state.score.cuts, part.excerpt) : src.state.score.cuts;
     for (const frame of pack(cuts, src.aspects)) await addFrame(lib, out, src, frame);
     progress?.(i + 1, parts.length);
   }

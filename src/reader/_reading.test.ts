@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nameOf, setName } from '../scores/excerpts';
+import { namedExcerptOf, setName } from '../scores/excerpts';
 import { insertPages, remove } from '../scores/edits';
 import { aspects, cut, state } from '../scores/testing';
 import { newEntry, newSetlist, type Setlist } from '../setlists/model';
@@ -15,7 +15,7 @@ const mass = () => {
 const item = { scoreId: 'p', title: 'Mass' };
 
 describe('Reading', () => {
-  it('plays a setlist entry\'s span, and the whole score for a score', () => {
+  it('plays a setlist entry\'s excerpt, and the whole score for a score', () => {
     const { s, b } = mass();
     const e = { ...newEntry('p'), last: b.id };
     const set: Setlist = { ...newSetlist('Spring'), entries: [e] };
@@ -43,7 +43,7 @@ describe('Reading', () => {
     const r = new Reading([item], { kind: 'score' }, []);
     r.turnTo({ scoreId: 'q', title: 'Requiem' });
     expect(r.items.map((x) => x.title)).toEqual(['Requiem']);
-    const x = new Reading([item], { kind: 'excerpt', span: {} }, []);
+    const x = new Reading([item], { kind: 'excerpt', excerpt: {} }, []);
     x.turnTo({ scoreId: 'q', title: 'Requiem' });
     expect(x.items.map((it) => it.title)).toEqual(['Mass']);
   });
@@ -51,13 +51,13 @@ describe('Reading', () => {
   it('carries an edit to the excerpt read, the score\'s names and every setlist', () => {
     const { s, b } = mass();
     const other: Setlist = { ...newSetlist('Autumn'), entries: [{ ...newEntry('p'), last: b.id }] };
-    const r = new Reading([item], { kind: 'excerpt', span: { last: b.id } }, [other]);
+    const r = new Reading([item], { kind: 'excerpt', excerpt: { last: b.id } }, [other]);
     // A page inserted after the Kyrie, while reading it, joins it.
     const { state: after } = insertPages(s, { id: b.id, after: true }, 2, 2, false, aspects);
     const took = r.edited(0, 'p', s.score.cuts, after);
     const last = after.score.cuts[2].id;
-    expect(r.what).toEqual({ kind: 'excerpt', span: { last } });
-    expect(nameOf(took.score, { last })?.name).toBe('Kyrie');
+    expect(r.what).toEqual({ kind: 'excerpt', excerpt: { last } });
+    expect(namedExcerptOf(took.score, { last })?.name).toBe('Kyrie');
     expect(r.setlists[0].entries[0].last).toBe(last);
   });
 
@@ -72,20 +72,20 @@ describe('Reading', () => {
     expect(r.setlists).toEqual([set]);
   });
 
-  it('plays another span: the entry, in a setlist; the excerpt read, otherwise', () => {
+  it('plays another excerpt: the entry, in a setlist; the excerpt read, otherwise', () => {
     const { b } = mass();
     const e = newEntry('p'), set: Setlist = { ...newSetlist('Spring'), entries: [e] };
     const r = new Reading([{ ...item, entryId: e.id }], { kind: 'setlist', id: set.id }, [set]);
     r.play(0, { last: b.id });
     expect(r.entry(0)).toEqual({ id: e.id, scoreId: 'p', last: b.id });
-    const x = new Reading([item], { kind: 'excerpt', span: {} }, []);
+    const x = new Reading([item], { kind: 'excerpt', excerpt: {} }, []);
     x.play(0, { first: b.id, name: 'not kept' } as never);
-    expect(x.what).toEqual({ kind: 'excerpt', span: { first: b.id } });
+    expect(x.what).toEqual({ kind: 'excerpt', excerpt: { first: b.id } });
   });
 
   it('adds what it reads to a setlist, new or not', () => {
     const { b } = mass();
-    const r = new Reading([item], { kind: 'excerpt', span: { last: b.id } }, []);
+    const r = new Reading([item], { kind: 'excerpt', excerpt: { last: b.id } }, []);
     const fresh = newSetlist('New');
     r.addTo(fresh);
     expect(r.setlists).toHaveLength(1);

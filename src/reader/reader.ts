@@ -15,7 +15,7 @@ import { framesOnScreen } from '../render/layout';
 import { isZoomed, NO_ZOOM, type Zoom } from '../render/zoom';
 import { pageWidths, screenAt } from '../render/screen';
 import { type Hatches } from '../render/paint';
-import { A4, type Aspects, type Cut, type ExcerptName, type State } from '../scores/model';
+import { A4, type Aspects, type Cut, type NamedExcerpt, type State } from '../scores/model';
 import { frameOf, pack, type Frame } from '../scores/frames';
 import { loadScore } from '../scores/store';
 import { loadSetlists } from '../setlists/store';
@@ -51,7 +51,7 @@ interface Undo { open: OpenScore; state: State; reading: ReadingSnapshot; k: num
 export type ToRead =
   /** A score, with the library's scores in its order, to turn to past this one's ends. */
   | { kind: 'score'; original: SourceFile; library: readonly SourceFile[] }
-  | { kind: 'excerpt'; original: SourceFile; excerpt: ExcerptName }
+  | { kind: 'excerpt'; original: SourceFile; excerpt: NamedExcerpt }
   | { kind: 'setlist'; setlistId: string; originals: readonly SourceFile[]; startEntry?: string };
 
 /** How long the next score is offered after turning past a score's end: as long as the toast saying so shows. */
@@ -74,8 +74,8 @@ export async function openReader(what: ToRead, onClose: (fileChanges: FileChange
     // Where it was last read, if that was this score or this excerpt of it.
     const last = await loadLastRead();
     if (what.kind === 'excerpt') {
-      const span = ends(what.excerpt);
-      new Reader([item], { kind: 'excerpt', span }, setlists, first, 0, resumeAt(last, { kind: 'excerpt', id: original.id, ...span })?.cut, onClose);
+      const excerpt = ends(what.excerpt);
+      new Reader([item], { kind: 'excerpt', excerpt }, setlists, first, 0, resumeAt(last, { kind: 'excerpt', id: original.id, ...excerpt })?.cut, onClose);
     } else new Reader([item], { kind: 'score' }, setlists, first, 0, resumeAt(last, { kind: 'excerpt', id: original.id })?.cut, onClose, what.library);
     return;
   }
@@ -217,8 +217,8 @@ class Reader {
       say: (t, action) => this.toast.say(t, action),
       library: this.library,
       relisted: (entryId, at) => this.relisted(entryId, at),
-      readSpan: (span) => {
-        this.reading.play(this.k, span);
+      playExcerpt: (excerpt) => {
+        this.reading.play(this.k, excerpt);
         this.frames = this.framesFor(this.k);
         this.frame = 0;
         void this.show();
@@ -504,7 +504,7 @@ class Reader {
     const what = this.reading.what, item = this.items[this.k];
     if (what.kind === 'setlist') {
       if (item.entryId) void saveLastRead({ kind: 'setlist', id: what.id, entry: item.entryId, cut });
-    } else void saveLastRead({ kind: 'excerpt', id: item.scoreId, ...(what.kind === 'excerpt' ? ends(what.span) : {}), cut });
+    } else void saveLastRead({ kind: 'excerpt', id: item.scoreId, ...(what.kind === 'excerpt' ? ends(what.excerpt) : {}), cut });
   }
 
   /** Draw a frame's music and ink at its current layout. */

@@ -2,7 +2,7 @@
 // the dialog around them. The reader and the library both use it; where the pages come from is
 // the caller's business.
 
-import { type Span, nameOf, sortedNames, spanFor, spanLabel, spanOf } from '../scores/excerpts';
+import { type Excerpt, namedExcerptOf, sortedExcerpts, excerptFor, excerptLabel, excerptRange } from '../scores/excerpts';
 import { placeLabel, places, type Place } from '../scores/frames';
 import { type Score } from '../scores/model';
 import { button, el } from '../ui/dom';
@@ -26,14 +26,14 @@ export class _ExcerptStrip {
   /** Each cut's page and letter, for naming it. */
   private places: Place[];
 
-  /** Called whenever the span chosen changes, or a tap starts choosing a new one. */
+  /** Called whenever the excerpt chosen changes, or a tap starts choosing a new one. */
   onChange: () => void = () => {};
 
   /** `verb` starts the hint: "Plays the whole score." */
-  constructor(private src: ExcerptSource, span: Span, private verb = 'Plays') {
+  constructor(private src: ExcerptSource, excerpt: Excerpt, private verb = 'Plays') {
     const { state, aspects } = src, cuts = state.score.cuts;
     this.n = cuts.length;
-    ({ i0: this.i0, i1: this.i1 } = spanOf(cuts, span));
+    ({ i0: this.i0, i1: this.i1 } = excerptRange(cuts, excerpt));
     this.hint.setAttribute('aria-live', 'polite');
 
     const strip = new ThumbStrip(src);
@@ -56,19 +56,19 @@ export class _ExcerptStrip {
     this.sync();
   }
 
-  /** The span chosen. */
-  get span(): Span { return spanFor(this.src.state.score.cuts, this.i0, this.i1); }
+  /** The excerpt chosen. */
+  get excerpt(): Excerpt { return excerptFor(this.src.state.score.cuts, this.i0, this.i1); }
 
   get whole() { return this.i0 === 0 && this.i1 === this.n - 1; }
 
-  /** Choose a span, as if its first and last cut had been tapped. */
-  set(span: Span) {
-    ({ i0: this.i0, i1: this.i1 } = spanOf(this.src.state.score.cuts, span));
+  /** Choose an excerpt, as if its first and last cut had been tapped. */
+  set(excerpt: Excerpt) {
+    ({ i0: this.i0, i1: this.i1 } = excerptRange(this.src.state.score.cuts, excerpt));
     this.pending = null;
     this.sync();
   }
 
-  /** Whether a tap has started a new span, which a second tap will finish. */
+  /** Whether a tap has started a new excerpt, which a second tap will finish. */
   get choosing() { return this.pending !== null; }
 
   /** Bring the chosen cuts into view, once the strip is on the screen. */
@@ -88,7 +88,7 @@ export class _ExcerptStrip {
       b.classList.toggle('pending', k === pending);
       b.setAttribute('aria-pressed', String(k >= i0 && k <= i1));
     });
-    const label = spanLabel(state.score.cuts, this.span, aspects), name = nameOf(state.score, this.span)?.name;
+    const label = excerptLabel(state.score.cuts, this.excerpt, aspects), name = namedExcerptOf(state.score, this.excerpt)?.name;
     const pages = label ? label[0].toLowerCase() + label.slice(1) : 'the whole score';
     const what = name ? `“${name}”, ${pages}` : pages;
     this.hint.textContent = pending === null
@@ -100,16 +100,16 @@ export class _ExcerptStrip {
 
 /**
  * A dropdown of the score's named excerpts, with Whole score and Custom: choosing one selects its
- * cuts in the strip, and tapping cuts shows the name of the span they make, if it has one.
+ * cuts in the strip, and tapping cuts shows the name of the excerpt they make, if it has one.
  */
 export function _namedExcerptMenu(strip: _ExcerptStrip, score: Score): HTMLSelectElement {
-  const names = sortedNames(score);
+  const names = sortedExcerpts(score);
   const menu = el('select', 'excerpt-menu');
   menu.setAttribute('aria-label', 'Named excerpt');
   const option = (value: string, label: string) => Object.assign(el('option'), { value, textContent: label });
   menu.append(option('whole', 'Whole score'), ...names.map((n, i) => option(String(i), n.name)), option('custom', 'Custom'));
   const follow = () => {
-    const n = nameOf(score, strip.span);
+    const n = namedExcerptOf(score, strip.excerpt);
     menu.value = strip.choosing ? 'custom' : strip.whole ? 'whole' : n ? String(names.indexOf(n)) : 'custom';
   };
   menu.addEventListener('change', () => {
@@ -124,23 +124,23 @@ export function _namedExcerptMenu(strip: _ExcerptStrip, score: Score): HTMLSelec
 
 export interface _ExcerptPicker extends ExcerptSource {
   question: string;
-  span: Span;
+  excerpt: Excerpt;
   /** Starts the hint, such as "This entry plays". */
   verb?: string;
   /** Ask for a name too, starting with this one. */
   name?: string;
   /** Offer the whole score and its named excerpts in a dropdown. */
   named?: boolean;
-  /** Why the span (and name) can't be taken as they are, said in the dialog; null when they can. */
-  problem?(span: Span, name: string): string | null;
+  /** Why the excerpt (and name) can't be taken as they are, said in the dialog; null when they can. */
+  problem?(excerpt: Excerpt, name: string): string | null;
   okLabel?: string;
-  done(span: Span, name: string): void;
+  done(excerpt: Excerpt, name: string): void;
 }
 
 /** A dialog for choosing which of a score's cuts to play, and perhaps naming them. */
 export function openExcerptPicker(h: _ExcerptPicker) {
   const d = showDialog(h.question, 'wide');
-  const strip = new _ExcerptStrip(h, h.span, h.verb);
+  const strip = new _ExcerptStrip(h, h.excerpt, h.verb);
   const input = el('input', 'name');
   input.type = 'text';
   input.value = h.name ?? '';
@@ -150,11 +150,11 @@ export function openExcerptPicker(h: _ExcerptPicker) {
   const error = el('p', 'hint error');
   error.setAttribute('aria-live', 'polite');
   const ok = () => {
-    const why = h.problem?.(strip.span, input.value) ?? null;
+    const why = h.problem?.(strip.excerpt, input.value) ?? null;
     error.textContent = why ?? '';
     if (why) return;
     closeOverlay();
-    h.done(strip.span, input.value.trim());
+    h.done(strip.excerpt, input.value.trim());
   };
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok(); });
   const done = button(h.okLabel ?? 'Done', ok, 'primary');

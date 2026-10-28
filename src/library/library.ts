@@ -9,7 +9,7 @@ import { openScore, type LibraryScore } from '../dialogs/open-score';
 import { type ExcerptHost } from '../dialogs/excerpts';
 import { type ExcerptSource } from '../dialogs/thumb-strip';
 import { type FileChange } from '../dialogs/score-files';
-import type { Span } from '../scores/excerpts';
+import type { Excerpt } from '../scores/excerpts';
 import type { ExportPart } from '../export/pdf';
 import { arrivals, byFolder, byTitle, titleOf } from '../originals/path-utils';
 import { folderState, linkFolder, unlinkFolder, unlockFolder } from '../originals/device-score-fs';
@@ -19,7 +19,7 @@ import { NoAccess, PasswordNotGiven, type FolderState, type SourceFile } from '.
 import { openReader, type ToRead } from '../reader/reader';
 import { knownAspects } from '../originals/original';
 import { loadSavedScore, scoreEntry } from '../scores/store';
-import { type Aspects, type ExcerptName, type Score } from '../scores/model';
+import { type Aspects, type NamedExcerpt, type Score } from '../scores/model';
 import { addEntries, defaultSetlist, withSetlist, type Setlist } from '../setlists/model';
 import { deleteSetlist, loadLastAddedTo, loadSetlists, saveChanged, saveLastAddedTo } from '../setlists/store';
 import { closeOverlay, type MenuItem } from '../ui/overlay';
@@ -285,17 +285,17 @@ export class Library implements LibraryHost {
   }
 
   /**
-   * "Add to <default setlist>" and "Add to setlist…" for a score, or the excerpt `span` of it, called
+   * "Add to <default setlist>" and "Add to setlist…" for a score, or `excerpt` of it, called
    * `what`; the second opens a menu of setlists below `anchor`, with New setlist….
    */
-  addToItems(anchor: Element, scoreId: string, what: string, span: Span = {}): MenuItem[] {
+  addToItems(anchor: Element, scoreId: string, what: string, excerpt: Excerpt = {}): MenuItem[] {
     const add = async (s: Setlist) => {
       const o = this.originalOf(scoreId);
       if (o && !(await this.givePassword(o))) return;
       s = this.setlist(s.id) ?? s;
       this.openRows.add(s.id);
       this.addedTo(s.id);
-      void this.change(withSetlist(this.setlists, addEntries(s, [{ scoreId, span }])));
+      void this.change(withSetlist(this.setlists, addEntries(s, [{ scoreId, excerpt }])));
       this.toast.say(`Added “${what}” to “${s.title}”.`);
     };
     const d = defaultSetlist(this.setlists, this.lastAddedTo);
@@ -305,11 +305,11 @@ export class Library implements LibraryHost {
     ];
   }
 
-  exportPdf(title: string, what: (Span & { scoreId: string })[]) {
+  exportPdf(title: string, what: (Excerpt & { scoreId: string })[]) {
     const parts: ExportPart[] = [], missing: string[] = [];
     for (const { scoreId, first, last } of what) {
       const original = this.originalOf(scoreId);
-      if (original) parts.push({ original, span: { first, last } });
+      if (original) parts.push({ original, excerpt: { first, last } });
       else missing.push(this.titleOf(scoreId));
     }
     if (!parts.length) { this.toast.say('Its scores are all missing.'); return; }
@@ -399,8 +399,8 @@ export class Library implements LibraryHost {
   }
 
   /** Read a named excerpt, as a setlist entry playing it is read: only its cuts, always from its start. */
-  readExcerpt(o: SourceFile, excerpt: ExcerptName) {
-    void this.read({ kind: 'excerpt', original: o, excerpt }, `Could not open “${titleOf(o.path)}”. It may have been moved or renamed.`);
+  readExcerpt(o: SourceFile, named: NamedExcerpt) {
+    void this.read({ kind: 'excerpt', original: o, excerpt: named }, `Could not open “${titleOf(o.path)}”. It may have been moved or renamed.`);
   }
 
   play(s: Setlist, startEntry?: string) {

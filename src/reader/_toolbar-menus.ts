@@ -12,13 +12,13 @@ import { openExcerptPicker } from '../dialogs/excerpt-picker';
 import { openExportPdf } from '../dialogs/export-pdf';
 import { openScore } from '../dialogs/open-score';
 import { type ExcerptSource } from '../dialogs/thumb-strip';
-import { type Span, ends, nameOf, sortedNames, spanLabel, spanOf } from '../scores/excerpts';
+import { type Excerpt, ends, namedExcerptOf, sortedExcerpts, excerptLabel, excerptRange } from '../scores/excerpts';
 import type { ExportPart } from '../export/pdf';
 import { folderState } from '../originals/device-score-fs';
 import { NoAccess, PasswordNotGiven, type SourceFile } from '../originals/types';
 import { subfolders, titleOf } from '../originals/path-utils';
 import { loadSavedScore, saveScore } from '../scores/store';
-import { type ExcerptName, type Score } from '../scores/model';
+import { type NamedExcerpt, type Score } from '../scores/model';
 import { addEntries, defaultSetlist, duplicate, moveEntry, withSetlist, type Entry, type Setlist } from '../setlists/model';
 import { deleteSetlist, loadLastAddedTo, saveLastAddedTo } from '../setlists/store';
 import { button, dpr, el, plural } from '../ui/dom';
@@ -53,8 +53,8 @@ export interface MenusHost {
    * or, when it's gone, the entry now at `at` (or the last); with none left, back to the library.
    */
   relisted(entryId?: string, at?: number): void;
-  /** In a named excerpt's reader: read `span` of the score instead. */
-  readSpan(span: Span): void;
+  /** In a named excerpt's reader: read `excerpt` of the score instead. */
+  playExcerpt(excerpt: Excerpt): void;
   /** Leave the reader for the library. */
   leave(): void;
   /** Ask for access to the scores folder, from a tap, when what is read needs it; false when not allowed. */
@@ -72,14 +72,14 @@ export class ReaderMenus {
   scores() {
     const { reading } = this.h;
     showMenu(this.h.toolbar.anchor('scores'), reading.setlist?.title ?? 'Scores', reading.items.map((it, k) => ({
-      label: `${k + 1}. ${it.title}${this.excerptLabel(k)}`,
+      label: `${k + 1}. ${it.title}${this.itemSuffix(k)}`,
       checked: k === this.h.k(),
       run: () => this.h.goTo(k),
     })));
   }
 
   /** " · Kyrie" or " · Pages 2–3" for an entry that plays an excerpt of a score that is open; otherwise nothing. */
-  private excerptLabel(k: number): string {
+  private itemSuffix(k: number): string {
     const cur = this.h.open(k);
     const label = cur && this.h.reading.excerptName(k, cur.state.score, cur.aspects);
     return label ? ` · ${label}` : '';
@@ -97,7 +97,7 @@ export class ReaderMenus {
     const cur = this.current, it = reading.items[0], o = it.original;
     const add = this.addItems(anchor, await loadLastAddedTo());
     if (reading.what.kind === 'excerpt') {
-      const x = cur && nameOf(cur.state.score, reading.what.span);
+      const x = cur && namedExcerptOf(cur.state.score, reading.what.excerpt);
       showMenu(anchor, x?.name ?? it.title, [
         ...add,
         cur && x && { label: 'Rename…', run: () => renameExcerpt(cur.state.score, x, this.excerptHost(cur)) },
@@ -161,14 +161,14 @@ export class ReaderMenus {
   }
 
   /** Delete the named excerpt being read, then read the next of the score's (or the one before); with none left, back to the library. */
-  private deleteExcerpt(cur: OpenScore, x: ExcerptName) {
-    const host = this.excerptHost(cur), at = sortedNames(cur.state.score).findIndex((n) => n.name === x.name);
+  private deleteExcerpt(cur: OpenScore, x: NamedExcerpt) {
+    const host = this.excerptHost(cur), at = sortedExcerpts(cur.state.score).findIndex((n) => n.name === x.name);
     deleteExcerpt(cur.state.score, x, {
       ...host,
       save: (score, setlists) => {
         host.save(score, setlists);
-        const left = sortedNames(score), next = left[at] ?? left[at - 1];
-        if (next) this.h.readSpan(ends(next)); else this.h.leave();
+        const left = sortedExcerpts(score), next = left[at] ?? left[at - 1];
+        if (next) this.h.playExcerpt(ends(next)); else this.h.leave();
       },
     });
   }
@@ -257,7 +257,7 @@ export class ReaderMenus {
       add: (entries, scores) => {
         const now = reading.setlist;
         if (!now) return;
-        // The scores excerpts were chosen from too, so the spans and the cuts they name agree.
+        // The scores excerpts were chosen from too, so the excerpts and the cuts they name agree.
         for (const x of scores) void saveScore(x.state);
         reading.setlists = withSetlist(reading.setlists, addEntries(now, entries));
         void saveLastAddedTo(now.id);
@@ -278,7 +278,7 @@ export class ReaderMenus {
     await this.h.saver.flush();
     const parts: ExportPart[] = [], missing: string[] = [];
     reading.items.forEach((it, k) => {
-      if (it.original && !it.missing) parts.push({ original: it.original, span: reading.span(k) });
+      if (it.original && !it.missing) parts.push({ original: it.original, excerpt: reading.excerpt(k) });
       else missing.push(it.title);
     });
     if (!parts.length) { this.h.say('Its scores are all missing.'); return; }
@@ -318,17 +318,17 @@ export class ReaderMenus {
     const cur = this.current;
     if (!cur?.draw) return;
     this.h.dismiss();
-    const score = cur.state.score, title = this.h.reading.items[0].title, names = sortedNames(score);
+    const score = cur.state.score, title = this.h.reading.items[0].title, names = sortedExcerpts(score);
     const d = showDialog(`Excerpts of “${title}”`);
     const list = el('ul', 'excerpt-list');
     for (const x of names) {
       const li = el('li');
       const go = button('', () => {
         closeOverlay();
-        this.h.goTo(this.h.k(), score.cuts[spanOf(score.cuts, x).i0]?.id);
+        this.h.goTo(this.h.k(), score.cuts[excerptRange(score.cuts, x).i0]?.id);
       }, 'open');
       go.append(el('span', 'item-title', x.name));
-      const pages = spanLabel(score.cuts, x, cur.aspects);
+      const pages = excerptLabel(score.cuts, x, cur.aspects);
       if (pages) go.append(el('span', 'meta', pages));
       go.setAttribute('aria-label', `Go to ${x.name}`);
       const more = button('⋯', () => showMenu(more, x.name, [
@@ -354,18 +354,18 @@ export class ReaderMenus {
     if (!cur?.draw) return;
     this.h.dismiss();
     const pages = this.source(cur);
-    const play = (span: Span) => {
-      reading.play(k, span);
-      // The score too: one opened for the first time isn't saved yet, and the span names its cuts.
+    const play = (excerpt: Excerpt) => {
+      reading.play(k, excerpt);
+      // The score too: one opened for the first time isn't saved yet, and the excerpt names its cuts.
       this.h.saver.soon(cur);
       this.h.replay();
     };
     if (reading.what.kind === 'excerpt') {
       // Give the named excerpt being read other cuts; every setlist entry that plays it moves with
       // it. An excerpt that lost its name to an edit (it came to be the whole score) just plays other cuts.
-      const span = reading.what.span, name = nameOf(cur.state.score, span);
+      const excerpt = reading.what.excerpt, name = namedExcerptOf(cur.state.score, excerpt);
       if (name) changeExcerptCuts(pages, name, this.excerptHost(cur), play);
-      else openExcerptPicker({ ...pages, question: `Which part of “${reading.items[0].title}” to read?`, verb: 'It plays', span, done: play });
+      else openExcerptPicker({ ...pages, question: `Which part of “${reading.items[0].title}” to read?`, verb: 'It plays', excerpt, done: play });
       return;
     }
     const entry = reading.entry(k);
@@ -375,7 +375,7 @@ export class ReaderMenus {
       question: `Which part of “${reading.items[k].title}” does entry ${k + 1} play?`,
       verb: 'This entry plays',
       named: true,
-      span: entry,
+      excerpt: entry,
       done: play,
     });
   }
