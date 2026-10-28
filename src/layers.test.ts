@@ -10,6 +10,7 @@ const LAYERS: Record<string, number> = {
   storage: 0,
   types: 0,
   ui: 1,
+  'page-cache': 1,
   markings: 1,
   originals: 2,
   scores: 2,
