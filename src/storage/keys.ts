@@ -36,7 +36,7 @@ export const keys = {
   ink: (id: string) => 'ink:' + id,
   /** The id of the first cut on the screen you were reading. */
   pos: (id: string) => 'pos:' + id,
-  /** Aspects, the original's page shapes as last opened: for laying out pages without opening it. */
+  /** Aspects, the original's page shapes (originals/original.ts): for laying out pages without opening it. */
   aspects: (id: string) => 'aspects:' + id,
   /** The password that opened a PDF protected by one, by its file's id (originals/pdf-source.ts). */
   password: (id: string) => 'password:' + id,

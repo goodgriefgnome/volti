@@ -6,6 +6,8 @@
 // saved pictures where there are some.
 
 import { readImage } from './_image-source';
+import { keys } from '../storage/keys';
+import { kv } from '../storage/kv';
 import type { Content, OpenPages, Readable } from './_types';
 import { isPdf, readPdf } from './_pdf-source';
 import type { AskPassword, Original, PagePictures, RenderedPdf } from './types';
@@ -20,6 +22,17 @@ export async function _readOriginal(f: Readable, ask?: AskPassword): Promise<Ori
   return new FileOriginal(f, isPdf(bytes) ? await readPdf(f, ask) : readImage(f));
 }
 
+/** The aspects (each page's height / width) stored for an original, without reading its file. */
+export function knownAspects(id: string): Promise<number[] | undefined> {
+  return kv.get<number[]>(keys.aspects(id));
+}
+
+/** Store an original's aspects, if they aren't as stored. */
+async function storeAspects(id: string, aspects: number[]) {
+  const was = await knownAspects(id);
+  if (!was || was.length !== aspects.length || was.some((a, i) => a !== aspects[i])) await kv.set(keys.aspects(id), aspects);
+}
+
 /** An original: its file's id, path, moving and removing, and itself as what reading it gives. */
 class FileOriginal implements Original {
   constructor(private f: Readable, private content: Content) {}
@@ -29,8 +42,23 @@ class FileOriginal implements Original {
   remove() { return this.f.remove(); }
   async read() { return this; }
   pdf(): Promise<RenderedPdf> { return this.content.pdf(); }
+  private shapes?: number[];
+  async aspects(): Promise<number[]> {
+    if (this.shapes) return this.shapes;
+    let aspects = await knownAspects(this.id);
+    if (!aspects) {
+      const pages = await this.content.pages();
+      try {
+        aspects = await Promise.all(Array.from({ length: pages.pages }, (_, i) => pages.aspect(i + 1)));
+      } finally {
+        pages.destroy();
+      }
+      await storeAspects(this.id, aspects);
+    }
+    return (this.shapes = aspects);
+  }
   /** Awaits the source first, so a NoAccess or PasswordNotGiven rejects here. */
-  async pages(): Promise<PageCache> { return new PageCache(Promise.resolve(await this.content.pages())); }
+  async pages(): Promise<PageCache> { return new PageCache(Promise.resolve(await this.content.pages()), this.id); }
 }
 
 /**
@@ -66,13 +94,13 @@ export class PageCache {
   /** Saved pictures of the pages, used instead of drawing them. */
   pictures?: PagePictures;
 
-  constructor(private opened: Promise<OpenPages>) {
+  constructor(private opened: Promise<OpenPages>, private id?: string) {
     opened.catch(() => {}); // a failure shows where a page is drawn
   }
 
   /** A cache for an original still opening: drawing a page waits for it, but a saved picture doesn't. */
-  static opening(cache: Promise<PageCache>): PageCache {
-    return new PageCache(cache.then((c) => c.opened));
+  static opening(cache: Promise<PageCache>, id?: string): PageCache {
+    return new PageCache(cache.then((c) => c.opened), id);
   }
 
   /** Page height / width. */
@@ -93,7 +121,9 @@ export class PageCache {
   /** Height / width of every page, in order. */
   async allAspects(): Promise<number[]> {
     const n = (await this.opened).pages;
-    return Promise.all(Array.from({ length: n }, (_, i) => this.aspect(i + 1)));
+    const aspects = await Promise.all(Array.from({ length: n }, (_, i) => this.aspect(i + 1)));
+    if (this.id) void storeAspects(this.id, aspects);
+    return aspects;
   }
 
   private key(num: number, cssW: number, cssH: number) { return `${num}@${cssW}x${cssH}`; }

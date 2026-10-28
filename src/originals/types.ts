@@ -29,6 +29,8 @@ export interface SourceFile {
 
 /** A source file Volti has read: what a score is made from. */
 export interface Original extends SourceFile {
+  /** Each page's height / width, in order: as stored, else worked out by opening it, and stored. */
+  aspects(): Promise<number[]>;
   /** Its pages, to draw. */
   pages(): Promise<PageCache>;
   /** Its music as a PDF, for export (_pdf-source.ts, _image-source.ts). */

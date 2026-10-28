@@ -3,9 +3,9 @@
 
 import { askPassword } from '../dialogs/passwords';
 import { NoAccess, PasswordNotGiven, type SourceFile } from '../originals/types';
-import { PageCache } from '../originals/original';
+import { knownAspects, PageCache } from '../originals/original';
 import { hasPictures, picturesOf } from '../pictures/pictures';
-import { loadAspects, loadScore } from '../scores/store';
+import { loadScore } from '../scores/store';
 import { type Aspects, type State } from '../scores/model';
 
 /**
@@ -14,9 +14,9 @@ import { type Aspects, type State } from '../scores/model';
  * read. Only with `ask` is its password asked for.
  */
 export async function openPages(o: SourceFile, ask: boolean): Promise<{ cache: PageCache; aspects: Aspects }> {
-  const [shapes, saved] = await Promise.all([loadAspects(o.id), hasPictures(o.id)]);
+  const [shapes, saved] = await Promise.all([knownAspects(o.id), hasPictures(o.id)]);
   const pages = o.read(ask ? askPassword : undefined).then((r) => r.pages());
-  const cache = shapes && saved ? PageCache.opening(pages) : await pages;
+  const cache = shapes && saved ? PageCache.opening(pages, o.id) : await pages;
   cache.pictures = picturesOf(o.id);
   return { cache, aspects: shapes && saved ? shapes : await cache.allAspects() };
 }

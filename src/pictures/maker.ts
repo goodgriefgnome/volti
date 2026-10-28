@@ -2,10 +2,11 @@
 // the widths this screen shows them, drawing those not saved yet, and deleting the rest.
 
 import { spanCuts } from '../excerpts/span';
+import { knownAspects } from '../originals/original';
 import { titleOf } from '../originals/path-utils';
 import { type SourceFile } from '../originals/types';
 import { readPageWidths } from '../render/screen';
-import { loadAspects, loadScore } from '../scores/store';
+import { loadScore } from '../scores/store';
 import { pack } from '../scores/frames';
 import type { Setlist } from '../setlists/model';
 import { dpr } from '../ui/dom';
@@ -43,12 +44,8 @@ async function make(mine: number, originals: readonly SourceFile[], setlists: re
   for (const id of new Set(entries.map((e) => e.scoreId))) {
     if (mine !== run) return;
     const original = byId.get(id);
-    let aspects = await loadAspects(id);
-    if (!aspects) {
-      const cache = original && (await original.read().then((o) => o.pages()).catch(() => null));
-      if (!cache) { unsure.add(id); continue; }
-      try { aspects = await cache.allAspects(); } finally { cache.destroy(); }
-    }
+    const aspects = (await knownAspects(id)) ?? (await original?.read().then((o) => o.aspects()).catch(() => undefined));
+    if (!aspects) { unsure.add(id); continue; }
     const { state } = await loadScore(id, (original && titleOf(original.path)) ?? '', aspects);
     const widths = new Map<number, Set<number>>();
     for (const e of entries.filter((e) => e.scoreId === id)) {

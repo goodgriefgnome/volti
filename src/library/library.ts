@@ -19,7 +19,8 @@ import { leftInApp } from '../originals/misc-files';
 import { NoAccess, PasswordNotGiven, type FolderState, type SourceFile } from '../originals/types';
 import { makePictures } from '../pictures/maker';
 import { openReader, type ToRead } from '../reader/reader';
-import { loadAspects, loadSavedScore, scoreEntry } from '../scores/store';
+import { knownAspects } from '../originals/original';
+import { loadSavedScore, scoreEntry } from '../scores/store';
 import { type Aspects, type ExcerptName, type Score } from '../scores/model';
 import { addEntries, defaultSetlist, withSetlist, type Setlist } from '../setlists/model';
 import { deleteSetlist, loadLastAddedTo, loadSetlists, saveChanged, saveLastAddedTo } from '../setlists/store';
@@ -165,7 +166,7 @@ export class Library implements LibraryHost {
     await this.scoresSection.load();
     // Every score's, for its named excerpts, and those of scores in setlists that are missing.
     const ids = [...new Set([...this.originals.map((o) => o.id), ...this.setlists.flatMap((s) => s.entries.map((e) => e.scoreId))])];
-    const [saved, shapes] = await Promise.all([Promise.all(ids.map(loadSavedScore)), Promise.all(ids.map(loadAspects))]);
+    const [saved, shapes] = await Promise.all([Promise.all(ids.map(loadSavedScore)), Promise.all(ids.map(knownAspects))]);
     this.saved = new Map(saved.filter((x): x is Score => !!x).map((x) => [x.id, x]));
     this.shapes = new Map(ids.flatMap((id, i) => (shapes[i] ? [[id, shapes[i]] as const] : [])));
     this.renderSetlists();

@@ -60,8 +60,7 @@ export async function drawnOriginals(originals: readonly SourceFile[]): Promise<
 async function open(lib: PdfLib, f: SourceFile, ask?: AskPassword): Promise<Source> {
   // Asks for the password, if it isn't known yet, which decrypting the music then uses.
   const o = await f.read(ask);
-  const cache = await o.pages();
-  const aspects = await cache.allAspects().finally(() => cache.destroy());
+  const aspects = await o.aspects();
   const { state } = await loadScore(o.id, titleOf(o.path), aspects);
   const doc = await lib.PDFDocument.load((await o.pdf()).bytes);
   const widths = aspects.map((_, i) => shownSize(sourcePage(doc.getPage(i))).width);
