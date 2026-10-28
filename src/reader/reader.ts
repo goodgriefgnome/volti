@@ -17,7 +17,7 @@ import { pageWidths, screenAt } from '../render/screen';
 import { type Hatches } from '../render/paint';
 import { A4, type Aspects, type Cut, type ExcerptName, type State } from '../scores/model';
 import { frameOf, pack, type Frame } from '../scores/frames';
-import { loadScore, saveScorePosition } from '../scores/store';
+import { loadScore } from '../scores/store';
 import { loadSetlists } from '../setlists/store';
 import { type Setlist } from '../setlists/model';
 import { closeOverlay } from '../ui/overlay';
@@ -37,6 +37,8 @@ import { backIcon, chromeIcon, Toolbar, type ToolChoice } from './_toolbar';
 import { ReaderMenus } from './_toolbar-menus';
 import { offerScore, turnFrom, type Offer } from './_turning';
 import type { ToolName } from './tools/_tools';
+import { resumeAt } from './_last-read';
+import { loadLastRead, saveLastRead } from './_store';
 import type { ReaderView } from './_view';
 
 /**
@@ -66,20 +68,29 @@ export async function openReader(what: ToRead, onClose: (fileChanges: FileChange
   if (what.kind !== 'setlist') {
     const { original } = what;
     const { draw, aspects, readable } = await openPages(original, true);
-    const { state, position } = await loadScore(original.id, aspects);
+    const { state } = await loadScore(original.id, aspects);
     const first: OpenScore = { id: original.id, original, aspects, state, draw, readable };
     const item = { scoreId: original.id, title: titleOf(original.path), original };
-    // An excerpt starts at its start each time: its place isn't kept.
-    if (what.kind === 'excerpt') new Reader([item], { kind: 'excerpt', span: ends(what.excerpt) }, setlists, first, 0, undefined, onClose);
-    else new Reader([item], { kind: 'score' }, setlists, first, 0, position, onClose, what.library);
+    // Where it was last read, if that was this score or this excerpt of it.
+    const last = await loadLastRead();
+    if (what.kind === 'excerpt') {
+      const span = ends(what.excerpt);
+      new Reader([item], { kind: 'excerpt', span }, setlists, first, 0, resumeAt(last, { kind: 'excerpt', id: original.id, ...span })?.cut, onClose);
+    } else new Reader([item], { kind: 'score' }, setlists, first, 0, resumeAt(last, { kind: 'excerpt', id: original.id })?.cut, onClose, what.library);
     return;
   }
   const setlist = setlists.find((s) => s.id === what.setlistId);
   if (!setlist?.entries.length) throw new Error('No such setlist, or no scores in it');
   const items = setlistItems(setlist, new Map(what.originals.map((o) => [o.id, o])), await knownTitles());
-  // From its first entry, as each performance runs from the top; or from the entry tapped.
-  const k = Math.max(0, items.findIndex((it) => it.entryId === what.startEntry));
-  new Reader(items, { kind: 'setlist', id: setlist.id }, setlists, null, k, undefined, onClose, what.originals);
+  // From the entry tapped, else where it was last read; else from its first entry.
+  let k = 0, position: string | undefined;
+  if (what.startEntry) k = Math.max(0, items.findIndex((it) => it.entryId === what.startEntry));
+  else {
+    const at = resumeAt(await loadLastRead(), { kind: 'setlist', id: setlist.id });
+    const found = at ? items.findIndex((it) => it.entryId === at.entry) : -1;
+    if (found >= 0) { k = found; position = at!.cut; }
+  }
+  new Reader(items, { kind: 'setlist', id: setlist.id }, setlists, null, k, position, onClose, what.originals);
 }
 
 /**
@@ -485,11 +496,15 @@ class Reader {
   }
 
   /**
-   * In a score's own reader, remember the first cut on the screen, to come back to; an excerpt and
-   * a setlist always start at their start.
+   * Remember what is read and its first cut on the screen, to come back to (reader/_last-read.ts):
+   * a score as an excerpt with no ends, an excerpt by the ends it plays now, a setlist by its entry.
    */
   private saveSpot(cut: string | undefined) {
-    if (this.reading.what.kind === 'score' && cut) void saveScorePosition(this.items[this.k].scoreId, cut);
+    if (!cut) return;
+    const what = this.reading.what, item = this.items[this.k];
+    if (what.kind === 'setlist') {
+      if (item.entryId) void saveLastRead({ kind: 'setlist', id: what.id, entry: item.entryId, cut });
+    } else void saveLastRead({ kind: 'excerpt', id: item.scoreId, ...(what.kind === 'excerpt' ? ends(what.span) : {}), cut });
   }
 
   /** Draw a frame's music and ink at its current layout. */

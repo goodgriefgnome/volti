@@ -1,4 +1,4 @@
-// Loading and saving scores, their ink and reading positions in the kv store. The only place scores
+// Loading and saving scores and their ink in the kv store. The only place scores
 // touch storage.
 
 import { keys } from '../storage/keys';
@@ -18,12 +18,10 @@ const loaded = (id: string, s: StoredScore): Score => {
 };
 
 /** A score as saved, or a new one for an original opened the first time, with the page shapes it is given. */
-export async function loadScore(id: string, aspects: Aspects): Promise<{ state: State; position?: string }> {
-  const [score, ink, position] = await Promise.all([
-    kv.get<StoredScore>(keys.score(id)), kv.get<ScoreInk>(keys.ink(id)), kv.get<string>(keys.pos(id)),
-  ]);
+export async function loadScore(id: string, aspects: Aspects): Promise<{ state: State }> {
+  const [score, ink] = await Promise.all([kv.get<StoredScore>(keys.score(id)), kv.get<ScoreInk>(keys.ink(id))]);
   if (!score) return { state: { score: newScore(id, aspects), ink: {} } };
-  return { state: _forPages({ score: loaded(id, score), ink: ink ?? {} }, aspects), position };
+  return { state: _forPages({ score: loaded(id, score), ink: ink ?? {} }, aspects) };
 }
 
 /** The records a score and its ink are saved as, always together. */
@@ -40,5 +38,3 @@ export const loadSavedScore = async (id: string): Promise<Score | undefined> => 
   const score = await kv.get<StoredScore>(keys.score(id));
   return score && loaded(id, score);
 };
-
-export const saveScorePosition = (id: string, cutId: string) => kv.set(keys.pos(id), cutId);

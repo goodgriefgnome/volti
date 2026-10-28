@@ -26,7 +26,7 @@ const LAYERS: Record<string, number> = {
 };
 
 /** The only files that use the kv store (storage/keys.ts names the one for each key). */
-const usesStorage = (file: string) => /\/store\.ts$/.test(file) || file.startsWith('originals/') || file.startsWith('storage/');
+const usesStorage = (file: string) => /\/_?store\.ts$/.test(file) || file.startsWith('originals/') || file.startsWith('storage/');
 
 const sources = import.meta.glob<string>(['./**/*.ts', '!./**/*.test.ts', '!./**/*.d.ts'], { query: '?raw', import: 'default', eager: true });
 const files = Object.entries(sources).map(([path, text]) => ({ file: path.slice(2), text }));

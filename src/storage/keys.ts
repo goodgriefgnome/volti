@@ -9,6 +9,8 @@ export const keys = {
   folder: 'folder',
   /** The library's subfolder lists closed by hand, by path (library/store.ts). */
   closedFolders: 'closed-folders',
+  /** What was last read and where in it: the score, excerpt or setlist, and the first cut on the screen (reader/_store.ts). */
+  lastRead: 'last-read',
 
   /*
    * Scores (scores/store.ts), by their original's id (the SHA-256 of its contents). A score and its ink are always written
@@ -18,8 +20,6 @@ export const keys = {
   score: (id: string) => 'score:' + id,
   /** ScoreInk, markings by cut id. */
   ink: (id: string) => 'ink:' + id,
-  /** The id of the first cut on the screen you were reading. */
-  pos: (id: string) => 'pos:' + id,
 
   /* Setlists (setlists/store.ts). Cuts and markings are only ever stored in the score. */
   /** Setlist ids, newest first. */
