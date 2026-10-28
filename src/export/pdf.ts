@@ -1,15 +1,14 @@
 // Exporting scores as PDFs that read as the reader does in 1-page mode: a page for each frame, the
-// music cut from the original's pages, and the markings over it as annotations. The music stays as it is in the
-// original (vectors, the scan, or the image) where pdf-lib can read the original as a PDF (as
-// originals/ gives it, decrypted), and is drawn by pdf.js where it can't (an encryption
-// pdf-decrypt doesn't know, say). pdf-lib is only loaded to export.
+// music cut from the original's pages, and the markings over it as annotations. The music is the
+// original as a PDF, as originals/ gives it: as it is in the file (vectors, the scan, or the image)
+// where it can be, else pictures of its pages (an encryption pdf-decrypt doesn't know, say).
+// pdf-lib is only loaded to export.
 
 import type { PDFDocument, PDFEmbeddedPage, PDFPage } from 'pdf-lib';
 import { spanCuts, type Span } from '../excerpts/span';
-import { NoAccess, PasswordNotGiven, type AskPassword, type Original, type SourceFile } from '../originals/types';
+import { NoAccess, PasswordNotGiven, type AskPassword, type LossyReason, type SourceFile } from '../originals/types';
 import { titleOf } from '../originals/path-utils';
-import { type PageCache } from '../originals/original';
-import { cutTarget, drawFrame, shownOn } from '../render/paint';
+import { cutTarget, shownOn } from '../render/paint';
 import { loadScore } from '../scores/store';
 import { pack, type Frame } from '../scores/frames';
 import { type Aspects, type State } from '../scores/model';
@@ -21,18 +20,11 @@ export interface ExportPart { original: SourceFile; span?: Span }
 
 type PdfLib = typeof import('pdf-lib');
 
-/** How many pixels wide music pdf-lib can't read is drawn for a page. */
-const RASTER_W = 2000;
-/** The page width, in points, when pdf-lib can't read the original: A4. */
-const A4_W = 595;
-
-/** An original open for exporting: its score, pdf.js's copy and pdf-lib's (null when it can't read it). */
+/** An original open for exporting: its score, its pages' shapes as the reader has them, and its music as a PDF, in pdf-lib. */
 interface Source {
-  original: Original;
   state: State;
   aspects: Aspects;
-  cache: PageCache;
-  doc: PDFDocument | null;
+  doc: PDFDocument;
   /** Each original page's width as shown, in points: an exported page is as wide as its frame's first. */
   widths: number[];
   /** Its pages, each embedded in the export once, by 0-based page. */
@@ -44,46 +36,23 @@ const sourcePage = (page: PDFPage): SourcePage => {
   return { width: box.width, height: box.height, rotation: page.getRotation().angle };
 };
 
-/** Why pdf-lib can't have an original's music: its password isn't known yet, or it can't read it at all. */
-type Unread = 'password' | 'encryption' | 'unreadable';
-
-/**
- * pdf-lib's copy of a file's music as a PDF, decrypted with its remembered password (or none, for
- * a PDF that only limits what may be done with it) where it is encrypted; or why there can't be one.
- */
-async function musicOf(lib: PdfLib, f: SourceFile): Promise<PDFDocument | Unread> {
-  let pdf: Awaited<ReturnType<Original['pdf']>>;
-  try {
-    pdf = await (await f.read()).pdf();
-  } catch (e) {
-    if (e instanceof PasswordNotGiven) return 'password';
-    throw e;
-  }
-  // Pages that had to be drawn are drawn again here, frame by frame, as the reader draws them; a
-  // recompressed image goes in as it is.
-  if (pdf.lossyReason === 'encryption' || pdf.lossyReason === 'unreadable') return pdf.lossyReason;
-  try {
-    return await lib.PDFDocument.load(pdf.bytes);
-  } catch (e) {
-    console.warn('Exporting by drawing the pages:', e);
-    return 'unreadable';
-  }
-}
+/** Why an original's music is pictures of its pages: an encryption pdf-decrypt doesn't know, or a PDF pdf-lib can't read. */
+type DrawnReason = Extract<LossyReason, 'encryption' | 'unreadable'>;
 
 /**
  * The originals whose music would be exported as pictures of their pages, and why. One whose
  * password isn't known yet isn't among them: exporting asks for it.
  */
-export async function drawnOriginals(originals: readonly SourceFile[]): Promise<{ original: SourceFile; why: 'encryption' | 'unreadable' }[]> {
-  const lib = await import('pdf-lib');
-  const out: { original: SourceFile; why: 'encryption' | 'unreadable' }[] = [];
+export async function drawnOriginals(originals: readonly SourceFile[]): Promise<{ original: SourceFile; why: DrawnReason }[]> {
+  const out: { original: SourceFile; why: DrawnReason }[] = [];
   // One at a time: a long setlist of scans would otherwise hold every one in memory at once.
   for (const o of new Map(originals.map((o) => [o.id, o])).values()) {
-    const music = await musicOf(lib, o).catch((e) => {
+    const why = await o.read().then((r) => r.pdf()).then((pdf) => pdf.lossyReason, (e) => {
       if (e instanceof NoAccess) throw e; // not known, rather than drawn
+      if (e instanceof PasswordNotGiven) return undefined;
       return 'unreadable' as const;
     });
-    if (music === 'encryption' || music === 'unreadable') out.push({ original: o, why: music });
+    if (why === 'encryption' || why === 'unreadable') out.push({ original: o, why });
   }
   return out;
 }
@@ -92,27 +61,15 @@ async function open(lib: PdfLib, f: SourceFile, ask?: AskPassword): Promise<Sour
   // Asks for the password, if it isn't known yet, which decrypting the music then uses.
   const o = await f.read(ask);
   const cache = await o.pages();
-  try {
-    const aspects = await cache.allAspects();
-    const { state } = await loadScore(o.id, titleOf(o.path), aspects);
-    const music = await musicOf(lib, o);
-    const doc = typeof music === 'string' ? null : music;
-    const widths = aspects.map((_, i) => (doc && i < doc.getPageCount() ? shownSize(sourcePage(doc.getPage(i))).width : A4_W));
-    return { original: o, state, aspects, cache, doc, widths, embedded: new Map() };
-  } catch (e) {
-    cache.destroy();
-    throw e;
-  }
+  const aspects = await cache.allAspects().finally(() => cache.destroy());
+  const { state } = await loadScore(o.id, titleOf(o.path), aspects);
+  const doc = await lib.PDFDocument.load((await o.pdf()).bytes);
+  const widths = aspects.map((_, i) => shownSize(sourcePage(doc.getPage(i))).width);
+  return { state, aspects, doc, widths, embedded: new Map() };
 }
 
-async function jpeg(canvas: HTMLCanvasElement): Promise<ArrayBuffer> {
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
-  if (!blob) throw new Error('Could not draw a page');
-  return blob.arrayBuffer();
-}
-
-/** The music of a frame from an original pdf-lib can read: each cut's band of its page, as it is. */
-function drawMusic(lib: PdfLib, out: PDFDocument, page: PDFPage, src: Source & { doc: PDFDocument }, frame: Frame, W: number, H: number) {
+/** The music of a frame: each cut's band of its page, as it is. */
+function drawMusic(lib: PdfLib, out: PDFDocument, page: PDFPage, src: Source, frame: Frame, W: number, H: number) {
   return Promise.all(frame.items.map(async (p) => {
     const from = src.doc.getPage(p.cut.page), sp = sourcePage(from);
     let embedded = src.embedded.get(p.cut.page);
@@ -137,21 +94,10 @@ function drawMusic(lib: PdfLib, out: PDFDocument, page: PDFPage, src: Source & {
   });
 }
 
-/** The music of a frame drawn by pdf.js, as the reader draws it. */
-async function drawnMusic(src: Source, frame: Frame): Promise<HTMLCanvasElement> {
-  const nums = [...new Set(frame.items.map((p) => p.cut.page))];
-  const pages = new Map(await Promise.all(nums.map(async (n) => [n, await src.cache.render(n + 1, RASTER_W, Math.round(RASTER_W * src.aspects[n]), 1)] as const)));
-  const canvas = Object.assign(document.createElement('canvas'), { width: RASTER_W, height: Math.round(RASTER_W * frame.aspect) });
-  drawFrame(canvas.getContext('2d')!, frame, RASTER_W, (n) => pages.get(n), src.aspects);
-  src.cache.keepOnly([], () => undefined);
-  return canvas;
-}
-
 async function addFrame(lib: PdfLib, out: PDFDocument, src: Source, frame: Frame) {
   const W = src.widths[frame.items[0]?.cut.page ?? 0], H = W * frame.aspect;
   const page = out.addPage([W, H]);
-  if (src.doc) await drawMusic(lib, out, page, src as Source & { doc: PDFDocument }, frame, W, H);
-  else page.drawImage(await out.embedJpg(await jpeg(await drawnMusic(src, frame))), { x: 0, y: 0, width: W, height: H });
+  await drawMusic(lib, out, page, src, frame, W, H);
   // Each marking as an annotation, placed as the reader places it.
   for (const p of frame.items) {
     shownOn(p, src.state.ink, src.aspects).forEach((m, i) => annotate(lib, out, page, m, (draw) => cutTarget(draw, p, W, src.aspects), `${p.cut.id}-${i}`));
@@ -168,18 +114,14 @@ export async function exportPdf(parts: readonly ExportPart[], title: string, ask
   out.setTitle(title);
   out.setCreator('Volti');
   const sources = new Map<string, Promise<Source>>();
-  try {
-    for (const [i, part] of parts.entries()) {
-      const o = part.original;
-      let p = sources.get(o.id);
-      if (!p) sources.set(o.id, p = open(lib, o, ask));
-      const src = await p;
-      const cuts = part.span ? spanCuts(src.state.score.cuts, part.span) : src.state.score.cuts;
-      for (const frame of pack(cuts, src.aspects)) await addFrame(lib, out, src, frame);
-      progress?.(i + 1, parts.length);
-    }
-    return await out.save();
-  } finally {
-    for (const p of sources.values()) void p.then((s) => s.cache.destroy(), () => {});
+  for (const [i, part] of parts.entries()) {
+    const o = part.original;
+    let p = sources.get(o.id);
+    if (!p) sources.set(o.id, p = open(lib, o, ask));
+    const src = await p;
+    const cuts = part.span ? spanCuts(src.state.score.cuts, part.span) : src.state.score.cuts;
+    for (const frame of pack(cuts, src.aspects)) await addFrame(lib, out, src, frame);
+    progress?.(i + 1, parts.length);
   }
+  return await out.save();
 }

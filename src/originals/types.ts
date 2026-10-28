@@ -32,7 +32,7 @@ export interface Original extends SourceFile {
   /** Its pages, to draw. */
   pages(): Promise<PageCache>;
   /** Its music as a PDF, for export (_pdf-source.ts, _image-source.ts). */
-  pdf(): Promise<_RenderedPdf>;
+  pdf(): Promise<RenderedPdf>;
 }
 
 /** Whether a scores folder is linked, and whether this session may read it. */
@@ -54,14 +54,14 @@ export class PasswordNotGiven extends Error {
  * its encryption isn't one pdf-decrypt knows (`encryption`) or pdf-lib can't read it
  * (`unreadable`); or, an image, it was put in as a JPEG of its own (`recompressed`).
  */
-export type _LossyReason = 'encryption' | 'unreadable' | 'recompressed';
+export type LossyReason = 'encryption' | 'unreadable' | 'recompressed';
 
 /** An original's music as a PDF that pdf.js and pdf-lib can both read. */
-export interface _RenderedPdf {
+export interface RenderedPdf {
   /** An unencrypted PDF that pdf-lib can read, new each time: pdf.js takes the bytes it is given. */
   bytes: Uint8Array;
   /** Why its music isn't as the file has it; none when it is. */
-  lossyReason?: _LossyReason;
+  lossyReason?: LossyReason;
 }
 
 /** The scores folder can't be read, or changed, as access to it isn't allowed. */

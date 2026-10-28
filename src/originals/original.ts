@@ -8,7 +8,7 @@
 import { readImage } from './_image-source';
 import type { Content, PageSource, Readable } from './_types';
 import { isPdf, readPdf } from './_pdf-source';
-import type { AskPassword, Original, PagePictures, _RenderedPdf } from './types';
+import type { AskPassword, Original, PagePictures, RenderedPdf } from './types';
 
 /**
  * Read a source file: an image as it is; a PDF asks for its password now if it has one Volti
@@ -28,7 +28,7 @@ class FileOriginal implements Original {
   move(path: string) { return this.f.move(path); }
   remove() { return this.f.remove(); }
   async read() { return this; }
-  pdf(): Promise<_RenderedPdf> { return this.content.pdf(); }
+  pdf(): Promise<RenderedPdf> { return this.content.pdf(); }
   /** Awaits the source first, so a NoAccess or PasswordNotGiven rejects here. */
   async pages(): Promise<PageCache> { return new PageCache(Promise.resolve(await this.content.pages())); }
 }

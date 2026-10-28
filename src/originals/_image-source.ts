@@ -5,7 +5,7 @@
 
 import type { Content, PageSource, Readable } from './_types';
 import { A4_W, encode } from './_pdf-source';
-import type { _RenderedPdf } from './types';
+import type { RenderedPdf } from './types';
 
 export const isJpeg = (b: Uint8Array) => b[0] === 0xff && b[1] === 0xd8;
 export const isPng = (b: Uint8Array) => b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47;
@@ -55,7 +55,7 @@ export const readImage = (f: Readable): Content => ({
  * to be turned to be upright, or another kind of image, drawn upright and put in as a JPEG (a
  * photo: `recompressed`, as JPEG loses some of it again) or a PNG (which loses nothing).
  */
-export async function imagePdf(file: File): Promise<_RenderedPdf> {
+export async function imagePdf(file: File): Promise<RenderedPdf> {
   const bytes = new Uint8Array(await file.arrayBuffer());
   const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
     .catch((e: unknown) => { throw new Error('Neither a PDF nor an image this browser can read', { cause: e }); });

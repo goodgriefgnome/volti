@@ -20,7 +20,7 @@ import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
 import type { Content, PageSource, Readable } from './_types';
 import { titleOf } from './path-utils';
-import { PasswordNotGiven, type AskPassword, type _RenderedPdf, type SourceFile } from './types';
+import { PasswordNotGiven, type AskPassword, type RenderedPdf, type SourceFile } from './types';
 
 /** How far into a file a PDF's header may start. */
 const PDF_HEADER_WITHIN = 1024;
@@ -117,9 +117,9 @@ export async function readPdf(f: Readable, ask?: AskPassword): Promise<Content> 
 
 class PdfContent implements Content {
   /** Its music, worked out when it was read, until its pages or its PDF take it. */
-  constructor(private f: Readable, private held?: _RenderedPdf) {}
+  constructor(private f: Readable, private held?: RenderedPdf) {}
 
-  async pdf(): Promise<_RenderedPdf> {
+  async pdf(): Promise<RenderedPdf> {
     const held = this.held;
     this.held = undefined; // pdf.js takes the bytes it is given
     return held ?? pdfOf(this.f, await this.f.file());
@@ -135,11 +135,11 @@ class PdfContent implements Content {
  * tries the password remembered for it, then asks `ask` (with none, it gives up:
  * PasswordNotGiven), and remembers the one that opens it.
  */
-async function pdfOf(o: SourceFile, file: File, ask?: AskPassword): Promise<_RenderedPdf> {
+async function pdfOf(o: SourceFile, file: File, ask?: AskPassword): Promise<RenderedPdf> {
   const bytes = new Uint8Array(await file.arrayBuffer());
   const lib = await import('pdf-lib');
   /** The PDF as it is, where pdf-lib can read it. */
-  const asItIs = async (): Promise<_RenderedPdf> => {
+  const asItIs = async (): Promise<RenderedPdf> => {
     try {
       await lib.PDFDocument.load(bytes);
     } catch (e) {
@@ -182,7 +182,7 @@ async function pdfOf(o: SourceFile, file: File, ask?: AskPassword): Promise<_Ren
 }
 
 /** A PDF of each page of `bytes` drawn by pdf.js, with the password if it needs one. */
-async function pagesDrawn(o: SourceFile, bytes: Uint8Array, ask: AskPassword | undefined, why: 'encryption' | 'unreadable'): Promise<_RenderedPdf> {
+async function pagesDrawn(o: SourceFile, bytes: Uint8Array, ask: AskPassword | undefined, why: 'encryption' | 'unreadable'): Promise<RenderedPdf> {
   const passwords = await Passwords.for(o, ask);
   const source = await openPdf(bytes, (wrong) => passwords.next(wrong)).catch((e: unknown) => { throw passwords.failure(e); });
   try {

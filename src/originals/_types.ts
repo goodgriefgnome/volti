@@ -1,7 +1,7 @@
 // Types used by several files in originals/ but not outside it: a source file that can give its
 // bytes, what draws an original's pages, and what reading a file gives.
 
-import type { _RenderedPdf, SourceFile } from './types';
+import type { RenderedPdf, SourceFile } from './types';
 
 /** What library-files.ts asks of a score filesystem's record of its files' ids, by path. */
 export interface Ids {
@@ -37,5 +37,5 @@ export interface PageSource {
 /** What a file's bytes are, read as music: its pages to draw, and its music as a PDF. */
 export interface Content {
   pages(): Promise<PageSource>;
-  pdf(): Promise<_RenderedPdf>;
+  pdf(): Promise<RenderedPdf>;
 }
