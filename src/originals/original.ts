@@ -8,8 +8,8 @@
 import { readImage } from './_image-source';
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
-import { drawPage, drawPageProgressive } from '../page-cache/cache';
-import type { DrawRequest, PageSource } from '../page-cache/types';
+import { drawPage, drawPageProgressive, keepOffline } from '../page-cache/cache';
+import type { DrawRequest, OfflinePage, OfflineProgress, PageSource } from '../page-cache/types';
 import type { Content, OpenPages, Readable } from './_types';
 import { sourceFor } from './_sources';
 import { isPdf, readPdf } from './_pdf-source';
@@ -36,9 +36,18 @@ async function storeAspects(id: string, aspects: number[]) {
   if (!was || was.length !== aspects.length || was.some((a, i) => a !== aspects[i])) await kv.set(keys.aspects(id), aspects);
 }
 
+/** page-cache's keepOffline, for originals: each entry's source is its Original's, if it has one. */
+export function keepPagesOffline(
+  entries: readonly { id: string; original?: Original; pages: OfflinePage[] }[],
+  keep: readonly string[],
+  signal?: AbortSignal,
+): AsyncIterable<OfflineProgress> {
+  return keepOffline(entries.map((e) => ({ id: e.id, source: e.original instanceof FileOriginal ? e.original.source : undefined, pages: e.pages })), keep, signal);
+}
+
 /** An original: its file's id, path, moving and removing, and itself as what reading it gives. */
 class FileOriginal implements Original {
-  private source: PageSource;
+  readonly source: PageSource;
   constructor(private f: Readable, private content: Content, size: number) {
     this.source = sourceFor(f.id, size, content);
   }

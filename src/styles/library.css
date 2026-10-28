@@ -104,6 +104,7 @@
 .storage-part .size { color: var(--muted); font-variant-numeric: tabular-nums; }
 .part-meta { background: var(--part-meta); }
 .part-added { background: var(--part-added); }
+.part-setlists { background: var(--part-setlists); }
 .part-cache { background: var(--part-cache); }
 .part-trash { background: var(--part-trash); }
 .part-app { background: var(--part-app); }

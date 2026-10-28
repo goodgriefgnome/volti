@@ -4,15 +4,15 @@ import { formatBytes, storageParts } from './_storage';
 const MB = 1024 * 1024;
 
 describe('storageParts', () => {
-  it('splits the room into metadata, added scores, setlist cache, trash and the offline binary', () => {
-    const parts = storageParts({ usage: 240 * MB, details: { indexedDB: 0.4 * MB, caches: 6 * MB } }, 186 * MB, 41 * MB, 3 * MB);
-    expect(parts.map((p) => [p.name, p.bytes / MB])).toEqual([['Metadata', 0.4], ['Added scores', 186], ['Setlist cache', 41], ['Trash', 3], ['Offline binary', 6]]);
+  it('splits the room into metadata, added scores, setlist pages, page cache, trash and the offline binary', () => {
+    const parts = storageParts({ usage: 240 * MB, details: { indexedDB: 0.4 * MB, caches: 6 * MB } }, 186 * MB, 30 * MB, 11 * MB, 3 * MB);
+    expect(parts.map((p) => [p.name, p.bytes / MB])).toEqual([['Metadata', 0.4], ['Added scores', 186], ['Setlist pages', 30], ['Page cache', 11], ['Trash', 3], ['Offline binary', 6]]);
     // A store holding nothing isn't in the breakdown.
-    expect(storageParts({ usage: 1 * MB, details: { indexedDB: 1 * MB } }, 0, 0, 0).at(-1)).toEqual({ key: 'app', name: 'Offline binary', bytes: 0 });
+    expect(storageParts({ usage: 1 * MB, details: { indexedDB: 1 * MB } }, 0, 0, 0, 0).at(-1)).toEqual({ key: 'app', name: 'Offline binary', bytes: 0 });
   });
   it('puts metadata and the offline binary together, as the rest, without the browser\'s breakdown', () => {
-    const parts = storageParts({ usage: 240 * MB }, 186 * MB, 41 * MB, 3 * MB);
-    expect(parts.map((p) => [p.name, p.bytes / MB])).toEqual([['Metadata and offline binary', 10], ['Added scores', 186], ['Setlist cache', 41], ['Trash', 3]]);
+    const parts = storageParts({ usage: 240 * MB }, 186 * MB, 30 * MB, 11 * MB, 3 * MB);
+    expect(parts.map((p) => [p.name, p.bytes / MB])).toEqual([['Metadata and offline binary', 10], ['Added scores', 186], ['Setlist pages', 30], ['Page cache', 11], ['Trash', 3]]);
   });
 });
 

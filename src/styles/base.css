@@ -11,7 +11,7 @@
   --select: #1f6fe0;
   --warn: #a8461c;
   /* The parts of the storage used: metadata, added scores, setlist cache, offline binary. */
-  --part-meta: #2f5fb3; --part-added: #8a5a12; --part-cache: #3f8a6e; --part-trash: #a8455a; --part-app: #8a8f9c;
+  --part-meta: #2f5fb3; --part-added: #8a5a12; --part-setlists: #3f8a6e; --part-cache: #6a5ab8; --part-trash: #a8455a; --part-app: #8a8f9c;
   --stage: #1b1d22;
   --bar: rgba(20, 22, 27, 0.92);
   --bar-fg: #eceef2;
@@ -24,14 +24,14 @@
     --bg: #121419; --surface: #1b1e25; --fg: #e9eaee; --muted: #9aa0ad; --line: #2c313b;
     --accent: #d6a64a; --accent-soft: rgba(214, 166, 74, 0.16); --accent-fg: #17130a;
     --select: #7da6ff; --warn: #e58a5c; color-scheme: dark;
-    --part-meta: #6f9be6; --part-added: #d6a64a; --part-cache: #6cc19f; --part-trash: #e07a90; --part-app: #8d93a1;
+    --part-meta: #6f9be6; --part-added: #d6a64a; --part-setlists: #6cc19f; --part-cache: #a393e6; --part-trash: #e07a90; --part-app: #8d93a1;
   }
 }
 :root[data-theme="dark"] {
   --bg: #121419; --surface: #1b1e25; --fg: #e9eaee; --muted: #9aa0ad; --line: #2c313b;
   --accent: #d6a64a; --accent-soft: rgba(214, 166, 74, 0.16); --accent-fg: #17130a;
   --select: #7da6ff; --warn: #e58a5c; color-scheme: dark;
-  --part-meta: #6f9be6; --part-added: #d6a64a; --part-cache: #6cc19f; --part-trash: #e07a90; --part-app: #8d93a1;
+  --part-meta: #6f9be6; --part-added: #d6a64a; --part-setlists: #6cc19f; --part-cache: #a393e6; --part-trash: #e07a90; --part-app: #8d93a1;
 }
 
 * { box-sizing: border-box; }

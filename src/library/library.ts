@@ -387,6 +387,8 @@ export class Library implements LibraryHost {
   /** A score was read from the scores folder, so access to it may just have been allowed: then read it again. */
   private accessAllowed() {
     if (this.folder.kind === 'locked') void this.refresh();
+    // The scores can be read now, so the setlists' pages missing offline can be drawn.
+    makePictures(this.originals, this.setlists);
   }
 
   /* ---------- opening the reader ---------- */
