@@ -18,14 +18,13 @@ import type { ExportPart } from '../export/pdf';
 import { folderState } from '../originals/device-score-fs';
 import { NoAccess, PasswordNotGiven, type SourceFile } from '../originals/types';
 import { subfolders, titleOf } from '../originals/path-utils';
-import { type PageCache } from '../originals/original';
 import { loadSavedScore, saveScore } from '../scores/store';
 import { type ExcerptName, type Score } from '../scores/model';
 import { addEntries, defaultSetlist, duplicate, moveEntry, withSetlist, type Entry, type Setlist } from '../setlists/model';
 import { deleteSetlist, loadLastAddedTo, saveLastAddedTo } from '../setlists/store';
 import { button, dpr, el, plural } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog, showMenu, type MenuItem } from '../ui/overlay';
-import type { OpenScore } from './_open-scores';
+import { originalOf, type OpenScore } from './_open-scores';
 import type { Reading } from './_reading';
 import type { Saver } from './_saver';
 import type { Toolbar } from './_toolbar';
@@ -296,8 +295,8 @@ export class ReaderMenus {
   }
 
   /** An open score's pages, for the excerpt picker. */
-  private source(cur: OpenScore, cache: PageCache): ExcerptSource {
-    return { state: cur.state, aspects: cur.aspects, page: (p, w) => cache.render(p + 1, w, Math.round(w * cur.aspects[p]), dpr()) };
+  private source(cur: OpenScore): ExcerptSource {
+    return { state: cur.state, aspects: cur.aspects, page: async (p, w) => (await (await originalOf(cur)).draw(p + 1, Math.round(w * dpr()))).canvas };
   }
 
   /** Changing the open score's named excerpts from the reader, saved with the score. */
@@ -335,7 +334,7 @@ export class ReaderMenus {
       go.setAttribute('aria-label', `Go to ${x.name}`);
       const more = button('⋯', () => showMenu(more, x.name, [
         { label: 'Rename…', run: () => renameExcerpt(cur.state.score, x, this.excerptHost(cur)) },
-        { label: 'Change cuts…', run: () => changeExcerptCuts(this.source(cur, cache), x, this.excerptHost(cur)) },
+        { label: 'Change cuts…', run: () => changeExcerptCuts(this.source(cur), x, this.excerptHost(cur)) },
         { label: 'Delete…', run: () => deleteExcerpt(cur.state.score, x, this.excerptHost(cur)) },
       ]), 'quiet more');
       more.setAttribute('aria-label', `More for ${x.name}`);
@@ -345,7 +344,7 @@ export class ReaderMenus {
     }
     if (!names.length) list.append(el('li', 'empty', 'No excerpts yet. Add one to name part of the score, such as the Kyrie.'));
     d.append(list, buttonRow(
-      button('Add excerpt…', () => addExcerpt(this.source(cur, cache), title, this.excerptHost(cur))),
+      button('Add excerpt…', () => addExcerpt(this.source(cur), title, this.excerptHost(cur))),
       button('Close', closeOverlay, 'primary'),
     ));
   }
@@ -355,7 +354,7 @@ export class ReaderMenus {
     const cur = this.current, { reading } = this.h, k = this.h.k();
     if (!cur?.cache) return;
     this.h.dismiss();
-    const pages = this.source(cur, cur.cache);
+    const pages = this.source(cur);
     const play = (span: Span) => {
       reading.play(k, span);
       // The score too: one opened for the first time isn't saved yet, and the span names its cuts.

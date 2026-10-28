@@ -8,30 +8,22 @@ import { type SourceFile } from '../originals/types';
 import { loadSavedScore, loadScore, saveScore } from '../scores/store';
 import { dpr } from '../ui/dom';
 
-/** A score and its original's pages, open until `close`. */
-export interface LibraryScore extends ExcerptSource {
-  close(): void;
-}
+/** A score and its original's pages. */
+export type LibraryScore = ExcerptSource;
 
 /**
  * Open a score and read its file, asking for its password if need be. A score opened for the first
  * time is saved straight away, so the cut ids an excerpt chosen now names are the ones the score keeps.
  */
 export async function openScore(o: SourceFile): Promise<LibraryScore> {
-  const cache = await (await o.read(askPassword)).pages();
-  try {
-    const aspects = await cache.allAspects();
-    const fresh = !(await loadSavedScore(o.id));
-    const { state } = await loadScore(o.id, titleOf(o.path), aspects);
-    if (fresh) await saveScore(state);
-    return {
-      state,
-      aspects,
-      page: (p, w) => cache.render(p + 1, w, Math.round(w * aspects[p]), dpr()),
-      close: () => cache.destroy(),
-    };
-  } catch (e) {
-    cache.destroy();
-    throw e;
-  }
+  const original = await o.read(askPassword);
+  const aspects = await original.aspects();
+  const fresh = !(await loadSavedScore(o.id));
+  const { state } = await loadScore(o.id, titleOf(o.path), aspects);
+  if (fresh) await saveScore(state);
+  return {
+    state,
+    aspects,
+    page: async (p, w) => (await original.draw(p + 1, Math.round(w * dpr()))).canvas,
+  };
 }

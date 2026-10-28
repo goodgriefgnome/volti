@@ -28,7 +28,7 @@ import { Detail } from './_detail';
 import type { Gesture } from './_gestures';
 import { History } from './_history';
 import { Input } from './_input';
-import { OpenScores, openPages, type Item, type OpenScore } from './_open-scores';
+import { OpenScores, openPages, originalOf, type Item, type OpenScore } from './_open-scores';
 import { Reading, setlistItems, type ReadingKind, type ReadingSnapshot } from './_reading';
 import { Saver } from './_saver';
 import { blankBox, ScoreCard, showSetlistTitle } from './_setlist';
@@ -165,7 +165,7 @@ class Reader {
       ...view,
       commit: (s, focus) => this.commit(s, focus),
       preview: (s, frames, hatches) => this.preview(s, frames, hatches),
-      thumb: (page, w) => this.cache.render(page + 1, w, Math.round(w * this.aspects[page]), dpr()),
+      thumb: async (page, w) => (await (await originalOf(this.current!)).draw(page + 1, Math.round(w * dpr()))).canvas,
       inking: () => this.tool !== 'none',
       cancelGesture: () => this.input.cancelGesture(),
       say: (t) => this.say(t),

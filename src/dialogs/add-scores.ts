@@ -9,7 +9,7 @@ import { type SourceFile } from '../originals/types';
 import type { ExcerptName, Score } from '../scores/model';
 import type { Setlist } from '../setlists/model';
 import { button, el, plural } from '../ui/dom';
-import { buttonRow, closeOverlay, showDialog, whenOverlayCloses } from '../ui/overlay';
+import { buttonRow, closeOverlay, showDialog } from '../ui/overlay';
 import { _ExcerptStrip, _namedExcerptMenu } from './excerpt-picker';
 import type { ExcerptSource } from './thumb-strip';
 import type { LibraryScore } from './open-score';
@@ -179,11 +179,7 @@ export function openAddScores(h: _AddScoresHost) {
   // The preview takes the dialog's place, as one dialog is open at a time.
   const previewView = el('div', 'view');
   previewView.hidden = true;
-  let open: LibraryScore | null = null;
-  const closePreview = () => { open?.close(); open = null; };
-  whenOverlayCloses(closePreview);
   const back = () => {
-    closePreview();
     previewView.hidden = true;
     listView.hidden = false;
     heading.textContent = `Add scores to “${s.title}”`;
@@ -192,9 +188,7 @@ export function openAddScores(h: _AddScoresHost) {
   /** Show a score's pages to choose an excerpt of it, starting from `span` (a named excerpt, say). */
   const showPreview = async (o: SourceFile, span: Span = {}) => {
     const sc = await h.open(o);
-    if (!sc || !d.isConnected) { sc?.close(); return; }
-    closePreview();
-    open = sc;
+    if (!sc || !d.isConnected) return;
     const strip = new _ExcerptStrip(sc, span, 'Adds');
     const use = button('Add this excerpt', () => {
       const span = strip.span, score = sc.state.score, name = nameOf(score, span);

@@ -7,9 +7,8 @@
 import { askPassword } from '../dialogs/passwords';
 import { ThumbStrip } from '../dialogs/thumb-strip';
 import { arrivals, fileNameProblem, folderOf, pathInFolder, pathWithTitle, subfolders, titleOf, type Arrival } from '../originals/path-utils';
-import { NoAccess, PasswordNotGiven, type SourceFile } from '../originals/types';
+import { NoAccess, PasswordNotGiven, type Original, type SourceFile } from '../originals/types';
 import { readIncoming } from '../originals/misc-files';
-import { type PageCache } from '../originals/original';
 import { newScore } from '../scores/model';
 import { button, dpr, el, plural } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog, whenOverlayCloses } from '../ui/overlay';
@@ -42,13 +41,11 @@ export async function openIncoming(lib: LibraryHost, files: readonly Arriving[],
   const d = showDialog(files.length === 1 ? 'Add a file' : `Add ${files.length} files`, 'wide incoming');
   const reading = el('p', 'hint', 'Reading…');
   d.append(reading);
-  const caches: PageCache[] = [];
   /** The files added so far. */
   const added: SourceFile[] = [];
   let finished = false;
   whenOverlayCloses(() => {
     finished = true;
-    for (const c of caches) c.destroy();
     done?.(added);
   });
 
@@ -129,9 +126,9 @@ export async function openIncoming(lib: LibraryHost, files: readonly Arriving[],
   /** The row's pages, as a new score starts: a locked PDF shows a button that asks its password. */
   async function showPreview(r: Row, box: HTMLElement, ask = false) {
     box.replaceChildren(el('p', 'hint', 'Opening…'));
-    let cache: PageCache;
+    let original: Original;
     try {
-      cache = await (await r.source.read(ask ? askPassword : undefined)).pages();
+      original = await r.source.read(ask ? askPassword : undefined);
     } catch (e) {
       if (e instanceof PasswordNotGiven) {
         box.replaceChildren(button('Show: it has a password', () => void showPreview(r, box, true)));
@@ -141,11 +138,10 @@ export async function openIncoming(lib: LibraryHost, files: readonly Arriving[],
       box.replaceChildren(el('p', 'hint error', 'Volti can’t read this file.'));
       return;
     }
-    if (finished) { cache.destroy(); return; }
-    caches.push(cache);
-    const aspects = await cache.allAspects();
+    if (finished) return;
+    const aspects = await original.aspects();
     const state = { score: newScore(r.source.id, r.title.value, aspects), ink: {} };
-    const strip = new ThumbStrip({ state, aspects, page: (p, w) => cache.render(p + 1, w, Math.round(w * aspects[p]), dpr()) });
+    const strip = new ThumbStrip({ state, aspects, page: async (p, w) => (await original.draw(p + 1, Math.round(w * dpr()))).canvas });
     box.replaceChildren(strip.el);
   }
 

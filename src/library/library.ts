@@ -24,7 +24,7 @@ import { loadSavedScore, scoreEntry } from '../scores/store';
 import { type Aspects, type ExcerptName, type Score } from '../scores/model';
 import { addEntries, defaultSetlist, withSetlist, type Setlist } from '../setlists/model';
 import { deleteSetlist, loadLastAddedTo, loadSetlists, saveChanged, saveLastAddedTo } from '../setlists/store';
-import { closeOverlay, whenOverlayCloses, type MenuItem } from '../ui/overlay';
+import { closeOverlay, type MenuItem } from '../ui/overlay';
 import { el, plural } from '../ui/dom';
 import { Toast } from '../ui/toast';
 import { FolderBanner } from './_folder-banner';
@@ -349,7 +349,6 @@ export class Library implements LibraryHost {
     if (!sc) return;
     this.remember(sc);
     pick(sc);
-    whenOverlayCloses(sc.close);
   }
 
   remember(sc: ExcerptSource) {

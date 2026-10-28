@@ -2,7 +2,7 @@
 // opened when first needed and closed when far from the score being read.
 
 import { askPassword } from '../dialogs/passwords';
-import { NoAccess, PasswordNotGiven, type SourceFile } from '../originals/types';
+import { NoAccess, PasswordNotGiven, type Original, type SourceFile } from '../originals/types';
 import { knownAspects, PageCache } from '../originals/original';
 import { hasPictures, picturesOf } from '../pictures/pictures';
 import { loadScore } from '../scores/store';
@@ -19,6 +19,14 @@ export async function openPages(o: SourceFile, ask: boolean): Promise<{ cache: P
   const cache = shapes && saved ? PageCache.opening(pages, o.id) : await pages;
   cache.pictures = picturesOf(o.id);
   return { cache, aspects: shapes && saved ? shapes : await cache.allAspects() };
+}
+
+/** The score's original, read once for drawing thumbnails. */
+const originals = new WeakMap<OpenScore, Promise<Original>>();
+export function originalOf(s: OpenScore): Promise<Original> {
+  let p = originals.get(s);
+  if (!p) originals.set(s, (p = s.original.read()));
+  return p;
 }
 
 /** A score open in the reader. Every entry of a setlist that plays the score shares it. */
