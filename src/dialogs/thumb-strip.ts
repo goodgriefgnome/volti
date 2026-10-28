@@ -20,8 +20,8 @@ const SLOP = 8;
 export interface ExcerptSource {
   state: State;
   aspects: Aspects;
-  /** A page drawn `w` CSS pixels wide. */
-  page(page: number, w: number): Promise<HTMLCanvasElement>;
+  /** A page drawn `w` CSS pixels wide: stand-ins first, each closer to the width than the last, then the page itself. */
+  pages(page: number, w: number): AsyncIterable<HTMLCanvasElement>;
 }
 
 /** A length in the strip, `n` CSS pixels unzoomed: sizes are in --u, so zooming changes one property. */
@@ -57,21 +57,50 @@ export class ThumbStrip {
     this.setZoom(1);
     this.listen();
 
-    // Draw the frames one after another, so the strip shows at once.
+    // Draw the frames one after another, so the strip shows at once: first from the stand-ins at
+    // hand, then each as it should be. A frame that can't be drawn from stand-ins waits for the second pass.
     void (async () => {
+      for (const i of frames.keys()) {
+        if (!this.el.isConnected) return;
+        await this.draw(i, widths[i], true);
+      }
       for (const i of frames.keys()) if (!(await this.draw(i, widths[i]))) return;
     })();
   }
 
-  /** Draw frame i's music and ink `w` CSS pixels wide. False once the strip has gone, or drawing failed. */
-  private async draw(i: number, w: number): Promise<boolean> {
+  /** Each page's first yield, then stop drawing it. */
+  private async standIn(page: number, w: number): Promise<HTMLCanvasElement> {
+    const it = this.src.pages(page, w)[Symbol.asyncIterator]();
+    try {
+      const r = await it.next();
+      if (r.done) throw new Error(`Nothing drawn for page ${page}`);
+      return r.value;
+    } finally {
+      void it.return?.().catch(() => {});
+    }
+  }
+
+  /** Each page's last yield: the page as it should be. */
+  private async exact(page: number, w: number): Promise<HTMLCanvasElement> {
+    let last: HTMLCanvasElement | undefined;
+    for await (const c of this.src.pages(page, w)) last = c;
+    if (!last) throw new Error(`Nothing drawn for page ${page}`);
+    return last;
+  }
+
+  /**
+   * Draw frame i's music and ink `w` CSS pixels wide, from the pages' stand-ins or (not `standIn`)
+   * as they should be. False once the strip has gone, or drawing failed; a failure of the second
+   * kind leaves what the first drew.
+   */
+  private async draw(i: number, w: number, standIn = false): Promise<boolean> {
     const { state, aspects } = this.src, f = this.frames[i];
     const pages = [...new Set(f.items.map((p) => p.cut.page))];
     let canvases: HTMLCanvasElement[];
     try {
-      canvases = await Promise.all(pages.map((p) => this.src.page(p, w)));
+      canvases = await Promise.all(pages.map((p) => standIn ? this.standIn(p, w) : this.exact(p, w)));
     } catch (e) {
-      console.error(e);
+      if (!standIn) console.error(e);
       return false;
     }
     if (!this.el.isConnected) return false;
@@ -83,7 +112,7 @@ export class ThumbStrip {
     drawFrameInk(ink.getContext('2d')!, f, state.ink, aspects, W);
     this.boxes[i].querySelectorAll('canvas').forEach((c) => c.remove());
     this.boxes[i].prepend(music, ink);
-    this.drawnAt[i] = w;
+    if (!standIn) this.drawnAt[i] = w;
     return true;
   }
 

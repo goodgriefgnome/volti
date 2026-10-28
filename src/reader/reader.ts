@@ -9,7 +9,8 @@ import { PEN_COLORS } from '../markings/stroke';
 import { type Marking } from '../markings/model';
 import { knownTitles } from '../originals/library-files';
 import { NoAccess, PasswordNotGiven, type SourceFile } from '../originals/types';
-import { NotSaved } from '../page-cache/types';
+import { canvasesOf } from '../page-cache/cache';
+import { NotSaved, type Drawn } from '../page-cache/types';
 import { titleOf } from '../originals/path-utils';
 import { framesOnScreen } from '../render/layout';
 import { isZoomed, NO_ZOOM, type Zoom } from '../render/zoom';
@@ -28,7 +29,7 @@ import { Detail } from './_detail';
 import type { Gesture } from './_gestures';
 import { History } from './_history';
 import { Input } from './_input';
-import { OpenScores, openPages, type DrawPage, type Item, type OpenScore } from './_open-scores';
+import { OpenScores, openPages, type DrawPage, type DrawProgressive, type Item, type OpenScore } from './_open-scores';
 import { Reading, setlistItems, type ReadingKind, type ReadingSnapshot } from './_reading';
 import { Saver } from './_saver';
 import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
@@ -67,9 +68,9 @@ export async function openReader(what: ToRead, onClose: (fileChanges: FileChange
   const setlists = await loadSetlists();
   if (what.kind !== 'setlist') {
     const { original } = what;
-    const { draw, aspects, readable } = await openPages(original.id, original, true);
+    const { draw, drawProgressive, aspects, readable } = await openPages(original.id, original, true);
     const { state } = await loadScore(original.id, aspects);
-    const first: OpenScore = { id: original.id, original, aspects, state, draw, readable };
+    const first: OpenScore = { id: original.id, original, aspects, state, draw, drawProgressive, readable };
     const item = { scoreId: original.id, title: titleOf(original.path), original };
     // Where it was last read, if that was this score or this excerpt of it.
     const last = await loadLastRead();
@@ -169,6 +170,7 @@ class Reader {
       stage: this.stage,
       aspects: () => this.aspects,
       draw: () => this.draw,
+      drawProgressive: () => this.drawProgressive,
       state: () => this.state,
       frames: () => this.frames,
       slots: () => this.slots,
@@ -178,7 +180,7 @@ class Reader {
       ...view,
       commit: (s, focus) => this.commit(s, focus),
       preview: (s, frames, hatches) => this.preview(s, frames, hatches),
-      thumb: async (page, w) => (await this.draw(page + 1, Math.round(w * dpr()))).canvas,
+      thumbs: (page, w) => canvasesOf(this.drawProgressive(page + 1, Math.round(w * dpr()))),
       inking: () => this.tool !== 'none',
       cancelGesture: () => this.input.cancelGesture(),
       say: (t) => this.say(t),
@@ -280,6 +282,7 @@ class Reader {
   private get state(): State { return this.current!.state; }
   private get aspects(): Aspects { return this.current!.aspects; }
   private get draw(): DrawPage { return this.current!.draw!; }
+  private get drawProgressive(): DrawProgressive { return this.current!.drawProgressive!; }
 
   private framesFor(k: number): Frame[] {
     const cur = this.scores.get(this.items[k].scoreId);
@@ -415,11 +418,18 @@ class Reader {
     const { on, wanted, rects } = this.screenAt(this.frames, this.frame, W, H, scale);
     this.shown = on.length;
     const widths = pageWidths(on, rects.map((r) => r.w));
-    let canvases: HTMLCanvasElement[];
+    // Each page's first yield (a stand-in, or the exact page) shows the screen; the rest sharpen it.
+    const progressive = this.drawProgressive;
+    const drawing = [...widths].map(([p, w]) => progressive(p + 1, Math.round(w * scale), { priority: 'now' })[Symbol.asyncIterator]());
+    let first: Drawn[];
     try {
-      const draw = this.draw;
-      canvases = (await Promise.all([...widths].map(([p, w]) => draw(p + 1, Math.round(w * scale), { priority: 'now' })))).map((d) => d.canvas);
+      first = (await Promise.all(drawing.map(async (it) => {
+        const r = await it.next();
+        if (r.done) throw new Error('Nothing drawn');
+        return r.value;
+      })));
     } catch (e) {
+      for (const it of drawing) void it.return?.().catch(() => {});
       if (seq !== this.seq) return;
       // A page not saved as a picture: of a PDF that can't be read until access is allowed, or of a file that is gone.
       if (e instanceof NoAccess || e instanceof NotSaved) { this.showUnread(it.title, it.fileGone ? 'unsaved' : 'access', W, H); return; }
@@ -427,9 +437,12 @@ class Reader {
       console.error(e);
       return;
     }
-    if (seq !== this.seq) return;
+    if (seq !== this.seq) {
+      for (const it of drawing) void it.return?.().catch(() => {});
+      return;
+    }
     if (this.askingAccess) { this.askingAccess = false; this.toast.hide(); }
-    this.pages = new Map([...widths.keys()].map((p, i) => [p, canvases[i]]));
+    this.pages = new Map([...widths.keys()].map((p, i) => [p, first[i].canvas]));
 
     // In a setlist each score starts on a fresh screen, so a score's last screen may have room left.
     const extra = this.reading.setlistId && on.length < wanted ? [this.blank()] : [];
@@ -444,6 +457,25 @@ class Reader {
     this.showCard();
     this.saveSpot(on[0]?.items[0]?.cut.id);
     void this.predraw(seq, widths, scale);
+    [...widths.keys()].forEach((p, i) => void this.sharpen(seq, p, drawing[i]));
+  }
+
+  /**
+   * Page p's draws after its first: as each arrives, put it in `pages` and repaint the slots that
+   * show it, unless the screen has moved on. A failure keeps the page that is shown.
+   */
+  private async sharpen(seq: number, p: number, drawing: AsyncIterator<Drawn>) {
+    try {
+      for (let r = await drawing.next(); !r.done; r = await drawing.next()) {
+        if (seq !== this.seq) { void drawing.return?.().catch(() => {}); return; }
+        this.pages.set(p, r.value.canvas);
+        for (const s of this.slots) if (s.frame.items.some((i) => i.cut.page === p)) this.paint(s, this.state);
+      }
+    } catch (e) {
+      if (seq !== this.seq) return;
+      console.error(e);
+      this.toolbar.info.textContent = 'Could not draw this page';
+    }
   }
 
 
@@ -602,10 +634,10 @@ class Reader {
     this.toolbar.info.textContent = 'Opening…';
     let open: OpenScore;
     try {
-      const { draw, aspects, readable } = await openPages(o.id, o, true);
+      const { draw, drawProgressive, aspects, readable } = await openPages(o.id, o, true);
       if (this.scores.closed) return;
       const { state } = await loadScore(o.id, aspects);
-      open = { id: o.id, original: o, aspects, state, draw, readable };
+      open = { id: o.id, original: o, aspects, state, draw, drawProgressive, readable };
     } catch (e) {
       // Not opened (its password not given, say): stay where you were.
       this.loading = false;

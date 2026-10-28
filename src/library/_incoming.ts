@@ -4,6 +4,7 @@
 // taken, so it needs a new name or folder, or to replace the file there). Adding puts each in the
 // library's root; leaving one out, or cancelling, drops it.
 
+import { canvasesOf } from '../page-cache/cache';
 import { askPassword } from '../dialogs/passwords';
 import { ThumbStrip } from '../dialogs/thumb-strip';
 import { arrivals, fileNameProblem, folderOf, pathInFolder, pathWithTitle, subfolders, titleOf, type Arrival } from '../originals/path-utils';
@@ -141,7 +142,7 @@ export async function openIncoming(lib: LibraryHost, files: readonly Arriving[],
     if (finished) return;
     const aspects = await original.aspects();
     const state = { score: newScore(r.source.id, aspects), ink: {} };
-    const strip = new ThumbStrip({ state, aspects, page: async (p, w) => (await original.draw(p + 1, Math.round(w * dpr()))).canvas });
+    const strip = new ThumbStrip({ state, aspects, pages: (p, w) => canvasesOf(original.drawProgressive(p + 1, Math.round(w * dpr()))) });
     box.replaceChildren(strip.el);
   }
 

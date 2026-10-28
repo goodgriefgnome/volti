@@ -1,6 +1,7 @@
 // Opening a score in the library, for a dialog that shows its pages (choosing an excerpt) without
 // the reader. The reader opens scores its own way, in reader/_open-scores.ts.
 
+import { canvasesOf } from '../page-cache/cache';
 import type { ExcerptSource } from './thumb-strip';
 import { askPassword } from '../dialogs/passwords';
 import { type SourceFile } from '../originals/types';
@@ -23,6 +24,6 @@ export async function openScore(o: SourceFile): Promise<LibraryScore> {
   return {
     state,
     aspects,
-    page: async (p, w) => (await original.draw(p + 1, Math.round(w * dpr()))).canvas,
+    pages: (p, w) => canvasesOf(original.drawProgressive(p + 1, Math.round(w * dpr()))),
   };
 }

@@ -13,71 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **The reader and thumbnails draw progressively.** It relies on `Pages` and `savedPages`
-  (`originals/`), which a setlist playing a gone file's saved pages added. Today every caller draws with `draw`, exact widths only, and waits
-  for it. `drawProgressive` (`page-cache/cache.ts`, `drawPageProgressive`) first yields a
-  stand-in, the closest width held or saved (`exact: false`), then the exact page. A stand-in
-  paints correctly as it is:
-  - `drawFrame` scales a page canvas of any width to the slot (`render/paint.ts`)
-  - ink is painted on its own layer, in page fractions (`paintSlotInk`, `reader/_spread.ts`)
-
-  This also closes a gap in playing a gone file: the reader draws only pages saved at exactly the
-  width asked for, so after rotating the tablet a gone file's pages say "Not saved for this
-  screen". With this, they show their stand-ins, because `savedPages`' `drawProgressive` ends quietly. One commit.
-  - **Opening:** `openPages` (`reader/_open-scores.ts`) also returns
-    `drawProgressive: (page, pxWidth, options?) => AsyncIterable<Drawn>`, from the `Pages` it
-    opened. `OpenScore` gains `drawProgressive?` next to `draw`: set and cleared with it, in
-    `open`, `accessAllowed`, `keepNear` and `destroy`. `ReaderView` (`reader/_view.ts`) gains
-    `drawProgressive()`.
-  - **The main screen** (`show()`, `reader/reader.ts`):
-    - Draw each page with `drawProgressive`, at `priority: 'now'` as now.
-    - Paint the screen once every page has its first yield, stand-in or exact. Then, as each
-      exact page arrives, put it in `this.pages` and repaint the slots that show it
-      (`this.paint(s, this.state)`).
-    - Every repaint checks `seq !== this.seq` first, so a later screen is never overwritten by an
-      earlier one's pages. When `seq` moves on, stop iterating: the `ahead` abort already stops
-      the draws.
-    - **A failure with no yield at all** is handled as now (`NoAccess`, `NotSaved`, or "Could not
-      draw this page").
-    - **A failure after a stand-in** keeps the stand-in on the screen. Log the error, and set
-      `this.toolbar.info` to "Could not draw this page".
-    - There is no marker on a stand-in: it sharpens when the exact page arrives. A gone file's
-      stand-in stays slightly soft.
-  - **Unchanged, exact only:** `predraw` (it only warms the cache) and the close-up
-    (`reader/_detail.ts`), which exists to be sharp. For a gone file the close-up doesn't
-    sharpen; that is fine.
-  - **The cut editor's thumbnails** (`reader/cuts/`):
-    - `EditorHost.thumb(page, width): Promise<HTMLCanvasElement>` becomes
-      `thumbs(page, width): AsyncIterable<HTMLCanvasElement>` (`_host.ts`). The reader gives it
-      from `drawProgressive` (`reader.ts:181`).
-    - `thumbCanvas` (`_thumbs.ts`) draws each yield into its canvas as it comes, while the
-      dialog is open.
-    - `_insert-picker.ts`, which draws thumbnails one after another, waits for each page's
-      generator to finish before the next, as it waits for `thumb` now.
-  - **`ThumbStrip`** (`dialogs/thumb-strip.ts`), used by the excerpt picker, opening a score and
-    the incoming screen:
-    - `ExcerptSource.page(page, w): Promise<HTMLCanvasElement>` becomes
-      `pages(page, w): AsyncIterable<HTMLCanvasElement>`.
-    - Its three makers give it from `drawProgressive`: `library/_incoming.ts` and
-      `dialogs/open-score.ts` from the `Original`, and `reader/_toolbar-menus.ts` from
-      `OpenScore.drawProgressive`.
-    - The strip's first draw becomes two passes:
-      1. **Stand-ins,** every frame in order: take each page's first yield only, then stop
-         iterating it (`return()` on the iterator), and paint the frame if every page gave
-         something. The strip shows at once.
-      2. **Exact,** every frame in order, as `draw(i, w)` does now: iterate each page to its
-         last yield, and paint the frame from the last canvases.
-    - Zoom redraws (`redraw`) use the second pass only.
-    - A frame whose page fails in pass 2 keeps what pass 1 painted.
-  - **Tests:** none new. Drawing needs the page cache and the DOM. `npm run build` finds every
-    caller of the changed signatures.
-  - **Manual check** (add under Manual check):
-    1. Open a score, rotate the tablet: pages show at once, soft, then sharpen.
-    2. Turn pages quickly: no page from an earlier screen flashes onto a later one.
-    3. Open the excerpt picker on a long score: the strip fills at once, then sharpens.
-    4. The same with the cut editor's insert picker, and the incoming screen's preview.
-    5. With a gone file in a setlist: rotate in its setlist, and its pages show (soft)
-       instead of "Not saved for this screen".
 - **Each setlist's row shows how much of it is saved for offline: a ring by its ⋯ button.**
   Mock-up C at https://claude.ai/artifact/6rNbsaf5VYmBqJZERRrcRC.
   - The ring fills (green, `--part-setlists`) as the setlist's pages save.
@@ -170,12 +105,20 @@ scores.
 
 Things to try on the tablet.
 
+- **The reader and thumbnails draw progressively:**
+  1. Open a score, rotate the tablet: pages show at once, soft, then sharpen.
+  2. Turn pages quickly: no page from an earlier screen flashes onto a later one.
+  3. Open the excerpt picker on a long score: the strip fills at once, then sharpens.
+  4. The same with the cut editor's insert picker, and the incoming screen's preview.
+  5. With a gone file in a setlist: rotate in its setlist, and its pages show (soft) instead of
+     "Not saved for this screen".
 - **A setlist plays a score whose file is gone:**
   1. Make a setlist of two scores and let its pages save offline (open it once).
   2. Delete one score's PDF from the linked folder, and check the folder.
   3. Play the setlist: the gone score shows from its saved pages, with its title.
   4. Editing cuts or choosing an excerpt on it says the file is gone.
-  5. Rotate the tablet: its pages say "Not saved for this screen". Rotate back: they show again.
+  5. Rotate the tablet: its pages show soft, from the saved ones. (Before progressive drawing they
+     said "Not saved for this screen"; that text still shows for a page with nothing saved at all.)
 
 - **Excerpts, one word for both:** name an excerpt of a score (Excerpts → Add excerpt), reload: it is
   still there, and plays the same pages. Play it from the library and from a setlist entry, change

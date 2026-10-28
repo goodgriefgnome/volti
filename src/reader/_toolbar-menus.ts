@@ -3,6 +3,7 @@
 // plays. What they change is the
 // Reading's, and the reader shows and saves it.
 
+import { canvasesOf } from '../page-cache/cache';
 import { addExcerpt, changeExcerptCuts, deleteExcerpt, renameExcerpt, type ExcerptHost } from '../dialogs/excerpts';
 import { askSetlistName, chooseSetlist } from '../dialogs/setlists';
 import { givePassword } from '../dialogs/passwords';
@@ -295,7 +296,7 @@ export class ReaderMenus {
 
   /** An open score's pages, for the excerpt picker. */
   private source(cur: OpenScore): ExcerptSource {
-    return { state: cur.state, aspects: cur.aspects, page: async (p, w) => (await cur.draw!(p + 1, Math.round(w * dpr()))).canvas };
+    return { state: cur.state, aspects: cur.aspects, pages: (p, w) => canvasesOf(cur.drawProgressive!(p + 1, Math.round(w * dpr()))) };
   }
 
   /** Changing the open score's named excerpts from the reader, saved with the score. */

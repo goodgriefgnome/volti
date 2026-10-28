@@ -111,6 +111,11 @@ export async function* drawPageProgressive(req: DrawRequest): AsyncGenerator<Dra
   }
 }
 
+/** The canvases of a progressive draw, stand-ins first. */
+export async function* canvasesOf(drawn: AsyncIterable<Drawn>): AsyncGenerator<HTMLCanvasElement> {
+  for await (const d of drawn) yield d.canvas;
+}
+
 /**
  * Keep exactly these pages saved (pinned), drawing those not saved yet, two at a time, at
  * `later` priority. Pinned pages not in `scores` become ordinary saved pages. The pinned pages of

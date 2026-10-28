@@ -38,7 +38,7 @@ export function openPicker(host: EditorHost, at: InsertAt, title: string, page: 
       if (!d.isConnected) return;
       const c = thumbCanvas(host, d, p);
       pageButtons[p].firstChild!.replaceWith(c);
-      await host.thumb(p, THUMB_W).catch(() => {});
+      try { for await (const _ of host.thumbs(p, THUMB_W)) { /* drawn into its canvas by thumbCanvas */ } } catch { /* shown blank */ }
     }
   })();
   d.append(strip);
