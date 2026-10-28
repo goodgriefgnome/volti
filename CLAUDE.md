@@ -19,12 +19,15 @@ When asked for a plan:
 - Don't plan a migration of existing data unless I ask for one. Say what data is dropped instead.
 - Write down the decisions you made that we didn't discuss, and list them in your reply so I can
   overrule them.
-- When I confirm a plan is ready to go, offer to implement it with a subagent, and wait for my
-  yes. If I say yes: one Sonnet subagent for the whole plan, given the spec and the plan. It works
-  through the stages in order, running the tests and the build itself and committing and pushing
-  each stage before starting the next. It stops and reports when a stage fails twice or the plan
-  turns out to be wrong. Don't review its work between stages; pass on its final report, and what
-  it stopped on, if anything.
+- When I confirm a plan is ready to go, offer to implement it in a separate cloud session, and
+  wait for my yes. If I say yes: create one session on this repository with the latest Sonnet
+  model, for the whole plan. Its first message points it to the spec and the plan, and tells it to:
+  - work through the stages in order
+  - run the tests and the build itself, and commit and push each stage before starting the next
+  - stop and say why when a stage fails twice or the plan turns out to be wrong
+
+  Then tell me the session's title and id, so I can open it and follow it myself. Don't watch it
+  or review its work unless I ask.
 
 ## Design discussions
 
