@@ -140,7 +140,7 @@ export async function openIncoming(lib: LibraryHost, files: readonly Arriving[],
     }
     if (finished) return;
     const aspects = await original.aspects();
-    const state = { score: newScore(r.source.id, r.title.value, aspects), ink: {} };
+    const state = { score: newScore(r.source.id, aspects), ink: {} };
     const strip = new ThumbStrip({ state, aspects, page: async (p, w) => (await original.draw(p + 1, Math.round(w * dpr()))).canvas });
     box.replaceChildren(strip.el);
   }

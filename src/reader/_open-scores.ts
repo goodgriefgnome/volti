@@ -103,7 +103,7 @@ export class OpenScores {
     if (this.closed) throw new Error('Closed');
     const have = this.scores.get(it.scoreId);
     if (have) { have.draw = draw; have.readable = readable; return have; }
-    const { state } = await loadScore(it.scoreId, it.title, aspects);
+    const { state } = await loadScore(it.scoreId, aspects);
     const s: OpenScore = { id: it.scoreId, original, aspects, state, draw, readable };
     this.scores.set(s.id, s);
     return s;

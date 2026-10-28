@@ -3,7 +3,6 @@
 
 import type { ExcerptSource } from './thumb-strip';
 import { askPassword } from '../dialogs/passwords';
-import { titleOf } from '../originals/path-utils';
 import { type SourceFile } from '../originals/types';
 import { loadSavedScore, loadScore, saveScore } from '../scores/store';
 import { dpr } from '../ui/dom';
@@ -19,7 +18,7 @@ export async function openScore(o: SourceFile): Promise<LibraryScore> {
   const original = await o.read(askPassword);
   const aspects = await original.aspects();
   const fresh = !(await loadSavedScore(o.id));
-  const { state } = await loadScore(o.id, titleOf(o.path), aspects);
+  const { state } = await loadScore(o.id, aspects);
   if (fresh) await saveScore(state);
   return {
     state,

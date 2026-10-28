@@ -9,7 +9,7 @@ export const aspects = [A4, A4, A4];
 let n = 0;
 export const cut = (page: number, y0 = 0, y1 = 1, extra: Partial<Cut> = {}): Cut => ({ id: `c${n++}`, page, y0, y1, ...extra });
 export const state = (cuts: Cut[], ink: State['ink'] = {}): State => ({
-  score: { id: 'p', title: 't', key: '', cuts, archived: [] },
+  score: { id: 'p', key: '', cuts, archived: [] },
   ink,
 });
 export const _line = (y0: number, y1: number): Stroke => ({ tool: 'pen', color: '#000', size: 0.002, points: [[0.5, y0, 0.5], [0.5, y1, 0.5]] });

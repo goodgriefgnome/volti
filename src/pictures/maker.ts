@@ -4,7 +4,6 @@
 
 import { spanCuts } from '../excerpts/span';
 import { keepPagesOffline, knownAspects } from '../originals/original';
-import { titleOf } from '../originals/path-utils';
 import { type Original, type SourceFile } from '../originals/types';
 import type { OfflinePage } from '../page-cache/types';
 import { readPageWidths } from '../render/screen';
@@ -45,7 +44,7 @@ async function make(signal: AbortSignal, originals: readonly SourceFile[], setli
     const original = await file?.read().catch(() => undefined);
     const aspects = (await knownAspects(id)) ?? (await original?.aspects().catch(() => undefined));
     if (!aspects) { keep.push(id); continue; }
-    const { state } = await loadScore(id, (file && titleOf(file.path)) ?? '', aspects);
+    const { state } = await loadScore(id, aspects);
     const widths = new Map<number, Set<number>>();
     for (const e of entries.filter((e) => e.scoreId === id)) {
       for (const [p, ws] of readPageWidths(pack(spanCuts(state.score.cuts, e), aspects), W, H, scale)) {

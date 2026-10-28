@@ -17,10 +17,13 @@ export interface Cut {
   ownInk?: boolean;
 }
 
-/** A score: what is shown of its original, as cuts in played order. Its id is its original's id. */
+/**
+ * A score: what is shown of its original, as cuts in played order. Its id is its original's id; its
+ * title is always its original's (`titleOf` its path), so it has none of its own.
+ */
 export interface Score {
+  /** Not stored: taken from the key on loading. */
   id: string;
-  title: string;
   /** The musical key, shown in the library. Nothing sets it yet. */
   key: string;
   /** The played order. */
@@ -57,9 +60,9 @@ export const _newCutId = () => crypto.randomUUID();
 export const _cutHeight = (c: Cut, aspects: Aspects) => (c.y1 - c.y0) * aspects[c.page];
 
 /** The score of an original opened the first time: every page once, in order. */
-export function newScore(id: string, title: string, aspects: Aspects): Score {
+export function newScore(id: string, aspects: Aspects): Score {
   return {
-    id, title, key: '',
+    id, key: '',
     cuts: aspects.map((_, page) => ({ id: _newCutId(), page, y0: 0, y1: 1 })),
     archived: [],
   };
@@ -69,6 +72,6 @@ export function newScore(id: string, title: string, aspects: Aspects): Score {
 export function _forPages(s: State, aspects: Aspects): State {
   const ok = (c: { page: number }) => c.page < aspects.length;
   const score: Score = { ...s.score, cuts: s.score.cuts.filter(ok), archived: s.score.archived.filter(ok) };
-  if (!score.cuts.length) score.cuts = newScore(score.id, score.title, aspects).cuts;
+  if (!score.cuts.length) score.cuts = newScore(score.id, aspects).cuts;
   return { ...s, score };
 }

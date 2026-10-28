@@ -7,7 +7,6 @@
 import type { PDFDocument, PDFEmbeddedPage, PDFPage } from 'pdf-lib';
 import { spanCuts, type Span } from '../excerpts/span';
 import { NoAccess, PasswordNotGiven, type AskPassword, type LossyReason, type SourceFile } from '../originals/types';
-import { titleOf } from '../originals/path-utils';
 import { cutTarget, shownOn } from '../render/paint';
 import { loadScore } from '../scores/store';
 import { pack, type Frame } from '../scores/frames';
@@ -61,7 +60,7 @@ async function open(lib: PdfLib, f: SourceFile, ask?: AskPassword): Promise<Sour
   // Asks for the password, if it isn't known yet, which decrypting the music then uses.
   const o = await f.read(ask);
   const aspects = await o.aspects();
-  const { state } = await loadScore(o.id, titleOf(o.path), aspects);
+  const { state } = await loadScore(o.id, aspects);
   const doc = await lib.PDFDocument.load((await o.pdf()).bytes);
   const widths = aspects.map((_, i) => shownSize(sourcePage(doc.getPage(i))).width);
   return { state, aspects, doc, widths, embedded: new Map() };

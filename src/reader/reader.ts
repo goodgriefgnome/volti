@@ -66,7 +66,7 @@ export async function openReader(what: ToRead, onClose: (fileChanges: FileChange
   if (what.kind !== 'setlist') {
     const { original } = what;
     const { draw, aspects, readable } = await openPages(original, true);
-    const { state, position } = await loadScore(original.id, titleOf(original.path), aspects);
+    const { state, position } = await loadScore(original.id, aspects);
     const first: OpenScore = { id: original.id, original, aspects, state, draw, readable };
     const item = { scoreId: original.id, title: titleOf(original.path), original };
     // An excerpt starts at its start each time: its place isn't kept.
@@ -584,7 +584,7 @@ class Reader {
     try {
       const { draw, aspects, readable } = await openPages(o, true);
       if (this.scores.closed) return;
-      const { state } = await loadScore(o.id, titleOf(o.path), aspects);
+      const { state } = await loadScore(o.id, aspects);
       open = { id: o.id, original: o, aspects, state, draw, readable };
     } catch (e) {
       // Not opened (its password not given, say): stay where you were.
