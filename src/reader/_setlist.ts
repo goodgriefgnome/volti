@@ -5,15 +5,22 @@ import { el } from '../ui/dom';
 
 const SCORE_CARD_MS = 2200;
 
+/** Why a score can't be shown: its file can't be read until access to the scores folder is allowed, it can't be found, or only its saved pages can be shown and this screen's aren't saved. */
+export type Unread = 'access' | 'missing' | 'unsaved';
+
+const UNREAD_LABEL: Record<Unread, string> = {
+  access: 'Needs access to the scores folder',
+  missing: 'Can’t find',
+  unsaved: 'Not saved for this screen',
+};
+
 /**
  * What fills the rest of a score's last screen: the next score's title, or the end of the
- * setlist. With `missing`, the title of a score that can't be opened; with `needsAccess` too,
- * one that can't be read until access to the scores folder is allowed.
+ * setlist. With `unread`, the title of a score that can't be shown, and why.
  */
-export function blankBox(next: string | undefined, missing?: string, needsAccess = false): HTMLElement {
+export function blankBox(next: string | undefined, unread?: { title: string; why: Unread }): HTMLElement {
   const box = el('div', 'page blank');
-  if (missing && needsAccess) box.append(el('span', 'label', 'Needs access to the scores folder'), el('span', 't', `“${missing}”`));
-  else if (missing) box.append(el('span', 'label', 'Can’t find'), el('span', 't', `“${missing}”`));
+  if (unread) box.append(el('span', 'label', UNREAD_LABEL[unread.why]), el('span', 't', `“${unread.title}”`));
   else if (next) box.append(el('span', 'label', 'Next'), el('span', 't', next));
   else box.append(el('span', 'label', 'End of the setlist'));
   return box;

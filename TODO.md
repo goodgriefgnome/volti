@@ -13,97 +13,17 @@ scores.
 
 ## Work for the immediate future
 
-- **A setlist plays a score whose file is gone, from its saved pages.** Today an entry whose
-  score isn't in the library is "Can't find" (`setlistItems` sets `missing: !original`,
-  `reader/_reading.ts`, and `OpenScores.ensure` gives up on an item without an `original`,
-  `reader/_open-scores.ts`). Yet everything needed is kept: a `gone` record keeps `aspects` and
-  `path` (STORAGE.md), the score and its ink stay, and the offline keeper keeps the setlist's
-  pages pinned in the page cache. One commit.
-  - **`originals/types.ts`:** split what can be drawn out of `Original`:
-    ```ts
-    /** What can be read of an original: its page shapes, and its pages drawn. */
-    export interface Pages {
-      readonly id: string;
-      aspects(): Promise<number[]>;
-      draw(page: number, pxWidth: number, options?: DrawOptions): Promise<Drawn>;
-      drawProgressive(page: number, pxWidth: number, options?: DrawOptions): AsyncIterable<Drawn>;
-      /** False when only the pages saved in the page cache can be drawn. */
-      readonly whole: boolean;
-    }
-    export interface Original extends SourceFile, Pages { pdf(): Promise<RenderedPdf> }
-    ```
-    `FileOriginal` (`originals/original.ts`) has `whole = true`.
-  - **`originals/original.ts`:** add
-    ```ts
-    /**
-     * An original's saved pages, by id, whether or not its file can be read: drawn only from the
-     * page cache. Null when its page shapes aren't known or none of its pages is saved.
-     */
-    export async function savedPages(id: string): Promise<Pages | null>
-    ```
-    - `aspects` comes from `knownAspects(id)`, and `hasSaved(id)` says whether any page is saved.
-    - `draw` is `drawPage` with no `source`, as the fallback in `openPages` does now.
-    - `whole` is false.
-    - **Its `drawProgressive` ends quietly** after yielding at least one stand-in, when the exact
-      draw then throws `NotSaved`. A missing exact page is expected for these objects. If it
-      yielded nothing, it rethrows `NotSaved`. This applies only to the objects `savedPages`
-      returns: `FileOriginal.drawProgressive` and the page cache don't change.
-  - **`reader/_open-scores.ts`:**
-    - `openPages(id: string, o: SourceFile | undefined, ask: boolean)`:
-      1. With `o`, read it, as now.
-      2. With no `o`, or when reading throws `NoAccess` or `PasswordNotGiven`, use
-         `savedPages(id)`. Its `draw` and `aspects` replace the inline fallback there today.
-      3. If that is null, throw: the error from reading, or, with no `o`, a new `FileGone` error
-         (`class FileGone extends Error { name = 'FileGone' }`, in this file).
-
-      It returns `readable: pages.whole`. Fix the two callers in `reader/reader.ts`.
-    - `OpenScore.original` becomes optional.
-    - `OpenScores.ensure` no longer returns early for an item without an `original`. Passing
-      `it.original` (maybe undefined) to `open`, `FileGone` marks the item `missing`, as other
-      failures do.
-    - `Item` gains `fileGone?: boolean`: no file in the library, so its saved pages are all it can
-      show.
-  - **`reader/_reading.ts`:** `setlistItems` sets `fileGone: !original` and no longer sets
-    `missing`.
-  - **`reader/reader.ts`:**
-    - `showUnread` and `blankBox` (`reader/_setlist.ts`) take a reason,
-      `'access' | 'missing' | 'unsaved'`, instead of the `needsAccess` boolean:
-      - `'access'` is today's needs-access card and toast
-      - `'missing'` is "Can't find"
-      - `'unsaved'` labels the box "Not saved for this screen", with the toolbar info "Not saved"
-        and no toast
-    - In `show()`, a `NotSaved` on a `fileGone` item is `'unsaved'`. On any other item it stays
-      `'access'`, as now.
-    - `allowAccess()`: for a `fileGone` item, don't offer access (it wouldn't help). Say "The
-      file for this score is gone, so only its saved pages can be shown." and return false. Editing
-      cuts and choosing an excerpt go through `withAccess`, so they are refused with that message.
-  - **Menus:** an item with no `original` offers no file operations (rename, move, remove,
-    export). `npm run build` finds each place once `OpenScore.original` is optional.
-    `_toolbar-menus.ts:281` already leaves such items out of exports.
-  - **Known gap:** the reader draws with `draw`, which shows only pages saved at exactly the width
-    asked for. The offline keeper saves the widths for the current window size and orientation
-    (`readPageWidths`), so this works as long as the tablet is held as it was. After rotating, the
-    pages of a gone file show "Not saved for this screen". The next item, progressive drawing,
-    closes the gap.
-  - **Tests:** `reader/_reading.test.ts`: `setlistItems` marks an entry with no original
-    `fileGone`, not `missing`. `savedPages` and the reader need the page cache and IndexedDB, so
-    they are checked by hand.
-  - **Manual check** (add under Manual check):
-    1. Make a setlist of two scores and let its pages save offline (open it once).
-    2. Delete one score's PDF from the linked folder, and check the folder.
-    3. Play the setlist: the gone score shows from its saved pages, with its title.
-    4. Editing cuts or choosing an excerpt on it says the file is gone.
-    5. Rotate the tablet: its pages say "Not saved for this screen". Rotate back: they show again.
-- **The reader and thumbnails draw progressively.** Do this after the item above: it relies on
-  `Pages` and `savedPages`. Today every caller draws with `draw`, exact widths only, and waits
+- **The reader and thumbnails draw progressively.** It relies on `Pages` and `savedPages`
+  (`originals/`), which a setlist playing a gone file's saved pages added. Today every caller draws with `draw`, exact widths only, and waits
   for it. `drawProgressive` (`page-cache/cache.ts`, `drawPageProgressive`) first yields a
   stand-in, the closest width held or saved (`exact: false`), then the exact page. A stand-in
   paints correctly as it is:
   - `drawFrame` scales a page canvas of any width to the slot (`render/paint.ts`)
   - ink is painted on its own layer, in page fractions (`paintSlotInk`, `reader/_spread.ts`)
 
-  This also closes that item's known gap: after rotating, a gone file's pages show their
-  stand-ins, because `savedPages`' `drawProgressive` ends quietly. One commit.
+  This also closes a gap in playing a gone file: the reader draws only pages saved at exactly the
+  width asked for, so after rotating the tablet a gone file's pages say "Not saved for this
+  screen". With this, they show their stand-ins, because `savedPages`' `drawProgressive` ends quietly. One commit.
   - **Opening:** `openPages` (`reader/_open-scores.ts`) also returns
     `drawProgressive: (page, pxWidth, options?) => AsyncIterable<Drawn>`, from the `Pages` it
     opened. `OpenScore` gains `drawProgressive?` next to `draw`: set and cleared with it, in
@@ -156,7 +76,7 @@ scores.
     2. Turn pages quickly: no page from an earlier screen flashes onto a later one.
     3. Open the excerpt picker on a long score: the strip fills at once, then sharpens.
     4. The same with the cut editor's insert picker, and the incoming screen's preview.
-    5. With the previous item's gone file: rotate in its setlist, and its pages show (soft)
+    5. With a gone file in a setlist: rotate in its setlist, and its pages show (soft)
        instead of "Not saved for this screen".
 - **Each setlist's row shows how much of it is saved for offline: a ring by its ⋯ button.**
   Mock-up C at https://claude.ai/artifact/6rNbsaf5VYmBqJZERRrcRC.
@@ -249,6 +169,13 @@ scores.
 ## Manual check
 
 Things to try on the tablet.
+
+- **A setlist plays a score whose file is gone:**
+  1. Make a setlist of two scores and let its pages save offline (open it once).
+  2. Delete one score's PDF from the linked folder, and check the folder.
+  3. Play the setlist: the gone score shows from its saved pages, with its title.
+  4. Editing cuts or choosing an excerpt on it says the file is gone.
+  5. Rotate the tablet: its pages say "Not saved for this screen". Rotate back: they show again.
 
 - **Excerpts, one word for both:** name an excerpt of a score (Excerpts → Add excerpt), reload: it is
   still there, and plays the same pages. Play it from the library and from a setlist entry, change

@@ -31,7 +31,7 @@ import { Input } from './_input';
 import { OpenScores, openPages, type DrawPage, type Item, type OpenScore } from './_open-scores';
 import { Reading, setlistItems, type ReadingKind, type ReadingSnapshot } from './_reading';
 import { Saver } from './_saver';
-import { blankBox, ScoreCard, showSetlistTitle } from './_setlist';
+import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
 import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_spread';
 import { backIcon, chromeIcon, Toolbar, type ToolChoice } from './_toolbar';
 import { ReaderMenus } from './_toolbar-menus';
@@ -67,7 +67,7 @@ export async function openReader(what: ToRead, onClose: (fileChanges: FileChange
   const setlists = await loadSetlists();
   if (what.kind !== 'setlist') {
     const { original } = what;
-    const { draw, aspects, readable } = await openPages(original, true);
+    const { draw, aspects, readable } = await openPages(original.id, original, true);
     const { state } = await loadScore(original.id, aspects);
     const first: OpenScore = { id: original.id, original, aspects, state, draw, readable };
     const item = { scoreId: original.id, title: titleOf(original.path), original };
@@ -392,8 +392,8 @@ class Reader {
   }
 
   /** In a setlist, what fills the rest of a score's last screen. */
-  private blank(missing?: string): HTMLElement {
-    return blankBox(this.items[this.k + 1]?.title, missing);
+  private blank(): HTMLElement {
+    return blankBox(this.items[this.k + 1]?.title);
   }
 
   private async show() {
@@ -407,7 +407,7 @@ class Reader {
     const it = this.items[this.k];
     if (!this.current?.draw) {
       // A score that can't be opened: say so, and carry on with the next one.
-      this.showUnread(it.title, !!it.needsAccess, W, H);
+      this.showUnread(it.title, it.needsAccess ? 'access' : 'missing', W, H);
       return;
     }
     this.frame = Math.max(0, Math.min(this.frame, this.frames.length - 1));
@@ -421,8 +421,8 @@ class Reader {
       canvases = (await Promise.all([...widths].map(([p, w]) => draw(p + 1, Math.round(w * scale), { priority: 'now' })))).map((d) => d.canvas);
     } catch (e) {
       if (seq !== this.seq) return;
-      // A page not saved as a picture, of a PDF that can't be read until access is allowed.
-      if (e instanceof NoAccess || e instanceof NotSaved) { this.showUnread(it.title, true, W, H); return; }
+      // A page not saved as a picture: of a PDF that can't be read until access is allowed, or of a file that is gone.
+      if (e instanceof NoAccess || e instanceof NotSaved) { this.showUnread(it.title, it.fileGone ? 'unsaved' : 'access', W, H); return; }
       this.toolbar.info.textContent = 'Could not draw this page';
       console.error(e);
       return;
@@ -448,20 +448,21 @@ class Reader {
 
 
   /**
-   * In place of the screen, a score that can't be read: missing, or (`needsAccess`) in the scores
-   * folder, which Volti may not read until access is allowed, offered from a tap.
+   * In place of the screen, a score that can't be shown: missing; (`access`) in the scores folder,
+   * which Volti may not read until access is allowed, offered from a tap; or (`unsaved`) a gone
+   * file whose saved pages don't include this screen's.
    */
-  private showUnread(title: string, needsAccess: boolean, W: number, H: number) {
+  private showUnread(title: string, why: Unread, W: number, H: number) {
     this.slots = [];
     this.shown = 1;
-    const boxes = [blankBox(undefined, title, needsAccess), ...(framesOnScreen(A4, W, H) === 2 ? [this.blank()] : [])];
+    const boxes = [blankBox(undefined, { title, why }), ...(framesOnScreen(A4, W, H) === 2 ? [this.blank()] : [])];
     placeBoxes(boxes, boxes.map(() => A4), W, H, dpr());
     this.spreadEl.replaceChildren(...boxes);
     this.setZoom(NO_ZOOM);
-    this.toolbar.info.textContent = needsAccess ? 'Needs access' : 'Missing';
+    this.toolbar.info.textContent = { access: 'Needs access', missing: 'Missing', unsaved: 'Not saved' }[why];
     this.showCard();
     // Offered until the screen shows something else, as the page can't be read without it.
-    if (needsAccess) {
+    if (why === 'access') {
       this.toast.say('Volti needs access to the scores folder to show this.', ['Allow access', () => void this.allowAccess()], true);
       this.askingAccess = true;
     } else this.saveSpot(undefined);
@@ -480,6 +481,10 @@ class Reader {
    * from their PDFs too, and show the screen again. False, having said why, when it isn't allowed.
    */
   private async allowAccess(): Promise<boolean> {
+    if (this.items[this.k]?.fileGone) {
+      this.say('The file for this score is gone, so only its saved pages can be shown.');
+      return false;
+    }
     if (await this.readable()) return true;
     const at = this.slots[0]?.frame.items[0]?.cut.id;
     this.scores.accessAllowed();
@@ -597,7 +602,7 @@ class Reader {
     this.toolbar.info.textContent = 'Opening…';
     let open: OpenScore;
     try {
-      const { draw, aspects, readable } = await openPages(o, true);
+      const { draw, aspects, readable } = await openPages(o.id, o, true);
       if (this.scores.closed) return;
       const { state } = await loadScore(o.id, aspects);
       open = { id: o.id, original: o, aspects, state, draw, readable };

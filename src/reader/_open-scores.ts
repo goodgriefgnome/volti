@@ -2,9 +2,8 @@
 // opened when first needed and dropped when far from the score being read.
 
 import { askPassword } from '../dialogs/passwords';
-import { knownAspects } from '../originals/original';
+import { savedPages } from '../originals/original';
 import { NoAccess, PasswordNotGiven, type DrawOptions, type SourceFile } from '../originals/types';
-import { drawPage, hasSaved } from '../page-cache/cache';
 import type { Drawn } from '../page-cache/types';
 import { loadScore } from '../scores/store';
 import { type Aspects, type State } from '../scores/model';
@@ -12,29 +11,38 @@ import { type Aspects, type State } from '../scores/model';
 /** Draw a page of the score (from 1), `pxWidth` device pixels wide. */
 export type DrawPage = (page: number, pxWidth: number, options?: DrawOptions) => Promise<Drawn>;
 
+/** The score's file isn't in the library, and none of its pages is saved. */
+export class FileGone extends Error {
+  name = 'FileGone';
+}
+
 /**
- * A file's pages, to read: drawn from the file where it can be read; where it can't (no access to
- * the scores folder yet, or no password given) but its pages are saved and their shapes known,
- * drawn by id, which can show only the pages saved. Only with `ask` is its password asked for.
+ * A score's pages, to read: drawn from its file where it can be read; where it can't (no file in
+ * the library, no access to the scores folder yet, or no password given) but its pages are saved
+ * and their shapes known, drawn by id, which can show only the pages saved. Only with `ask` is its
+ * password asked for.
  */
-export async function openPages(o: SourceFile, ask: boolean): Promise<{ draw: DrawPage; aspects: Aspects; readable: boolean }> {
-  try {
-    const original = await o.read(ask ? askPassword : undefined);
-    return { draw: (page, pxWidth, options) => original.draw(page, pxWidth, options), aspects: await original.aspects(), readable: true };
-  } catch (e) {
-    if (!(e instanceof NoAccess || e instanceof PasswordNotGiven)) throw e;
-    const [aspects, saved] = await Promise.all([knownAspects(o.id), hasSaved(o.id)]);
-    if (!aspects || !saved) throw e;
-    const draw: DrawPage = (page, pxWidth, options) =>
-      drawPage({ id: o.id, page, pxWidth, aspect: aspects[page - 1], priority: options?.priority ?? 'now', crop: options?.crop, signal: options?.signal });
-    return { draw, aspects, readable: false };
+export async function openPages(id: string, o: SourceFile | undefined, ask: boolean): Promise<{ draw: DrawPage; aspects: Aspects; readable: boolean }> {
+  let failure: unknown = o ? undefined : new FileGone(`The file of ${id} is gone`);
+  if (o) {
+    try {
+      const original = await o.read(ask ? askPassword : undefined);
+      return { draw: (page, pxWidth, options) => original.draw(page, pxWidth, options), aspects: await original.aspects(), readable: original.whole };
+    } catch (e) {
+      if (!(e instanceof NoAccess || e instanceof PasswordNotGiven)) throw e;
+      failure = e;
+    }
   }
+  const pages = await savedPages(id);
+  if (!pages) throw failure;
+  return { draw: (page, pxWidth, options) => pages.draw(page, pxWidth, options), aspects: await pages.aspects(), readable: pages.whole };
 }
 
 /** A score open in the reader. Every entry of a setlist that plays the score shares it. */
 export interface OpenScore {
   id: string;
-  original: SourceFile;
+  /** Missing when the file is gone from the library. */
+  original?: SourceFile;
   aspects: Aspects;
   state: State;
   /** Dropped while the score is far from the one being read, and opened again when needed. */
@@ -47,10 +55,13 @@ export interface OpenScore {
 export interface Item {
   scoreId: string;
   title: string;
-  /** Not in the library, or its file can't be read. */
+  /** Missing when the score isn't in the library. */
   original?: SourceFile;
   entryId?: string;
+  /** Can't be opened: no file, or none that can be read. */
   missing?: boolean;
+  /** No file in the library, so its saved pages are all it can show. */
+  fileGone?: boolean;
   /** Its file is in the scores folder, which Volti may not read until access is allowed again. */
   needsAccess?: boolean;
 }
@@ -78,17 +89,16 @@ export class OpenScores {
    */
   ensure(k: number, ask = false): Promise<OpenScore | null> {
     const it = this.items[k];
-    if (!it || it.missing || it.needsAccess || !it.original) return Promise.resolve(null);
+    if (!it || it.missing || it.needsAccess) return Promise.resolve(null);
     const have = this.scores.get(it.scoreId);
     if (have?.draw) return Promise.resolve(have);
     let p = this.opening.get(it.scoreId);
     if (!p) {
-      const original = it.original;
-      p = this.open(it, original, ask).catch((e) => {
+      p = this.open(it, it.original, ask).catch((e) => {
         if (e instanceof PasswordNotGiven && !ask) return null;
         // Not lost, only not readable until access to the scores folder is allowed again.
         const locked = e instanceof NoAccess;
-        if (!locked) console.error(e);
+        if (!locked && !(e instanceof FileGone)) console.error(e);
         for (const x of this.items) if (x.scoreId === it.scoreId) x[locked ? 'needsAccess' : 'missing'] = true;
         return null;
       }).finally(() => this.opening.delete(it.scoreId));
@@ -98,8 +108,8 @@ export class OpenScores {
     return ask ? p.then((s) => s ?? (it.missing ? null : this.ensure(k, true))) : p;
   }
 
-  private async open(it: Item, original: SourceFile, ask: boolean): Promise<OpenScore> {
-    const { draw, aspects, readable } = await openPages(original, ask);
+  private async open(it: Item, original: SourceFile | undefined, ask: boolean): Promise<OpenScore> {
+    const { draw, aspects, readable } = await openPages(it.scoreId, original, ask);
     if (this.closed) throw new Error('Closed');
     const have = this.scores.get(it.scoreId);
     if (have) { have.draw = draw; have.readable = readable; return have; }

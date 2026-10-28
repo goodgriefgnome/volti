@@ -4,13 +4,13 @@
 // through the page cache (page-cache/), and stores their aspects by id.
 
 import { readImage } from './_image-source';
-import { drawPage, drawPageProgressive, keepOffline } from '../page-cache/cache';
-import type { DrawRequest, OfflinePage, OfflineProgress, PageSource } from '../page-cache/types';
+import { drawPage, drawPageProgressive, hasSaved, keepOffline } from '../page-cache/cache';
+import { NotSaved, type DrawRequest, type OfflinePage, type OfflineProgress, type PageSource } from '../page-cache/types';
 import type { Content, Readable } from './_types';
 import { _contents, _noteContents } from './_record-store';
 import { sourceFor } from './_sources';
 import { isPdf, readPdf } from './_pdf-source';
-import type { AskPassword, DrawOptions, Original, RenderedPdf } from './types';
+import type { AskPassword, DrawOptions, Original, Pages, RenderedPdf } from './types';
 
 /**
  * Read a source file: an image as it is; a PDF asks for its password now if it has one Volti
@@ -25,6 +25,35 @@ export async function _readOriginal(f: Readable, ask?: AskPassword): Promise<Ori
 /** The aspects (each page's height / width) stored for an original, without reading its file. */
 export function knownAspects(id: string): Promise<number[] | undefined> {
   return Promise.resolve(_contents(id).aspects);
+}
+
+/**
+ * An original's saved pages, by id, whether or not its file can be read: drawn only from the
+ * page cache. Null when its page shapes aren't known or none of its pages is saved.
+ */
+export async function savedPages(id: string): Promise<Pages | null> {
+  const [aspects, saved] = await Promise.all([knownAspects(id), hasSaved(id)]);
+  if (!aspects || !saved) return null;
+  const request = (page: number, pxWidth: number, o?: DrawOptions): DrawRequest =>
+    ({ id, page, pxWidth, aspect: aspects[page - 1], crop: o?.crop, priority: o?.priority ?? 'now', signal: o?.signal });
+  return {
+    id,
+    whole: false,
+    aspects: async () => aspects,
+    draw: (page, pxWidth, o) => drawPage(request(page, pxWidth, o)),
+    // A page missing at the exact width is expected here: the stand-ins are what there is to show.
+    async *drawProgressive(page, pxWidth, o) {
+      let yielded = false;
+      try {
+        for await (const d of drawPageProgressive(request(page, pxWidth, o))) {
+          yielded = true;
+          yield d;
+        }
+      } catch (e) {
+        if (!(e instanceof NotSaved && yielded)) throw e;
+      }
+    },
+  };
 }
 
 /** Store an original's aspects, if they aren't as stored. */
@@ -43,6 +72,7 @@ export function keepPagesOffline(
 
 /** An original: its file's id, path, moving and removing, and itself as what reading it gives. */
 class FileOriginal implements Original {
+  readonly whole = true;
   readonly source: PageSource;
   constructor(private f: Readable, private content: Content, size: number) {
     this.source = sourceFor(f.id, size, content);

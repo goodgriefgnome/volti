@@ -22,7 +22,7 @@ export type ReadingKind = { kind: 'score' } | { kind: 'excerpt'; excerpt: Excerp
 export function setlistItems(s: Setlist, originals: ReadonlyMap<string, SourceFile>, titles: Readonly<Record<string, string>>): Item[] {
   return s.entries.map((e) => {
     const original = originals.get(e.scoreId);
-    return { scoreId: e.scoreId, entryId: e.id, original, title: (original && titleOf(original.path)) ?? titles[e.scoreId] ?? 'Missing score', missing: !original };
+    return { scoreId: e.scoreId, entryId: e.id, original, title: (original && titleOf(original.path)) ?? titles[e.scoreId] ?? 'Missing score', fileGone: !original };
   });
 }
 

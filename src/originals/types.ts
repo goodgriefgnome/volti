@@ -30,14 +30,21 @@ export interface SourceFile {
   read(ask?: AskPassword): Promise<Original>;
 }
 
-/** A source file Volti has read: what a score is made from. */
-export interface Original extends SourceFile {
+/** What can be read of an original: its page shapes, and its pages drawn. */
+export interface Pages {
+  readonly id: string;
   /** Each page's height / width, in order: as stored, else worked out by opening it, and stored. */
   aspects(): Promise<number[]>;
   /** Page `page` (from 1), `pxWidth` device pixels wide, through the page cache. Priority defaults to 'now'. */
   draw(page: number, pxWidth: number, options?: DrawOptions): Promise<Drawn>;
   /** As draw, with stand-ins first (page-cache's drawPageProgressive). */
   drawProgressive(page: number, pxWidth: number, options?: DrawOptions): AsyncIterable<Drawn>;
+  /** False when only the pages saved in the page cache can be drawn. */
+  readonly whole: boolean;
+}
+
+/** A source file Volti has read: what a score is made from. */
+export interface Original extends SourceFile, Pages {
   /** Its music as a PDF, for export (_pdf-source.ts, _image-source.ts). */
   pdf(): Promise<RenderedPdf>;
 }
