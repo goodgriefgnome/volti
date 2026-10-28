@@ -4,52 +4,17 @@
 // into another folder) and removed (into Recently removed), asking for the access that needs. Also
 // listing the root's files, known by the hash of their contents.
 
-import { keys } from '../storage/keys';
-import { kv } from '../storage/kv';
-import { _deviceIds, _linked, _needAccess, _relist, _rememberedListing, _saveListing, type _HashCache } from './device-score-fs';
-import { walk } from './_filesystem-utils';
-import { _internalFiles, _internalIds, _opfsRoot, type _IdRecord } from './internal-score-fs';
-import type { Ids, Readable } from './_types';
+import { _linked, _needAccess } from './device-score-fs';
+import { hashFile, walk } from './_filesystem-utils';
+import { _dropInboxBytes } from './inbox-fs';
+import { _internalFiles, _opfsRoot, _removeInternalFile } from './internal-score-fs';
+import { _resolveListing, type _Found, type OriginalRecord, type Where } from './_record-model';
+import { _loadRecords, _record, _records, _updateRecord, _updateRecords } from './_record-store';
+import type { Readable } from './_types';
 import { _readOriginal } from './original';
 import { byTitle, folderOf, _nameOf, _shownFolder, _tidyPath, titleOf, _unfoundName } from './path-utils';
-import { _forgetRemoved, _keepRemoved } from './trash-fs';
+import { _forgetRemovedBytes, _keepRemoved } from './trash-fs';
 import type { AskPassword, FolderState, Original, SourceFile } from './types';
-
-/**
- * Before the id stores were split, the cache of ids (`hashes`) held both the linked folder's, under
- * "folder/", and Volti's own folder's, under "app/". Split them once, without hashing anything
- * again: the internal record (`internal-ids`) takes the "app/" entries whose file still has the
- * size and modified time they were worked out for, and `hashes` keeps the "folder/" ones, by path.
- * Whether `internal-ids` exists is the only safe sign it has been done, as a real folder can be
- * called "app" or "folder". A crash between the two writes costs one full hash of the linked
- * folder, and loses nothing.
- */
-async function splitIds(): Promise<void> {
-  if ((await kv.get<_IdRecord>(keys.internalIds)) !== undefined) return;
-  const old = (await kv.get<_HashCache>(keys.hashes)) ?? {};
-  const record: _IdRecord = {};
-  for (const { path, file } of await _internalFiles().catch(() => [])) {
-    const was = old['app/' + path];
-    if (was && was.size === file.size && was.modified === file.lastModified) record[path] = was.id;
-  }
-  await kv.set(keys.internalIds, record);
-  await kv.set(keys.hashes, Object.fromEntries(Object.entries(old).filter(([k]) => k.startsWith('folder/')).map(([k, v]) => [k.slice('folder/'.length), v])));
-}
-
-let split: Promise<void> | undefined;
-/** Resolves once the id stores are in their present form (see splitIds): wait for it before using either. */
-export const _idsReady = () => (split ??= splitIds());
-
-/** The ids of the files in the library's root: the linked folder's cache, or Volti's own folder's record. */
-async function idsOfRoot(): Promise<Ids> {
-  await _idsReady();
-  return (await _linked()) ? _deviceIds() : _internalIds();
-}
-
-/** Note the id of a file at `path` in the root whose contents are known, such as one just added, so it isn't read again. */
-export async function _rememberId(path: string, file: File, id: string) {
-  await (await idsOfRoot()).remember(path, file, id);
-}
 
 /** The library's root: the linked folder, or the app's own. Access to a linked one must be allowed. */
 async function root(): Promise<FileSystemDirectoryHandle> {
@@ -150,8 +115,8 @@ class LibraryFile implements Readable {
       }
     }
     // The same contents, so the same id: no need to read it again.
-    await (await idsOfRoot()).moved(this.path, now, await (await into.getFileHandle(name)).getFile(), this.id);
-    await _relist(this.id, now);
+    const file = await (await into.getFileHandle(name)).getFile(), where = await rootWhere(file);
+    await _updateRecord(this.id, (r) => r && { ...r, path: now, where });
     this.path = now;
     return null;
   }
@@ -159,16 +124,17 @@ class LibraryFile implements Readable {
   async remove(): Promise<void> {
     await _needAccess('readwrite');
     const [d, name] = await placeOf(this.path);
-    const key = await _keepRemoved(this.id, this.path, await (await d.getFileHandle(name)).getFile());
+    const before = _record(this.id);
+    await _keepRemoved(this.id, this.path, await (await d.getFileHandle(name)).getFile());
+    const kept = _record(this.id)?.where;
     try {
       await d.removeEntry(name);
     } catch (e) {
       // Still in the library: not removed after all.
-      await _forgetRemoved(key);
+      await _updateRecord(this.id, () => before);
+      if (kept?.kind === 'removed') await _forgetRemovedBytes(this.id, kept.removedAt);
       throw e;
     }
-    await (await idsOfRoot()).forget(this.path);
-    await _relist(this.id);
   }
 }
 
@@ -183,8 +149,46 @@ export function _sourceFileOf(id: string, path: string): SourceFile {
   return o;
 }
 
-/** Every file's title as last seen, by id: for a score whose file can't be found. */
-export const knownTitles = async () => (await kv.get<Record<string, string>>(keys.titles)) ?? {};
+/** Every score's title, by id, from its original's record, whether or not its file can be found. */
+export const knownTitles = async () => Object.fromEntries([..._records()].map(([id, r]) => [id, titleOf(r.path)]));
+
+/** Where a file just written into the root is: the linked folder, as it is now, or Volti's own. */
+async function rootWhere(file: File): Promise<Where> {
+  return (await _linked()) ? { kind: 'folder', size: file.size, modified: file.lastModified } : { kind: 'internal' };
+}
+
+/**
+ * A file has been written into the root at `path`: its record is there now, and the bytes of the
+ * place it was in before (the inbox, Recently removed, or Volti's own folder while a folder is
+ * linked) are deleted.
+ */
+export async function _placed(id: string, path: string, file: File): Promise<void> {
+  const where = await rootWhere(file);
+  const before: { record?: OriginalRecord } = {};
+  await _updateRecord(id, (r) => {
+    before.record = r;
+    return { ...r, path, where };
+  });
+  const old = before.record;
+  if (old) await _dropBytes({ id, path: old.path, where: old.where }, where.kind === 'folder');
+}
+
+/** Delete the bytes of a place a record has left. */
+async function _dropBytes(d: { id: string; where: Where; path: string }, linked: boolean): Promise<void> {
+  try {
+    if (d.where.kind === 'internal' && linked) await _removeInternalFile(d.path);
+    else if (d.where.kind === 'inbox') await _dropInboxBytes(d.id);
+    else if (d.where.kind === 'removed') await _forgetRemovedBytes(d.id, d.where.removedAt);
+  } catch (e) {
+    console.warn('Could not delete the bytes of a place given up:', e);
+  }
+}
+
+/** Whether two records are the same, as stored. */
+const same = (a: OriginalRecord | undefined, b: OriginalRecord | undefined) => JSON.stringify(a) === JSON.stringify(b);
+
+/** The ids of files in the linked folder found more than once, as last listed: path → the copy. */
+const hidden: Record<'folder' | 'internal', Map<string, _Found>> = { folder: new Map(), internal: new Map() };
 
 /**
  * Hears the files known so far while new or changed files are read, and how many are `left`
@@ -193,37 +197,73 @@ export const knownTitles = async () => (await kv.get<Record<string, string>>(key
 type Progress = (originals: SourceFile[], left: number) => void;
 
 /**
- * The library's files, sorted by title: the same SourceFile for an id as before; two of the same file show
- * the first. Files new or changed since last time are hashed, which reads them whole, one at a
- * time; `progress` hears the files known so far before the first and after each. While the
- * linked folder is locked, its PDFs are the ones remembered.
+ * List the `entries` of a root of `kind` (the linked folder, or Volti's own folder), after the
+ * records are loaded: work out each file's id, hashing only those the records can't vouch for
+ * (a folder file whose size and modified time are as recorded; any file of Volti's own folder at
+ * the path recorded, as only Volti changes those), one at a time, then write what the listing
+ * means for the records and delete the bytes of places given up. Gives the files that win, each
+ * at its canonical path.
+ */
+async function listing(kind: 'folder' | 'internal', entries: { path: string; file: File }[], linked: boolean, progress?: Progress): Promise<{ id: string; path: string }[]> {
+  // A snapshot: the copy in memory changes as records are written meanwhile.
+  const records = new Map(_records());
+  const at = new Map<string, { id: string; where: Where }>();
+  for (const [id, r] of records) if (r.where.kind === kind) at.set(r.path, { id, where: r.where });
+  const idOf = (path: string, file: File): string | undefined => {
+    const r = at.get(path);
+    if (r) {
+      if (kind === 'internal') return r.id;
+      if (r.where.kind === 'folder' && r.where.size === file.size && r.where.modified === file.lastModified) return r.id;
+    }
+    const copy = hidden[kind].get(path);
+    return copy && copy.size === file.size && copy.modified === file.lastModified ? copy.id : undefined;
+  };
+  const found: _Found[] = [];
+  const fresh: { path: string; file: File }[] = [];
+  for (const e of entries) {
+    const id = idOf(e.path, e.file);
+    if (id) found.push({ path: e.path, id, size: e.file.size, modified: e.file.lastModified }); else fresh.push(e);
+  }
+  const shown = () => _resolveListing(kind, records, found, linked).files.map((f) => _sourceFileOf(f.id, f.path)).sort(byTitle);
+  for (const [n, e] of fresh.entries()) {
+    if (n === 0) progress?.(shown(), fresh.length);
+    found.push({ path: e.path, id: await hashFile(e.file), size: e.file.size, modified: e.file.lastModified });
+    progress?.(shown(), fresh.length - n - 1);
+  }
+
+  const result = _resolveListing(kind, records, found, linked);
+  // Each record is written only if it is still as the listing saw it: a share made meanwhile wins.
+  await _updateRecords([...result.changed].map(([id, next]) => [id, (stored) => (same(stored as OriginalRecord | undefined, records.get(id)) ? next : stored)]));
+  for (const d of result.drop) {
+    // A place given up is deleted only if the record did move.
+    if (result.changed.has(d.id) && !same(_record(d.id), result.changed.get(d.id))) continue;
+    await _dropBytes(d, linked);
+  }
+  hidden[kind] = result.duplicates;
+  return result.files;
+}
+
+/**
+ * The library's files, sorted by title: the same SourceFile for an id as before; two of the same
+ * file show the first. Files new or changed since last time are hashed, which reads them whole, one
+ * at a time; `progress` hears the files known so far before the first and after each. While the
+ * linked folder is locked, its files are the ones its records say.
  */
 export async function libraryFiles(state: FolderState, progress?: Progress): Promise<SourceFile[]> {
-  const hashes = await idsOfRoot();
-  const locked = state.kind === 'locked';
-  const remembered = locked ? await _rememberedListing() : [];
-  const files = locked ? [] : await _folderFiles();
-  const ids = new Map<string, string>();
-  const known = () => {
-    const seen = new Map<string, string>();
-    for (const e of [...remembered, ...files.filter((f) => ids.has(f.path)).map((f) => ({ id: ids.get(f.path)!, path: f.path }))]) if (!seen.has(e.id)) seen.set(e.id, e.path);
-    return [...seen].map(([id, path]) => _sourceFileOf(id, path)).sort(byTitle);
-  };
-  const fresh: number[] = [];
-  for (const [i, f] of files.entries()) {
-    if (hashes.known(f.path, f.file)) ids.set(f.path, await hashes.id(f.path, f.file)); else fresh.push(i);
-  }
-  for (const [n, i] of fresh.entries()) {
-    if (n === 0) progress?.(known(), fresh.length);
-    ids.set(files[i].path, await hashes.id(files[i].path, files[i].file));
-    progress?.(known(), fresh.length - n - 1);
-  }
-  // A locked folder wasn't read, so neither store has anything new to keep or drop.
-  if (!locked) {
-    await _saveListing(files.map((f) => ({ path: f.path, id: ids.get(f.path)! })));
-    await hashes.save();
-  }
-  const found = known();
-  await kv.update<Record<string, string>>(keys.titles, (old) => ({ ...old, ...Object.fromEntries(found.map((f) => [f.id, titleOf(f.path)])) }));
-  return found;
+  await _loadRecords();
+  const files = state.kind === 'locked'
+    ? [..._records()].flatMap(([id, r]) => (r.where.kind === 'folder' ? [{ id, path: r.path }] : []))
+    : await listing(state.kind === 'ready' ? 'folder' : 'internal', await _folderFiles(), state.kind === 'ready', progress);
+  return files.map((f) => _sourceFileOf(f.id, f.path)).sort(byTitle);
+}
+
+/**
+ * The files in Volti's own folder while a folder is linked: those not moved into it yet, listed as
+ * the root is. A file whose id the linked folder has is deleted.
+ */
+export async function _listInternal(): Promise<{ id: string; path: string; file: File }[]> {
+  await _loadRecords();
+  const entries = await _internalFiles();
+  const files = new Map(entries.map((e) => [e.path, e.file]));
+  return (await listing('internal', entries, true)).map((f) => ({ ...f, file: files.get(f.path)! }));
 }

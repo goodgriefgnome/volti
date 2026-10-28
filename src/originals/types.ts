@@ -76,5 +76,5 @@ export class NoAccess extends Error {
   name = 'NoAccess';
 }
 
-/** A removed file: kept under `key`, with its id, where it was in the library, and when it was removed (ms since 1970). */
-export interface Removed { key: string; id: string; path: string; at: number }
+/** A removed file: its id, where it was in the library, and when it was removed (ms since 1970). */
+export interface Removed { id: string; path: string; at: number }

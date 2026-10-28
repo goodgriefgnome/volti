@@ -1,17 +1,30 @@
 // The device score filesystem: the linked scores folder (File System Access). Its handle (the only
-// code that holds it), linking and unlinking it, asking for access to it, the listing remembered for
-// while access is locked, the cache of its files' ids, and the Exports folder inside it that exported PDFs are written to.
+// code that holds it), linking and unlinking it, asking for access to it, and the Exports folder
+// inside it that exported PDFs are written to. What it holds is in the records (_record-store.ts).
 
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
-import { hashFile } from './_filesystem-utils';
-import type { Ids } from './_types';
+import { _loadRecords, _records, _updateRecords } from './_record-store';
 import { NoAccess, type FolderState } from './types';
+
+/** What is stored under `folder`: the handle, kept after unlinking to tell whether a folder linked later is the same one. */
+interface FolderLink { handle: FileSystemDirectoryHandle; linked: boolean }
 
 let dir: FileSystemDirectoryHandle | undefined;
 
 /** The linked folder, if there is one. */
-export const _linked = async () => (dir ??= await kv.get<FileSystemDirectoryHandle>(keys.folder));
+export async function _linked(): Promise<FileSystemDirectoryHandle | undefined> {
+  if (!dir) {
+    const link = await storedLink();
+    if (link?.linked) dir = link.handle;
+  }
+  return dir;
+}
+
+const storedLink = () => kv.get<FolderLink>(keys.folder);
+
+/** Whether a folder is linked, read afresh from storage: for the service worker, which has no state. */
+export const _isLinked = async () => (await storedLink())?.linked === true;
 
 export const canLinkFolder = () => 'showDirectoryPicker' in window;
 
@@ -24,13 +37,22 @@ export async function folderState(): Promise<FolderState> {
 
 /** Must be called from a tap. Asks to change files too (renaming, exports), so that's asked once. */
 export async function linkFolder(): Promise<boolean> {
+  let picked: FileSystemDirectoryHandle;
   try {
-    dir = await window.showDirectoryPicker({ id: 'volti-scores', mode: 'readwrite' });
+    picked = await window.showDirectoryPicker({ id: 'volti-scores', mode: 'readwrite' });
   } catch (e) {
     if ((e as DOMException).name === 'AbortError') return false;
     throw e;
   }
-  await kv.set(keys.folder, dir);
+  // The same folder as before keeps its records, so nothing is hashed again; another folder's files are not these.
+  const old = await storedLink();
+  if (!(old && (await old.handle.isSameEntry(picked).catch(() => false)))) {
+    await _loadRecords();
+    await _updateRecords([..._records()].filter(([, r]) => r.where.kind === 'folder')
+      .map(([id]) => [id, (r) => (r?.where.kind === 'folder' ? { ...r, where: { kind: 'gone' } } : r)]));
+  }
+  await kv.set(keys.folder, { handle: picked, linked: true } satisfies FolderLink);
+  dir = picked;
   return true;
 }
 
@@ -59,26 +81,9 @@ export async function _needAccess(mode: 'read' | 'readwrite'): Promise<void> {
 
 export async function unlinkFolder(): Promise<void> {
   dir = undefined;
-  await kv.del(keys.folder);
-  await kv.del(keys.folderListing);
+  const old = await storedLink();
+  if (old) await kv.set(keys.folder, { handle: old.handle, linked: false } satisfies FolderLink);
 }
-
-/** A PDF in the linked folder, as last read: listed from this while access is locked. */
-export interface _ListingEntry { path: string; id: string }
-
-/** The linked folder's PDFs as last read; none while no folder is linked. */
-export const _rememberedListing = async () => (await kv.get<_ListingEntry[]>(keys.folderListing)) ?? [];
-
-/** Remember the root's PDFs, as just read, where it is a linked folder. */
-export const _saveListing = async (listing: _ListingEntry[]) => { if (await _linked()) await kv.set(keys.folderListing, listing); };
-
-/**
- * Note in the remembered listing that score `id`'s file is at `path` now (renamed or moved), or
- * with no `path`, that it is gone.
- */
-export const _relist = async (id: string, path?: string) => {
-  if (await _linked()) await kv.update<_ListingEntry[]>(keys.folderListing, (old) => (old ?? []).flatMap((e) => (e.id !== id ? [e] : path ? [{ ...e, path }] : [])));
-};
 
 /* ---------- exports ---------- */
 
@@ -107,45 +112,3 @@ export async function saveExport(name: string, data: Blob): Promise<void> {
   await w.write(data);
   await w.close();
 }
-
-/* ---------- its ids ---------- */
-
-/** A file's id, good while its size and modified time stay the same. */
-interface Hashed { size: number; modified: number; id: string }
-
-/** The linked folder's ids by path in it. */
-export type _HashCache = Record<string, Hashed>;
-
-/**
- * The cache of the linked folder's ids. Other apps can change files there at any time, so an id is
- * trusted only while the file's size and modified time are as they were; otherwise it is read whole
- * again. Unlinking the folder doesn't clear it.
- */
-class DeviceIds implements Ids {
-  private constructor(private before: _HashCache, private now: _HashCache = {}) {}
-  static async load() { return new DeviceIds((await kv.get<_HashCache>(keys.hashes)) ?? {}); }
-
-  known(path: string, file: File): string | undefined {
-    const was = this.before[path];
-    return was && was.size === file.size && was.modified === file.lastModified ? was.id : undefined;
-  }
-
-  async id(path: string, file: File): Promise<string> {
-    const id = this.known(path, file) ?? await hashFile(file);
-    this.now[path] = { size: file.size, modified: file.lastModified, id };
-    return id;
-  }
-
-  async remember(path: string, file: File, id: string) {
-    await kv.update<_HashCache>(keys.hashes, (old) => ({ ...old, [path]: { size: file.size, modified: file.lastModified, id } }));
-  }
-
-  /** The old path's entry stays until the next listing drops it. */
-  moved(_from: string, to: string, file: File, id: string) { return this.remember(to, file, id); }
-
-  async forget() {}
-
-  save() { return kv.set(keys.hashes, this.now); }
-}
-
-export const _deviceIds = (): Promise<Ids> => DeviceIds.load();

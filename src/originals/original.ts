@@ -4,11 +4,10 @@
 // through the page cache (page-cache/), and stores their aspects by id.
 
 import { readImage } from './_image-source';
-import { keys } from '../storage/keys';
-import { kv } from '../storage/kv';
 import { drawPage, drawPageProgressive, keepOffline } from '../page-cache/cache';
 import type { DrawRequest, OfflinePage, OfflineProgress, PageSource } from '../page-cache/types';
 import type { Content, Readable } from './_types';
+import { _contents, _noteContents } from './_record-store';
 import { sourceFor } from './_sources';
 import { isPdf, readPdf } from './_pdf-source';
 import type { AskPassword, DrawOptions, Original, RenderedPdf } from './types';
@@ -25,13 +24,12 @@ export async function _readOriginal(f: Readable, ask?: AskPassword): Promise<Ori
 
 /** The aspects (each page's height / width) stored for an original, without reading its file. */
 export function knownAspects(id: string): Promise<number[] | undefined> {
-  return kv.get<number[]>(keys.aspects(id));
+  return Promise.resolve(_contents(id).aspects);
 }
 
 /** Store an original's aspects, if they aren't as stored. */
 async function storeAspects(id: string, aspects: number[]) {
-  const was = await knownAspects(id);
-  if (!was || was.length !== aspects.length || was.some((a, i) => a !== aspects[i])) await kv.set(keys.aspects(id), aspects);
+  await _noteContents(id, { aspects });
 }
 
 /** page-cache's keepOffline, for originals: each entry's source is its Original's, if it has one. */

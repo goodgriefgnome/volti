@@ -16,8 +16,7 @@ import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
-import { keys } from '../storage/keys';
-import { kv } from '../storage/kv';
+import { _contents, _noteContents } from './_record-store';
 import type { Crop } from '../page-cache/types';
 import type { Content, OpenPages, Readable } from './_types';
 import { titleOf } from './path-utils';
@@ -59,7 +58,7 @@ const namesEncrypt = (b: Uint8Array) => holds(b, ENCRYPT);
 export const isEncryptedPdf = (b: Uint8Array) => namesEncrypt(b.subarray(0, PDF_ENDS)) || namesEncrypt(b.subarray(Math.max(0, b.length - PDF_ENDS)));
 
 /** The password remembered for a file, if it has needed one. */
-const savedPassword = (id: string) => kv.get<string>(keys.password(id));
+const savedPassword = (id: string) => _contents(id).password;
 
 /**
  * The passwords to try for an original's PDF, once it has been tried without one: the one
@@ -71,7 +70,7 @@ class Passwords {
 
   private constructor(private o: SourceFile, private saved: string | undefined, private ask?: AskPassword) {}
 
-  static async for(o: SourceFile, ask?: AskPassword) { return new Passwords(o, await savedPassword(o.id), ask); }
+  static async for(o: SourceFile, ask?: AskPassword) { return new Passwords(o, savedPassword(o.id), ask); }
 
   /** The next password to try, after one that was `wrong`: null when there is none. */
   async next(wrong: boolean): Promise<string | null> {
@@ -84,7 +83,7 @@ class Passwords {
 
   /** The PDF opened: remember the password that opened it, if it is a new one. */
   async keep() {
-    if (this.tried !== undefined && this.tried !== this.saved) await kv.set(keys.password(this.o.id), this.tried);
+    if (this.tried !== undefined && this.tried !== this.saved) await _noteContents(this.o.id, { password: this.tried });
   }
 
   /** Why opening stopped: PasswordNotGiven when it was for want of a password. */
@@ -112,7 +111,7 @@ async function encrypted(file: File): Promise<boolean> {
  */
 export async function readPdf(f: Readable, ask?: AskPassword): Promise<Content> {
   const file = await f.file();
-  const known = !(await encrypted(file)) || (await savedPassword(f.id)) !== undefined;
+  const known = !(await encrypted(file)) || savedPassword(f.id) !== undefined;
   return new PdfContent(f, known ? undefined : await pdfOf(f, file, ask));
 }
 

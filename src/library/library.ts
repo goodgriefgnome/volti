@@ -12,10 +12,9 @@ import { type FileChange } from '../dialogs/score-files';
 import type { Span } from '../excerpts/span';
 import type { ExportPart } from '../export/pdf';
 import { arrivals, byFolder, byTitle, titleOf } from '../originals/path-utils';
-import { dropInbox, peekInbox } from '../originals/inbox-fs';
 import { folderState, linkFolder, unlinkFolder, unlockFolder } from '../originals/device-score-fs';
 import { knownTitles, libraryFiles } from '../originals/library-files';
-import { leftInApp } from '../originals/misc-files';
+import { inboxFiles, leftInApp } from '../originals/misc-files';
 import { NoAccess, PasswordNotGiven, type FolderState, type SourceFile } from '../originals/types';
 import { makePictures } from '../pictures/maker';
 import { openReader, type ToRead } from '../reader/reader';
@@ -229,15 +228,15 @@ export class Library implements LibraryHost {
   }
 
   /**
-   * Open the files shared to Volti, waiting in the inbox, in the screen for incoming files, which
-   * drops them from the inbox as it closes. They wait while access to the scores folder isn't
-   * allowed, and that is said.
+   * Open the files shared to Volti, waiting in the inbox, in the screen for incoming files. Those
+   * not added, left out or cancelled, go to Recently removed as it closes. They wait while access
+   * to the scores folder isn't allowed, and that is said.
    */
   async addShared() {
-    const files = await peekInbox();
+    const files = await inboxFiles();
     if (!files.length) return;
     if ((await folderState()).kind === 'locked') { this.say('Files shared to Volti open here once access to the scores folder is allowed.'); return; }
-    void openIncoming(this, files.map((file) => ({ file })), () => void dropInbox(files.length));
+    void openIncoming(this, files, (added) => { for (const f of files) if (!added.includes(f)) void f.remove(); });
   }
 
   async unlink() {
@@ -249,7 +248,7 @@ export class Library implements LibraryHost {
   /* ---------- showing and changing ---------- */
 
   originalOf(id: string) { return this.originals.find((s) => s.id === id); }
-  titleOf(scoreId: string) { const o = this.originalOf(scoreId); return (o && titleOf(o.path)) ?? this.titles[scoreId] ?? this.saved.get(scoreId)?.title ?? 'Missing score'; }
+  titleOf(scoreId: string) { const o = this.originalOf(scoreId); return (o && titleOf(o.path)) ?? this.titles[scoreId] ?? 'Missing score'; }
   setlist(id: string) { return this.setlists.find((s) => s.id === id); }
 
   private renderSetlists() {
