@@ -1,6 +1,6 @@
 // The frames on a screen: which frames a screen starting at a frame shows, where they sit, and the
 // widths their pages are drawn at. Pure: no DOM. The reader puts boxes where this says
-// (reader/_spread.ts); pages kept offline are drawn at the widths it gives (pictures/maker.ts).
+// (reader/_spread.ts); pages kept offline are drawn at the widths it gives (library/_offline-pages.ts).
 
 import type { Frame } from '../scores/frames';
 import { framesOnScreen, _placeFrames, _sideBySide } from './layout';

@@ -23,7 +23,7 @@ let running: AbortController | undefined;
  * Bring the pages kept offline up to date with these setlists, in the background: after a setlist
  * changes, or the scores do, and at start-up.
  */
-export function makePictures(originals: readonly SourceFile[], setlists: readonly Setlist[]) {
+export function keepSetlistPagesOffline(originals: readonly SourceFile[], setlists: readonly Setlist[]) {
   clearTimeout(timer);
   running?.abort();
   const mine = running = new AbortController();

@@ -16,7 +16,6 @@ const LAYERS: Record<string, number> = {
   scores: 2,
   setlists: 3,
   render: 4,
-  pictures: 5,
   export: 5,
   dialogs: 6,
   reader: 7,

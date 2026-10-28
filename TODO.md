@@ -13,21 +13,7 @@ scores.
 
 ## Work for the immediate future
 
-One move of code. Nothing is meant to change in what the app does, so the
-checks are `npm test` and `npm run build` (which type-checks every moved import).
-
-- **Fold `pictures/` into `library/_offline-pages.ts`:** since the page cache, `pictures/` holds
-  only `maker.ts`, which works out the pages setlists play and tells the page cache to keep them
-  offline; only `library/library.ts` uses it.
-  - `git mv src/pictures/maker.ts src/library/_offline-pages.ts`, and fix its imports (`../…` stay
-    as they are; nothing in it imports from `library/`).
-  - Rename `makePictures` to `keepSetlistPagesOffline`, and its call sites in `library/library.ts`.
-    Its header comment says what it does, not "pictures".
-  - Delete `src/pictures/`. In `src/layers.test.ts`, remove `pictures` from `LAYERS` (layer 5,
-    after the renumbering above, keeps `export`).
-  - `ARCHITECTURE.md`: remove `pictures/` (and `maker`) from the layer table's row, and add to the
-    `library/` row that it keeps setlists' pages offline (`_offline-pages`). The comment at the top of
-    `render/screen.ts` names `pictures/maker.ts`: make it `library/_offline-pages.ts`.
+Nothing at present.
 
 ## Manual check
 

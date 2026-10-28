@@ -16,7 +16,6 @@ import { folderState, linkFolder, unlinkFolder, unlockFolder } from '../original
 import { knownTitles, libraryFiles } from '../originals/library-files';
 import { inboxFiles, leftInApp } from '../originals/misc-files';
 import { NoAccess, PasswordNotGiven, type FolderState, type SourceFile } from '../originals/types';
-import { makePictures } from '../pictures/maker';
 import { openReader, type ToRead } from '../reader/reader';
 import { knownAspects } from '../originals/original';
 import { loadSavedScore, scoreEntry } from '../scores/store';
@@ -30,6 +29,7 @@ import { FolderBanner } from './_folder-banner';
 import type { LibraryHost } from './_host';
 import { openIncoming } from './_incoming';
 import { ScoresSection } from './_scores-section';
+import { keepSetlistPagesOffline } from './_offline-pages';
 import { SetlistsSection } from './_setlists-section';
 
 /** How long Volti has to be out of view before the scores folder is read again on coming back. */
@@ -253,7 +253,7 @@ export class Library implements LibraryHost {
 
   private renderSetlists() {
     // Shown afresh whenever they change, or the scores do: keep their pages saved offline.
-    makePictures(this.originals, this.setlists);
+    keepSetlistPagesOffline(this.originals, this.setlists);
     this.setlistsSection.render();
   }
 
@@ -387,7 +387,7 @@ export class Library implements LibraryHost {
   private accessAllowed() {
     if (this.folder.kind === 'locked') void this.refresh();
     // The scores can be read now, so the setlists' pages missing offline can be drawn.
-    makePictures(this.originals, this.setlists);
+    keepSetlistPagesOffline(this.originals, this.setlists);
   }
 
   /* ---------- opening the reader ---------- */
