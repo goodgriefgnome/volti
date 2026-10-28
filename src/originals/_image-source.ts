@@ -3,7 +3,8 @@
 // one-page PDF, put in as it is where that loses nothing. Telling a JPEG or a PNG by its first bytes
 // and which way up a JPEG is meant to be shown is pure. pdf-lib is only loaded when it is needed.
 
-import type { Content, Crop, OpenPages, Readable } from './_types';
+import type { Crop } from '../page-cache/types';
+import type { Content, OpenPages, Readable } from './_types';
 import { A4_W, encode } from './_pdf-source';
 import type { RenderedPdf } from './types';
 

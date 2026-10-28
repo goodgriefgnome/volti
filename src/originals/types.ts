@@ -2,7 +2,11 @@
 // state of the linked folder, passwords, saved page pictures, removed files, and the errors thrown
 // when a file can't be read for want of access or a password.
 
+import type { Crop, Drawn, Priority } from '../page-cache/types';
 import type { PageCache } from './original';
+
+/** What a draw may ask besides the page and its width. */
+export interface DrawOptions { crop?: Crop; priority?: Priority; signal?: AbortSignal }
 
 /** Bytes Volti can read as music: a PDF or an image. */
 export interface SourceFile {
@@ -31,6 +35,10 @@ export interface SourceFile {
 export interface Original extends SourceFile {
   /** Each page's height / width, in order: as stored, else worked out by opening it, and stored. */
   aspects(): Promise<number[]>;
+  /** Page `page` (from 1), `pxWidth` device pixels wide, through the page cache. Priority defaults to 'now'. */
+  draw(page: number, pxWidth: number, options?: DrawOptions): Promise<Drawn>;
+  /** As draw, with stand-ins first (page-cache's drawPageProgressive). */
+  drawProgressive(page: number, pxWidth: number, options?: DrawOptions): AsyncIterable<Drawn>;
   /** Its pages, to draw. */
   pages(): Promise<PageCache>;
   /** Its music as a PDF, for export (_pdf-source.ts, _image-source.ts). */

@@ -1,6 +1,7 @@
 // Types used by several files in originals/ but not outside it: a source file that can give its
 // bytes, what draws an original's pages, and what reading a file gives.
 
+import type { Crop } from '../page-cache/types';
 import type { RenderedPdf, SourceFile } from './types';
 
 /** What library-files.ts asks of a score filesystem's record of its files' ids, by path. */
@@ -21,9 +22,6 @@ export interface Ids {
 
 /** A source file's bytes, for reading what only originals/ reads from it. */
 export interface Readable extends SourceFile { file(): Promise<File> }
-
-/** A part of a page drawn `pxWidth` device pixels wide, in those pixels. */
-export interface Crop { x: number; y: number; w: number; h: number }
 
 /** An original's pages, open: pdf.js's document, or an image's bitmap. Pages are numbered from 1. */
 export interface OpenPages {

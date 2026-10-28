@@ -18,7 +18,8 @@ pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
-import type { Content, Crop, OpenPages, Readable } from './_types';
+import type { Crop } from '../page-cache/types';
+import type { Content, OpenPages, Readable } from './_types';
 import { titleOf } from './path-utils';
 import { PasswordNotGiven, type AskPassword, type RenderedPdf, type SourceFile } from './types';
 

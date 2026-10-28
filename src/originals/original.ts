@@ -8,9 +8,12 @@
 import { readImage } from './_image-source';
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
+import { drawPage, drawPageProgressive } from '../page-cache/cache';
+import type { DrawRequest, PageSource } from '../page-cache/types';
 import type { Content, OpenPages, Readable } from './_types';
+import { sourceFor } from './_sources';
 import { isPdf, readPdf } from './_pdf-source';
-import type { AskPassword, Original, PagePictures, RenderedPdf } from './types';
+import type { AskPassword, DrawOptions, Original, PagePictures, RenderedPdf } from './types';
 
 /**
  * Read a source file: an image as it is; a PDF asks for its password now if it has one Volti
@@ -19,7 +22,7 @@ import type { AskPassword, Original, PagePictures, RenderedPdf } from './types';
 export async function _readOriginal(f: Readable, ask?: AskPassword): Promise<Original> {
   const file = await f.file();
   const bytes = new Uint8Array(await file.slice(0, 2048).arrayBuffer());
-  return new FileOriginal(f, isPdf(bytes) ? await readPdf(f, ask) : readImage(f));
+  return new FileOriginal(f, isPdf(bytes) ? await readPdf(f, ask) : readImage(f), file.size);
 }
 
 /** The aspects (each page's height / width) stored for an original, without reading its file. */
@@ -35,7 +38,10 @@ async function storeAspects(id: string, aspects: number[]) {
 
 /** An original: its file's id, path, moving and removing, and itself as what reading it gives. */
 class FileOriginal implements Original {
-  constructor(private f: Readable, private content: Content) {}
+  private source: PageSource;
+  constructor(private f: Readable, private content: Content, size: number) {
+    this.source = sourceFor(f.id, size, content);
+  }
   get id() { return this.f.id; }
   get path() { return this.f.path; }
   move(path: string) { return this.f.move(path); }
@@ -56,6 +62,14 @@ class FileOriginal implements Original {
       await storeAspects(this.id, aspects);
     }
     return (this.shapes = aspects);
+  }
+  private async request(page: number, pxWidth: number, o?: DrawOptions): Promise<DrawRequest> {
+    const aspect = (await this.aspects())[page - 1];
+    return { id: this.id, source: this.source, page, pxWidth, aspect, crop: o?.crop, priority: o?.priority ?? 'now', signal: o?.signal };
+  }
+  async draw(page: number, pxWidth: number, options?: DrawOptions) { return drawPage(await this.request(page, pxWidth, options)); }
+  async *drawProgressive(page: number, pxWidth: number, options?: DrawOptions) {
+    yield* drawPageProgressive(await this.request(page, pxWidth, options));
   }
   /** Awaits the source first, so a NoAccess or PasswordNotGiven rejects here. */
   async pages(): Promise<PageCache> { return new PageCache(Promise.resolve(await this.content.pages()), this.id); }
