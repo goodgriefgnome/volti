@@ -192,24 +192,32 @@ A score and its ink are always written in one transaction, so they never disagre
 
 ```ts
 type LastRead =
-  | { kind: 'score'; id: string; cut: string }
+  /** A score, or with `first` or `last`, an excerpt of it: the span it plays (as Span). */
+  | { kind: 'score'; id: string; first?: string; last?: string; cut: string }
   | { kind: 'setlist'; id: string; entry: string; cut: string };
 ```
 
 The one thing last read and where in it, as the first cut on the screen. Missing until something
 is read.
 
-- **Opening the score or setlist named here** resumes at `cut` (in `entry`, for a setlist). That
-  includes after the app is closed and reopened.
-- **Opening any other score or setlist** starts at its beginning, and this key then names it.
+A whole score has neither `first` nor `last`. An excerpt opened on its own from the library has
+its span's ends, as they are when the key is written (they follow cut edits made while it is
+read). A whole score and an excerpt of it are different things to resume, as are two excerpts.
+They match only when `id`, `first` and `last` are all equal. A setlist entry playing an excerpt is
+part of its setlist, not an excerpt here.
+
+- **Opening the score, excerpt or setlist named here** resumes at `cut` (in `entry`, for a
+  setlist). That includes after the app is closed and reopened.
+- **Opening anything else** starts at its beginning, and this key then names it.
 - **Turning from one score to the next** in a score's reader makes the new score the one named.
-- **Opening an excerpt** on its own starts at its start, and deletes this key: the next score or
-  setlist opened starts at its beginning.
+- **Playing part of a score** from its reader (which reads it as an excerpt) makes that excerpt
+  the one named.
 - **Tapping one entry** of a setlist in the library is the same as opening the setlist and moving
   to that entry's start. It starts there, whatever this key says, and this key then names the
   setlist at that entry.
 - **If the cut or the entry can't be found** (edited away, or the setlist deleted), opening
-  starts at the beginning.
+  starts at the beginning. So does an excerpt whose ends have changed since (renaming it doesn't
+  change them).
 
 ### `setlists` and `setlist:<id>`
 

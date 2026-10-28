@@ -351,13 +351,16 @@ Update `folder`'s comment.
 - New file `src/reader/_last-read.ts`, **Pure**, with a test:
   ```ts
   export type LastRead = …   // exactly as STORAGE.md
-  /** What is opened: a score, or a setlist (without a tapped entry). */
-  export type Opening = { kind: 'score'; id: string } | { kind: 'setlist'; id: string };
+  /** What is opened: a score or an excerpt of it (its span's ends), or a setlist (without a tapped entry). */
+  export type Opening = { kind: 'score'; id: string; first?: string; last?: string } | { kind: 'setlist'; id: string };
   /** Where to start `opening`: where `last` was, if it names the same thing; else undefined (its beginning). */
   export function resumeAt(last: LastRead | undefined, opening: Opening): { entry?: string; cut: string } | undefined
   ```
-  Test: same score; a different score; same setlist; a score with a setlist's `last-read` of the
-  same id string (must not match); nothing stored.
+  A score matches only with equal `id`, `first` and `last` (compare the strings; a missing end
+  matches only a missing end). Test: same score; a different score; the whole score against an
+  excerpt of it, both ways (no match); the same excerpt; two excerpts of one score (no match);
+  same setlist; a score with a setlist's `last-read` of the same id string (no match); nothing
+  stored.
 - New file `src/reader/_store.ts`, like `library/_store.ts`: `loadLastRead()` and
   `saveLastRead(l)`. In `keys.ts`, add `lastRead: 'last-read'` and remove `pos`.
 - `src/scores/store.ts`: remove `saveScorePosition` and the `pos` read in `loadScore`, which then
@@ -365,17 +368,19 @@ Update `folder`'s comment.
 - `src/reader/reader.ts`:
   - `openReader`:
     - for `score`, `position = resumeAt(await loadLastRead(), { kind: 'score', id })?.cut`
+    - for `excerpt`, the same with `...ends(what.excerpt)` in the opening, and pass the position
+      to the `Reader` (today it passes `undefined`).
     - for `setlist` with no `startEntry`, use `resumeAt` to get `entry` and `cut`, find `k` by
       `entryId`, and pass `cut` as the position. If the entry isn't found, use `k = 0` and no
       position.
     - with a `startEntry`, as now: it starts at that entry's start. `saveSpot` then makes
       `last-read` name the setlist at that entry, as for any setlist.
-    - an excerpt: as now, and call `clearLastRead()` (add it to `reader/_store.ts`: `kv.del` of
-      the key).
   - `saveSpot(cut)`:
     - for `score`, save `{ kind: 'score', id: this.items[this.k].scoreId, cut }`
+    - for `excerpt`, the same plus `...ends(this.reading.what.span)`. Use the span in
+      `this.reading.what`, not the one opened: it follows cut edits, and playing part of a score
+      (`readSpan`) switches the reader to an excerpt.
     - for `setlist`, save `{ kind: 'setlist', id: <the setlist id>, entry: this.items[this.k].entryId!, cut }`
-    - for an excerpt, save nothing (opening it already cleared `last-read`)
 
     The setlist id is in `this.reading.what` when its kind is `'setlist'`.
   - A cut that no longer exists: check that `goTo(k, cut)` falls back to the start. If not, make
@@ -438,8 +443,8 @@ Open DevTools → Application → IndexedDB → `volti-scores` → `kv` to watch
       place.
     - Tap one entry of the setlist instead: it starts at that entry. Turn a page, go back, and
       play the setlist: it resumes there.
-    - Open an excerpt, then the setlist (or score) read before it: it starts at the beginning.
-      `last-read` is gone from IndexedDB while the excerpt is open.
+    - Open an excerpt of A from the library, turn a page, go back, open it again: same place.
+      Then open A itself: it starts at the beginning. Then the excerpt again: its beginning too.
 13. **Purge.** Set a removed record's `removedAt` to 8 days ago in DevTools and reload: the record
     is `gone`, and its bytes are deleted.
 14. **Old data.** On a device that had the previous version, after the first start the old keys
