@@ -2,13 +2,14 @@
 // one, and Volti's own folder in OPFS (internal-score-fs.ts) when there isn't. Both are folders with
 // true paths, read the same way. A file in the root is a source file that can be moved (renamed, or
 // into another folder) and removed (into Recently removed), asking for the access that needs. Also
-// listing the root's files, known by the hash of their contents.
+// listing the root's files, known by the hash of their contents, and tidying storage at start-up.
 
+import { kv } from '../storage/kv';
 import { _linked, _needAccess } from './device-score-fs';
 import { hashFile, walk } from './_filesystem-utils';
 import { _dropInboxBytes } from './inbox-fs';
 import { _internalFiles, _opfsRoot, _removeInternalFile } from './internal-score-fs';
-import { _resolveListing, type _Found, type OriginalRecord, type Where } from './_record-model';
+import { _bytesName, _resolveListing, type _Found, type OriginalRecord, type Where } from './_record-model';
 import { _loadRecords, _record, _records, _updateRecord, _updateRecords } from './_record-store';
 import type { Readable } from './_types';
 import { _readOriginal } from './original';
@@ -266,4 +267,36 @@ export async function _listInternal(): Promise<{ id: string; path: string; file:
   const entries = await _internalFiles();
   const files = new Map(entries.map((e) => [e.path, e.file]));
   return (await listing('internal', entries, true)).map((f) => ({ ...f, file: files.get(f.path)! }));
+}
+
+/** The keys earlier versions wrote that are not in the format of STORAGE.md; what they held is not carried over. */
+const OLD_KEYS = ['folder-files', 'hashes', 'internal-ids', 'titles', 'removed', 'inbox'];
+const OLD_PREFIXES = ['pos:', 'aspects:', 'password:'];
+/** How old a file no record points to must be before it is deleted: a share may be being written. */
+const ORPHAN_MS = 10 * 60 * 1000;
+
+/**
+ * Start-up tidying, once, before anything is listed: delete the old database `volti` and the keys
+ * earlier versions wrote, and the files in `inbox/` and `removed/` that no record points to and
+ * that were last modified more than ten minutes ago. Can be removed in a later version, once
+ * nothing is left to tidy.
+ */
+export async function tidyStorage(now = Date.now()): Promise<void> {
+  await new Promise<void>((resolve) => {
+    const req = indexedDB.deleteDatabase('volti');
+    req.onsuccess = req.onerror = req.onblocked = () => resolve();
+  });
+  const old = (await Promise.all(OLD_PREFIXES.map((p) => kv.entries(p)))).flat().map(([key]) => key);
+  await Promise.all([...OLD_KEYS, ...old].map((key) => kv.del(key)));
+
+  const records = await _loadRecords();
+  const pointedTo = (name: 'inbox' | 'removed') => new Set([...records].flatMap(([id, r]) => (r.where.kind === name ? [_bytesName(id, r.where)] : [])));
+  for (const name of ['inbox', 'removed'] as const) {
+    const dir = await (await navigator.storage.getDirectory()).getDirectoryHandle(name, { create: true });
+    const kept = pointedTo(name);
+    for await (const [file, h] of dir.entries()) {
+      if (kept.has(file) || h.kind !== 'file') continue;
+      if (now - (await (h as FileSystemFileHandle).getFile()).lastModified > ORPHAN_MS) await dir.removeEntry(file).catch(() => {});
+    }
+  }
 }

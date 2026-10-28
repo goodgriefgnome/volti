@@ -56,11 +56,48 @@ checks are `npm test` and `npm run build` (which type-checks every moved import)
     `library/` row that it keeps setlists' pages offline (`_offline-pages`). The comment at the top of
     `render/screen.ts` names `pictures/maker.ts`: make it `library/_offline-pages.ts`.
 
-- **Move storage to the format in `STORAGE.md`:** follow `STORAGE-PLAN.md`, stage by stage.
-
 ## Manual check
 
 Things to try on the tablet.
+
+- **Storage (`STORAGE.md`):** open DevTools → Application → IndexedDB → `volti-scores` → `kv` to watch the records as you go.
+  - **Fresh start, no folder linked.** Add two PDFs with Add PDFs. There are two `original:`
+    records with `where.kind` `internal`. Open one: its record gains `aspects`.
+  - **Password.** Add a password-protected PDF and open it. The record gains `password`. Reload
+    and open it again: you aren't asked.
+  - **Link a folder** holding one of the same PDFs and one new one. The shared one's record becomes
+    `folder`, and its file is gone from OPFS `library/` (DevTools → Application → Storage, or log
+    `_internalFiles()`). The new one is hashed once. Reload: nothing is hashed again (no "Reading
+    new scores").
+  - **Duplicates.** Copy a PDF in the linked folder under another name. The library shows it once.
+    The record keeps the old path. Delete the original copy and check the folder again: the record
+    moves to the copy's path.
+  - **Rename and move** a score from the app: `path` changes, and nothing is hashed again.
+  - **Remove** a score: the record is `removed`, and the file is in OPFS `removed/`. Recently
+    removed lists it. Put it back: the record is `folder` again, and `removed/` is empty.
+  - **Share** a PDF from another app (Android) while the app is closed. Its record is `inbox`, with
+    bytes in `inbox/`. Open the app: the incoming dialog shows it. Cancel: it's in Recently removed.
+    Share it again: it's in the inbox again, and `removed/` no longer has it.
+  - **Share** a PDF the library has: nothing changes, and no inbox entry appears.
+  - **Unlink and relink the same folder:** nothing is hashed again. **Link a different folder:**
+    the old folder's records become `gone`.
+  - **Locked folder:** reload with the folder linked, before allowing access. The library lists
+      the folder's scores from their records.
+  - **Missing score title:** delete a PDF in the linked folder that is in a setlist, then check
+      the folder. Its record is `gone`, and the setlist still shows its title.
+  - **Last read.**
+      - Open score A and turn a few pages, back to the library, open A again: same place.
+      - Open B, then A again: A starts at the beginning.
+      - Play a setlist, turn into its second entry, close and reopen the app, play it again: same
+        place.
+      - Tap one entry of the setlist instead: it starts at that entry. Turn a page, go back, and
+        play the setlist: it resumes there.
+      - Open an excerpt of A from the library, turn a page, go back, open it again: same place.
+        Then open A itself: it starts at the beginning. Then the excerpt again: its beginning too.
+  - **Purge.** Set a removed record's `removedAt` to 8 days ago in DevTools and reload: the record
+      is `gone`, and its bytes are deleted.
+  - **Old data.** On a device that had the previous version, after the first start the old keys
+      and the `volti` database are gone, and scores, ink and setlists are all still there.
 
 - **Source files and originals:** no lock icon anywhere. A password-protected PDF asks for its
   password the first time it is opened, previewed in the incoming screen, or added to a setlist

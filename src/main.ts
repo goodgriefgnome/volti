@@ -4,6 +4,7 @@
 
 import { registerSW } from 'virtual:pwa-register';
 import { Library } from './library/library';
+import { tidyStorage } from './originals/library-files';
 import { purgeRemoved } from './originals/trash-fs';
 import { el } from './ui/dom';
 import { followVisibleArea } from './ui/overlay';
@@ -34,6 +35,7 @@ async function start() {
 
   const library = new Library();
   void watchForUpdates((take) => library.offerUpdate(take));
+  await tidyStorage().catch((e) => console.warn('Could not tidy the old storage:', e));
   // Files removed a week ago or more are deleted for good.
   await purgeRemoved().catch((e) => console.warn('Could not clear out Recently removed:', e));
   await library.addShared();

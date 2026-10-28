@@ -1,8 +1,6 @@
 # What Volti stores
 
-This is the format Volti's storage is meant to have. The code doesn't follow it yet:
-`STORAGE-PLAN.md` says how to get there. Once it does, this file describes the code, and a change
-to what is stored changes this file in the same commit.
+This is the format Volti's storage has. A change to what is stored changes this file in the same commit.
 
 Volti keeps two kinds of thing on the tablet:
 
