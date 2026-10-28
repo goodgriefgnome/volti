@@ -32,10 +32,36 @@ export const kv = {
   /** Several writes in one transaction, so they all happen or none do. */
   setMany: (entries: [string, unknown][]) =>
     run<void>('readwrite', (s) => { for (const [k, v] of entries) s.put(v, k); }),
-  /** Read-modify-write in one transaction. */
-  update: <T>(key: string, fn: (old: T | undefined) => T) =>
+  /** Read-modify-write in one transaction; returning undefined deletes the key. */
+  update: <T>(key: string, fn: (old: T | undefined) => T | undefined) =>
     run<void>('readwrite', (s) => {
       const req = s.get(key);
-      req.onsuccess = () => s.put(fn(req.result as T | undefined), key);
+      req.onsuccess = () => {
+        const value = fn(req.result as T | undefined);
+        if (value === undefined) s.delete(key); else s.put(value, key);
+      };
+    }),
+  /**
+   * Read-modify-write several keys in one transaction. Each function is given the value now stored
+   * (undefined if none) and returns the new one; returning undefined deletes the key.
+   */
+  updateMany: (changes: [string, (old: unknown) => unknown][]) =>
+    run<void>('readwrite', (s) => {
+      for (const [key, fn] of changes) {
+        const req = s.get(key);
+        req.onsuccess = () => {
+          const value = fn(req.result);
+          if (value === undefined) s.delete(key); else s.put(value, key);
+        };
+      }
+    }),
+  /** Every key starting with `prefix`, with its value, in key order. */
+  entries: <T>(prefix: string) =>
+    run<[string, T][]>('readonly', (s) => {
+      // Each request can finish before the other, so the pair is zipped when both have.
+      const range = IDBKeyRange.bound(prefix, prefix + '\uffff');
+      const values = s.getAll(range), found = s.getAllKeys(range);
+      const result = { get result() { return (found.result as string[]).map((k, i) => [k, values.result[i]] as [string, T]); } };
+      return result as unknown as IDBRequest;
     }),
 };
