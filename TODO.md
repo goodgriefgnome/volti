@@ -39,8 +39,6 @@ scores.
   - An image's decoded bitmap is held while it is open (about 48 MB for a 12 MP photo), that is
     while any original of it isn't closed, rather than decoded again at each width
     (`ImageSource`, `originals/_image-source.ts`).
-  - There is no way to take a PDF's password off as it comes in (keeping a copy without it, by
-    choice), which would leave Volti nothing to remember.
 - **The cache giving room back when the origin runs short of quota** [needs thought]: pinned
   pages are never evicted, and the others only to stay within 30% of the quota (`diskBudget`,
   `page-cache/_budget.ts`); nothing shrinks the cache when the origin as a whole (scores added,
@@ -215,6 +213,14 @@ scores.
   - It saves one pdf.js open per encrypted file, ever, and must agree with pdf.js on odd files:
     keep the pdf.js open as the fallback where the reader can't tell. Only worth it if the first
     tap on an encrypted PDF is noticeably slow.
+- **Save a decrypted copy of an incoming encrypted PDF:** as a password-protected PDF is added or
+  shared to Volti, offer to keep a copy without its password in its place, so Volti has no
+  password to remember for it.
+  - Little to gain now: the password is asked for once per file and stored in its record, and
+    pdf.js decrypts in its worker.
+  - The copy is another file, with another id (ids are the hash of the contents); pdf-decrypt
+    doesn't know every encryption; and protected scores are often bought ones, whose protection
+    is better not removed lightly.
 - **Synthetic pages** (systems arranged by hand), **jump markers** (D.S., coda) that generate the
   played order, and **tags** for search.
 - **Named excerpts from the PDF's bookmarks** (outline), made the first time a score is opened.
