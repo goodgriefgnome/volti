@@ -23,7 +23,9 @@ scores.
 
   Checked on the tablet: `requestFullscreen()`'s promise settles with the stage already at its
   full size; and asking for full screen uses up the tap, so asking for access to the scores folder
-  after it fails ("User activation is required").
+  after it fails ("User activation is required"). The other way round, access then full screen,
+  works only if access is allowed within the few seconds Chrome counts the tap as recent: no
+  better than today's order, so the locked case below keeps it.
 
   After this:
   - Opening a score, an excerpt or a setlist from the library asks for full screen as the tap is
