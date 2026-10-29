@@ -1,6 +1,6 @@
 # TODO
 
-A score is what is shown of its original (a PDF), as cuts; a setlist is a list of excerpts of
+A score is what is shown of its original (a PDF or an image), as cuts; a setlist is a list of excerpts of
 scores.
 
 **How to work through this list** (when asked to work on the immediate features):
@@ -15,33 +15,48 @@ scores.
 
 ## Confirmed features which require more thought
 
-- **After the split into source files and originals**, left as they were for now: the library
-  shows one row per id, the first copy of two identical files (one source file per id in the
-  root); an image's decoded bitmap is held while its pages are open (about 48 MB for a 12 MP
-  photo) rather than decoded again at each width; setlists save pictures of images as of PDFs; a
-  removed file isn't read to preview it in Recently removed; and there is no way yet to take a
-  PDF's password off as it comes in (a copy kept without it, by choice), which would leave Volti
-  nothing to remember.
+- **Left as they were after the split into source files and originals:**
+  - The library shows one row per id: of two identical files, only the first copy (one source
+    file per id, at its canonical path).
+  - An image's decoded bitmap is held while it is open (about 48 MB for a 12 MP photo), that is
+    while any original of it isn't closed, rather than decoded again at each width
+    (`ImageSource`, `originals/_image-source.ts`).
+  - The offline job saves pictures of an image's page as of a PDF's, though an image draws quickly
+    from its file.
+  - A file in Recently removed isn't read to show its pages.
+  - There is no way to take a PDF's password off as it comes in (keeping a copy without it, by
+    choice), which would leave Volti nothing to remember.
 - **The cache giving room back when the origin runs short of quota** [needs thought]: pinned
-  pages are never evicted and the others only to stay within 30% of the quota; nothing shrinks the
-  cache when the origin as a whole (scores added, metadata) runs out of room.
-- **An original whose pages have to be drawn is drawn again for each use** [needs refinement]:
-  where a PDF's music can't be had as it is (an encryption pdf-decrypt doesn't know, or a PDF
-  pdf-lib can't read), `pdfOf` draws every page with pdf.js into a PDF of pictures
-  (`pagesDrawn`), and nothing keeps it. The export dialog (`openExportPdf`) draws it once to learn
-  `lossyReason` in `drawnOriginals`, and exporting (`open` in `export/pdf.ts`) draws it again for
-  `o.pdf()`, as `PdfContent` holds what it worked out only until the first `pdf()` takes it
-  (pdf.js takes the bytes it is given): twice an export. `o.aspects()` draws it a third time, but
-  only while its aspects aren't stored yet. Reading such a score draws every page up front too.
-  To work out: where the drawn PDF should be kept, and for how long (it can be large), and
-  whether the reason can be known without drawing.
+  pages are never evicted, and the others only to stay within 30% of the quota (`diskBudget`,
+  `page-cache/_budget.ts`); nothing shrinks the cache when the origin as a whole (scores added,
+  records) runs out of room.
+- **Exporting works out each PDF's music twice, and draws a drawn one twice** [needs refinement]:
+  exporting a score or a setlist as a PDF (`dialogs/export-pdf.ts`, `export/pdf.ts`) needs each
+  original's music as a PDF pdf-lib can read: `Original.pdf()`, for a PDF `pdfOf`
+  (`originals/_pdf-source.ts`). It reads the whole file, decrypts it if it is encrypted, and
+  parses it with pdf-lib; where pdf-decrypt doesn't know the encryption, or pdf-lib can't read it,
+  it draws every page with pdf.js, 2000 px wide, into a PDF of pictures (`pagesDrawn`). Nothing
+  keeps the result. (Reading scores doesn't go through `pdfOf`: only exporting does.)
+  - The export dialog's quality line ("Checking quality…") calls `drawnOriginals`, which runs
+    `pdf()` on every original in the export only to learn its `lossyReason`. Exporting then runs
+    `pdf()` again for each (`open`). So each PDF is read, decrypted and parsed twice an export,
+    and one that has to be drawn is drawn twice. An image makes its one-page PDF for the check,
+    though the dialog doesn't show the only reason it can give (`recompressed`).
+  - The idea: split `pdfOf`'s deciding (decrypt, try pdf-lib: the bytes to use, or why they have
+    to be drawn) from the drawing, which only exporting does; the reason is known before
+    `pagesDrawn` is called. Store the reason in the original's record beside its password, as it
+    is fixed by the file's contents too, so the quality line reads it, and works it out only for
+    a file not checked yet. Images skip the check.
+  - To work out: whether "needs no drawing" is stored too (`''`, as for the password), so a file
+    checked once isn't parsed again; and whether the reason is worked out as files arrive (see
+    "The first open of a PDF still lags").
 - **How the pages kept offline are worked out** [needs thought]: the offline job works out the
   widths each setlist's pages are drawn at from the screen's size, in both orientations, and pins
   exactly those (`library/_offline-pages.ts`). Open:
   - A score whose aspects were never measured and whose file can't be read now (folder locked, no
-    password): neither its pages nor their widths can be worked out, as a score's cuts, its frames'
-    shapes and the widths a screen shows them at all follow from its pages' aspects. Its earlier
-    pins are left as they are, and its setlist waits.
+    password): neither its pages nor their widths can be worked out, as a score's cuts, its
+    frames' shapes and the widths a screen shows them at all follow from its pages' aspects. Its
+    earlier pins are left as they are, and its setlist waits.
   - Both orientations double the pages and the drawing. Eventually the user says which
     orientation each frame is played in, and only that is kept.
   - It assumes the reader fills the screen: if full screen is refused, the stage is the window,
@@ -55,33 +70,32 @@ scores.
   at each start and ignores the answer, and nothing shows it. Chrome grants it by itself, mostly
   to an installed app; in a browser tab it may not, and then Volti's own folder (scores added
   without a linked folder), and the cuts, markings and setlists, can be cleared when the tablet
-  runs low on space, without a word. The storage view could say whether it is
-  (`navigator.storage.persisted()`), and where it isn't, suggest installing Volti (Add to home
-  screen). Where it is, the page cache's 30% of the quota is room only Volti gives back (see the
-  item on the cache giving room back).
-- **Purging a removed score's data** [needs discussion]: once a removed file is deleted for good,
-  its score (cuts, markings, named excerpts, reading position) is still kept by hash, as for any
-  score whose file is missing. Eventually there should be a way to purge it.
-
-- **What metadata holds, in the storage view:** tapping the Metadata line opens what it holds, as a
+  runs low on space, without a word. The storage bar (the library's ⋯ menu, `library/_storage.ts`)
+  could say whether it is (`navigator.storage.persisted()`), and where it isn't, suggest
+  installing Volti (Add to home screen). Where it is, the page cache's 30% of the quota is room
+  only Volti gives back (see the item on the cache giving room back).
+- **Purging a removed score's data** [needs discussion]: once a removed file is deleted for good
+  (its record then says `gone`), its score (cuts, markings, named excerpts) is still kept by its
+  id, as for any score whose file is missing. Eventually there should be a way to purge it.
+- **What metadata holds, in the storage bar:** tapping the Metadata line opens what it holds, as a
   small stacked bar of its own (as the main bar is) with its parts as labelled chips under it
-  (option 3 in https://claude.ai/artifact/Bt8AySBf7E2dZC13NQcqF7):
-  - **Markings** (`ink:` records), **Cuts and excerpts** (`score:` records), **Setlists**
-    (`setlist:` records and their order), **Library index** (hashes, titles, page shapes, the
-    remembered folder listing, passwords, locks, filed folders, closed folder lists, reading
-    places), **Waiting to be added** (the `inbox`: files shared to Volti not yet added, by
-    their sizes).
-  - Each worked out by Volti from its own records (the size of each written out, as JSON), so
-    close to what is stored but not exact; **Unaccounted** is what is left of the browser's
-    figure for the database (old copies of changed records Chrome hasn't cleared yet, and its
-    own bookkeeping), never below nothing.
+  (option 3 in https://claude.ai/artifact/Bt8AySBf7E2dZC13NQcqF7).
+  - What is stored (`storage/keys.ts`): `score:` (cuts and named excerpts) and `ink:` (markings)
+    by original; `setlist:` and `setlists` (their order); `original:` records (where each file
+    is, its page shapes, its password); and a few settings and places: `folder`,
+    `closed-folders`, `last-added-to`, `last-read`. (Files shared to Volti and not added yet are
+    in OPFS now, not in metadata.)
+  - Each part's size worked out by Volti from its own records (each written out as JSON), so close
+    to what is stored but not exact; **Unaccounted** is what is left of the browser's figure for
+    the database (old copies of changed records Chrome hasn't cleared yet, and its own
+    bookkeeping), never below nothing.
   - The kv store gets a way to go through all its records (keys and values) for this; `keys.ts`
     groups each key into one of the parts.
-  - To think through: how to group the records. Passwords may be a part of their own; much of the
-    “Library index” is a cache that can be rebuilt from the files (`hashes`, `folder-files`,
-    `aspects:`, `locks`, `titles`), while `added-folders`, `closed-folders`, `last-added-to` and
-    `pos:` are choices that can't. One split: your work (`score:`, `ink:`, setlists), settings,
-    passwords, file metadata cache, waiting to be added.
+  - To think through: how to group them. One split: your work (`score:`, `ink:`, setlists), the
+    library's records (`original:`, which hold the passwords too: they could be a part of their
+    own), and settings and places. Most of an `original:` record can be worked out again from the
+    files (page shapes; where a folder file is); a password, and where a file in Volti's own
+    folder or Recently removed is, can't.
 - **Text and symbol markings**, beside the pen and highlighter, each exported as a PDF annotation
   with its own vector appearance, as they are (`export/_annotations.ts`; the drawing interface in
   `markings/draw.ts` would need fills, and text or glyph outlines):
@@ -105,31 +119,34 @@ scores.
 - **Turning back so forward restores the screen:** turning back should show the screen that
   turning forward from would come back to the current one. With the first frame on screen f:
   frames f−2 and f−1 when f−2 would open a screen of two; otherwise f−1 alone (also when f−1 would
-  open a screen of two, which would take in f). For now it goes back by as many frames as show.
+  open a screen of two, which would take in f). For now it goes back by as many frames as show
+  (`turnFrom`, `reader/_turning.ts`).
 - **Square frames:** a frame neither wider nor taller is both portrait and landscape; decide how
-  it lays out on the screen (for now, as portrait).
+  it lays out on the screen. For now it counts as portrait (`isLandscape`, `scores/frames.ts`), so
+  two sit side by side.
 - **Several images as one original**: a set of images ordered by file name, scaled to a common
   width, as one score (single images are already 1-page scores).
 - **Page-turn strategies** (half-page turns and the like): to be discussed separately.
 - **Exporting the library** (scores, setlists, markings, reading positions) as files, for backup
   and for moving to another device; probably written into the linked scores folder.
-- **The first open of a PDF still lags** [needs thought]: opening a score is much faster since
-  PDFs skip pdf-lib, but the first time a file is opened since then is still noticeably slow, even
-  for files opened before, whose aspects are stored. For those, what only the first open does is
-  `readPdf`'s check (`originals/_pdf-source.ts`): `f.file()`, then `encrypted`, which reads the
-  file's first and last 64 KB (and for an encrypted one, a pdf.js open to check its password).
+- **The first open of a PDF still lags** [needs thought]: the first time a PDF is opened since
+  PDFs skipped pdf-lib is still noticeably slow, even for one opened before, whose aspects are
+  stored. What only that open does is `readPdf`'s check (`originals/_pdf-source.ts`): `f.file()`,
+  then `encrypted`, which reads the file's first and last 64 KB (and for an encrypted one, a
+  pdf.js open to check its password). Any read now stores what it finds (`''` for a PDF that
+  opens without a password), so the check is paid once per file; the offline job only reads
+  scores with pages left to save, so most files pay it on their first tap.
   - Reading 128 KB should be quick; the suspicion is the last 64 KB. A file in the linked folder
     is read through Android's storage framework, which may get to its end by reading through the
     whole file. To be confirmed on the tablet: time `encrypted` alone against reading the whole
-    file. (Before pdf-lib was dropped, every open paid this, unnoticed among the rest.)
-  - For a file never opened, `Original.aspects()` (`originals/original.ts`) also opens the PDF in
-    pdf.js to measure every page, and no page of it is saved yet.
+    file.
+  - A file never opened is also measured (every page's aspect) before its first screen, though
+    with the same open file that draws it, and has no page saved yet.
 
-  The idea: inspect a file as it arrives (found in the scores folder when it is read, shared to
+  The idea: check a file as it arrives (found in the scores folder when it is read, shared to
   Volti, or added), in the background, so its password check (and its aspects) are stored before
-  it is first opened.
-  - A background check may store `''` for a PDF that needs no password; one that needs a password
-    stays unchecked until it is tapped, as it can't be asked for.
+  it is first opened. One that needs a password stays unchecked until it is tapped, as it can't be
+  asked for.
   - To work out: where arrivals are noticed (`library-files.ts`'s reading of the folder, the
     inbox, adding scores); how files already in the library, never checked, get checked; and how a
     burst of new files (a folder linked for the first time) is paced so it doesn't hold up the
@@ -137,9 +154,9 @@ scores.
   - If the end of the file is what is slow, whether the check can do without it: a linearized PDF
     names `/Encrypt` near its start too, but an ordinary one only at its end.
 - **The reader shows its first screen twice** [needs thought]: a `ResizeObserver` reports the
-  stage's size as soon as it starts watching (`observer.observe` at the end of `Reader`'s
-  constructor, `reader/reader.ts`), so 150 ms after opening a second `show()` runs. It asks for
-  the same widths, which the cache now holds, so it costs little, but it redraws the screen for
+  stage's size as soon as it starts watching, which `Reader` does once full screen has settled,
+  just after starting `goTo` (`reader/reader.ts`). 150 ms later its report runs `show()` again,
+  for the same widths, which the cache now holds: it costs little, but it redraws the screen for
   nothing. To work out: whether to skip the observer's first report, or only show again when the
   size differs from the one last shown.
 
