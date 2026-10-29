@@ -7,7 +7,7 @@ scores.
 
 - Work on `main` directly: one commit per item, pushed as it is done.
 - Each item's commit takes the item out of this file; what then needs trying on the tablet goes
-  in `TODO.manual`, as a group of its own.
+  in `TODO.manual.md`, as a group of its own.
 - Before each push: `npm test`, `npm run build`, and check the change in the running app.
 - Ideas raised in conversation are filed here, in the right section, not built, unless asked.
 
