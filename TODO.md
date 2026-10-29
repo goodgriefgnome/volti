@@ -39,8 +39,6 @@ scores.
   - An image's decoded bitmap is held while it is open (about 48 MB for a 12 MP photo), that is
     while any original of it isn't closed, rather than decoded again at each width
     (`ImageSource`, `originals/_image-source.ts`).
-  - The offline job saves pictures of an image's page as of a PDF's, though an image draws quickly
-    from its file.
   - A file in Recently removed isn't read to show its pages.
   - There is no way to take a PDF's password off as it comes in (keeping a copy without it, by
     choice), which would leave Volti nothing to remember.
