@@ -9,7 +9,7 @@ export interface OriginalRecord {
   where: Where;
   /** Each page's height / width, in page order. Missing until the original is first read. */
   aspects?: number[];
-  /** The password that opened it, for a PDF that needed one. */
+  /** The password that opens a PDF, '' for one that needs none; missing until it has been checked. */
   password?: string;
 }
 

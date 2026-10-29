@@ -13,8 +13,8 @@ import { isPdf, readPdf } from './_pdf-source';
 import type { AskPassword, DrawOptions, Original, Pages, RenderedPdf } from './types';
 
 /**
- * Read a source file: an image as it is; a PDF asks for its password now if it has one Volti
- * doesn't know yet, and otherwise reads its music only when its pages or its PDF are wanted.
+ * Read a source file: an image as it is; a PDF has its password checked now (and asked for, if it
+ * has one Volti doesn't know yet), once, and is otherwise read only when its pages or its PDF are wanted.
  */
 export async function _readOriginal(f: Readable, ask?: AskPassword): Promise<Original> {
   const file = await f.file();

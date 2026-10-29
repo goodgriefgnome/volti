@@ -7,8 +7,9 @@
 // only loaded when needed.
 //
 // The password that opened a PDF is remembered on the tablet by its file's id, so it is asked for
-// only once, even after a restart, and never forgotten. Asking is the caller's
-// (dialogs/passwords.ts); without a way to ask, a PDF whose password isn't remembered doesn't open.
+// only once, even after a restart, and never forgotten; '' is remembered for one that needs none.
+// Asking is the caller's (dialogs/passwords.ts); without a way to ask, a PDF whose password isn't
+// remembered is checked but nothing is kept, and one that needs a password fails.
 
 // The legacy build carries fallbacks for JavaScript features newer than some Android Chrome versions.
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
@@ -81,9 +82,13 @@ class Passwords {
     return p;
   }
 
-  /** The PDF opened: remember the password that opened it, if it is a new one. */
+  /**
+   * The PDF opened: remember what was found, if it is new and there was a way to ask: the password
+   * that opened it, or '' for one that needed none (pdf.js never asked).
+   */
   async keep() {
-    if (this.tried !== undefined && this.tried !== this.saved) await _noteContents(this.o.id, { password: this.tried });
+    const found = this.tried ?? '';
+    if (this.ask && found !== this.saved) await _noteContents(this.o.id, { password: found });
   }
 
   /** Why opening stopped: PasswordNotGiven when it was for want of a password. */
@@ -105,28 +110,48 @@ async function encrypted(file: File): Promise<boolean> {
 }
 
 /**
- * Read a PDF: one with a password Volti doesn't know yet asks for it now (its music, worked out to
- * try it, is kept for its pages), and otherwise its music is read only when its pages or its PDF
- * are wanted.
+ * Read a PDF: its password is checked (and asked for) once per file, the first time it is read;
+ * nothing else is read. Its pages and its PDF are worked out only when wanted.
  */
 export async function readPdf(f: Readable, ask?: AskPassword): Promise<Content> {
+  if (savedPassword(f.id) !== undefined) return new PdfContent(f);
   const file = await f.file();
-  const known = !(await encrypted(file)) || savedPassword(f.id) !== undefined;
-  return new PdfContent(f, known ? undefined : await pdfOf(f, file, ask));
+  if (!(await encrypted(file))) {
+    if (ask) await _noteContents(f.id, { password: '' });
+    return new PdfContent(f);
+  }
+  await checkPassword(f, file, ask);
+  return new PdfContent(f);
+}
+
+/** Open the encrypted PDF `file` with pdf.js only to find its password, asking `ask` for it; nothing is kept of the document. */
+async function checkPassword(f: Readable, file: File, ask?: AskPassword): Promise<void> {
+  const passwords = await Passwords.for(f, ask);
+  const doc = await openPdf(new Uint8Array(await file.arrayBuffer()), (wrong) => passwords.next(wrong)).catch((e: unknown) => { throw passwords.failure(e); });
+  doc.destroy();
+  await passwords.keep();
 }
 
 class PdfContent implements Content {
-  /** Its music, worked out when it was read, until its pages or its PDF take it. */
-  constructor(private f: Readable, private held?: RenderedPdf) {}
+  constructor(private f: Readable) {}
 
+  /** For export: the music as a PDF pdf-lib can read, worked out now. */
   async pdf(): Promise<RenderedPdf> {
-    const held = this.held;
-    this.held = undefined; // pdf.js takes the bytes it is given
-    return held ?? pdfOf(this.f, await this.f.file());
+    return pdfOf(this.f, await this.f.file());
   }
 
+  /**
+   * pdf.js reads the file as it is and decrypts in its worker, with the password found when it was
+   * read. It never asks, as it may be a background draw.
+   */
   async pages(): Promise<OpenPages> {
-    return openPdf((await this.pdf()).bytes);
+    let first = true;
+    const password = async () => {
+      if (!first) return null;
+      first = false;
+      return savedPassword(this.f.id) ?? '';
+    };
+    return openPdf(new Uint8Array(await (await this.f.file()).arrayBuffer()), password);
   }
 }
 
