@@ -252,6 +252,21 @@ Things to try on the tablet.
 
 ## Speculative future ideas
 
+- **A format version for each stored key, so no code reads old formats:**
+  - In `storage/keys.ts`, each key or prefix carries a format version, a plain number.
+  - `kv` writes every value as `{ v, data }`. On reading, it returns `data` only when `v` is the
+    key's current version. Anything else is deleted and read as absent: an older version, or a
+    value from before versioning.
+  - Changing a key's format means bumping its number, and what was stored under it is dropped
+    (the no-migration rule, applied by itself).
+  - Start-up tidying deletes every key `keys.ts` doesn't know.
+  - Together these replace the old-format code there is now: `_asLink`'s bare-handle branch
+    (`originals/device-score-fs.ts`), and `OLD_KEYS` and `OLD_PREFIXES` in `tidyStorage`
+    (`originals/library-files.ts`).
+  - The risk is forgetting a bump: old values then read as valid. A test that records each
+    stored type's declaration next to its version, and fails when one changes without the
+    other, would catch it.
+
 - **Watching the scores folder:** with the File System Observer API (`FileSystemObserver`, a
   Chrome origin trial from version 129, not yet a standard), Volti would hear of PDFs added,
   removed, renamed or changed in the scores folder (recursively) as it happens, and update the
