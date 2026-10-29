@@ -43,8 +43,9 @@ async function make(signal: AbortSignal, originals: readonly SourceFile[], setli
   const titles = await knownTitles();
   const live = setlists.filter((s) => !s.archived);
   const entries = live.flatMap((s) => s.entries);
-  // The reader fills the screen.
-  const W = document.documentElement.clientWidth, H = document.documentElement.clientHeight, scale = dpr();
+  // The screen's size, not the library's window: the reader fills the screen (status bar and address
+  // bar included), which the library doesn't, and a saved page only serves a request of about its width.
+  const W = screen.width, H = screen.height, scale = dpr();
   // Scores whose pages can't be worked out (never opened, and their PDF can't be now): their pages stay as they are.
   const keep: string[] = [];
   const scores: { id: string; original?: Original; pages: OfflinePage[] }[] = [];

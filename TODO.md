@@ -13,24 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **Setlists' pages are kept offline at the reader's size, not the library's.** The pages kept
-  offline are worked out at `document.documentElement`'s size (`make`,
-  `library/_offline-pages.ts`), the library's window. The reader is full screen, so it is taller
-  by the status bar (and the address bar, in a tab). A saved page only serves a request within 1%
-  of its width (`equivalent`, `page-cache/_match.ts`), so where a page's width follows the
-  screen's height (a portrait page on a landscape screen), the reader misses the saved page,
-  shows a blurred stand-in and draws the page again from its PDF.
-
-  One commit.
-  - **`library/_offline-pages.ts`, `make`:** take `W` and `H` from `screen.width` and
-    `screen.height` (CSS pixels, in the current orientation on Android), and fix the comment
-    above them to say why: the reader fills the screen, which the library doesn't.
-  - Pages already saved at the old widths stop being pinned on the next run, and become ordinary
-    saved pages, evicted in their turn; the new widths are drawn in the background.
-  - **Manual check:** in the installed app, with the tablet in landscape, let a setlist of
-    portrait PDF pages finish saving, then turn on airplane mode and play it: each page is sharp
-    at once, with no blurred stand-in first.
-
 - **A PDF is read by pdf.js as it is, never through pdf-lib.** Today the first draw of a PDF
   page goes `PdfContent.pages()` → `pdf()` → `pdfOf` (`originals/_pdf-source.ts`): it reads the
   whole file, loads pdf-lib and parses the whole PDF with it on the main thread (decrypting it
@@ -177,6 +159,9 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - A long setlist doesn't run the tablet out of memory.
   - With a setlist whose pages aren't all saved yet (the library shows it saving), open a PDF
     score: its first page shows as quickly as with nothing saving.
+  - In the installed app, with the tablet in landscape, let a setlist of portrait PDF pages finish
+    saving, then turn on airplane mode and play it: each page is sharp at once, with no blurred
+    stand-in first.
 - **Passwords and unusual PDFs:**
   - No lock icon anywhere.
   - A password-protected PDF asks for its password the first time it is opened, previewed in the
