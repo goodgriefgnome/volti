@@ -13,6 +13,106 @@ scores.
 
 ## Work for the immediate future
 
+- **A draw slot is always free for the screen's pages.** Today the page cache draws two pages at
+  once, whatever their priority (`AT_ONCE`, `page-cache/_scheduler.ts`). A `now` draw goes first in
+  the queue, but can't start while two `ahead` or `later` draws run: keeping setlists' pages
+  offline, which goes on while the reader is open, can hold both slots with PDF renders, and the
+  page tapped waits for one of them.
+
+  After this, `ahead` and `later` draws together take at most one slot; `now` draws can take both.
+  `later` still waits while any `now` draw is queued or running.
+
+  One commit.
+  - **`page-cache/_scheduler.ts`:** count the running draws that aren't `now`
+    (`running - runningNow`). In `pump`, take a job from `ahead` or `later` only while that count
+    is below `AT_ONCE - 1`; a `now` job starts whenever `running < AT_ONCE`. A job promoted to
+    `now` after it started still counts as the priority it started with, as now. Update the
+    file's comment.
+  - **`_scheduler.test.ts`:**
+    - with three `later` (or `ahead`) jobs queued and nothing else, only one runs
+    - with one `later` running, a `now` job starts at once
+    - two `now` jobs still run together
+    - the existing "never more than 2 at once" and order tests still pass
+  - **Manual check:** with a setlist whose pages aren't all saved yet (the library shows it
+    saving), open a PDF score: its first page shows as quickly as with nothing saving.
+
+- **Setlists' pages are kept offline at the reader's size, not the library's.** The pages kept
+  offline are worked out at `document.documentElement`'s size (`make`,
+  `library/_offline-pages.ts`), the library's window. The reader is full screen, so it is taller
+  by the status bar (and the address bar, in a tab). A saved page only serves a request within 1%
+  of its width (`equivalent`, `page-cache/_match.ts`), so where a page's width follows the
+  screen's height (a portrait page on a landscape screen), the reader misses the saved page,
+  shows a blurred stand-in and draws the page again from its PDF.
+
+  One commit.
+  - **`library/_offline-pages.ts`, `make`:** take `W` and `H` from `screen.width` and
+    `screen.height` (CSS pixels, in the current orientation on Android), and fix the comment
+    above them to say why: the reader fills the screen, which the library doesn't.
+  - Pages already saved at the old widths stop being pinned on the next run, and become ordinary
+    saved pages, evicted in their turn; the new widths are drawn in the background.
+  - **Manual check:** in the installed app, with the tablet in landscape, let a setlist of
+    portrait PDF pages finish saving, then turn on airplane mode and play it: each page is sharp
+    at once, with no blurred stand-in first.
+
+- **A PDF is read by pdf.js as it is, never through pdf-lib.** Today the first draw of a PDF
+  page goes `PdfContent.pages()` → `pdf()` → `pdfOf` (`originals/_pdf-source.ts`): it reads the
+  whole file, loads pdf-lib and parses the whole PDF with it on the main thread (decrypting it
+  first, in JavaScript, when it is encrypted), only to make a PDF that pdf-lib could export.
+  pdf.js then parses it again in its worker. Images skip all this, which is why they open fast.
+
+  After this:
+  - Reading a PDF's pages never loads pdf-lib or pdf-decrypt: pdf.js gets the file's bytes as
+    they are and decrypts in its worker. `pdf()` (`pdfOf`) is only for export, as now.
+  - Each PDF's password is checked once, ever, when it is read with a way to ask (a tap: the
+    reader, adding scores, the library, export). The `password` stored for it then says what was
+    found: the password that opens it, or `''` for one that needs none (not encrypted, or with
+    only an owner password). Missing means not checked yet.
+  - Read without a way to ask (keeping pages offline, export's checks), it is checked the same
+    way, but nothing is stored: one with a password not given yet still fails with
+    `PasswordNotGiven`, so the offline status still says it needs its password.
+  - A PDF pdf-lib can't read, or whose encryption pdf-decrypt doesn't know, now opens for reading
+    as any other; export finds out, as it already handles (`export/pdf.ts`).
+  - Nothing is migrated: a PDF already in the library is checked the next time it is opened.
+
+  One commit, all in `originals/_pdf-source.ts` and `originals/_record-model.ts`.
+  - **`Passwords.keep`:** store only when the `Passwords` has an `ask`, and store
+    `this.tried ?? ''` (pdf.js never asking means it needs none) when that differs from the saved
+    one. `pdfOf` keeps calling it as now.
+  - **`readPdf(f, ask)`:**
+    - A password saved for `f.id`, `''` included: return `new PdfContent(f)` without reading
+      anything more (not even `encrypted`).
+    - Else, `encrypted(file)` false: when `ask` is given, `_noteContents(f.id, { password: '' })`;
+      return `new PdfContent(f)`.
+    - Else, add and call `async function checkPassword(f: Readable, file: File, ask?: AskPassword): Promise<void>`:
+      `Passwords.for(f, ask)`, then `openPdf` the file's bytes with `(wrong) => passwords.next(wrong)`
+      (a failure becomes `passwords.failure(e)`, as in `pagesDrawn`), `destroy()` the document at
+      once, and `passwords.keep()`. Then return `new PdfContent(f)`.
+    - Fix its comment: the password is checked (and asked for) once per file; nothing else is read.
+  - **`PdfContent`:** drop `held` and its constructor argument.
+    - `pdf()` is `pdfOf(this.f, await this.f.file())`.
+    - `pages()` opens the file's bytes with `openPdf`, with a password callback that gives
+      `savedPassword(this.f.id) ?? ''` the first time and `null` after. It never asks: it may be
+      a background draw. Should pdf.js still refuse (it shouldn't, as an id is fixed by its
+      file's contents), pdf.js's own error goes up, and the reader shows "Could not draw this
+      page".
+    - Its comment, and `readPdf`'s, no longer speak of music worked out when read.
+  - **`_record-model.ts`:** `password`'s comment says what it now means: the password that opens
+    the PDF, `''` for one that needs none; missing until it has been checked.
+  - **`originals/original.ts`:** fix `_readOriginal`'s comment the same way.
+  - **Tests:** pdf.js can't open a PDF under vitest, so this is checked by hand. `npm test` and
+    `npm run build` pass.
+  - **Manual check:**
+    1. Open a large unencrypted PDF that isn't saved yet: its first page shows noticeably sooner
+       than before.
+    2. Add an encrypted PDF with a user password: the password is asked for once; a wrong one
+       asks again, saying so. Close and open it again, and after a restart: not asked.
+    3. Open a PDF that is encrypted with only an owner password (it opens in Chrome without one):
+       no password is asked, and it shows.
+    4. A setlist with an encrypted PDF never opened: the setlists section says it needs its
+       password; opening the score asks for it, and then its pages are saved.
+    5. Export a score from each of 2 and 3, and from a PDF whose encryption pdf-decrypt doesn't
+       know (if one is at hand): the export works, or for the last says why it is pictures.
+
 - **With the toolbar hidden, a tap in the middle of the reader shows the toolbar; while it shows,
   each page-turn band has an icon.** Today, with the toolbar hidden, a press anywhere turns the
   page as it goes down: back on the left half, forward on the right (`turnFor`,
