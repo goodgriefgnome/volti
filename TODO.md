@@ -252,20 +252,27 @@ Things to try on the tablet.
 
 ## Speculative future ideas
 
-- **A format version for each stored key, so no code reads old formats:**
-  - In `storage/keys.ts`, each key or prefix carries a format version, a plain number.
-  - `kv` writes every value as `{ v, data }`. On reading, it returns `data` only when `v` is the
-    key's current version. Anything else is deleted and read as absent: an older version, or a
-    value from before versioning.
-  - Changing a key's format means bumping its number, and what was stored under it is dropped
-    (the no-migration rule, applied by itself).
-  - Start-up tidying deletes every key `keys.ts` doesn't know.
+- **A format version in each stored key's name, so no code reads old formats:**
+  - In `storage/keys.ts`, each key or prefix carries its format version in its name:
+    `'score@2:' + id`, `'folder@2'`.
+  - Changing a key's format means bumping that number. The new name finds nothing, so what was
+    stored is dropped: the no-migration rule, applied by itself. `kv` doesn't change at all.
+  - Start-up tidying deletes every key `keys.ts` doesn't know, which includes every older
+    version.
   - Together these replace the old-format code there is now: `_asLink`'s bare-handle branch
     (`originals/device-score-fs.ts`), and `OLD_KEYS` and `OLD_PREFIXES` in `tidyStorage`
     (`originals/library-files.ts`).
-  - The risk is forgetting a bump: old values then read as valid. A test that records each
-    stored type's declaration next to its version, and fails when one changes without the
-    other, would catch it.
+  - The risk is forgetting a bump: old values then read as the new format. A test that records
+    each stored type's declaration next to its key's version, and fails when one changes without
+    the other, would catch it.
+- **Schemas for what is stored, checked as it is read:** describe each stored type with a schema
+  library (such as zod) in place of its TypeScript interface, and derive the type from the schema.
+  `kv.get` takes the key's schema, and a value that doesn't match is deleted and read as absent.
+  - This catches a changed format without anyone remembering to bump a version, and catches
+    corrupt values too.
+  - It costs a dependency, a schema per stored type in place of its interface, and a check on
+    every read (ink can be large).
+  - It's an alternative to versioned key names, not an addition.
 
 - **Watching the scores folder:** with the File System Observer API (`FileSystemObserver`, a
   Chrome origin trial from version 129, not yet a standard), Volti would hear of PDFs added,
