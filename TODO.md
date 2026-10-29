@@ -34,8 +34,6 @@ scores.
 ## Confirmed features which require more thought
 
 - **Left as they were after the split into source files and originals:**
-  - The library shows one row per id: of two identical files, only the first copy (one source
-    file per id, at its canonical path).
   - An image's decoded bitmap is held while it is open (about 48 MB for a 12 MP photo), that is
     while any original of it isn't closed, rather than decoded again at each width
     (`ImageSource`, `originals/_image-source.ts`).
