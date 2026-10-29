@@ -76,143 +76,105 @@ scores.
 
 ## Manual check
 
-Things to try on the tablet.
+Things to try on the tablet, grouped so each group can be done in one go. Some groups need
+DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the records.
 
-- **Each setlist's row shows how much is saved offline (a ring by its ⋯ button):**
-  1. Make a new setlist with three scores: its ring fills, then turns into a tick.
-  2. Reload: the tick shows straight away (pages already saved).
-  3. Add a score: the ring goes back to filling, then a tick.
-  4. Reload with the linked folder locked, after adding a score never opened: that setlist's
-     ring is the warning ring. Tapping it says Volti needs access.
-  5. Archive a setlist: it has no ring.
-  6. Check both themes.
-
-- **The reader and thumbnails draw progressively:**
-  1. Open a score, rotate the tablet: pages show at once, soft, then sharpen.
-  2. Turn pages quickly: no page from an earlier screen flashes onto a later one.
-  3. Open the excerpt picker on a long score: the strip fills at once, then sharpens.
-  4. The same with the cut editor's insert picker, and the incoming screen's preview.
-  5. With a gone file in a setlist: rotate in its setlist, and its pages show (soft) instead of
-     "Not saved for this screen".
-- **A setlist plays a score whose file is gone:**
-  1. Make a setlist of two scores and let its pages save offline (open it once).
-  2. Delete one score's PDF from the linked folder, and check the folder.
-  3. Play the setlist: the gone score shows from its saved pages, with its title.
-  4. Editing cuts or choosing an excerpt on it says the file is gone.
-  5. Rotate the tablet: its pages show soft, from the saved ones. (Before progressive drawing they
-     said "Not saved for this screen"; that text still shows for a page with nothing saved at all.)
-
-- **Excerpts, one word for both:** name an excerpt of a score (Excerpts → Add excerpt), reload: it is
-  still there, and plays the same pages. Play it from the library and from a setlist entry, change
-  its cuts, and add it to a setlist. On a device that had named excerpts from before this change,
-  they are gone (dropped, not migrated).
-
-- **Storage (`STORAGE.md`):** open DevTools → Application → IndexedDB → `volti-scores` → `kv` to watch the records as you go.
-  - **Fresh start, no folder linked.** Add two PDFs with Add PDFs. There are two `original:`
-    records with `where.kind` `internal`. Open one: its record gains `aspects`.
-  - **Password.** Add a password-protected PDF and open it. The record gains `password`. Reload
-    and open it again: you aren't asked.
-  - **Link a folder** holding one of the same PDFs and one new one. The shared one's record becomes
-    `folder`, and its file is gone from OPFS `library/` (DevTools → Application → Storage, or log
-    `_internalFiles()`). The new one is hashed once. Reload: nothing is hashed again (no "Reading
-    new scores").
-  - **Duplicates.** Copy a PDF in the linked folder under another name. The library shows it once.
-    The record keeps the old path. Delete the original copy and check the folder again: the record
-    moves to the copy's path.
-  - **Rename and move** a score from the app: `path` changes, and nothing is hashed again.
-  - **Remove** a score: the record is `removed`, and the file is in OPFS `removed/`. Recently
-    removed lists it. Put it back: the record is `folder` again, and `removed/` is empty.
-  - **Share** a PDF from another app (Android) while the app is closed. Its record is `inbox`, with
-    bytes in `inbox/`. Open the app: the incoming dialog shows it. Cancel: it's in Recently removed.
-    Share it again: it's in the inbox again, and `removed/` no longer has it.
-  - **Share** a PDF the library has: nothing changes, and no inbox entry appears.
-  - **Unlink and relink the same folder:** nothing is hashed again. **Link a different folder:**
-    the old folder's records become `gone`.
-  - **Locked folder:** reload with the folder linked, before allowing access. The library lists
-      the folder's scores from their records.
-  - **Missing score title:** delete a PDF in the linked folder that is in a setlist, then check
-      the folder. Its record is `gone`, and the setlist still shows its title.
-  - **Last read.**
-      - Open score A and turn a few pages, back to the library, open A again: same place.
-      - Open B, then A again: A starts at the beginning.
-      - Play a setlist, turn into its second entry, close and reopen the app, play it again: same
-        place.
-      - Tap one entry of the setlist instead: it starts at that entry. Turn a page, go back, and
-        play the setlist: it resumes there.
-      - Open an excerpt of A from the library, turn a page, go back, open it again: same place.
-        Then open A itself: it starts at the beginning. Then the excerpt again: its beginning too.
-  - **Purge.** Set a removed record's `removedAt` to 8 days ago in DevTools and reload: the record
-      is `gone`, and its bytes are deleted.
-  - **Old data.** On a device that had the previous version, after the first start the old keys
-      and the `volti` database are gone, and scores, ink and setlists are all still there.
-
-- **Source files and originals:** no lock icon anywhere. A password-protected PDF asks for its
-  password the first time it is opened, previewed in the incoming screen, or added to a setlist
-  (from a score's ⋯ menu or Add scores; Cancel leaves it out), then never again. One that only
-  stops printing doesn't ask. A phone photo shows upright, sharp at every width and in the
-  zoomed close-up, and exports at original quality (a turned JPEG says it was recompressed).
-- **Ids after updating:** opening the library doesn't read every score again ("Reading new scores"
-  doesn't appear), both with a folder linked and without one. Then add, rename, move, remove, put
-  back, link, and unlink: each keeps scores, markings and setlists.
-- **Linking with scores in Volti's own folder:** link a folder after adding some PDFs without one:
-  they move into the folder at their paths (in the Files app too), one the folder already has is
-  dropped, and one whose name the folder has for another file opens the incoming screen. Leave it
-  out: the library's ⋯ menu offers "Move the score left in Volti…" to open the screen again.
-- **Incoming files:** Add PDFs, and sharing from another app, open the screen: each file's pages
-  (pinch and drag), its name and folder (and one folder for all), and New, Already in the library
-  (left out, saying where), or a path taken (another name or folder, or Replace). A locked PDF
-  shows its pages once its password is given. Shared files before Allow access open after it.
-  Putting back a removed file whose place is taken opens the screen for it.
-- **One root for the library:** with no folder linked, Add PDFs and sharing put files at the top
-  of Volti's own folder; moving and renaming them; unlinking leaves the library empty, with markings and setlists back when it is linked again. With a
-  folder linked, Add PDFs and sharing put files at the top of the folder (in the Files app too);
-  before Allow access they wait, and are added once it is tapped. No Added badge anywhere.
-- **Recently removed:** Remove in a score's ⋯ menu (library and reader) takes its file out of
-  the folder (gone in the Files app too); the library's ⋯ menu lists it under Recently removed,
-  and Put back puts it where it was, with its cuts and markings. A week later it is gone from the
-  list. The storage view shows Trash.
-- **Access asked for by what reads the folder:** after a restart, before tapping Allow access:
-  opening a score from the folder, adding a locked one to a setlist, opening one for a dialog
-  (Add excerpt), and renaming or moving one each ask for access themselves; refusing says so,
-  allowing goes on and the library reads the folder again. Exporting into the folder asks for
-  write access when Export is tapped. In a setlist played from its saved
-  pictures, a page not saved, Edit cuts and Export ask for it, and Allow access redraws.
-- **Turning on the press:** the page turns as the finger goes down, anywhere with the toolbar
-  hidden; with it showing, only in the shaded band at each side (a cut tab there still takes the
-  press first), and a tap elsewhere hides the toolbar. The chevron at the top right shows it, and
-  the one at the toolbar's right end hides it. Nothing turns while the pen is down or just after
-  it lifts. Watch for a palm landing in a band before the pen touches, and a pinch or pan whose
-  first finger lands in a band: they turn the page. Turning no longer puts the pen away.
-- **Setlists without folder access:** after a restart, before tapping Allow access, play a
-  setlist whose pages are saved: it opens without asking. Turn the tablet (pages not saved at
-  that size): the page asks for access, and Allow access shows it.
-- **The library keeps its place:** scroll down the library, open a score, go back: the library
-  is where it was (also after renaming the score in the reader).
-- **After the code was reorganised** (no change meant to what it does): writing with the pen and
-  erasing, zoomed in and out, with the palm resting; editing cuts by long press and by dragging
-  tabs; opening a password-protected score; exporting into the scores folder; Allow access after a
-  restart.
-- **Exporting with no folder linked** (the share sheet). Exporting into the folder works.
-- **Linking a big folder:** the library shows at once with the scores already known, and the new
-  ones appear one by one, with "Reading new scores: n left…".
-- **Markings in an exported PDF:** open the export in another PDF app (Acrobat, Xodo, the
-  browser): the pen (thicker where pressed harder) and highlighter (notes under it still black)
-  look as in Volti, and the app lists them as annotations it can hide or delete.
-- **Opening times:** opening a large PDF, and a large phone photo, now that a photo is drawn from
-  its bitmap rather than made into a PDF first (a PDF is still read by pdf-lib too): how long the
-  first page takes, and turning to and zooming in on a big photo.
-- **Password-protected and restricted PDFs:** ones from Acrobat (often AES-128, even when they
-  only stop printing) and ones with a password open sharp, as before, now that our fork of
-  pdf-decrypt reads them; export says "Original quality" for them.
-- **Exporting a PDF whose pages have to be drawn** (one with an encryption pdf-decrypt doesn't
-  know): it exports, with the pictures of its pages as sharp as in the reader, and the dialog says
-  it was rasterized; plain PDFs and images export at original quality, as before.
-- **New PDFs appear on coming back:** add a PDF to the scores folder in the Files app, switch
-  back to Volti after half a minute or more: it appears in the library without asking.
-- **The page cache:** reading, turning quickly, zooming in and out, and close-ups on a PDF and a
-  photo look as before; setlists before Allow access play their saved pages (a page not saved says
-  Volti needs access); the storage view shows Setlist pages and Page cache as two parts; a long
-  setlist doesn't run the tablet out of memory.
+- **Reading, with any score open** (no setup):
+  - Turning: the page turns as the finger goes down, anywhere with the toolbar hidden; with it
+    showing, only in the shaded band at each side (a cut tab there still takes the press first),
+    and a tap elsewhere hides the toolbar. The chevron at the top right shows it, and the one at
+    the toolbar's right end hides it.
+  - The pen: nothing turns while the pen is down or just after it lifts, and turning no longer
+    puts the pen away. Watch for a palm landing in a band before the pen touches, and a pinch or
+    pan whose first finger lands in a band: they turn the page.
+  - Writing with the pen and erasing, zoomed in and out, with the palm resting. Editing cuts by
+    long press and by dragging tabs.
+  - Drawing: reading, turning quickly, zooming in and out and close-ups look as before, on a PDF
+    and on a phone photo. Rotate the tablet: pages show at once, soft, then sharpen. Turn quickly:
+    no page from an earlier screen flashes onto a later one.
+  - Thumbnails: the excerpt picker on a long score, the cut editor's insert picker and the
+    incoming screen's preview each fill at once, then sharpen.
+  - A phone photo shows upright, and sharp at every width and in the zoomed close-up.
+  - Opening times: how long the first page of a large PDF and of a large photo takes, and turning
+    to and zooming in on a big photo.
+  - A long setlist doesn't run the tablet out of memory.
+- **Passwords and unusual PDFs:**
+  - No lock icon anywhere.
+  - A password-protected PDF asks for its password the first time it is opened, previewed in the
+    incoming screen, or added to a setlist (from a score's ⋯ menu or Add scores; Cancel leaves it
+    out), then never again. One that only stops printing doesn't ask.
+  - Ones from Acrobat (often AES-128, even when they only stop printing) and ones with a password
+    open sharp.
+- **Exporting:**
+  - With no folder linked, it goes to the share sheet. With a folder linked, it goes into Exports,
+    and asks for write access when Export is tapped if it isn't allowed yet.
+  - Open an export in another PDF app (Acrobat, Xodo, the browser): the pen (thicker where pressed
+    harder) and highlighter (notes under it still black) look as in Volti, and the app lists them
+    as annotations it can hide or delete.
+  - Plain PDFs, password-protected and Acrobat ones, and photos export at "Original quality". A
+    turned JPEG says it was recompressed.
+  - A PDF with an encryption pdf-decrypt doesn't know exports with its pages drawn as sharp as in
+    the reader, and the dialog says it was rasterized.
+- **Starting with no folder linked** (a fresh install, or after unlinking):
+  - Add two PDFs with Add PDFs. The incoming screen shows each file's pages (pinch and drag), its
+    name and folder (and one folder for all), and New, Already in the library (left out, saying
+    where), or a path taken (another name or folder, or Replace).
+  - They go at the top of Volti's own folder, with two `original:` records whose `where.kind` is
+    `internal`. Opening one gives its record `aspects`. No Added badge anywhere.
+  - Move and rename them.
+- **Linking a folder** (straight after the group above):
+  - Link a folder holding one of the same PDFs, one new one, and one whose name matches a
+    different file in Volti's own folder.
+  - The scores in Volti's own folder move into it at their paths (in the Files app too). The one
+    the folder already has is dropped: its record becomes `folder`, and its file is gone from OPFS
+    `library/`. The one whose name is taken opens the incoming screen. Leave it out: the library's
+    ⋯ menu offers "Move the score left in Volti…" to open it again.
+  - On a big folder, the library shows at once with the scores already known, and new ones appear
+    one by one with "Reading new scores: n left…". Each is hashed once: reload, and nothing is
+    hashed again.
+  - Rename and move a score from the app: its `path` changes, and nothing is hashed again.
+  - Duplicates: copy a PDF in the folder under another name. The library shows it once, and the
+    record keeps the old path. Delete the original copy and check the folder: the record moves to
+    the copy's path.
+  - Add a PDF to the folder in the Files app, and switch back to Volti after half a minute or more:
+    it appears without asking.
+  - Unlink: the library is empty. Relink the same folder: scores, markings and setlists are back,
+    and nothing is hashed again. Link a different folder: the old folder's records become `gone`.
+- **Removing and putting back:**
+  - Remove a score from its ⋯ menu, in the library and in the reader. Its file leaves the folder
+    (gone in the Files app too), its record is `removed`, and the file is in OPFS `removed/`.
+  - The library's ⋯ menu lists it under Recently removed. Put back puts it where it was, with its
+    cuts and markings: the record is `folder` again, and `removed/` is empty.
+  - Putting back a file whose place is now taken opens the incoming screen for it.
+  - The storage view shows Trash.
+  - Purge: set a removed record's `removedAt` to 8 days ago in DevTools and reload. The record is
+    `gone`, its bytes are deleted, and it has left the list.
+- **Sharing from another app** (Android):
+  - Share a PDF while Volti is closed. Its record is `inbox`, with bytes in OPFS `inbox/`. Open
+    Volti: the incoming screen shows it. Cancel: it's in Recently removed. Share it again: it's in
+    the inbox again, and `removed/` no longer has it.
+  - Share a PDF the library has: nothing changes, and no inbox entry appears.
+  - With no folder linked, a shared file goes at the top of Volti's own folder. With one linked, it
+    goes at the top of the folder (in the Files app too).
+- **After a restart, before tapping Allow access** (folder linked):
+  - The library lists the folder's scores from their records.
+  - Shared files wait, and are added once Allow access is tapped.
+  - These each ask for access themselves: opening a score, adding a password-protected one to a
+    setlist, opening one for a dialog (Add excerpt), and renaming or moving one. Refusing says so.
+    Allowing goes on, and the library reads the folder again.
+  - Play a setlist whose pages are saved: it opens without asking. Turn the tablet: its pages show
+    soft, from the saved ones. Edit cuts and Export ask for access, and Allow access redraws
+    sharp.
+  - The storage view shows Setlist pages and Page cache as two parts.
+- **A setlist with a score whose file is gone** (delete one score's PDF in the Files app, then
+  check the folder): rotate the tablet while playing the setlist. The gone score's pages show
+  soft, from the saved ones. "Not saved for this screen" shows only for a page with nothing saved
+  at all.
+- **On a device that had an earlier version:**
+  - After the first start, the old keys and the `volti` database are gone, and scores, ink and
+    setlists are all still there.
+  - A folder linked before the storage change is still linked (`folder` held a bare handle then).
+  - Named excerpts from before "excerpt" replaced "span" are gone (dropped, not migrated).
 
 ## Confirmed features which require more thought
 
