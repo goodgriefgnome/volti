@@ -33,10 +33,6 @@ scores.
 
 ## Confirmed features which require more thought
 
-- **Left as they were after the split into source files and originals:**
-  - An image's decoded bitmap is held while it is open (about 48 MB for a 12 MP photo), that is
-    while any original of it isn't closed, rather than decoded again at each width
-    (`ImageSource`, `originals/_image-source.ts`).
 - **The cache giving room back when the origin runs short of quota** [needs thought]: pinned
   pages are never evicted, and the others only to stay within 30% of the quota (`diskBudget`,
   `page-cache/_budget.ts`); nothing shrinks the cache when the origin as a whole (scores added,
