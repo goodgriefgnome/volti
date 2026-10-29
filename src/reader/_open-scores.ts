@@ -23,19 +23,26 @@ export class FileGone extends Error {
  * A score's pages, to read: drawn from its file where it can be read; where it can't (no file in
  * the library, no access to the scores folder yet, or no password given) but its pages are saved
  * and their shapes known, drawn by id, which can show only the pages saved. Only with `ask` is its
- * password asked for.
+ * password asked for. Whoever gets the pages calls their `close`, if there is one, when done.
  */
-export async function openPages(id: string, o: SourceFile | undefined, ask: boolean): Promise<{ draw: DrawPage; drawProgressive: DrawProgressive; aspects: Aspects; readable: boolean }> {
+export async function openPages(id: string, o: SourceFile | undefined, ask: boolean): Promise<{ draw: DrawPage; drawProgressive: DrawProgressive; aspects: Aspects; readable: boolean; close?: () => void }> {
   let failure: unknown = o ? undefined : new FileGone(`The file of ${id} is gone`);
-  const from = async (pages: Pages) => ({
+  const from = async (pages: Pages, close?: () => void) => ({
     draw: (page: number, pxWidth: number, options?: DrawOptions) => pages.draw(page, pxWidth, options),
     drawProgressive: (page: number, pxWidth: number, options?: DrawOptions) => pages.drawProgressive(page, pxWidth, options),
     aspects: await pages.aspects(),
     readable: pages.whole,
+    close,
   });
   if (o) {
     try {
-      return await from(await o.read(ask ? askPassword : undefined));
+      const original = await o.read(ask ? askPassword : undefined);
+      try {
+        return await from(original, () => original.close());
+      } catch (e) {
+        original.close();
+        throw e;
+      }
     } catch (e) {
       if (!(e instanceof NoAccess || e instanceof PasswordNotGiven)) throw e;
       failure = e;
@@ -56,6 +63,8 @@ export interface OpenScore {
   /** Dropped while the score is far from the one being read, and opened again when needed. */
   draw?: DrawPage;
   drawProgressive?: DrawProgressive;
+  /** Closes the original `draw` draws from; set and cleared with `draw`. */
+  close?: () => void;
   /** Its file can be read; false when its pages are drawn by id, so only those saved can be shown. */
   readable?: boolean;
 }
@@ -89,7 +98,11 @@ export class OpenScores {
   get(scoreId: string): OpenScore | undefined { return this.scores.get(scoreId); }
 
   /** Take a score opened elsewhere, as when the reader turns to another score. */
-  adopt(s: OpenScore) { this.scores.set(s.id, s); }
+  adopt(s: OpenScore) {
+    const old = this.scores.get(s.id);
+    if (old && old !== s) drop(old);
+    this.scores.set(s.id, s);
+  }
 
   /**
    * Open item k's score, or find that it can't be. Only with `ask` (the score is being turned to,
@@ -118,32 +131,49 @@ export class OpenScores {
   }
 
   private async open(it: Item, original: SourceFile | undefined, ask: boolean): Promise<OpenScore> {
-    const { draw, drawProgressive, aspects, readable } = await openPages(it.scoreId, original, ask);
-    if (this.closed) throw new Error('Closed');
-    const have = this.scores.get(it.scoreId);
-    if (have) { have.draw = draw; have.drawProgressive = drawProgressive; have.readable = readable; return have; }
-    const { state } = await loadScore(it.scoreId, aspects);
-    const s: OpenScore = { id: it.scoreId, original, aspects, state, draw, drawProgressive, readable };
-    this.scores.set(s.id, s);
-    return s;
+    const { draw, drawProgressive, aspects, readable, close } = await openPages(it.scoreId, original, ask);
+    if (this.closed) { close?.(); throw new Error('Closed'); }
+    try {
+      const have = this.scores.get(it.scoreId);
+      if (have) {
+        drop(have); // opened by another meanwhile
+        have.draw = draw; have.drawProgressive = drawProgressive; have.readable = readable; have.close = close;
+        return have;
+      }
+      const { state } = await loadScore(it.scoreId, aspects);
+      const s: OpenScore = { id: it.scoreId, original, aspects, state, draw, drawProgressive, readable, close };
+      this.scores.set(s.id, s);
+      return s;
+    } catch (e) {
+      close?.();
+      throw e;
+    }
   }
 
   /** Access to the scores folder was allowed: open the scores again, now from their PDFs too. */
   accessAllowed() {
     for (const it of this.items) it.needsAccess = false;
-    for (const s of this.scores.values()) { s.draw = undefined; s.drawProgressive = undefined; }
+    for (const s of this.scores.values()) drop(s);
   }
 
   /** Open the score after item k ahead of time, and close the originals of scores further away. */
   keepNear(k: number) {
     const near = new Set([k - 1, k, k + 1].map((i) => this.items[i]?.scoreId));
     for (const s of this.scores.values()) {
-      if (!near.has(s.id)) { s.draw = undefined; s.drawProgressive = undefined; }
+      if (!near.has(s.id)) drop(s);
     }
     if (k + 1 < this.items.length) void this.ensure(k + 1);
   }
 
   destroy() {
-    for (const s of this.scores.values()) { s.draw = undefined; s.drawProgressive = undefined; }
+    for (const s of this.scores.values()) drop(s);
   }
+}
+
+/** Let go of a score's pages: close the original they are drawn from. */
+function drop(s: OpenScore) {
+  s.close?.();
+  s.close = undefined;
+  s.draw = undefined;
+  s.drawProgressive = undefined;
 }

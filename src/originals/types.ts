@@ -43,8 +43,21 @@ export interface Pages {
   readonly whole: boolean;
 }
 
-/** A source file Volti has read: what a score is made from. */
+/**
+ * A source file Volti has read: what a score is made from. It is counted: it is got once, and
+ * closed once by whoever got it. The rules, with no exceptions:
+ * 1. Whoever gets an original (`SourceFile.read()`, `Original.read()`, `openScore`) closes it,
+ *    exactly once.
+ * 2. A function given an original only borrows it: it never closes it, and its caller keeps it
+ *    open until the function's promise settles.
+ * 3. Keeping an original past one's own promise (in a field, or in a closure that runs later)
+ *    means getting it again with `read()`, and closing that.
+ */
 export interface Original extends SourceFile, Pages {
+  /** Done with it. Throws when it is closed more often than it was got; it can't be used after its last close. */
+  close(): void;
+  /** The same original, got once more: to be closed once more. */
+  read(ask?: AskPassword): Promise<Original>;
   /** Its music as a PDF, for export (_pdf-source.ts, _image-source.ts). */
   pdf(): Promise<RenderedPdf>;
 }

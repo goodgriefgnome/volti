@@ -68,16 +68,21 @@ export async function openReader(what: ToRead, onClose: (fileChanges: FileChange
   const setlists = await loadSetlists();
   if (what.kind !== 'setlist') {
     const { original } = what;
-    const { draw, drawProgressive, aspects, readable } = await openPages(original.id, original, true);
-    const { state } = await loadScore(original.id, aspects);
-    const first: OpenScore = { id: original.id, original, aspects, state, draw, drawProgressive, readable };
-    const item = { scoreId: original.id, title: titleOf(original.path), original };
-    // Where it was last read, if that was this score or this excerpt of it.
-    const last = await loadLastRead();
-    if (what.kind === 'excerpt') {
-      const excerpt = ends(what.excerpt);
-      new Reader([item], { kind: 'excerpt', excerpt }, setlists, first, 0, resumeAt(last, { kind: 'excerpt', id: original.id, ...excerpt })?.cut, onClose, [], fullscreen);
-    } else new Reader([item], { kind: 'score' }, setlists, first, 0, resumeAt(last, { kind: 'excerpt', id: original.id })?.cut, onClose, what.library, fullscreen);
+    const { draw, drawProgressive, aspects, readable, close } = await openPages(original.id, original, true);
+    try {
+      const { state } = await loadScore(original.id, aspects);
+      const first: OpenScore = { id: original.id, original, aspects, state, draw, drawProgressive, readable, close };
+      const item = { scoreId: original.id, title: titleOf(original.path), original };
+      // Where it was last read, if that was this score or this excerpt of it.
+      const last = await loadLastRead();
+      if (what.kind === 'excerpt') {
+        const excerpt = ends(what.excerpt);
+        new Reader([item], { kind: 'excerpt', excerpt }, setlists, first, 0, resumeAt(last, { kind: 'excerpt', id: original.id, ...excerpt })?.cut, onClose, [], fullscreen);
+      } else new Reader([item], { kind: 'score' }, setlists, first, 0, resumeAt(last, { kind: 'excerpt', id: original.id })?.cut, onClose, what.library, fullscreen);
+    } catch (e) {
+      close?.();
+      throw e;
+    }
     return;
   }
   const setlist = setlists.find((s) => s.id === what.setlistId);
@@ -633,10 +638,15 @@ class Reader {
     this.toolbar.info.textContent = 'Opening…';
     let open: OpenScore;
     try {
-      const { draw, drawProgressive, aspects, readable } = await openPages(o.id, o, true);
-      if (this.scores.closed) return;
-      const { state } = await loadScore(o.id, aspects);
-      open = { id: o.id, original: o, aspects, state, draw, drawProgressive, readable };
+      const { draw, drawProgressive, aspects, readable, close } = await openPages(o.id, o, true);
+      if (this.scores.closed) { close?.(); return; }
+      try {
+        const { state } = await loadScore(o.id, aspects);
+        open = { id: o.id, original: o, aspects, state, draw, drawProgressive, readable, close };
+      } catch (e) {
+        close?.();
+        throw e;
+      }
     } catch (e) {
       // Not opened (its password not given, say): stay where you were.
       this.loading = false;

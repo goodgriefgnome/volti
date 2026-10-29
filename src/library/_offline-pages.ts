@@ -71,7 +71,7 @@ async function make(signal: AbortSignal, originals: readonly SourceFile[], setli
     let aspects = await knownAspects(id);
     if (!aspects) {
       const original = await read(id);
-      aspects = await original?.aspects().catch(() => undefined);
+      try { aspects = await original?.aspects().catch(() => undefined); } finally { original?.close(); }
     }
     if (!aspects) { unknown.push(id); continue; }
     const { state } = await loadScore(id, aspects);
@@ -123,18 +123,20 @@ async function make(signal: AbortSignal, originals: readonly SourceFile[], setli
     if (!byId.has(id)) { blocked.set(id, { ...blocked.get(id)!, why: 'missing' }); continue; }
     const original = await read(id);
     if (!original) continue;
-    for (const p of todo) {
-      if (signal.aborted) return;
-      try { await savePageOffline(original, p, signal); } catch (e) {
-        if (!signal.aborted) console.warn('Could not draw a page to keep offline:', e);
-        continue;
+    try {
+      for (const p of todo) {
+        if (signal.aborted) return;
+        try { await savePageOffline(original, p, signal); } catch (e) {
+          if (!signal.aborted) console.warn('Could not draw a page to keep offline:', e);
+          continue;
+        }
+        saved.add(pageKey(id, p.page, p.pxWidth));
+        if (signal.aborted) return;
+        const wait = HEARD_MS - (Date.now() - last);
+        if (wait <= 0) tell(false);
+        else pending ??= setTimeout(() => { pending = undefined; if (!signal.aborted) tell(false); }, wait);
       }
-      saved.add(pageKey(id, p.page, p.pxWidth));
-      if (signal.aborted) return;
-      const wait = HEARD_MS - (Date.now() - last);
-      if (wait <= 0) tell(false);
-      else pending ??= setTimeout(() => { pending = undefined; if (!signal.aborted) tell(false); }, wait);
-    }
+    } finally { original.close(); }
   }
   clearTimeout(pending);
   if (!signal.aborted) tell(true);

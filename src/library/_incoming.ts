@@ -139,7 +139,9 @@ export async function openIncoming(lib: LibraryHost, files: readonly Arriving[],
       box.replaceChildren(el('p', 'hint error', 'Volti can’t read this file.'));
       return;
     }
-    if (finished) return;
+    // Closed with the dialog, or at once if it has closed already.
+    if (finished) { original.close(); return; }
+    whenOverlayCloses(() => original.close());
     const aspects = await original.aspects();
     const state = { score: newScore(r.source.id, aspects), ink: {} };
     const strip = new ThumbStrip({ state, aspects, pages: (p, w) => canvasesOf(original.drawProgressive(p + 1, Math.round(w * dpr()))) });

@@ -78,10 +78,18 @@ class FileOriginal implements Original {
   get path() { return this.f.path; }
   move(path: string) { return this.f.move(path); }
   remove() { return this.f.remove(); }
-  async read() { return this; }
-  pdf(): Promise<RenderedPdf> { return this.content.pdf(); }
+  /** How often it was got and not yet closed. */
+  private got = 1;
+  private use() { if (!this.got) throw new Error('Used after it was closed'); }
+  async read() { this.use(); this.got++; return this; }
+  close() {
+    if (!this.got) throw new Error('Closed more often than it was got');
+    this.got--;
+  }
+  pdf(): Promise<RenderedPdf> { this.use(); return this.content.pdf(); }
   private shapes?: number[];
   async aspects(): Promise<number[]> {
+    this.use();
     if (this.shapes) return this.shapes;
     let aspects = await knownAspects(this.id);
     if (!aspects) {
@@ -96,11 +104,13 @@ class FileOriginal implements Original {
     return (this.shapes = aspects);
   }
   private async request(page: number, pxWidth: number, o?: DrawOptions): Promise<DrawRequest> {
+    this.use();
     const aspect = (await this.aspects())[page - 1];
     return { id: this.id, source: this.source, page, pxWidth, aspect, crop: o?.crop, priority: o?.priority ?? 'now', signal: o?.signal };
   }
-  async draw(page: number, pxWidth: number, options?: DrawOptions) { return drawPage(await this.request(page, pxWidth, options)); }
+  async draw(page: number, pxWidth: number, options?: DrawOptions) { this.use(); return drawPage(await this.request(page, pxWidth, options)); }
   async *drawProgressive(page: number, pxWidth: number, options?: DrawOptions) {
+    this.use();
     yield* drawPageProgressive(await this.request(page, pxWidth, options));
   }
 }

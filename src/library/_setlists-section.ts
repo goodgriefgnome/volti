@@ -9,7 +9,7 @@ import { titleOf } from '../originals/path-utils';
 import { scoreEntries } from '../scores/store';
 import { addEntries, duplicate, moveEntry, newSetlist, setEntryExcerpt, withSetlist, type Entry, type Setlist } from '../setlists/model';
 import { button, el, plural } from '../ui/dom';
-import { buttonRow, closeOverlay, showDialog, showMenu } from '../ui/overlay';
+import { buttonRow, closeOverlay, showDialog, showMenu, whenOverlayCloses } from '../ui/overlay';
 import type { LibraryHost } from './_host';
 import { offlineText, type OfflineStatus } from './_offline-status';
 import { expandableRow, moreButton } from './_rows';
@@ -253,5 +253,6 @@ export class SetlistsSection {
         void lib.change(withSetlist(lib.setlists, setEntryExcerpt(now, e.id, excerpt)), scoreEntries(sc.state));
       },
     });
+    whenOverlayCloses(() => sc.close());
   }
 }

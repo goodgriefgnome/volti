@@ -46,7 +46,10 @@ export async function drawnOriginals(originals: readonly SourceFile[]): Promise<
   const out: { original: SourceFile; why: DrawnReason }[] = [];
   // One at a time: a long setlist of scans would otherwise hold every one in memory at once.
   for (const o of new Map(originals.map((o) => [o.id, o])).values()) {
-    const why = await o.read().then((r) => r.pdf()).then((pdf) => pdf.lossyReason, (e) => {
+    const why = await (async () => {
+      const r = await o.read();
+      try { return (await r.pdf()).lossyReason; } finally { r.close(); }
+    })().catch((e) => {
       if (e instanceof NoAccess) throw e; // not known, rather than drawn
       if (e instanceof PasswordNotGiven) return undefined;
       return 'unreadable' as const;
@@ -59,11 +62,15 @@ export async function drawnOriginals(originals: readonly SourceFile[]): Promise<
 async function open(lib: PdfLib, f: SourceFile, ask?: AskPassword): Promise<Source> {
   // Asks for the password, if it isn't known yet, which decrypting the music then uses.
   const o = await f.read(ask);
-  const aspects = await o.aspects();
-  const { state } = await loadScore(o.id, aspects);
-  const doc = await lib.PDFDocument.load((await o.pdf()).bytes);
-  const widths = aspects.map((_, i) => shownSize(sourcePage(doc.getPage(i))).width);
-  return { state, aspects, doc, widths, embedded: new Map() };
+  try {
+    const aspects = await o.aspects();
+    const { state } = await loadScore(o.id, aspects);
+    const doc = await lib.PDFDocument.load((await o.pdf()).bytes);
+    const widths = aspects.map((_, i) => shownSize(sourcePage(doc.getPage(i))).width);
+    return { state, aspects, doc, widths, embedded: new Map() };
+  } finally {
+    o.close();
+  }
 }
 
 /** The music of a frame: each cut's band of its page, as it is. */

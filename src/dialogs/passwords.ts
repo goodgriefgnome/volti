@@ -26,7 +26,7 @@ export const askPassword: AskPassword = (title, wrong) => new Promise((resolve) 
  */
 export async function givePassword(f: SourceFile): Promise<boolean> {
   try {
-    await f.read(askPassword);
+    (await f.read(askPassword)).close();
     return true;
   } catch (e) {
     if (e instanceof PasswordNotGiven) return false;

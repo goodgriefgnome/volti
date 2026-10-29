@@ -8,8 +8,8 @@ import { type SourceFile } from '../originals/types';
 import { loadSavedScore, loadScore, saveScore } from '../scores/store';
 import { dpr } from '../ui/dom';
 
-/** A score and its original's pages. */
-export type LibraryScore = ExcerptSource;
+/** A score and its original's pages; whoever got it closes it when done. */
+export type LibraryScore = ExcerptSource & { close(): void };
 
 /**
  * Open a score and read its file, asking for its password if need be. A score opened for the first
@@ -17,13 +17,19 @@ export type LibraryScore = ExcerptSource;
  */
 export async function openScore(o: SourceFile): Promise<LibraryScore> {
   const original = await o.read(askPassword);
-  const aspects = await original.aspects();
-  const fresh = !(await loadSavedScore(o.id));
-  const { state } = await loadScore(o.id, aspects);
-  if (fresh) await saveScore(state);
-  return {
-    state,
-    aspects,
-    pages: (p, w) => canvasesOf(original.drawProgressive(p + 1, Math.round(w * dpr()))),
-  };
+  try {
+    const aspects = await original.aspects();
+    const fresh = !(await loadSavedScore(o.id));
+    const { state } = await loadScore(o.id, aspects);
+    if (fresh) await saveScore(state);
+    return {
+      state,
+      aspects,
+      pages: (p, w) => canvasesOf(original.drawProgressive(p + 1, Math.round(w * dpr()))),
+      close: () => original.close(),
+    };
+  } catch (e) {
+    original.close();
+    throw e;
+  }
 }
