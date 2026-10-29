@@ -138,8 +138,6 @@ scores.
 - **Square frames:** a frame neither wider nor taller is both portrait and landscape; decide how
   it lays out on the screen. For now it counts as portrait (`isLandscape`, `scores/frames.ts`), so
   two sit side by side.
-- **Several images as one original**: a set of images ordered by file name, scaled to a common
-  width, as one score (single images are already 1-page scores).
 - **Page-turn strategies** (half-page turns and the like): to be discussed separately.
 - **Exporting the library** (scores, setlists, markings, reading positions) as files, for backup
   and for moving to another device; probably written into the linked scores folder.
