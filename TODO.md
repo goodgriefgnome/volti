@@ -13,6 +13,24 @@ scores.
 
 ## Work for the immediate future
 
+- **The types of pinned pages are named for what they are.** In `page-cache/types.ts`,
+  `OfflinePage` (`{ page, pxWidth, aspect }`) is a page of one original to pin, at an exact width,
+  and `OfflineKey` (`{ id, page, pxWidth }`) is a pinned page of any original. Their names say
+  neither.
+
+  After this they are `PinnedPage` and `PinnedKey`, with comments saying so; nothing else
+  changes. `pinOffline`, `saveOffline` and `savePageOffline` keep their names: they are about
+  keeping pages offline, which pinning is how.
+
+  One commit.
+  - **`page-cache/types.ts`:** rename the two interfaces, and make their comments say what each
+    is: a page of an original to pin, at exactly this width (with its aspect, to draw it); a
+    pinned page: an original's page (from 1), at a width.
+  - Follow the renames in `page-cache/cache.ts` (`pinOffline`), `originals/original.ts`
+    (`savePageOffline`) and `library/_offline-pages.ts` (`make`, `keyed`), imports included.
+  - **Tests:** none change; `npm test` and `npm run build` pass.
+  - **Manual check:** none; nothing the app does changes.
+
 ## Confirmed features which require more thought
 
 - **Left as they were after the split into source files and originals:**
@@ -62,10 +80,6 @@ scores.
   - It assumes the reader fills the screen: if full screen is refused, the stage is the window,
     and a saved page only serves a request within 1% of its width (`page-cache/_match.ts`).
   - A change of `devicePixelRatio` (display size in Android's settings) changes every width.
-- **Naming what is pinned** (`page-cache/types.ts`): `OfflinePage` is one cache entry to pin (a
-  page at an exact width, with its aspect), and `OfflineKey` one pinned page. Rename them to say
-  so, as `PinnedPage` and `PinnedKey` would; `pinOffline`, `saveOffline` and the offline job
-  follow.
 - **Showing whether storage is persistent:** `main.ts` asks for it (`navigator.storage.persist()`)
   at each start and ignores the answer, and nothing shows it. Chrome grants it by itself, mostly
   to an installed app; in a browser tab it may not, and then Volti's own folder (scores added
