@@ -174,7 +174,6 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - After the first start, the old keys and the `volti` database are gone, and scores, ink and
     setlists are all still there.
   - A folder linked before the storage change is still linked (`folder` held a bare handle then).
-  - Named excerpts from before "excerpt" replaced "span" are gone (dropped, not migrated).
 
 ## Confirmed features which require more thought
 
