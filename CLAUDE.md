@@ -28,6 +28,9 @@ When asked for a plan:
 
   Then tell me the session's title and id, so I can open it and follow it myself. Don't watch it
   or review its work unless I ask.
+- When I ask for a session to work through the TODOs, create it the same way, but point it to
+  "Work for the immediate future" in `TODO.md` as a whole: it does every item there, in order, as
+  the file says. Don't name or pick items.
 
 ## Design discussions
 
