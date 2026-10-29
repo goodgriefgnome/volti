@@ -371,6 +371,12 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
 - **Page-turn strategies** (half-page turns and the like): to be discussed separately.
 - **Exporting the library** (scores, setlists, markings, reading positions) as files, for backup
   and for moving to another device; probably written into the linked scores folder.
+- **The reader shows its first screen twice** [needs thought]: a `ResizeObserver` reports the
+  stage's size as soon as it starts watching (`observer.observe` at the end of `Reader`'s
+  constructor, `reader/reader.ts`), so 150 ms after opening a second `show()` runs. It asks for
+  the same widths, which the cache now holds, so it costs little, but it redraws the screen for
+  nothing. To work out: whether to skip the observer's first report, or only show again when the
+  size differs from the one last shown.
 
 ## Speculative future ideas
 
