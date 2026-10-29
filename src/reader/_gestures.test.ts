@@ -4,11 +4,14 @@ import { gestureForKey, isTap, turnFor, TURN_BAND_PX } from './_gestures';
 const tap = (x: number) => ({ x0: x, y0: 400, x1: x, y1: 400, ms: 120 });
 
 describe('turnFor', () => {
-  it('turns anywhere while the toolbar is hidden: back on the left half, forward on the right', () => {
-    expect(turnFor(1200, 1280, false)).toBe('next');
-    expect(turnFor(660, 1280, false)).toBe('next');
-    expect(turnFor(620, 1280, false)).toBe('prev');
+  it('turns in the outer 40% at each side while the toolbar is hidden, and not in the middle', () => {
     expect(turnFor(0, 1280, false)).toBe('prev');
+    expect(turnFor(511, 1280, false)).toBe('prev');
+    expect(turnFor(512, 1280, false)).toBeNull();
+    expect(turnFor(640, 1280, false)).toBeNull();
+    expect(turnFor(768, 1280, false)).toBeNull();
+    expect(turnFor(769, 1280, false)).toBe('next');
+    expect(turnFor(1280, 1280, false)).toBe('next');
   });
   it('turns only in the band at each side while the toolbar shows', () => {
     expect(turnFor(10, 1280, true)).toBe('prev');

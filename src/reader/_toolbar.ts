@@ -17,14 +17,25 @@ export function backIcon(): SVGSVGElement {
   return svg;
 }
 
-/** A chevron, down to show the toolbar, up to hide it: on the toolbar, and when it is hidden. */
-export function chromeIcon(dir: 'down' | 'up'): SVGSVGElement {
+/** The chevron on the toolbar that hides it. */
+export function hideIcon(): SVGSVGElement {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('viewBox', '0 0 24 24');
   svg.setAttribute('aria-hidden', 'true');
   svg.classList.add('back-icon');
   const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.setAttribute('d', dir === 'down' ? 'M5 9l7 7 7-7' : 'M5 15l7-7 7 7');
+  path.setAttribute('d', 'M5 15l7-7 7 7');
+  svg.append(path);
+  return svg;
+}
+
+/** The solid triangle in a page-turn band, pointing the way the band turns. */
+export function turnIcon(dir: 'prev' | 'next'): SVGSVGElement {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', dir === 'prev' ? 'M16 5v14L6 12z' : 'M8 5v14l10-7z');
   svg.append(path);
   return svg;
 }
@@ -108,7 +119,7 @@ export class Toolbar {
     more.setAttribute('aria-label', reading === 'setlist' ? 'More for this setlist' : 'More');
     more.setAttribute('aria-haspopup', 'menu');
     const hide = this.button('hide', '', act.hide);
-    hide.append(chromeIcon('up'));
+    hide.append(hideIcon());
     hide.setAttribute('aria-label', 'Hide the toolbar');
     hide.title = 'Hide the toolbar';
     right.append(

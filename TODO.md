@@ -13,77 +13,15 @@ scores.
 
 ## Work for the immediate future
 
-- **With the toolbar hidden, a tap in the middle of the reader shows the toolbar; while it shows,
-  each page-turn band has an icon.** Today, with the toolbar hidden, a press anywhere turns the
-  page as it goes down: back on the left half, forward on the right (`turnFor`,
-  `reader/_gestures.ts`). The toolbar only opens from a small button at the top right.
-
-  After this:
-  - With the toolbar hidden, a press in the left 40% of the stage's width turns back, and in the
-    right 40% turns forward, still as the finger or pen goes down.
-  - A **tap** in the middle 20% shows the toolbar, using the same tap test as now (`isTap`): lifted
-    soon, near where it went down. A drag or a long press there does nothing.
-  - Nothing marks the zones while the toolbar is hidden.
-  - With the toolbar showing, nothing changes, except that each shaded band gets a solid triangle,
-    ◀ in the left band and ▶ in the right, centred vertically. It must not look like the Library
-    button's bare chevron (`backIcon`). This is option B at
-    https://claude.ai/artifact/GM4DHXebd7MUn8zYz1CE7b.
-
-  One commit.
-  - **`reader/_gestures.ts`:** add `export const MIDDLE_SHARE = 0.2;`. In `turnFor`, with the
-    toolbar hidden, `x < W * 0.4` is `'prev'`, `x > W * 0.6` is `'next'`, and the middle is
-    `null`. Write the 0.4 and 0.6 as `(1 - MIDDLE_SHARE) / 2` and its mirror. Update its comment.
-    In `_gestures.test.ts`, the hidden-toolbar case covers:
-    - 0 and just under 40%: `'prev'`
-    - 40%, 50% and 60%: `null`
-    - just over 60%, and the right edge: `'next'`
-  - **`reader/_input.ts`, `onDown`:** when `turnFor` gives `null` and the toolbar is hidden
-    (`!host.annotating()`), set `this.gesture` (the tap that `onUp` turns into `toggleChrome`) and
-    return. Don't start a tool or a pan: with the toolbar hidden, nothing writes or pans. `onUp`
-    already calls `host.act('toggleChrome')` for a tap, which shows the toolbar. Update the
-    class's comment to say a tap in the middle shows the toolbar while it is hidden.
-  - **Remove the show-toolbar button:**
-    - in `reader/reader.ts` (around line 242), the `show` button and its comment
-    - in `styles/reader.css`, the `.reader > .show-bar` rules
-    - `chromeIcon('down')` then has no caller, so `chromeIcon` keeps only the `'up'` case. Make it
-      `hideIcon()`, or keep its name with no parameter, and fix its comment.
-
-    The back arrow at the top left stays.
-  - **The icon in each band:**
-    - Add `turnIcon(dir: 'prev' | 'next'): SVGSVGElement` beside `backIcon` in
-      `reader/_toolbar.ts`: viewBox `0 0 24 24`, one filled path. `prev` is `M16 5v14L6 12z` and
-      `next` is `M8 5v14l10-7z`, as in the mock-up. `aria-hidden`.
-    - In `reader/reader.ts`, append each band's icon to its `turn-band` div.
-    - In `styles/reader.css`, `.turn-band` becomes a grid with `place-items: center`, and
-      `.turn-band svg` is 24 px, `fill: #ffffff`, `opacity: 0.85`, with
-      `filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.6))`. That way it shows over both the dark
-      stage and white paper.
-    - The band already has `pointer-events: none`, so taps and the pen go through the icon.
-  - **`README.md`:** the reader paragraph (around line 64) mentions swiping, which the reader
-    doesn't do. Make it say: press the right side for the next page and the left side for the
-    previous one; tap the middle to show the toolbar; while the toolbar shows, the shaded bands at
-    the sides turn the page.
-  - **Manual check** (add under Manual check):
-    1. With the toolbar hidden, press near the left and right edges, and just inside 40% from each
-       side: the page turns as the finger goes down.
-    2. Tap the middle: the toolbar shows. Drag or long-press in the middle: nothing happens.
-    3. There is no button at the top right; the back arrow at the top left still goes to the
-       library.
-    4. With the toolbar showing, each band shows its triangle, centred, over both dark stage and
-       white paper. Tapping a band turns the page, and the pen writes in a band as before.
-    5. With a pen tool selected and the toolbar hidden, the pen in the middle shows the toolbar
-       rather than writing.
-
 ## Manual check
 
 Things to try on the tablet, grouped so each group can be done in one go. Some groups need
 DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the records.
 
 - **Reading, with any score open** (no setup):
-  - Turning: the page turns as the finger goes down, anywhere with the toolbar hidden; with it
+  - Turning: the page turns as the finger goes down, at the sides with the toolbar hidden; with it
     showing, only in the shaded band at each side (a cut tab there still takes the press first),
-    and a tap elsewhere hides the toolbar. The chevron at the top right shows it, and the one at
-    the toolbar's right end hides it.
+    and a tap elsewhere hides the toolbar. The chevron at the toolbar's right end hides it.
   - The pen: nothing turns while the pen is down or just after it lifts, and turning no longer
     puts the pen away. Watch for a palm landing in a band before the pen touches, and a pinch or
     pan whose first finger lands in a band: they turn the page.
@@ -103,6 +41,16 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - In the installed app, with the tablet in landscape, let a setlist of portrait PDF pages finish
     saving, then turn on airplane mode and play it: each page is sharp at once, with no blurred
     stand-in first.
+- **Reader's middle tap and band icons:**
+  1. With the toolbar hidden, press near the left and right edges, and just inside 40% from each
+     side: the page turns as the finger goes down.
+  2. Tap the middle: the toolbar shows. Drag or long-press in the middle: nothing happens.
+  3. There is no button at the top right; the back arrow at the top left still goes to the
+     library.
+  4. With the toolbar showing, each band shows its triangle, centred, over both dark stage and
+     white paper. Tapping a band turns the page, and the pen writes in a band as before.
+  5. With a pen tool selected and the toolbar hidden, the pen in the middle shows the toolbar
+     rather than writing.
 - **Reading PDFs without pdf-lib:**
   1. Open a large unencrypted PDF that isn't saved yet: its first page shows noticeably sooner
      than before.

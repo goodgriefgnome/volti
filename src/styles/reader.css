@@ -24,19 +24,13 @@
   border: 0; background: rgba(20, 22, 27, 0.45); color: #ffffff; opacity: 0.75;
 }
 .reader.chrome-hidden > .back { display: grid; }
-/* Its twin at the top right shows the toolbar. */
-.reader > .show-bar {
-  position: absolute; z-index: 6; right: max(6px, env(safe-area-inset-right, 0px)); top: max(6px, env(safe-area-inset-top, 0px));
-  width: 44px; height: 44px; min-height: 0; padding: 0; display: none; place-items: center; border-radius: 50%;
-  border: 0; background: rgba(20, 22, 27, 0.45); color: #ffffff; opacity: 0.75;
-}
-.reader.chrome-hidden > .show-bar { display: grid; }
 .bar button:has(> .back-icon) { padding: 6px 9px; }
 /*
  * While the toolbar shows, only a band at each side turns the page (TURN_BAND_PX in
  * reader/gestures.ts, 64 px to touch); a scrim 40 px wide marks it, as wide as a cut tab shows.
  */
-.turn-band { position: absolute; z-index: 4; top: var(--bar-h, 56px); bottom: 0; width: 40px; pointer-events: none; background: rgba(20, 22, 27, 0.28); }
+.turn-band { position: absolute; z-index: 4; top: var(--bar-h, 56px); bottom: 0; width: 40px; pointer-events: none; background: rgba(20, 22, 27, 0.28); display: grid; place-items: center; }
+.turn-band svg { width: 24px; height: 24px; fill: #ffffff; opacity: 0.85; filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.6)); }
 .turn-band.left { left: 0; }
 .turn-band.right { right: 0; }
 .chrome-hidden .turn-band { display: none; }

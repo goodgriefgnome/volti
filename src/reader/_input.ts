@@ -30,8 +30,9 @@ export interface InputHost extends ToolHost {
 }
 
 /**
- * Pointers and keys on the score. A press turns the page as it goes down: anywhere while the
- * toolbar is hidden, and only in the band at each side while it shows (_gestures.ts). Otherwise,
+ * Pointers and keys on the score. A press turns the page as it goes down: at each side while the
+ * toolbar is hidden (a tap in the middle shows it), and only in the band at each side while it
+ * shows (_gestures.ts). Otherwise,
  * with the toolbar showing, two fingers pinch, one pans when zoomed in, a pen or finger uses the
  * selected tool (tools/), and a tap hides the toolbar; the pen writes in the bands too. A palm
  * resting while the pen writes is ignored. The cut editor's tabs get the pointer first.
@@ -144,6 +145,10 @@ export class Input {
     if (turn) {
       host.editor.cancel(); // no long press on the page it turned from
       host.act(turn);
+      return;
+    }
+    if (!toolbar) { // the middle, toolbar hidden: only a tap, which shows it
+      this.gesture = { id: e.pointerId, x: e.clientX, y: e.clientY, t: now };
       return;
     }
     if (tool !== 'none') {

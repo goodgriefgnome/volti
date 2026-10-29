@@ -8,16 +8,24 @@ export type Gesture = 'next' | 'prev' | 'toggleChrome';
  * cut tabs' touch area. What shows of it is narrower, as the tabs are.
  */
 export const TURN_BAND_PX = 64;
+/** Share of the stage's width, in the middle, where a tap shows the toolbar while it is hidden. */
+export const MIDDLE_SHARE = 0.2;
 const TAP_MAX_MOVE_PX = 12;
 const TAP_MAX_MS = 400;
 
 /**
  * Which way a finger (or pen, when not writing) going down at `x` on the stage turns the page:
- * anywhere while the toolbar is hidden, back on the left half and forward on the right; only in
- * the band at each side while it shows.
+ * while the toolbar is hidden, back in the left share of the stage and forward in the right, none
+ * in the middle `MIDDLE_SHARE` (a tap there shows the toolbar); only in the band at each side
+ * while it shows.
  */
 export function turnFor(x: number, stageWidth: number, toolbar: boolean): 'next' | 'prev' | null {
-  if (!toolbar) return x < stageWidth / 2 ? 'prev' : 'next';
+  if (!toolbar) {
+    const edge = (1 - MIDDLE_SHARE) / 2;
+    if (x < stageWidth * edge) return 'prev';
+    if (x > stageWidth * (1 - edge)) return 'next';
+    return null;
+  }
   if (x <= TURN_BAND_PX) return 'prev';
   if (x >= stageWidth - TURN_BAND_PX) return 'next';
   return null;

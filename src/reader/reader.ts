@@ -34,7 +34,7 @@ import { Reading, setlistItems, type ReadingKind, type ReadingSnapshot } from '.
 import { Saver } from './_saver';
 import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
 import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_spread';
-import { backIcon, chromeIcon, Toolbar, type ToolChoice } from './_toolbar';
+import { backIcon, Toolbar, turnIcon, type ToolChoice } from './_toolbar';
 import { ReaderMenus } from './_toolbar-menus';
 import { offerScore, turnFrom, type Offer } from './_turning';
 import type { ToolName } from './tools/_tools';
@@ -238,15 +238,11 @@ class Reader {
     back.append(backIcon());
     back.setAttribute('aria-label', 'Library');
     back.addEventListener('click', () => history.back());
-    // And one at the top right shows the toolbar.
-    const show = el('button', 'show-bar');
-    show.type = 'button';
-    show.append(chromeIcon('down'));
-    show.setAttribute('aria-label', 'Show the toolbar');
-    show.addEventListener('click', () => this.showChrome(true));
-    // While it shows, a scrim marks the band at each side that turns the page.
+    // While the toolbar shows, a scrim with a triangle marks the band at each side that turns the page.
     const bands = [el('div', 'turn-band left'), el('div', 'turn-band right')];
-    this.root.append(this.stage, ...bands, back, show, this.toolbar.el, this.scope, this.toast.el);
+    bands[0].append(turnIcon('prev'));
+    bands[1].append(turnIcon('next'));
+    this.root.append(this.stage, ...bands, back, this.toolbar.el, this.scope, this.toast.el);
     document.body.append(this.root);
     document.body.classList.add('reading');
 

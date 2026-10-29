@@ -61,9 +61,9 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   orientation fills it; one of the other shares it with the next: portrait pages side by side on a
   landscape screen, landscape pages one above the other on a portrait one. Rotating the tablet
   keeps the music at the top of the screen in place.
-- A score, excerpt or setlist opens ready to play, with the toolbar hidden. Tap the right side or
-  swipe left for the next page, the left side or swipe right for the previous one, and the middle
-  to show the toolbar. The back arrow at the top left, there with the toolbar hidden too, goes
+- A score, excerpt or setlist opens ready to play, with the toolbar hidden. Press the right side for
+  the next page and the left side for the previous one; tap the middle to show the toolbar. While
+  the toolbar shows, the shaded bands at the sides turn the page. The back arrow at the top left, there with the toolbar hidden too, goes
   back to the library. Page-turn pedals that send arrow or Page Up/Down keys work too.
 - In a score (not a setlist), turning on past its end says which score comes next in the library;
   turning on again opens it. The same back, from a score's start, opens the one before at its end.
