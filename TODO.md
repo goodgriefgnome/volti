@@ -235,6 +235,26 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
 - **Page-turn strategies** (half-page turns and the like): to be discussed separately.
 - **Exporting the library** (scores, setlists, markings, reading positions) as files, for backup
   and for moving to another device; probably written into the linked scores folder.
+- **The first open of a PDF still lags** [needs thought]: opening a score is much faster since
+  PDFs skip pdf-lib, but the first time a file is opened is still noticeably slow. What only the
+  first open does:
+  - `readPdf` (`originals/_pdf-source.ts`) reads the file's two 64 KB ends (`encrypted`), and for
+    an encrypted one opens it with pdf.js to check its password.
+  - `Original.aspects()` (`originals/original.ts`), with no aspects stored, opens the PDF in pdf.js
+    and fetches every page to measure it, then closes it; the shared source then opens it again
+    to draw (see "`Original.aspects()` opens the pages outside the shared source" above). For a
+    long PDF this is likely more than `encrypted`; to be measured on the tablet.
+  - No page of it is saved yet, so the first screen is drawn from the PDF.
+
+  The idea: inspect a file as it arrives (found in the scores folder when it is read, shared to
+  Volti, or added), in the background, so its aspects and password check are stored before it is
+  first opened. Perhaps its first page drawn and saved too.
+  - To work out: where arrivals are noticed (`library-files.ts`'s reading of the folder, the
+    inbox, adding scores), and how a burst of new files (a folder linked for the first time) is
+    paced so it doesn't hold up the library or the reader's draws.
+  - It conflicts with "a read without a way to ask stores nothing": an unencrypted PDF could be
+    marked checked (`''`) safely from the background; an encrypted one needing a password can't
+    be checked without asking, and stays unchecked until it is tapped.
 - **The reader goes full screen too late** [needs thought]: `Reader`'s constructor asks for full
   screen (`reader/reader.ts`) only after `openReader` has loaded the setlists, opened the pages
   (asking for a password or for access to the scores folder) and loaded the score. The first
