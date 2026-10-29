@@ -41,14 +41,14 @@
 
 /* How much of a setlist is saved for offline, by its ⋯ button: a ring filling as pages save, a green tick when all are, a dashed warning ring when some can't be. */
 .ring { flex: none; width: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
-.ring svg { display: block; overflow: visible; }
-.ring circle { fill: none; stroke-width: 2.5; }
-.ring-track { stroke: var(--line); }
-.ring-arc { stroke: var(--part-setlists); stroke-linecap: round; transform: rotate(-90deg); transform-origin: 11px 11px; transition: stroke-dasharray 250ms ease; }
-.ring .ring-fill { fill: var(--part-setlists); stroke: none; }
-.ring-tick { fill: none; stroke: #fff; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-.ring .ring-warn { stroke: var(--warn); stroke-dasharray: 3 3; }
-.ring-mark { fill: var(--warn); font: 700 12px sans-serif; }
+.ring svg { display: block; }
+.ring circle { fill: none; stroke-width: 3; }
+.ring .track { stroke: var(--line); }
+.ring .fill { stroke: var(--part-setlists); stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; }
+.ring .done { fill: var(--part-setlists); stroke: none; }
+.ring .tick { fill: none; stroke: var(--surface); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.ring .warn-ring { stroke: var(--warn); }
+.ring .bang { fill: var(--warn); stroke: none; }
 
 /* A setlist: the arrow slides its scores open beneath it. */
 .list > li.set { display: block; }

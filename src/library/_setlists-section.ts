@@ -14,15 +14,15 @@ import type { LibraryHost } from './_host';
 import { offlineText, type OfflineStatus } from './_offline-status';
 import { expandableRow, moreButton } from './_rows';
 
-const RING_R = 9, RING_LENGTH = 2 * Math.PI * RING_R;
+const RING_R = 8.5, RING_LENGTH = 2 * Math.PI * RING_R;
 
-/** The 22 px ring for a status: a track and an arc filling as pages save; a filled circle with a tick when all are; a dashed warning ring with "!" when some can't be. */
+/** The 22 px ring for a status (mock-up C): a track and an arc filling as pages save; a filled circle with a tick when all are; a dashed warning ring with "!" when some can't be. */
 function ringSvg(s: OfflineStatus): string {
   const body = s.kind === 'ready'
-    ? '<circle class="ring-fill" cx="11" cy="11" r="11"/><path class="ring-tick" d="M6.2 11.4l3.3 3.2 6.3-6.6"/>'
+    ? '<circle class="done" cx="11" cy="11" r="10"/><path class="tick" d="M6.5 11.3l3 3 6-6.3"/>'
     : s.kind === 'blocked'
-      ? `<circle class="ring-warn" cx="11" cy="11" r="${RING_R}"/><text class="ring-mark" x="11" y="15.2" text-anchor="middle">!</text>`
-      : `<circle class="ring-track" cx="11" cy="11" r="${RING_R}"/><circle class="ring-arc" cx="11" cy="11" r="${RING_R}" stroke-dasharray="${(s.of ? s.done / s.of : 0) * RING_LENGTH} ${RING_LENGTH}"/>`;
+      ? `<circle class="track warn-ring" cx="11" cy="11" r="${RING_R}" stroke-dasharray="3 2.4"/><rect class="bang" x="10" y="5.5" width="2" height="7" rx="1"/><circle class="bang" cx="11" cy="15.5" r="1.2"/>`
+      : `<circle class="track" cx="11" cy="11" r="${RING_R}"/><circle class="fill" cx="11" cy="11" r="${RING_R}" stroke-dasharray="${((s.of ? s.done / s.of : 0) * RING_LENGTH).toFixed(1)} ${RING_LENGTH.toFixed(1)}"/>`;
   return `<svg viewBox="0 0 22 22" width="22" height="22" aria-hidden="true">${body}</svg>`;
 }
 
