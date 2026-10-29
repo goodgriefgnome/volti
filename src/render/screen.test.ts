@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { pack } from '../scores/frames';
 import { aspects, cut, sarabande } from '../scores/testing';
-import { readPageWidths, screenAt } from './screen';
+import { offlinePageWidths, readPageWidths, screenAt } from './screen';
 
 describe('screenAt', () => {
   it('in a setlist, keeps the room left on a score\'s last screen', () => {
@@ -23,5 +23,20 @@ describe('readPageWidths', () => {
   it('gives only the pages an excerpt plays', () => {
     const widths = readPageWidths(pack([cut(0, 0, 1), cut(2, 0, 1)], aspects), 800, 1280, 1);
     expect([...widths.keys()]).toEqual([0, 2]);
+  });
+});
+
+describe('offlinePageWidths', () => {
+  const frames = pack(sarabande().score.cuts, aspects);
+  it('on a square screen is readPageWidths', () => {
+    expect(offlinePageWidths(frames, 1000, 1000, 1)).toEqual(readPageWidths(frames, 1000, 1000, 1));
+  });
+  it('holds the widths of both orientations, and nothing else', () => {
+    const both = offlinePageWidths(frames, 1280, 800, 1);
+    const a = readPageWidths(frames, 1280, 800, 1), b = readPageWidths(frames, 800, 1280, 1);
+    for (const p of new Set([...a.keys(), ...b.keys()])) {
+      expect([...both.get(p)!].sort()).toEqual([...new Set([...(a.get(p) ?? []), ...(b.get(p) ?? [])])].sort());
+    }
+    expect([...both.keys()].sort()).toEqual([...new Set([...a.keys(), ...b.keys()])].sort());
   });
 });

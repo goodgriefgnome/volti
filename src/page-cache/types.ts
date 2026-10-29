@@ -45,21 +45,8 @@ export interface Drawn {
 /** A page to keep offline, at exactly this width. */
 export interface OfflinePage { page: number; pxWidth: number; aspect: number }
 
-export interface OfflineScore {
-  id: string;
-  /** None when the original can't be read now: its pages missing stay to do. */
-  source?: PageSource;
-  pages: OfflinePage[];
-}
-
 /** A page kept offline: a score's page (from 1), at a width. */
 export interface OfflineKey { id: string; page: number; pxWidth: number }
-
-export interface OfflineProgress {
-  done: number; of: number;
-  /** Pages saved since the last progress: on the first, every page already saved. */
-  saved: OfflineKey[];
-}
 
 /** Thrown when there is no source and nothing held or saved for the request. */
 export class NotSaved extends Error { name = 'NotSaved'; }

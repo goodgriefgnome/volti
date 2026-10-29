@@ -55,3 +55,17 @@ export function readPageWidths(frames: readonly Frame[], W: number, H: number, s
   }
   return out;
 }
+
+/**
+ * The widths (CSS pixels) of every page shown reading the frames at `W`×`H` and, the screen turned,
+ * at `H`×`W`: what is kept offline, as a tablet is read in either orientation.
+ */
+export function offlinePageWidths(frames: readonly Frame[], W: number, H: number, scale: number): Map<number, Set<number>> {
+  const out = readPageWidths(frames, W, H, scale);
+  for (const [p, ws] of readPageWidths(frames, H, W, scale)) {
+    const have = out.get(p) ?? new Set<number>();
+    for (const w of ws) have.add(w);
+    out.set(p, have);
+  }
+  return out;
+}

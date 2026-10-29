@@ -9,14 +9,12 @@ import { diskBudget, worthSaving } from './_budget';
 import { Held } from './_memory';
 import { resetScheduler, schedule } from './_scheduler';
 import { Saved } from './_disk';
-import { NotSaved, type Crop, type DrawRequest, type Drawn, type OfflineKey, type OfflineProgress, type OfflineScore } from './types';
+import { NotSaved, type Crop, type DrawRequest, type Drawn, type OfflineKey } from './types';
 
 let held = new Held();
 let saved = new Saved();
 /** The keys (`id/page/pxWidth`) of the pages kept for setlists: written as soon as they are drawn. */
 let pinned = new Set<string>();
-/** Stops the keeping offline going on. */
-let keeping: AbortController | undefined;
 
 const keyOf = (id: string, page: number, pxWidth: number) => `${id}/${page}/${pxWidth}`;
 const cropKey = (c: Crop) => `${c.x},${c.y},${c.w},${c.h}`;
@@ -117,74 +115,31 @@ export async function* canvasesOf(drawn: AsyncIterable<Drawn>): AsyncGenerator<H
 }
 
 /**
- * Keep exactly these pages saved (pinned), drawing those not saved yet, two at a time, at
- * `later` priority. Pinned pages not in `scores` become ordinary saved pages. The pinned pages of
- * the ids in `keep` stay as they are (their pages couldn't be worked out). A new call stops the
- * one before; so does `signal`.
+ * Pin exactly these pages (keep them saved, drawn in the background by `saveOffline`); the pinned
+ * pages of the ids in `unknown` stay as they are (their pages couldn't be worked out), and every
+ * other pinned page becomes an ordinary saved one. Gives those of `pages` already saved at exactly
+ * their width.
  */
-export function keepOffline(scores: readonly OfflineScore[], keep: readonly string[], signal?: AbortSignal): AsyncIterable<OfflineProgress> {
-  keeping?.abort();
-  const own = keeping = new AbortController();
-  if (signal?.aborted) own.abort();
-  else signal?.addEventListener('abort', () => own.abort(), { once: true });
-  pinned = new Set(scores.flatMap((s) => s.pages.map((p) => keyOf(s.id, p.page, p.pxWidth))));
-  return keepRun(scores, keep, own.signal, pinned);
+export async function pinOffline(pages: readonly OfflineKey[], unknown: readonly string[]): Promise<OfflineKey[]> {
+  pinned = new Set(pages.map((p) => keyOf(p.id, p.page, p.pxWidth)));
+  await saved.pin(pinned, new Set(unknown));
+  const already: OfflineKey[] = [];
+  for (const p of pages) if ((await saved.widths(p.id, p.page)).includes(p.pxWidth)) already.push(p);
+  return already;
 }
 
-/** The work of keepOffline: yields how many pages are saved after each is, until done or stopped. */
-async function* keepRun(scores: readonly OfflineScore[], keep: readonly string[], signal: AbortSignal, mine: Set<string>): AsyncGenerator<OfflineProgress> {
-  await saved.pin(mine, new Set(keep));
-  let done = 0;
-  const todo: { score: OfflineScore; page: number; pxWidth: number; aspect: number }[] = [];
-  let of = 0;
-  const already: OfflineKey[] = [];
-  for (const score of scores) {
-    for (const p of score.pages) {
-      of++;
-      if (signal.aborted) return;
-      if ((await saved.widths(score.id, p.page)).includes(p.pxWidth)) {
-        done++;
-        already.push({ id: score.id, page: p.page, pxWidth: p.pxWidth });
-      } else todo.push({ score, ...p });
-    }
-  }
-  yield { done, of, saved: already };
-  // Pages finished, handed to the loop below as they come.
-  let wake: (() => void) | undefined;
-  const finished: (OfflineKey | null)[] = [];
-  let working = 0;
-  const next = () => {
-    const job = todo.shift();
-    if (!job || signal.aborted) return;
-    const { score, page, pxWidth, aspect } = job;
-    if (!score.source) return next(); // can't be drawn now: stays to do
-    working++;
-    void (async () => {
-      const key = keyOf(score.id, page, pxWidth);
-      const inMemory = held.get(key);
-      if (inMemory) await save(score.id, page, pxWidth, inMemory, true);
-      else {
-        const { canvas } = await render({ id: score.id, source: score.source, page, pxWidth, aspect, priority: 'later', signal });
-        await saved.write(score.id, page, pxWidth, canvas, true); // the write render began, if it has not finished
-      }
-    })().then(() => finished.push({ id: score.id, page, pxWidth }), (e) => {
-      if (!signal.aborted) console.warn('Could not draw a page to keep offline:', e);
-      finished.push(null);
-    }).finally(() => {
-      working--;
-      next();
-      wake?.();
-    });
-  };
-  next();
-  next();
-  while (working || finished.length) {
-    if (!finished.length) await new Promise<void>((r) => { wake = r; });
-    if (signal.aborted) return;
-    for (const key of finished.splice(0)) {
-      if (key) done++;
-      yield { done, of, saved: key ? [key] : [] };
-    }
+/**
+ * Save one pinned page: from memory if it is held, else drawn at `later` priority and written.
+ * Throws when it can't be drawn, and when `req.signal` aborts.
+ */
+export async function saveOffline(req: DrawRequest): Promise<void> {
+  const { id, page, pxWidth, signal } = req;
+  signal?.throwIfAborted();
+  const inMemory = held.get(keyOf(id, page, pxWidth));
+  if (inMemory) await save(id, page, pxWidth, inMemory, true);
+  else {
+    const { canvas } = await render({ ...req, priority: 'later' });
+    await saved.write(id, page, pxWidth, canvas, true); // the write render began, if it has not finished
   }
 }
 
@@ -196,8 +151,6 @@ export const savedBytes = (): Promise<{ setlists: number; other: number }> => sa
 
 /** For tests: forget everything held, queued and known saved, as if the app had just started. */
 export function resetPageCacheForTests(): void {
-  keeping?.abort();
-  keeping = undefined;
   pinned = new Set();
   held = new Held();
   saved = new Saved();

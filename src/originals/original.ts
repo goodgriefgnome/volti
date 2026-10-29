@@ -4,8 +4,8 @@
 // through the page cache (page-cache/), and stores their aspects by id.
 
 import { readImage } from './_image-source';
-import { drawPage, drawPageProgressive, hasSaved, keepOffline } from '../page-cache/cache';
-import { NotSaved, type DrawRequest, type OfflinePage, type OfflineProgress, type PageSource } from '../page-cache/types';
+import { drawPage, drawPageProgressive, hasSaved, saveOffline } from '../page-cache/cache';
+import { NotSaved, type DrawRequest, type OfflinePage, type PageSource } from '../page-cache/types';
 import type { Content, Readable } from './_types';
 import { _contents, _noteContents } from './_record-store';
 import { sourceFor } from './_sources';
@@ -61,13 +61,10 @@ async function storeAspects(id: string, aspects: number[]) {
   await _noteContents(id, { aspects });
 }
 
-/** page-cache's keepOffline, for originals: each entry's source is its Original's, if it has one. */
-export function keepPagesOffline(
-  entries: readonly { id: string; original?: Original; pages: OfflinePage[] }[],
-  keep: readonly string[],
-  signal?: AbortSignal,
-): AsyncIterable<OfflineProgress> {
-  return keepOffline(entries.map((e) => ({ id: e.id, source: e.original instanceof FileOriginal ? e.original.source : undefined, pages: e.pages })), keep, signal);
+/** page-cache's saveOffline, for originals: draws the page from the original's source. */
+export async function savePageOffline(o: Original, page: OfflinePage, signal: AbortSignal): Promise<void> {
+  if (!(o instanceof FileOriginal)) throw new NotSaved(`${o.id} can't be drawn`);
+  return saveOffline({ id: o.id, source: o.source, page: page.page, pxWidth: page.pxWidth, aspect: page.aspect, priority: 'later', signal });
 }
 
 /** An original: its file's id, path, moving and removing, and itself as what reading it gives. */

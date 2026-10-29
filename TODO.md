@@ -13,81 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **The pages kept offline are worked out and saved score by score, for both orientations.**
-  Today the offline job (`make`, `library/_offline-pages.ts`) reads the original of every score
-  in a live setlist, works out the pages its entries need at the screen's size in its current
-  orientation, and hands every original to the page cache's `keepOffline`
-  (`page-cache/cache.ts`), which pins those pages, unpins every other pinned page, and draws the
-  missing ones across all scores, reporting each as an `OfflineProgress`. Two problems:
-  - Every original is held for the whole run, so once originals keep their file open (the item
-    after this one), every score measured or drawn stays open until the run ends.
-  - On Android `screen.width` and `screen.height` swap with the orientation, so a run pins one
-    orientation's pages and unpins the other's, which then can be evicted: a run while the
-    tablet is upright undoes the landscape pages.
-
-  After this:
-  - The pages pinned are those the setlists' entries need at the screen's size in **both**
-    orientations (`W`×`H` and `H`×`W`). Twice the pages and the drawing, for now; choosing the
-    orientation per frame is for later (see "How the pages kept offline are worked out" under
-    Confirmed features which require more thought).
-  - An original is read only when it is needed, and used within one block: to measure a score
-    whose aspects aren't stored, and to draw a score's missing pages. A score whose pages are all
-    saved isn't read at all.
-  - Statuses are as now: counts while saving, `ready`, and for a setlist with pages missing once
-    the run has finished, why (access, password, missing). A page that fails to draw stays
-    missing.
-
-  One commit.
-  - **`render/screen.ts`:** add
-    `export function offlinePageWidths(frames: readonly Frame[], W: number, H: number, scale: number): Map<number, Set<number>>`:
-    `readPageWidths` at `W`×`H` and at `H`×`W`, merged (each page's widths, both ways). Test in
-    `screen.test.ts`: on a square screen it equals `readPageWidths`; on 1280×800 it holds every
-    width of `readPageWidths(…, 1280, 800, …)` and of `readPageWidths(…, 800, 1280, …)`, and
-    nothing else.
-  - **`page-cache/cache.ts`:** in place of `keepOffline` and `keepRun`, and the `keeping`
-    controller:
-    - `export async function pinOffline(pages: readonly OfflineKey[], unknown: readonly string[]): Promise<OfflineKey[]>`:
-      pin exactly `pages` (sets `pinned`, then `saved.pin`), leaving the pins of the ids in
-      `unknown` as they are (their pages aren't known this run); returns those of `pages` already
-      saved at exactly their width, as `keepRun` works them out now.
-    - `export async function saveOffline(req: DrawRequest): Promise<void>`: save one pinned
-      page: from memory if it is held, else drawn by `render` at `later` priority and written
-      pinned, as `keepRun`'s `next` does now. It throws when the page can't be drawn, and on
-      abort.
-    - `resetPageCacheForTests` no longer has `keeping` to stop. Fix the file's comment.
-  - **`page-cache/types.ts`:** remove `OfflineScore` and `OfflineProgress`; keep `OfflinePage`
-    and `OfflineKey`.
-  - **`originals/original.ts`:** in place of `keepPagesOffline`,
-    `export function savePageOffline(o: Original, page: OfflinePage, signal: AbortSignal): Promise<void>`:
-    `saveOffline` with `o`'s source (a `FileOriginal`'s; any other kind of original throws
-    `NotSaved`).
-  - **`library/_offline-pages.ts`, `make`:** stopping the run before stays as it is (`running`).
-    1. For each score in a live setlist: its aspects from `knownAspects`; failing that, read its
-       original, measure it (`aspects()`) and let it go, all in one block. A score with no file,
-       or one that can't be read (note why in `blocked`, as now), and no aspects, goes in
-       `unknown`. Work out each entry's keys as now, with `offlinePageWidths` in place of
-       `readPageWidths`.
-    2. `pinOffline(all the pages, unknown)`; add those already saved to `saved`, and tell.
-    3. For each score with pages not saved: no file: `blocked` is `missing`; else read its
-       original (a failure: note why in `blocked`, and go on to the next score), and
-       `savePageOffline` each missing page in turn, adding each saved one to `saved` and telling
-       (at most every 250 ms, as now). A page that fails: warn, and go on. Stop when `signal`
-       aborts. The original is let go of at the end of the block.
-    4. Tell once more, finished.
-
-    Keep the statuses of setlists with a score in `unknown`, as now. Fix the comments.
-  - **Tests:** `offlinePageWidths` as above; the page cache's offline part works on OPFS and
-    canvases, which vitest doesn't have. `npm test` and `npm run build` pass.
-  - **Manual check:**
-    1. With the tablet in landscape, let a setlist finish saving; then in airplane mode, play it
-       in landscape and in portrait: every page is sharp at once, with no blurred stand-in first.
-    2. Restart Volti with the tablet upright: the setlist stays ready (the landscape pages aren't
-       unpinned), and the setlists section's saved size doesn't drop.
-    3. With the scores folder locked, a setlist with pages still to save says it needs access;
-       with a PDF whose password isn't given, it says that score needs its password.
-    4. While a setlist saves, open a score from the library: it shows as quickly as with nothing
-       saving.
-
 - **Every original is closed when done with, and its file is opened once while it is used.**
   Today an original (`FileOriginal`, `originals/original.ts`) is never closed: holders drop it to
   garbage collection, and `_sources.ts` guesses when a file is no longer wanted: it closes it 5 s
@@ -207,6 +132,15 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - In the installed app, with the tablet in landscape, let a setlist of portrait PDF pages finish
     saving, then turn on airplane mode and play it: each page is sharp at once, with no blurred
     stand-in first.
+- **Offline pages, score by score, for both orientations:**
+  1. With the tablet in landscape, let a setlist finish saving; then in airplane mode, play it
+     in landscape and in portrait: every page is sharp at once, with no blurred stand-in first.
+  2. Restart Volti with the tablet upright: the setlist stays ready (the landscape pages aren't
+     unpinned), and the setlists section's saved size doesn't drop.
+  3. With the scores folder locked, a setlist with pages still to save says it needs access;
+     with a PDF whose password isn't given, it says that score needs its password.
+  4. While a setlist saves, open a score from the library: it shows as quickly as with nothing
+     saving.
 - **Full screen at the tap:**
   1. With the scores folder open, open a PDF score, an image score and a setlist from the library:
      full screen starts at the tap, and the first screen shows once, at full size, with no jump.
