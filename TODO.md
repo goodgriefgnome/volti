@@ -13,58 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **The reader goes full screen at the tap, and draws its first screen only once it is.** Today
-  `Reader`'s constructor asks for full screen (`reader/reader.ts`) only after `openReader` has
-  loaded the setlists, opened the pages and loaded the score, in the same step as the first
-  `goTo`. The first screen is drawn at the window's size; then the stage grows, and 150 ms later
-  the `ResizeObserver` draws it again for the new size: the score shows, then jumps down (and a
-  PDF page whose width follows the height is drawn twice). It also only works while Chrome still
-  counts the tap as recent.
-
-  Checked on the tablet: `requestFullscreen()`'s promise settles with the stage already at its
-  full size; and asking for full screen uses up the tap, so asking for access to the scores folder
-  after it fails ("User activation is required"). The other way round, access then full screen,
-  works only if access is allowed within the few seconds Chrome counts the tap as recent: no
-  better than today's order, so the locked case below keeps it.
-
-  After this:
-  - Opening a score, an excerpt or a setlist from the library asks for full screen as the tap is
-    handled, and the reader draws its first screen only once that has settled (gone full screen
-    or failed): drawn once, at full size.
-  - Except while the scores folder is locked and a score or an excerpt is opened: opening it may
-    have to ask for access, which needs the tap. Then the reader asks for full screen itself, as
-    today, and still draws only once that has settled. (A setlist doesn't ask for access as it
-    opens, so it goes full screen at the tap even then.)
-  - A score that fails to open leaves full screen before the library shows again.
-
-  One commit.
-  - **`library/library.ts`, `read()`:** as its first line, before anything is awaited:
-    `const fullscreen = this.folder.kind === 'locked' && what.kind !== 'setlist' ? undefined : document.documentElement.requestFullscreen?.().catch(() => {});`
-    with a comment saying why (full screen uses up the tap, which asking for access needs). Pass
-    it to `openReader`. In the `catch`, leave full screen first
-    (`if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});`), then
-    show the library, as `Reader.close()` does, so its scroll isn't undone.
-  - **`reader/reader.ts`:**
-    - `openReader(what: ToRead, onClose: (fileChanges: FileChange[]) => void, fullscreen?: Promise<void>)`,
-      handing `fullscreen` to `Reader`'s constructor as a new parameter.
-    - In the constructor, in place of the `requestFullscreen` line:
-      `const full = fullscreen ?? document.documentElement.requestFullscreen?.().catch(() => {}) ?? Promise.resolve();`
-      then `void full.then(() => { void this.goTo(k, position); this.observer.observe(this.stage); });`
-      in place of the `goTo` and `observe` calls. Both wait: the observer's first report would
-      otherwise show the screen before `goTo` has chosen it.
-    - `close()` stays as it is.
-  - **Tests:** full screen can't be tried under vitest; `npm test` and `npm run build` pass.
-  - **Manual check:**
-    1. With the scores folder open, open a PDF score, an image score and a setlist from the
-       library: full screen starts at the tap, and the first screen shows once, at full size,
-       with no jump.
-    2. Close Volti so the scores folder locks (the library says so), then open a score: access is
-       asked for and the score opens (going full screen as late as before, or not at all if
-       Chrome refuses it). Open a setlist while locked: it goes full screen at the tap.
-    3. A score that fails to open (refuse its password): the library shows again, not in full
-       screen, at the place it was scrolled to.
-    4. Going back to the library still leaves full screen, at the place it was scrolled to.
-
 - **A PDF that opens without a password is marked checked by any read, not only a tap.** Today
   `''` (checked, needs no password) is stored only when the read has a way to ask: in `readPdf`
   for a PDF `encrypted` says isn't encrypted (`if (ask)`), and in `Passwords.keep` for an
@@ -114,6 +62,15 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - In the installed app, with the tablet in landscape, let a setlist of portrait PDF pages finish
     saving, then turn on airplane mode and play it: each page is sharp at once, with no blurred
     stand-in first.
+- **Full screen at the tap:**
+  1. With the scores folder open, open a PDF score, an image score and a setlist from the library:
+     full screen starts at the tap, and the first screen shows once, at full size, with no jump.
+  2. Close Volti so the scores folder locks (the library says so), then open a score: access is
+     asked for and the score opens (going full screen as late as before, or not at all if Chrome
+     refuses it). Open a setlist while locked: it goes full screen at the tap.
+  3. A score that fails to open (refuse its password): the library shows again, not in full
+     screen, at the place it was scrolled to.
+  4. Going back to the library still leaves full screen, at the place it was scrolled to.
 - **Reader's middle tap and band icons:**
   1. With the toolbar hidden, press near the left and right edges, and just inside 40% from each
      side: the page turns as the finger goes down.

@@ -64,7 +64,7 @@ const sameLayout = (a: readonly Cut[], b: readonly Cut[]) =>
 
 
 /** Open a score, or a setlist as one continuous score. A score that can't be opened throws; a setlist carries on past it. */
-export async function openReader(what: ToRead, onClose: (fileChanges: FileChange[]) => void): Promise<void> {
+export async function openReader(what: ToRead, onClose: (fileChanges: FileChange[]) => void, fullscreen?: Promise<void>): Promise<void> {
   const setlists = await loadSetlists();
   if (what.kind !== 'setlist') {
     const { original } = what;
@@ -76,8 +76,8 @@ export async function openReader(what: ToRead, onClose: (fileChanges: FileChange
     const last = await loadLastRead();
     if (what.kind === 'excerpt') {
       const excerpt = ends(what.excerpt);
-      new Reader([item], { kind: 'excerpt', excerpt }, setlists, first, 0, resumeAt(last, { kind: 'excerpt', id: original.id, ...excerpt })?.cut, onClose);
-    } else new Reader([item], { kind: 'score' }, setlists, first, 0, resumeAt(last, { kind: 'excerpt', id: original.id })?.cut, onClose, what.library);
+      new Reader([item], { kind: 'excerpt', excerpt }, setlists, first, 0, resumeAt(last, { kind: 'excerpt', id: original.id, ...excerpt })?.cut, onClose, [], fullscreen);
+    } else new Reader([item], { kind: 'score' }, setlists, first, 0, resumeAt(last, { kind: 'excerpt', id: original.id })?.cut, onClose, what.library, fullscreen);
     return;
   }
   const setlist = setlists.find((s) => s.id === what.setlistId);
@@ -91,7 +91,7 @@ export async function openReader(what: ToRead, onClose: (fileChanges: FileChange
     const found = at ? items.findIndex((it) => it.entryId === at.entry) : -1;
     if (found >= 0) { k = found; position = at!.cut; }
   }
-  new Reader(items, { kind: 'setlist', id: setlist.id }, setlists, null, k, position, onClose, what.originals);
+  new Reader(items, { kind: 'setlist', id: setlist.id }, setlists, null, k, position, onClose, what.originals, fullscreen);
 }
 
 /**
@@ -162,6 +162,8 @@ class Reader {
     private onClose: (fileChanges: FileChange[]) => void,
     /** The library's scores; in a score's own reader, in the library's order, to turn to. */
     private library: readonly SourceFile[] = [],
+    /** Full screen already asked for at the tap, if it was; the first screen is drawn once it settles. */
+    fullscreen?: Promise<void>,
   ) {
     this.reading = new Reading(items, what, setlists);
     this.scores = new OpenScores(items, first);
@@ -263,10 +265,11 @@ class Reader {
     window.addEventListener('popstate', this.onPop);
     history.pushState({ reader: true }, '');
 
-    void document.documentElement.requestFullscreen?.().catch(() => {});
+    // The first screen waits for full screen, to be drawn once at full size; the observer too, as
+    // its first report would show the screen before `goTo` has chosen it.
+    const full = fullscreen ?? document.documentElement.requestFullscreen?.().catch(() => {}) ?? Promise.resolve();
     void this.requestWake();
-    void this.goTo(k, position);
-    this.observer.observe(this.stage);
+    void full.then(() => { void this.goTo(k, position); this.observer.observe(this.stage); });
   }
 
   /* ---------- the scores read ---------- */

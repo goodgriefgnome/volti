@@ -421,6 +421,9 @@ export class Library implements LibraryHost {
   }
 
   private async read(what: ToRead, failed: string) {
+    // Asked for first, as the tap is handled. Full screen uses up the tap, which asking for access
+    // to a locked scores folder needs: then the reader asks for it itself, after.
+    const fullscreen = this.folder.kind === 'locked' && what.kind !== 'setlist' ? undefined : document.documentElement.requestFullscreen?.().catch(() => {});
     this.say('');
     closeOverlay();
     this.toast.hide();
@@ -441,8 +444,10 @@ export class Library implements LibraryHost {
     try {
       // Opening is a tap, so a score's original can ask for access to the scores folder for this
       // session. A setlist plays without it from its saved pages, asking for a page that isn't.
-      await openReader(what, back);
+      await openReader(what, back, fullscreen);
     } catch (e) {
+      // Leave full screen first, as `Reader.close()` does, so the library's scroll isn't undone.
+      if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
       this.root.hidden = false;
       if (e instanceof NoAccess) { this.say(NO_ACCESS); return; }
       console.error(e);
