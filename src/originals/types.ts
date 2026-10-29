@@ -1,6 +1,6 @@
 // The public types of originals/: source files and originals, what an original gives as a PDF, the
 // state of the linked folder, passwords, removed files, and the errors thrown
-// when a file can't be read for want of access or a password.
+// when a file can't be read for want of access or a password, or a folder can't be linked.
 
 import type { Crop, Drawn, Priority } from '../page-cache/types';
 
@@ -81,6 +81,11 @@ export interface RenderedPdf {
 /** The scores folder can't be read, or changed, as access to it isn't allowed. */
 export class NoAccess extends Error {
   name = 'NoAccess';
+}
+
+/** The folder picker wouldn't give the folder chosen, as Android does for Download itself and the top of internal storage. */
+export class FolderRefused extends Error {
+  name = 'FolderRefused';
 }
 
 /** A removed file: its id, where it was in the library, and when it was removed (ms since 1970). */

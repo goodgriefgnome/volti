@@ -141,7 +141,8 @@ interface FolderLink {
 }
 ```
 
-Missing until a folder is first linked.
+Missing until a folder is first linked. Before records, this key held the linked folder's bare
+handle. That still reads as `{ handle, linked: true }`, so a folder linked then stays linked.
 
 - **Linking** a folder that is the same as the stored handle (`handle.isSameEntry`) keeps every
   `folder` record, so nothing is hashed again.

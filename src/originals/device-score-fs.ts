@@ -5,7 +5,7 @@
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
 import { _loadRecords, _records, _updateRecords } from './_record-store';
-import { NoAccess, type FolderState } from './types';
+import { FolderRefused, NoAccess, type FolderState } from './types';
 
 /** What is stored under `folder`: the handle, kept after unlinking to tell whether a folder linked later is the same one. */
 interface FolderLink { handle: FileSystemDirectoryHandle; linked: boolean }
@@ -21,7 +21,18 @@ export async function _linked(): Promise<FileSystemDirectoryHandle | undefined> 
   return dir;
 }
 
-const storedLink = () => kv.get<FolderLink>(keys.folder);
+/**
+ * What is stored under `folder`, as a FolderLink. Before records, it held the bare handle of the
+ * linked folder: that reads as linked.
+ */
+export function _asLink(v: unknown): FolderLink | undefined {
+  if (!v || typeof v !== 'object') return undefined;
+  if ('handle' in v) return v as FolderLink;
+  if ((v as { kind?: unknown }).kind === 'directory') return { handle: v as FileSystemDirectoryHandle, linked: true };
+  return undefined;
+}
+
+const storedLink = async () => _asLink(await kv.get<unknown>(keys.folder));
 
 /** Whether a folder is linked, read afresh from storage: for the service worker, which has no state. */
 export const _isLinked = async () => (await storedLink())?.linked === true;
@@ -42,7 +53,7 @@ export async function linkFolder(): Promise<boolean> {
     picked = await window.showDirectoryPicker({ id: 'volti-scores', mode: 'readwrite' });
   } catch (e) {
     if ((e as DOMException).name === 'AbortError') return false;
-    throw e;
+    throw new FolderRefused(`The folder picker failed: ${(e as Error).message}`);
   }
   // The same folder as before keeps its records, so nothing is hashed again; another folder's files are not these.
   const old = await storedLink();

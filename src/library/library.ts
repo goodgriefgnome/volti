@@ -15,7 +15,7 @@ import { arrivals, byFolder, byTitle, titleOf } from '../originals/path-utils';
 import { folderState, linkFolder, unlinkFolder, unlockFolder } from '../originals/device-score-fs';
 import { knownTitles, libraryFiles } from '../originals/library-files';
 import { inboxFiles, leftInApp } from '../originals/misc-files';
-import { NoAccess, PasswordNotGiven, type FolderState, type SourceFile } from '../originals/types';
+import { FolderRefused, NoAccess, PasswordNotGiven, type FolderState, type SourceFile } from '../originals/types';
 import { openReader, type ToRead } from '../reader/reader';
 import { knownAspects } from '../originals/original';
 import { loadSavedScore, scoreEntry } from '../scores/store';
@@ -179,7 +179,9 @@ export class Library implements LibraryHost {
     try {
       if (!(await linkFolder())) return;
     } catch (e) {
-      this.say('That folder cannot be linked. Android blocks the Download folder itself and the top of internal storage; pick a folder inside them, such as Download/Scores.');
+      this.say(e instanceof FolderRefused
+        ? 'That folder cannot be linked. Android blocks the Download folder itself and the top of internal storage; pick a folder inside them, such as Download/Scores.'
+        : `Could not link the folder (${(e as Error).name}).`);
       console.error(e);
       return;
     }
