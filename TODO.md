@@ -13,6 +13,172 @@ scores.
 
 ## Work for the immediate future
 
+- **The pages kept offline are worked out and saved score by score, for both orientations.**
+  Today the offline job (`make`, `library/_offline-pages.ts`) reads the original of every score
+  in a live setlist, works out the pages its entries need at the screen's size in its current
+  orientation, and hands every original to the page cache's `keepOffline`
+  (`page-cache/cache.ts`), which pins those pages, unpins every other pinned page, and draws the
+  missing ones across all scores, reporting each as an `OfflineProgress`. Two problems:
+  - Every original is held for the whole run, so once originals keep their file open (the item
+    after this one), every score measured or drawn stays open until the run ends.
+  - On Android `screen.width` and `screen.height` swap with the orientation, so a run pins one
+    orientation's pages and unpins the other's, which then can be evicted: a run while the
+    tablet is upright undoes the landscape pages.
+
+  After this:
+  - The pages pinned are those the setlists' entries need at the screen's size in **both**
+    orientations (`W`×`H` and `H`×`W`). Twice the pages and the drawing, for now; choosing the
+    orientation per frame is for later (see "How the pages kept offline are worked out" under
+    Confirmed features which require more thought).
+  - An original is read only when it is needed, and used within one block: to measure a score
+    whose aspects aren't stored, and to draw a score's missing pages. A score whose pages are all
+    saved isn't read at all.
+  - Statuses are as now: counts while saving, `ready`, and for a setlist with pages missing once
+    the run has finished, why (access, password, missing). A page that fails to draw stays
+    missing.
+
+  One commit.
+  - **`render/screen.ts`:** add
+    `export function offlinePageWidths(frames: readonly Frame[], W: number, H: number, scale: number): Map<number, Set<number>>`:
+    `readPageWidths` at `W`×`H` and at `H`×`W`, merged (each page's widths, both ways). Test in
+    `screen.test.ts`: on a square screen it equals `readPageWidths`; on 1280×800 it holds every
+    width of `readPageWidths(…, 1280, 800, …)` and of `readPageWidths(…, 800, 1280, …)`, and
+    nothing else.
+  - **`page-cache/cache.ts`:** in place of `keepOffline` and `keepRun`, and the `keeping`
+    controller:
+    - `export async function pinOffline(pages: readonly OfflineKey[], unknown: readonly string[]): Promise<OfflineKey[]>`:
+      pin exactly `pages` (sets `pinned`, then `saved.pin`), leaving the pins of the ids in
+      `unknown` as they are (their pages aren't known this run); returns those of `pages` already
+      saved at exactly their width, as `keepRun` works them out now.
+    - `export async function saveOffline(req: DrawRequest): Promise<void>`: save one pinned
+      page: from memory if it is held, else drawn by `render` at `later` priority and written
+      pinned, as `keepRun`'s `next` does now. It throws when the page can't be drawn, and on
+      abort.
+    - `resetPageCacheForTests` no longer has `keeping` to stop. Fix the file's comment.
+  - **`page-cache/types.ts`:** remove `OfflineScore` and `OfflineProgress`; keep `OfflinePage`
+    and `OfflineKey`.
+  - **`originals/original.ts`:** in place of `keepPagesOffline`,
+    `export function savePageOffline(o: Original, page: OfflinePage, signal: AbortSignal): Promise<void>`:
+    `saveOffline` with `o`'s source (a `FileOriginal`'s; any other kind of original throws
+    `NotSaved`).
+  - **`library/_offline-pages.ts`, `make`:** stopping the run before stays as it is (`running`).
+    1. For each score in a live setlist: its aspects from `knownAspects`; failing that, read its
+       original, measure it (`aspects()`) and let it go, all in one block. A score with no file,
+       or one that can't be read (note why in `blocked`, as now), and no aspects, goes in
+       `unknown`. Work out each entry's keys as now, with `offlinePageWidths` in place of
+       `readPageWidths`.
+    2. `pinOffline(all the pages, unknown)`; add those already saved to `saved`, and tell.
+    3. For each score with pages not saved: no file: `blocked` is `missing`; else read its
+       original (a failure: note why in `blocked`, and go on to the next score), and
+       `savePageOffline` each missing page in turn, adding each saved one to `saved` and telling
+       (at most every 250 ms, as now). A page that fails: warn, and go on. Stop when `signal`
+       aborts. The original is let go of at the end of the block.
+    4. Tell once more, finished.
+
+    Keep the statuses of setlists with a score in `unknown`, as now. Fix the comments.
+  - **Tests:** `offlinePageWidths` as above; the page cache's offline part works on OPFS and
+    canvases, which vitest doesn't have. `npm test` and `npm run build` pass.
+  - **Manual check:**
+    1. With the tablet in landscape, let a setlist finish saving; then in airplane mode, play it
+       in landscape and in portrait: every page is sharp at once, with no blurred stand-in first.
+    2. Restart Volti with the tablet upright: the setlist stays ready (the landscape pages aren't
+       unpinned), and the setlists section's saved size doesn't drop.
+    3. With the scores folder locked, a setlist with pages still to save says it needs access;
+       with a PDF whose password isn't given, it says that score needs its password.
+    4. While a setlist saves, open a score from the library: it shows as quickly as with nothing
+       saving.
+
+- **Every original is closed when done with, and its file is opened once while it is used.**
+  Today an original (`FileOriginal`, `originals/original.ts`) is never closed: holders drop it to
+  garbage collection, and `_sources.ts` guesses when a file is no longer wanted: it closes it 5 s
+  after its last draw, unless it is the one drawn last. And `FileOriginal.aspects()`, where the
+  aspects aren't stored, opens `content.pages()` itself and destroys them, outside the shared
+  source, so an original opened for the first time reads its file and opens it (in pdf.js, or
+  decodes its image) twice: once to measure it, and again for the first draw.
+
+  After this:
+  - An original is closed by whoever got it, exactly once. A file is open (in pdf.js, or decoded)
+    from its first use (measuring it or drawing it) for as long as any original of its id isn't
+    closed; when the last one is closed, it closes at once. No timer.
+  - Measuring a score and drawing it use the same open file.
+  - Closing an original more times than it was got, or using it after its last close, throws.
+  - The rules, written in the comment on `Original` in `originals/types.ts`, with no exceptions:
+    1. Whoever gets an original (`SourceFile.read()`, `Original.read()`, `openScore`) closes
+       it, exactly once.
+    2. A function given an original only borrows it: it never closes it, and its caller keeps it
+       open until the function's promise settles.
+    3. Keeping an original past one's own promise (in a field, or in a closure that runs later)
+       means getting it again with `read()`, and closing that.
+
+  Two commits, in order. The first leaves the 5 s timer in place, so nothing changes yet but who
+  closes what; the second counts.
+
+  **First commit: `close()`, and every holder calls it.**
+  - **`originals/types.ts`:** `Original` gains `close(): void`; `read()` on an original returns
+    the same original, got once more, to close once more. Write the three rules above in
+    `Original`'s comment.
+  - **`originals/original.ts`, `FileOriginal`:** a count of how often it has been got, starting
+    at 1: `read()` adds 1 and returns `this`; `close()` takes 1 off, and throws
+    `Error('Closed more often than it was got')` at 0. `read()`, `aspects()`, `draw()`,
+    `drawProgressive()` and `pdf()` on an original at 0 throw `Error('Used after it was closed')`.
+  - **Holders:**
+    - **`reader/_open-scores.ts`:** `openPages` returns a `close` with what it returns now: the
+      original's `close()`; nothing for `savedPages`. When measuring it fails, it closes the
+      original before throwing. `OpenScore` gets `close?: () => void`, set and cleared with
+      `draw`; wherever `draw` is dropped (`keepNear`, `accessAllowed`, `destroy`), call it first.
+      In `open`, an original opened after the reader closed is closed. `adopt` closes the score
+      it replaces, if that has one open.
+    - **`reader/reader.ts`:** `openReader` closes the first score's original if anything after
+      `openPages` throws. `turnToScore` closes what it opened when the reader has closed, or when
+      `loadScore` throws.
+    - **`dialogs/open-score.ts`:** `LibraryScore` becomes `ExcerptSource & { close(): void }`;
+      `openScore` closes the original if anything after `read` throws.
+    - **`library/library.ts`, `withPages`:** after `pick(sc)` (which opens its dialog),
+      `whenOverlayCloses(() => sc.close())`.
+    - **`library/_setlists-section.ts`, `chooseExcerpt`:** the same, after `openExcerptPicker`.
+    - **`dialogs/add-scores.ts`, `showPreview`:** a score opened after the dialog closed is
+      closed at once; otherwise `whenOverlayCloses(() => sc.close())`. Each preview is its own
+      original, closed once.
+    - **`library/_incoming.ts`, `showPreview`:** close the original when the dialog finishes
+      (`whenOverlayCloses`), or at once if it already has.
+    - **`library/_offline-pages.ts`:** each block that reads an original closes it in a
+      `finally`.
+    - **`dialogs/passwords.ts`, `givePassword`:** close what it read.
+    - **`export/pdf.ts`:** `drawnOriginals` closes each original after `pdf()`; `open` closes
+      its original before returning (the `Source` keeps only the PDF's bytes).
+  - **Tests:** none can open a `FileOriginal` under vitest. `npm test` and `npm run build` pass.
+
+  **Second commit: one open file per id, closed with its last original.**
+  - **`originals/_types.ts`:** `OpenPages.destroy()` becomes `close()`; rename it in
+    `PdfSource`, `ImageSource`, `checkPassword` and `pagesDrawn` (`_pdf-source.ts`).
+  - **`originals/_sources.ts`:** in place of `sourceFor`, the timer and `last`:
+    `export function sharePages(id: string, content: Content): SharedPages`, with
+    `interface SharedPages { use(): Promise<OpenPages>; close(): void }`. Each call is one
+    reference to `id`'s pages. `use()` opens them on first use (`content.pages()`), shared by
+    every reference to the id; a failed opening is forgotten, so the next `use()` tries again.
+    `close()` ends the reference, and when it is the id's last, closes the pages at once (once
+    open) and forgets the id; one `close()` too many throws. A newer reference's `content`
+    replaces the id's while its pages aren't open, as now. Fix the file's comment.
+  - **`originals/original.ts`, `FileOriginal`:** its constructor calls `sharePages`, once per
+    `FileOriginal`; when its own count reaches 0, it closes that. Its `source.draw` is
+    `(await shared.use()).draw(…)`, and `aspects()` measures `await shared.use()` without closing
+    it.
+  - **`_sources.test.ts`:** rewrite for `sharePages`:
+    - a reference alone opens nothing; two references of an id share one opening
+    - the pages close when the last reference closes, not before
+    - a `close()` too many throws
+    - a failed opening rejects, and the next `use()` opens again
+    - a reference taken after the id's pages closed opens them again
+  - **Manual check:**
+    1. Open a long PDF never opened before: it opens noticeably sooner than before, as it is
+       read and opened once.
+    2. Turn through a long setlist and back, go back to the library and open the same score
+       again, choose an excerpt, add scores to a setlist with previews, add a file shared to
+       Volti, export a setlist: no "Closed more often than it was got" or "Used after it was
+       closed" in the console (`chrome://inspect`).
+    3. With a setlist saving in the background, read a score in it and turn pages quickly: no
+       "Could not draw this page".
+
 ## Manual check
 
 Things to try on the tablet, grouped so each group can be done in one go. Some groups need
@@ -174,18 +340,22 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   only while its aspects aren't stored yet. Reading such a score draws every page up front too.
   To work out: where the drawn PDF should be kept, and for how long (it can be large), and
   whether the reason can be known without drawing.
-- **`Original.aspects()` opens the pages outside the shared source**: where an original's aspects
-  aren't stored yet, `aspects()` (`originals/original.ts`) opens `content.pages()` itself and
-  destroys them, rather than through its id's source in `_sources.ts`. So an original drawn for
-  the first time is opened in pdf.js twice, once for its aspects and once by the source that draws
-  it (for one whose pages have to be drawn, `pagesDrawn` runs twice). Once per original, as the
-  aspects are then stored. The fix is for `_sources.ts` to give the open pages to `aspects()` too,
-  counted as a use, so the 5 s close applies to it.
-- **Naming what `keepOffline` is given** (`page-cache/types.ts`): `OfflineScore` is an
-  original's pages to pin (its id is the original's, and nothing of a score's cuts or ink is in
-  it), and `OfflinePage` one cache entry to pin (a page at an exact width, with its aspect). Rename
-  them to say so, as `PinnedOriginal` and `PinnedPage` say, or pass a `Map` of pinned pages by id
-  with the sources alongside; `keepPagesOffline` (`originals/original.ts`) and the maker follow.
+- **How the pages kept offline are worked out** [needs thought]: the offline job works out the
+  widths each setlist's pages are drawn at from the screen's size, in both orientations, and pins
+  exactly those (`library/_offline-pages.ts`). Open:
+  - A score whose aspects were never measured and whose file can't be read now (folder locked, no
+    password): neither its pages nor their widths can be worked out, as a score's cuts, its frames'
+    shapes and the widths a screen shows them at all follow from its pages' aspects. Its earlier
+    pins are left as they are, and its setlist waits.
+  - Both orientations double the pages and the drawing. Eventually the user says which
+    orientation each frame is played in, and only that is kept.
+  - It assumes the reader fills the screen: if full screen is refused, the stage is the window,
+    and a saved page only serves a request within 1% of its width (`page-cache/_match.ts`).
+  - A change of `devicePixelRatio` (display size in Android's settings) changes every width.
+- **Naming what is pinned** (`page-cache/types.ts`): `OfflinePage` is one cache entry to pin (a
+  page at an exact width, with its aspect), and `OfflineKey` one pinned page. Rename them to say
+  so, as `PinnedPage` and `PinnedKey` would; `pinOffline`, `saveOffline` and the offline job
+  follow.
 - **Showing whether storage is persistent:** `main.ts` asks for it (`navigator.storage.persist()`)
   at each start and ignores the answer, and nothing shows it. Chrome grants it by itself, mostly
   to an installed app; in a browser tab it may not, and then Volti's own folder (scores added
@@ -258,8 +428,7 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     whole file. To be confirmed on the tablet: time `encrypted` alone against reading the whole
     file. (Before pdf-lib was dropped, every open paid this, unnoticed among the rest.)
   - For a file never opened, `Original.aspects()` (`originals/original.ts`) also opens the PDF in
-    pdf.js to measure every page (see "`Original.aspects()` opens the pages outside the shared
-    source" above), and no page of it is saved yet.
+    pdf.js to measure every page, and no page of it is saved yet.
 
   The idea: inspect a file as it arrives (found in the scores folder when it is read, shared to
   Volti, or added), in the background, so its password check (and its aspects) are stored before
