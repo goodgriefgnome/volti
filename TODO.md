@@ -236,25 +236,29 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
 - **Exporting the library** (scores, setlists, markings, reading positions) as files, for backup
   and for moving to another device; probably written into the linked scores folder.
 - **The first open of a PDF still lags** [needs thought]: opening a score is much faster since
-  PDFs skip pdf-lib, but the first time a file is opened is still noticeably slow. What only the
-  first open does:
-  - `readPdf` (`originals/_pdf-source.ts`) reads the file's two 64 KB ends (`encrypted`), and for
-    an encrypted one opens it with pdf.js to check its password.
-  - `Original.aspects()` (`originals/original.ts`), with no aspects stored, opens the PDF in pdf.js
-    and fetches every page to measure it, then closes it; the shared source then opens it again
-    to draw (see "`Original.aspects()` opens the pages outside the shared source" above). For a
-    long PDF this is likely more than `encrypted`; to be measured on the tablet.
-  - No page of it is saved yet, so the first screen is drawn from the PDF.
+  PDFs skip pdf-lib, but the first time a file is opened since then is still noticeably slow, even
+  for files opened before, whose aspects are stored. For those, what only the first open does is
+  `readPdf`'s check (`originals/_pdf-source.ts`): `f.file()`, then `encrypted`, which reads the
+  file's first and last 64 KB (and for an encrypted one, a pdf.js open to check its password).
+  - Reading 128 KB should be quick; the suspicion is the last 64 KB. A file in the linked folder
+    is read through Android's storage framework, which may get to its end by reading through the
+    whole file. To be confirmed on the tablet: time `encrypted` alone against reading the whole
+    file. (Before pdf-lib was dropped, every open paid this, unnoticed among the rest.)
+  - For a file never opened, `Original.aspects()` (`originals/original.ts`) also opens the PDF in
+    pdf.js to measure every page (see "`Original.aspects()` opens the pages outside the shared
+    source" above), and no page of it is saved yet.
 
   The idea: inspect a file as it arrives (found in the scores folder when it is read, shared to
-  Volti, or added), in the background, so its aspects and password check are stored before it is
-  first opened. Perhaps its first page drawn and saved too.
+  Volti, or added), in the background, so its password check (and its aspects) are stored before
+  it is first opened.
+  - A background check may store `''` for a PDF that needs no password; one that needs a password
+    stays unchecked until it is tapped, as it can't be asked for.
   - To work out: where arrivals are noticed (`library-files.ts`'s reading of the folder, the
-    inbox, adding scores), and how a burst of new files (a folder linked for the first time) is
-    paced so it doesn't hold up the library or the reader's draws.
-  - It conflicts with "a read without a way to ask stores nothing": an unencrypted PDF could be
-    marked checked (`''`) safely from the background; an encrypted one needing a password can't
-    be checked without asking, and stays unchecked until it is tapped.
+    inbox, adding scores); how files already in the library, never checked, get checked; and how a
+    burst of new files (a folder linked for the first time) is paced so it doesn't hold up the
+    library or the reader's draws.
+  - If the end of the file is what is slow, whether the check can do without it: a linearized PDF
+    names `/Encrypt` near its start too, but an ordinary one only at its end.
 - **The reader goes full screen too late** [needs thought]: `Reader`'s constructor asks for full
   screen (`reader/reader.ts`) only after `openReader` has loaded the setlists, opened the pages
   (asking for a password or for access to the scores folder) and loaded the score. The first
