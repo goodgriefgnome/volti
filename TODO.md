@@ -304,6 +304,20 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
 - **Read only the parts of a PDF that are needed:** open originals through a range transport
   (`PDFDataRangeTransport`, slices of the File) instead of copying the whole file to pdf.js;
   saves some of the ~0.65 s pdf.js spends copying and parsing a 42 MB scan.
+- **Check a PDF's password from its encryption dictionary, without pdf.js:** where an encrypted
+  PDF's password is checked by opening it with pdf.js (once per file), check it from `/Encrypt`
+  alone: `/U` and `/O` let a guess be tested with a few hashes (revisions 2–4 with the trailer's
+  `/ID`, AES-256 revisions 5–6 by salted SHA-256), `''` included.
+  - Our pdf-decrypt fork already has the checks (`validateUserPasswordRC4`,
+    `validateOwnerPasswordRC4`, `validateUserPasswordAES256`, `validateOwnerPasswordAES256`), but
+    feeds them from a whole-file pdf-lib parse (`readEncryptParams`). The fork would export them
+    taking plain values, with a small reader of the dictionary.
+  - The hard part is finding the dictionary: the last trailer's `/Encrypt n g R` (in an xref
+    stream's dictionary for PDF 1.5+), then `n g obj`, which may be anywhere in the file (never in
+    an object stream), with `/O` and `/U` as literal or hex strings.
+  - It saves one pdf.js open per encrypted file, ever, and must agree with pdf.js on odd files:
+    keep the pdf.js open as the fallback where the reader can't tell. Only worth it if the first
+    tap on an encrypted PDF is noticeably slow.
 - **Synthetic pages** (systems arranged by hand), **jump markers** (D.S., coda) that generate the
   played order, and **tags** for search.
 - **Named excerpts from the PDF's bookmarks** (outline), made the first time a score is opened.
