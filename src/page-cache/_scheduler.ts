@@ -1,5 +1,6 @@
-// When pages are drawn: at most two at a time, whatever wants them. The screen's pages (`now`) go
-// first, then `ahead`, then `later`, which also waits while any `now` draw is queued or running.
+// When pages are drawn: at most two at a time, whatever wants them, and one place is kept for the
+// screen's pages (`now`): `ahead` and `later` draws together take at most one. The screen's pages
+// go first, then `ahead`, then `later`, which also waits while any `now` draw is queued or running.
 // Two requests for the same key share one draw, which is cancelled when every requester has
 // aborted, and not before.
 
@@ -36,7 +37,8 @@ const abortError = () => new DOMException('Aborted', 'AbortError');
 /** Start queued jobs while there is room, the most urgent first. */
 function pump(s: State) {
   while (s.running < AT_ONCE) {
-    const job = s.queues.now.shift() ?? s.queues.ahead.shift() ?? (s.runningNow ? undefined : s.queues.later.shift());
+    const room = s.running - s.runningNow < AT_ONCE - 1; // a place is kept for `now`
+    const job = s.queues.now.shift() ?? (room ? s.queues.ahead.shift() ?? (s.runningNow ? undefined : s.queues.later.shift()) : undefined);
     if (!job) return;
     start(s, job);
   }

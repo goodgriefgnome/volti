@@ -13,29 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **A draw slot is always free for the screen's pages.** Today the page cache draws two pages at
-  once, whatever their priority (`AT_ONCE`, `page-cache/_scheduler.ts`). A `now` draw goes first in
-  the queue, but can't start while two `ahead` or `later` draws run: keeping setlists' pages
-  offline, which goes on while the reader is open, can hold both slots with PDF renders, and the
-  page tapped waits for one of them.
-
-  After this, `ahead` and `later` draws together take at most one slot; `now` draws can take both.
-  `later` still waits while any `now` draw is queued or running.
-
-  One commit.
-  - **`page-cache/_scheduler.ts`:** count the running draws that aren't `now`
-    (`running - runningNow`). In `pump`, take a job from `ahead` or `later` only while that count
-    is below `AT_ONCE - 1`; a `now` job starts whenever `running < AT_ONCE`. A job promoted to
-    `now` after it started still counts as the priority it started with, as now. Update the
-    file's comment.
-  - **`_scheduler.test.ts`:**
-    - with three `later` (or `ahead`) jobs queued and nothing else, only one runs
-    - with one `later` running, a `now` job starts at once
-    - two `now` jobs still run together
-    - the existing "never more than 2 at once" and order tests still pass
-  - **Manual check:** with a setlist whose pages aren't all saved yet (the library shows it
-    saving), open a PDF score: its first page shows as quickly as with nothing saving.
-
 - **Setlists' pages are kept offline at the reader's size, not the library's.** The pages kept
   offline are worked out at `document.documentElement`'s size (`make`,
   `library/_offline-pages.ts`), the library's window. The reader is full screen, so it is taller
@@ -198,6 +175,8 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - Opening times: how long the first page of a large PDF and of a large photo takes, and turning
     to and zooming in on a big photo.
   - A long setlist doesn't run the tablet out of memory.
+  - With a setlist whose pages aren't all saved yet (the library shows it saving), open a PDF
+    score: its first page shows as quickly as with nothing saving.
 - **Passwords and unusual PDFs:**
   - No lock icon anywhere.
   - A password-protected PDF asks for its password the first time it is opened, previewed in the

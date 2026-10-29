@@ -91,6 +91,34 @@ describe('schedule', () => {
     expect([now.started, ahead.started, later.started]).toEqual([1, 1, 0]);
   });
 
+  it('keeps a place for now: ahead and later take at most one together', async () => {
+    const fs = [fake(), fake(), fake()];
+    fs.forEach((f, i) => void schedule('l' + i, 'later', undefined, f.run).catch(() => {}));
+    await tick();
+    expect(fs.map((f) => f.started)).toEqual([1, 0, 0]);
+    const as = [fake(), fake(), fake()];
+    as.forEach((f, i) => void schedule('a' + i, 'ahead', undefined, f.run).catch(() => {}));
+    await tick();
+    expect(as.map((f) => f.started)).toEqual([0, 0, 0]);
+    fs[0].finish('x');
+    await tick();
+    expect(as.map((f) => f.started)).toEqual([1, 0, 0]);
+  });
+
+  it('starts a now at once while a later runs, and runs two now together', async () => {
+    const later = fake(), n1 = fake(), n2 = fake(), n3 = fake();
+    void schedule('later', 'later', undefined, later.run).catch(() => {});
+    void schedule('n1', 'now', undefined, n1.run).catch(() => {});
+    await tick();
+    expect([later.started, n1.started]).toEqual([1, 1]);
+    later.finish('x');
+    await tick();
+    void schedule('n2', 'now', undefined, n2.run).catch(() => {});
+    void schedule('n3', 'now', undefined, n3.run).catch(() => {});
+    await tick();
+    expect([n1.started, n2.started, n3.started]).toEqual([1, 1, 0]);
+  });
+
   it('makes later wait while any now is queued or running', async () => {
     const now = fake(), later = fake();
     void schedule('now', 'now', undefined, now.run).catch(() => {});
