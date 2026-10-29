@@ -127,7 +127,7 @@ export class ImageSource implements OpenPages {
     }
   }
 
-  destroy() {
+  close() {
     this.bitmap.close();
   }
 }

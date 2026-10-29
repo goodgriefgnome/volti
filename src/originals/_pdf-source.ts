@@ -128,7 +128,7 @@ export async function readPdf(f: Readable, ask?: AskPassword): Promise<Content> 
 async function checkPassword(f: Readable, file: File, ask?: AskPassword): Promise<void> {
   const passwords = await Passwords.for(f, ask);
   const doc = await openPdf(new Uint8Array(await file.arrayBuffer()), (wrong) => passwords.next(wrong)).catch((e: unknown) => { throw passwords.failure(e); });
-  doc.destroy();
+  doc.close();
   await passwords.keep();
 }
 
@@ -223,7 +223,7 @@ async function pagesDrawn(o: SourceFile, bytes: Uint8Array, ask: AskPassword | u
     }
     return { bytes: await out.save(), lossyReason: why };
   } finally {
-    source.destroy();
+    source.close();
   }
 }
 
@@ -326,7 +326,7 @@ export class PdfSource implements OpenPages {
   }
 
   /** Close the document, freeing it in the worker: its loading task does that. */
-  destroy() {
+  close() {
     void this.doc.loadingTask.destroy();
   }
 }

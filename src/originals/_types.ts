@@ -14,7 +14,8 @@ export interface OpenPages {
   aspect(num: number): Promise<number>;
   /** Draw a page `pxWidth` device pixels wide, or `crop` of it; stops when `signal` aborts. */
   draw(num: number, pxWidth: number, crop: Crop | undefined, signal: AbortSignal): Promise<HTMLCanvasElement>;
-  destroy(): void;
+  /** Free the document or bitmap now. */
+  close(): void;
 }
 
 /** What a file's bytes are, read as music: its pages to draw, and its music as a PDF. */

@@ -1,67 +1,72 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { closeSourcesForTests, sourceFor } from './_sources';
+import { afterEach, describe, expect, it } from 'vitest';
+import { resetPagesForTests, sharePages } from './_sources';
 import type { Content, OpenPages } from './_types';
 
-/** A content whose pages count how often they are opened and closed. */
-function content() {
+/** A content whose pages count how often they are opened and closed; `failFirst` makes the first opening fail. */
+function content(failFirst = false) {
   const c = {
     opened: 0,
-    destroyed: 0,
-    drawn: 0,
+    closed: 0,
+    attempts: 0,
     pages: async (): Promise<OpenPages> => {
+      if (failFirst && !c.attempts++) throw new Error('cannot open');
       c.opened++;
       return {
         pages: 1,
         aspect: async () => 1.4,
-        draw: async () => { c.drawn++; return {} as HTMLCanvasElement; },
-        destroy: () => { c.destroyed++; },
+        draw: async () => ({} as HTMLCanvasElement),
+        close: () => { c.closed++; },
       };
     },
     pdf: async () => ({ bytes: new Uint8Array() }),
   };
   return c satisfies Content & Record<string, unknown>;
 }
-const signal = () => new AbortController().signal;
 
-beforeEach(() => vi.useFakeTimers());
-afterEach(() => {
-  closeSourcesForTests();
-  vi.useRealTimers();
-});
+afterEach(resetPagesForTests);
 
-describe('sourceFor', () => {
-  it('opens on the first draw, and shares the pages between sources of the same id', async () => {
+describe('sharePages', () => {
+  it('opens nothing for a reference alone, and one opening for two references of an id', async () => {
     const c = content();
-    await sourceFor('a', 10, c).draw(1, 100, undefined, signal());
-    await sourceFor('a', 10, c).draw(1, 100, undefined, signal());
-    expect([c.opened, c.drawn]).toEqual([1, 2]);
+    const a = sharePages('a', c), b = sharePages('a', c);
+    expect(c.opened).toBe(0);
+    await a.use();
+    await b.use();
+    expect(c.opened).toBe(1);
   });
 
-  it('closes 5 s after the last draw, unless it is the one drawn most recently', async () => {
-    const a = content(), b = content();
-    await sourceFor('a', 10, a).draw(1, 100, undefined, signal());
-    await vi.advanceTimersByTimeAsync(6000);
-    expect(a.destroyed).toBe(0); // still the one being read
-    await sourceFor('b', 10, b).draw(1, 100, undefined, signal());
-    await vi.advanceTimersByTimeAsync(4000);
-    expect(a.destroyed).toBe(0);
-    await vi.advanceTimersByTimeAsync(2000);
-    expect([a.destroyed, b.destroyed]).toEqual([1, 0]);
+  it('closes the pages when the last reference closes, not before', async () => {
+    const c = content();
+    const a = sharePages('a', c), b = sharePages('a', c);
+    await a.use();
+    a.close();
+    expect(c.closed).toBe(0);
+    b.close();
+    await Promise.resolve();
+    expect(c.closed).toBe(1);
   });
 
-  it('opens again after closing', async () => {
-    const a = content(), b = content();
-    await sourceFor('a', 10, a).draw(1, 100, undefined, signal());
-    await sourceFor('b', 10, b).draw(1, 100, undefined, signal());
-    await vi.advanceTimersByTimeAsync(6000);
-    await sourceFor('a', 10, a).draw(1, 100, undefined, signal());
-    expect(a.opened).toBe(2);
+  it('throws when a reference closes twice', () => {
+    const a = sharePages('a', content());
+    a.close();
+    expect(() => a.close()).toThrow('Closed more often than it was got');
   });
 
-  it('does not draw once aborted', async () => {
-    const c = content(), ctl = new AbortController();
-    ctl.abort();
-    await expect(sourceFor('a', 10, c).draw(1, 100, undefined, ctl.signal)).rejects.toMatchObject({ name: 'AbortError' });
-    expect(c.drawn).toBe(0);
+  it('rejects a failed opening, and opens again at the next use', async () => {
+    const c = content(true);
+    const a = sharePages('a', c);
+    await expect(a.use()).rejects.toThrow('cannot open');
+    await a.use();
+    expect(c.opened).toBe(1);
+  });
+
+  it('opens again for a reference taken after the id\'s pages closed', async () => {
+    const c = content();
+    const a = sharePages('a', c);
+    await a.use();
+    a.close();
+    await sharePages('a', c).use();
+    expect(c.opened).toBe(2);
+    expect(c.closed).toBe(1);
   });
 });

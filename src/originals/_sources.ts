@@ -1,80 +1,58 @@
-// The open pages of originals, one per id for the whole app, behind the PageSource the page cache
-// draws from. A source opens `content`'s pages on its first draw and is shared by every Original
-// of the same id; it closes 5 s after its last draw completes, unless it is the original drawn
-// most recently (the one being read), which stays open.
+// The open pages of originals, one set per id for the whole app, behind the PageSource the page
+// cache draws from. An id's pages open on the first use (measuring or drawing) and are shared by
+// every reference to the id; they close at once when the last reference closes. No timer.
 
-import type { PageSource } from '../page-cache/types';
 import type { Content, OpenPages } from './_types';
 
-/** How long an idle source stays open. */
-const CLOSE_AFTER_MS = 5000;
+/** One reference to an id's pages. */
+export interface SharedPages {
+  /** The id's pages, opened by the first use of any reference; a failed opening is tried again by the next. */
+  use(): Promise<OpenPages>;
+  /** End this reference; the last one closes the pages. Throws when called more than once. */
+  close(): void;
+}
 
-interface Open {
+interface Shared {
   content: Content;
   open?: Promise<OpenPages>;
-  /** Draws going on. */
-  running: number;
-  timer?: ReturnType<typeof setTimeout>;
+  /** References not closed yet. */
+  refs: number;
 }
 
-const sources = new Map<string, Open>();
-/** The id drawn most recently. */
-let last: string | undefined;
-
-function close(o: Open) {
-  clearTimeout(o.timer);
-  o.timer = undefined;
-  const open = o.open;
-  o.open = undefined;
-  void open?.then((p) => p.destroy(), () => {});
-}
-
-/** Close `id` in 5 s if it is idle by then and not the one drawn last. */
-function closeSoon(id: string) {
-  const o = sources.get(id);
-  if (!o || !o.open || o.running || o.timer) return;
-  o.timer = setTimeout(() => {
-    o.timer = undefined;
-    if (!o.running && id !== last) close(o);
-  }, CLOSE_AFTER_MS);
-}
+const shared = new Map<string, Shared>();
 
 /**
- * The page source for an original: opens `content`'s pages on its first draw, shares them with
- * every Original of the same id, and closes them 5 s after its last draw completes, unless it is
- * the original drawn most recently.
+ * A new reference to the pages of `id`. A newer reference's `content` replaces the id's while its
+ * pages aren't open.
  */
-export function sourceFor(id: string, size: number, content: Content): PageSource {
+export function sharePages(id: string, content: Content): SharedPages {
+  let e = shared.get(id);
+  if (!e) shared.set(id, (e = { content, refs: 0 }));
+  else if (!e.open) e.content = content;
+  const mine = e;
+  mine.refs++;
+  let closed = false;
   return {
-    size,
-    async draw(page, pxWidth, crop, signal) {
-      let o = sources.get(id);
-      if (!o) sources.set(id, (o = { content, running: 0 }));
-      else o.content = content;
-      const before = last;
-      last = id;
-      if (before && before !== id) closeSoon(before);
-      clearTimeout(o.timer);
-      o.timer = undefined;
-      o.running++;
-      try {
-        // Opening is never cancelled: it is shared, and a failure shows to whoever asked.
-        const opening = (o.open ??= o.content.pages());
-        opening.catch(() => { if (o!.open === opening) o!.open = undefined; });
-        const pages = await opening;
-        signal.throwIfAborted();
-        return await pages.draw(page, pxWidth, crop, signal);
-      } finally {
-        o.running--;
-        closeSoon(id);
-      }
+    use() {
+      if (closed) return Promise.reject(new Error('Used after it was closed'));
+      // Opening is never cancelled: it is shared, and a failure shows to whoever asked.
+      const opening = (mine.open ??= mine.content.pages());
+      opening.catch(() => { if (mine.open === opening) mine.open = undefined; });
+      return opening;
+    },
+    close() {
+      if (closed) throw new Error('Closed more often than it was got');
+      closed = true;
+      if (--mine.refs) return;
+      shared.delete(id);
+      void mine.open?.then((p) => p.close(), () => {});
+      mine.open = undefined;
     },
   };
 }
 
-/** For tests: close every source now. */
-export function closeSourcesForTests() {
-  for (const o of sources.values()) close(o);
-  sources.clear();
-  last = undefined;
+/** For tests: close every id's pages now, as if the app had just started. */
+export function resetPagesForTests() {
+  for (const e of shared.values()) void e.open?.then((p) => p.close(), () => {});
+  shared.clear();
 }

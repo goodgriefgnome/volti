@@ -13,97 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **Every original is closed when done with, and its file is opened once while it is used.**
-  Today an original (`FileOriginal`, `originals/original.ts`) is never closed: holders drop it to
-  garbage collection, and `_sources.ts` guesses when a file is no longer wanted: it closes it 5 s
-  after its last draw, unless it is the one drawn last. And `FileOriginal.aspects()`, where the
-  aspects aren't stored, opens `content.pages()` itself and destroys them, outside the shared
-  source, so an original opened for the first time reads its file and opens it (in pdf.js, or
-  decodes its image) twice: once to measure it, and again for the first draw.
-
-  After this:
-  - An original is closed by whoever got it, exactly once. A file is open (in pdf.js, or decoded)
-    from its first use (measuring it or drawing it) for as long as any original of its id isn't
-    closed; when the last one is closed, it closes at once. No timer.
-  - Measuring a score and drawing it use the same open file.
-  - Closing an original more times than it was got, or using it after its last close, throws.
-  - The rules, written in the comment on `Original` in `originals/types.ts`, with no exceptions:
-    1. Whoever gets an original (`SourceFile.read()`, `Original.read()`, `openScore`) closes
-       it, exactly once.
-    2. A function given an original only borrows it: it never closes it, and its caller keeps it
-       open until the function's promise settles.
-    3. Keeping an original past one's own promise (in a field, or in a closure that runs later)
-       means getting it again with `read()`, and closing that.
-
-  Two commits, in order. The first leaves the 5 s timer in place, so nothing changes yet but who
-  closes what; the second counts.
-
-  **First commit: `close()`, and every holder calls it.**
-  - **`originals/types.ts`:** `Original` gains `close(): void`; `read()` on an original returns
-    the same original, got once more, to close once more. Write the three rules above in
-    `Original`'s comment.
-  - **`originals/original.ts`, `FileOriginal`:** a count of how often it has been got, starting
-    at 1: `read()` adds 1 and returns `this`; `close()` takes 1 off, and throws
-    `Error('Closed more often than it was got')` at 0. `read()`, `aspects()`, `draw()`,
-    `drawProgressive()` and `pdf()` on an original at 0 throw `Error('Used after it was closed')`.
-  - **Holders:**
-    - **`reader/_open-scores.ts`:** `openPages` returns a `close` with what it returns now: the
-      original's `close()`; nothing for `savedPages`. When measuring it fails, it closes the
-      original before throwing. `OpenScore` gets `close?: () => void`, set and cleared with
-      `draw`; wherever `draw` is dropped (`keepNear`, `accessAllowed`, `destroy`), call it first.
-      In `open`, an original opened after the reader closed is closed. `adopt` closes the score
-      it replaces, if that has one open.
-    - **`reader/reader.ts`:** `openReader` closes the first score's original if anything after
-      `openPages` throws. `turnToScore` closes what it opened when the reader has closed, or when
-      `loadScore` throws.
-    - **`dialogs/open-score.ts`:** `LibraryScore` becomes `ExcerptSource & { close(): void }`;
-      `openScore` closes the original if anything after `read` throws.
-    - **`library/library.ts`, `withPages`:** after `pick(sc)` (which opens its dialog),
-      `whenOverlayCloses(() => sc.close())`.
-    - **`library/_setlists-section.ts`, `chooseExcerpt`:** the same, after `openExcerptPicker`.
-    - **`dialogs/add-scores.ts`, `showPreview`:** a score opened after the dialog closed is
-      closed at once; otherwise `whenOverlayCloses(() => sc.close())`. Each preview is its own
-      original, closed once.
-    - **`library/_incoming.ts`, `showPreview`:** close the original when the dialog finishes
-      (`whenOverlayCloses`), or at once if it already has.
-    - **`library/_offline-pages.ts`:** each block that reads an original closes it in a
-      `finally`.
-    - **`dialogs/passwords.ts`, `givePassword`:** close what it read.
-    - **`export/pdf.ts`:** `drawnOriginals` closes each original after `pdf()`; `open` closes
-      its original before returning (the `Source` keeps only the PDF's bytes).
-  - **Tests:** none can open a `FileOriginal` under vitest. `npm test` and `npm run build` pass.
-
-  **Second commit: one open file per id, closed with its last original.**
-  - **`originals/_types.ts`:** `OpenPages.destroy()` becomes `close()`; rename it in
-    `PdfSource`, `ImageSource`, `checkPassword` and `pagesDrawn` (`_pdf-source.ts`).
-  - **`originals/_sources.ts`:** in place of `sourceFor`, the timer and `last`:
-    `export function sharePages(id: string, content: Content): SharedPages`, with
-    `interface SharedPages { use(): Promise<OpenPages>; close(): void }`. Each call is one
-    reference to `id`'s pages. `use()` opens them on first use (`content.pages()`), shared by
-    every reference to the id; a failed opening is forgotten, so the next `use()` tries again.
-    `close()` ends the reference, and when it is the id's last, closes the pages at once (once
-    open) and forgets the id; one `close()` too many throws. A newer reference's `content`
-    replaces the id's while its pages aren't open, as now. Fix the file's comment.
-  - **`originals/original.ts`, `FileOriginal`:** its constructor calls `sharePages`, once per
-    `FileOriginal`; when its own count reaches 0, it closes that. Its `source.draw` is
-    `(await shared.use()).draw(…)`, and `aspects()` measures `await shared.use()` without closing
-    it.
-  - **`_sources.test.ts`:** rewrite for `sharePages`:
-    - a reference alone opens nothing; two references of an id share one opening
-    - the pages close when the last reference closes, not before
-    - a `close()` too many throws
-    - a failed opening rejects, and the next `use()` opens again
-    - a reference taken after the id's pages closed opens them again
-  - **Manual check:**
-    1. Open a long PDF never opened before: it opens noticeably sooner than before, as it is
-       read and opened once.
-    2. Turn through a long setlist and back, go back to the library and open the same score
-       again, choose an excerpt, add scores to a setlist with previews, add a file shared to
-       Volti, export a setlist: no "Closed more often than it was got" or "Used after it was
-       closed" in the console (`chrome://inspect`).
-    3. With a setlist saving in the background, read a score in it and turn pages quickly: no
-       "Could not draw this page".
-
 ## Manual check
 
 Things to try on the tablet, grouped so each group can be done in one go. Some groups need
@@ -141,6 +50,15 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
      with a PDF whose password isn't given, it says that score needs its password.
   4. While a setlist saves, open a score from the library: it shows as quickly as with nothing
      saving.
+- **Originals closed when done with, one open file per id:**
+  1. Open a long PDF never opened before: it opens noticeably sooner than before, as it is
+     read and opened once.
+  2. Turn through a long setlist and back, go back to the library and open the same score
+     again, choose an excerpt, add scores to a setlist with previews, add a file shared to
+     Volti, export a setlist: no "Closed more often than it was got" or "Used after it was
+     closed" in the console (`chrome://inspect`).
+  3. With a setlist saving in the background, read a score in it and turn pages quickly: no
+     "Could not draw this page".
 - **Full screen at the tap:**
   1. With the scores folder open, open a PDF score, an image score and a setlist from the library:
      full screen starts at the tap, and the first screen shows once, at full size, with no jump.

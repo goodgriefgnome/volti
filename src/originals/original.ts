@@ -8,7 +8,7 @@ import { drawPage, drawPageProgressive, hasSaved, saveOffline } from '../page-ca
 import { NotSaved, type DrawRequest, type OfflinePage, type PageSource } from '../page-cache/types';
 import type { Content, Readable } from './_types';
 import { _contents, _noteContents } from './_record-store';
-import { sourceFor } from './_sources';
+import { sharePages, type SharedPages } from './_sources';
 import { isPdf, readPdf } from './_pdf-source';
 import type { AskPassword, DrawOptions, Original, Pages, RenderedPdf } from './types';
 
@@ -71,8 +71,18 @@ export async function savePageOffline(o: Original, page: OfflinePage, signal: Ab
 class FileOriginal implements Original {
   readonly whole = true;
   readonly source: PageSource;
+  private shared: SharedPages;
   constructor(private f: Readable, private content: Content, size: number) {
-    this.source = sourceFor(f.id, size, content);
+    this.shared = sharePages(f.id, content);
+    const shared = this.shared;
+    this.source = {
+      size,
+      async draw(page, pxWidth, crop, signal) {
+        const pages = await shared.use();
+        signal.throwIfAborted();
+        return pages.draw(page, pxWidth, crop, signal);
+      },
+    };
   }
   get id() { return this.f.id; }
   get path() { return this.f.path; }
@@ -84,7 +94,7 @@ class FileOriginal implements Original {
   async read() { this.use(); this.got++; return this; }
   close() {
     if (!this.got) throw new Error('Closed more often than it was got');
-    this.got--;
+    if (!--this.got) this.shared.close();
   }
   pdf(): Promise<RenderedPdf> { this.use(); return this.content.pdf(); }
   private shapes?: number[];
@@ -93,12 +103,8 @@ class FileOriginal implements Original {
     if (this.shapes) return this.shapes;
     let aspects = await knownAspects(this.id);
     if (!aspects) {
-      const pages = await this.content.pages();
-      try {
-        aspects = await Promise.all(Array.from({ length: pages.pages }, (_, i) => pages.aspect(i + 1)));
-      } finally {
-        pages.destroy();
-      }
+      const pages = await this.shared.use();
+      aspects = await Promise.all(Array.from({ length: pages.pages }, (_, i) => pages.aspect(i + 1)));
       await storeAspects(this.id, aspects);
     }
     return (this.shapes = aspects);
