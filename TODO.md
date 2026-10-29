@@ -371,6 +371,28 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
 - **Page-turn strategies** (half-page turns and the like): to be discussed separately.
 - **Exporting the library** (scores, setlists, markings, reading positions) as files, for backup
   and for moving to another device; probably written into the linked scores folder.
+- **The reader goes full screen too late** [needs thought]: `Reader`'s constructor asks for full
+  screen (`reader/reader.ts`) only after `openReader` has loaded the setlists, opened the pages
+  (asking for a password or for access to the scores folder) and loaded the score. The first
+  screen is drawn at the window's size, then the stage grows and the `ResizeObserver` draws it
+  again 150 ms later at new widths, which the cache misses: a stutter, and a PDF's first page
+  drawn twice. It also only works while Chrome still counts the tap as recent (about 5 s).
+  - The idea: `Library.read()` calls `requestFullscreen()` before anything else, while the tap is
+    still being handled, and passes its promise to `openReader`. The first `show()` waits for it
+    (whether it succeeds or not); `Reader` no longer asks itself. Opening the score and going full
+    screen then happen together. `read()`'s error path leaves full screen before showing the
+    library again, as `close()` does.
+  - A score that fails to open then goes full screen and straight back; the password dialog and
+    the blank screen while opening show in full screen.
+  - To check on the tablet before settling it:
+    1. Open a score while the scores folder is locked. Full screen is now asked for before access
+       to the folder; if Chrome counts the tap as used up by full screen, asking for access fails
+       and the reader says it has no access. If so, access has to be asked for first.
+    2. Whether Android's system bars hide only after `requestFullscreen()`'s promise settles. If
+       they hide later, the stage grows again after the first screen and a smaller stutter stays:
+       then wait an animation frame more, or until the stage's size stops changing.
+  - Leaving full screen while reading (Android's edge swipe) isn't undone: going back to the
+    library and opening again is enough.
 - **The reader shows its first screen twice** [needs thought]: a `ResizeObserver` reports the
   stage's size as soon as it starts watching (`observer.observe` at the end of `Reader`'s
   constructor, `reader/reader.ts`), so 150 ms after opening a second `show()` runs. It asks for
