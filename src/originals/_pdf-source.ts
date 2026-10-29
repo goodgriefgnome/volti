@@ -8,8 +8,8 @@
 //
 // The password that opened a PDF is remembered on the tablet by its file's id, so it is asked for
 // only once, even after a restart, and never forgotten; '' is remembered for one that needs none.
-// Asking is the caller's (dialogs/passwords.ts); without a way to ask, a PDF whose password isn't
-// remembered is checked but nothing is kept, and one that needs a password fails.
+// Asking is the caller's (dialogs/passwords.ts); without a way to ask, a PDF that needs a password
+// fails, and one that needs none is remembered as such all the same.
 
 // The legacy build carries fallbacks for JavaScript features newer than some Android Chrome versions.
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
@@ -83,12 +83,12 @@ class Passwords {
   }
 
   /**
-   * The PDF opened: remember what was found, if it is new and there was a way to ask: the password
-   * that opened it, or '' for one that needed none (pdf.js never asked).
+   * The PDF opened: remember what was found, if it is new: a password given, or '' for one that
+   * needed none (pdf.js never asked), from any read. Without a way to ask, only '' can be new.
    */
   async keep() {
     const found = this.tried ?? '';
-    if (this.ask && found !== this.saved) await _noteContents(this.o.id, { password: found });
+    if (found !== this.saved) await _noteContents(this.o.id, { password: found });
   }
 
   /** Why opening stopped: PasswordNotGiven when it was for want of a password. */
@@ -117,7 +117,7 @@ export async function readPdf(f: Readable, ask?: AskPassword): Promise<Content> 
   if (savedPassword(f.id) !== undefined) return new PdfContent(f);
   const file = await f.file();
   if (!(await encrypted(file))) {
-    if (ask) await _noteContents(f.id, { password: '' });
+    await _noteContents(f.id, { password: '' });
     return new PdfContent(f);
   }
   await checkPassword(f, file, ask);

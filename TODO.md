@@ -13,27 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **A PDF that opens without a password is marked checked by any read, not only a tap.** Today
-  `''` (checked, needs no password) is stored only when the read has a way to ask: in `readPdf`
-  for a PDF `encrypted` says isn't encrypted (`if (ask)`), and in `Passwords.keep` for an
-  encrypted one pdf.js opened without asking (only an owner password). Background reads (keeping
-  setlists' pages offline, at start-up and after changes) store nothing, so the first tap on such
-  a file still pays the check (`encrypted` reads the file's ends, which seems slow on the tablet).
-
-  After this, `''` is stored whenever a PDF is found to open without a password, whoever reads
-  it. A password someone typed is still stored only from a tap, as only a tap can ask for one.
-
-  One commit, in `originals/_pdf-source.ts`.
-  - **`readPdf`:** store `''` for a PDF that isn't encrypted whether or not `ask` is given.
-  - **`Passwords.keep`:** drop the `this.ask &&` condition. Without `ask`, `tried` can only be
-    undefined or the saved password, so what is stored without one is only ever `''`. Fix its
-    comment: a password given is stored, and `''` for a PDF that needed none, from any read.
-  - Fix `readPdf`'s comment if it says otherwise.
-  - **Tests:** pdf.js can't open a PDF under vitest; `npm test` and `npm run build` pass.
-  - **Manual check:** with a setlist holding a PDF not opened since PDFs stopped going through
-    pdf-lib, restart Volti and wait for the setlists' pages to finish saving; then open that
-    score from the library: it opens without the first-open lag.
-
 ## Manual check
 
 Things to try on the tablet, grouped so each group can be done in one go. Some groups need
@@ -71,6 +50,10 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   3. A score that fails to open (refuse its password): the library shows again, not in full
      screen, at the place it was scrolled to.
   4. Going back to the library still leaves full screen, at the place it was scrolled to.
+- **A PDF that opens without a password is marked checked by any read:** with a setlist holding a
+  PDF not opened since PDFs stopped going through pdf-lib, restart Volti and wait for the setlists'
+  pages to finish saving; then open that score from the library: it opens without the first-open
+  lag.
 - **Reader's middle tap and band icons:**
   1. With the toolbar hidden, press near the left and right edges, and just inside 40% from each
      side: the page turns as the finger goes down.
