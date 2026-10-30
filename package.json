@@ -7,6 +7,7 @@
     "*.css"
   ],
   "scripts": {
+    "smufl-names": "node scripts/smufl-names.mjs",
     "predev": "node scripts/copy-pdfjs.mjs",
     "dev": "vite",
     "prebuild": "node scripts/copy-pdfjs.mjs",

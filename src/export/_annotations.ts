@@ -106,8 +106,12 @@ export class PdfDrawing implements Drawing {
 /**
  * Add a marking to the page as an annotation. `place` gives where it goes on the page, in points
  * from the top left, drawing with the given drawing; `name` is unique among the page's annotations.
+ * `describe` writes a Stamp's characters for its `Contents` (SMuFL names, say).
  */
-export function annotate(lib: PdfLib, doc: PDFDocument, page: PDFPage, m: Marking, place: (draw: Drawing) => DrawTarget, name: string) {
+export function annotate(
+  lib: PdfLib, doc: PDFDocument, page: PDFPage, m: Marking, place: (draw: Drawing) => DrawTarget, name: string,
+  describe: (text: string) => string = (text) => text,
+) {
   const H = page.getHeight();
   const drawing = new PdfDrawing(lib, H);
   const t = place(drawing);
@@ -120,7 +124,7 @@ export function annotate(lib: PdfLib, doc: PDFDocument, page: PDFPage, m: Markin
   const own =
     a.subtype === 'Ink'
       ? { InkList: a.paths.map((path) => path.flatMap(([x, y]) => [round(x), round(H - y)])), C: rgb(a.color), BS: { W: round(a.width) } }
-      : { Contents: lib.PDFHexString.fromText(a.contents), C: rgb(a.color) };
+      : { Contents: lib.PDFHexString.fromText(describe(a.contents)), C: rgb(a.color) };
   const annotation = context.obj({
     Type: 'Annot',
     Subtype: a.subtype,

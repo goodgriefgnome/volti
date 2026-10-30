@@ -5,6 +5,7 @@ import { type Drawing } from '../markings/draw';
 import { addGlyph } from '../markings/glyphs';
 import { type PlacedMark } from '../markings/placed';
 import { type Stroke } from '../markings/stroke';
+import { _namesFrom, smuflText } from '../fonts/smufl';
 import { annotate, PdfDrawing, rgb } from './_annotations';
 
 const W = 600, H = 800;
@@ -105,5 +106,16 @@ describe('annotate a placed marking', () => {
     expect(a.lookup(lib.PDFName.of('C'), lib.PDFArray).asArray().map((n) => (n as lib.PDFNumber).asNumber())).toEqual(rgb('#1c1f26'));
     const ap = a.lookup(lib.PDFName.of('AP'), lib.PDFDict).lookup(lib.PDFName.of('N'), lib.PDFStream);
     expect(ap.getContents().length).toBeGreaterThan(0);
+  });
+  it('writes the Stamp\'s Private Use Area characters as the names it is given', async () => {
+    addGlyph('t:1', 'M 0 0 L 1 0 L 1 -1 L 0 -1 Z');
+    const m: PlacedMark = { kind: 'symbol', text: '\uED14\uED22', font: 't', glyphs: [[1, -0.5, 0.5]], at: [0.5, 0.5], size: 0.05 };
+    const doc = await lib.PDFDocument.create();
+    const page = doc.addPage([W, H]);
+    const names = _namesFrom({ fingering4: 0xed14, fingeringSubstitutionDash: 0xed22 });
+    annotate(lib, doc, page, m, whole, 'm0', (text) => smuflText(text, names));
+    const back = await lib.PDFDocument.load(await doc.save());
+    const a = back.getPage(0).node.Annots()!.lookup(0, lib.PDFDict);
+    expect(a.lookup(lib.PDFName.of('Contents'), lib.PDFHexString).decodeText()).toBe('fingering4 fingeringSubstitutionDash');
   });
 });

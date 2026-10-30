@@ -11,6 +11,7 @@ import { cutTarget, shownOn } from '../render/paint';
 import { loadScore } from '../scores/store';
 import { pack, type Frame } from '../scores/frames';
 import { type Aspects, type State } from '../scores/model';
+import { smuflNames, smuflText } from '../fonts/smufl';
 import { annotate } from './_annotations';
 import { placeCut, shownSize, type SourcePage } from './_placement';
 
@@ -99,13 +100,13 @@ function drawMusic(lib: PdfLib, out: PDFDocument, page: PDFPage, src: Source, fr
   });
 }
 
-async function addFrame(lib: PdfLib, out: PDFDocument, src: Source, frame: Frame) {
+async function addFrame(lib: PdfLib, out: PDFDocument, src: Source, frame: Frame, describe: (text: string) => string) {
   const W = src.widths[frame.items[0]?.cut.page ?? 0], H = W * frame.aspect;
   const page = out.addPage([W, H]);
   await drawMusic(lib, out, page, src, frame, W, H);
   // Each marking as an annotation, placed as the reader places it.
   for (const p of frame.items) {
-    shownOn(p, src.state.ink, src.aspects).forEach((m, i) => annotate(lib, out, page, m, (draw) => cutTarget(draw, p, W, src.aspects), `${p.cut.id}-${i}`));
+    shownOn(p, src.state.ink, src.aspects).forEach((m, i) => annotate(lib, out, page, m, (draw) => cutTarget(draw, p, W, src.aspects), `${p.cut.id}-${i}`, describe));
   }
 }
 
@@ -118,6 +119,9 @@ export async function exportPdf(parts: readonly ExportPart[], title: string, ask
   const out = await lib.PDFDocument.create();
   out.setTitle(title);
   out.setCreator('Volti');
+  // A Stamp's Contents names its SMuFL characters; without the names they go as they are.
+  const names = await smuflNames().catch((e) => { console.warn('SMuFL names not loaded', e); return undefined; });
+  const describe = (text: string) => (names ? smuflText(text, names) : text);
   const sources = new Map<string, Promise<Source>>();
   for (const [i, part] of parts.entries()) {
     const o = part.original;
@@ -125,7 +129,7 @@ export async function exportPdf(parts: readonly ExportPart[], title: string, ask
     if (!p) sources.set(o.id, p = open(lib, o, ask));
     const src = await p;
     const cuts = part.excerpt ? excerptCuts(src.state.score.cuts, part.excerpt) : src.state.score.cuts;
-    for (const frame of pack(cuts, src.aspects)) await addFrame(lib, out, src, frame);
+    for (const frame of pack(cuts, src.aspects)) await addFrame(lib, out, src, frame, describe);
     progress?.(i + 1, parts.length);
   }
   return await out.save();
