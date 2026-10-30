@@ -4,7 +4,7 @@
 
 import type { PDFContext, PDFDocument, PDFOperator, PDFPage } from 'pdf-lib';
 import { annotationOf, drawMarkings, type DrawTarget, type Marking } from '../markings/model';
-import { type Drawing, type Look } from '../markings/draw';
+import { type Drawing, type Look, type Paint, type PathCmd } from '../markings/draw';
 
 type PdfLib = typeof import('pdf-lib');
 
@@ -46,6 +46,39 @@ export class PdfDrawing implements Drawing {
       lib.stroke(),
       lib.popGraphicsState(),
     );
+  }
+
+  shape(cmds: readonly PathCmd[], paint: Paint) {
+    const { lib } = this;
+    const look = 'fill' in paint ? paint.fill : paint.stroke;
+    const r = 'fill' in paint ? 0 : paint.width / 2;
+    const ops: PDFOperator[] = [];
+    // Each coordinate pair of a command, turned to the page's y.
+    const pt = (x: number, y: number) => {
+      const p = [round(x), round(this.height - y)] as const;
+      this.box = { x0: Math.min(this.box.x0, p[0] - r), y0: Math.min(this.box.y0, p[1] - r), x1: Math.max(this.box.x1, p[0] + r), y1: Math.max(this.box.y1, p[1] + r) };
+      return p;
+    };
+    for (const c of cmds) {
+      if (c[0] === 'M') ops.push(lib.moveTo(...pt(c[1], c[2])));
+      else if (c[0] === 'L') ops.push(lib.lineTo(...pt(c[1], c[2])));
+      else if (c[0] === 'C') ops.push(lib.appendBezierCurve(...pt(c[1], c[2]), ...pt(c[3], c[4]), ...pt(c[5], c[6])));
+      else ops.push(lib.closePath());
+    }
+    this.ops.push(lib.pushGraphicsState());
+    if (look.opacity < 1 || look.multiply) this.ops.push(lib.setGraphicsState(this.state(look)));
+    if ('fill' in paint) this.ops.push(lib.setFillingRgbColor(...rgb(look.color)), ...ops, lib.fill());
+    else {
+      this.ops.push(
+        lib.setStrokingRgbColor(...rgb(look.color)),
+        lib.setLineWidth(round(paint.width)),
+        lib.setLineCap(lib.LineCapStyle.Round),
+        lib.setLineJoin(lib.LineJoinStyle.Round),
+        ...ops,
+        lib.stroke(),
+      );
+    }
+    this.ops.push(lib.popGraphicsState());
   }
 
   private state(look: Look): string {

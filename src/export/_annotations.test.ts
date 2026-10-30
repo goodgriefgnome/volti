@@ -44,6 +44,32 @@ describe('PdfDrawing', () => {
   });
 });
 
+describe('PdfDrawing shapes', () => {
+  const cmds = [['M', 0, 0], ['L', 10, 0], ['C', 10, 5, 5, 10, 0, 10], ['Z']] as const;
+  const solid = { color: '#000000', opacity: 1, multiply: false };
+  it('fills a shape with f', () => {
+    const d = new PdfDrawing(lib, H);
+    d.shape(cmds, { fill: solid });
+    const ops = d.ops.map(String);
+    expect(ops).toContain('h');
+    expect(ops).toContain('f');
+    expect(ops).not.toContain('S');
+  });
+  it('strokes a shape with S, as wide as asked, and reaches half that width further', () => {
+    const d = new PdfDrawing(lib, H);
+    d.shape(cmds, { stroke: solid, width: 4 });
+    const ops = d.ops.map(String);
+    expect(ops).toContain('4 w');
+    expect(ops).toContain('S');
+    expect(d.rect()).toEqual([-2, H - 12, 12, H + 2]);
+  });
+  it('puts a half-opaque shape in a graphics state', () => {
+    const d = new PdfDrawing(lib, H);
+    d.shape(cmds, { fill: { ...solid, opacity: 0.5 } });
+    expect(d.ops.map(String)).toContain('/G0 gs');
+  });
+});
+
 describe('annotate', () => {
   it('adds an Ink annotation with its own appearance, flagged to print', async () => {
     const [a] = await exported(pen);
