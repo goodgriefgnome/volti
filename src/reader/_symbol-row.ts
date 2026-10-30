@@ -1,6 +1,7 @@
 // The toolbar's second row: a button for each group of the library, showing the group's current
-// symbol (a long press on one shows all its symbols), and the backgrounds.
+// symbol (a long press on one shows all its symbols), the fonts of text, and the backgrounds.
 
+import { cssFamily, type FontChoice } from '../fonts/fonts';
 import type { LibrarySymbol, SymbolLibrary } from '../markings/library';
 import { markColors, type Background } from '../markings/placed';
 import { button, el } from '../ui/dom';
@@ -16,6 +17,8 @@ export interface SymbolRowActions {
   add(): void;
   /** Edit library… was pressed. */
   edit(): void;
+  /** A font button was pressed. */
+  font(id: string): void;
   /** A background button was pressed. */
   background(b: BackgroundChoice): void;
   /** An ad-hoc symbol was chosen to go to a group, or to a new one. */
@@ -62,30 +65,36 @@ export function backgroundPicture(choice: BackgroundChoice): SVGSVGElement {
 /** What the background buttons show: which is pressed, and whether they can be pressed. */
 export interface BackgroundsView { pressed?: BackgroundChoice; enabled: boolean }
 
+/** What the font buttons show: the text fonts, and which is pressed. */
+export interface FontsView { choices: FontChoice[]; pressed: string }
+
 /** How long a press is held to count as a long press. */
 const LONG_PRESS_MS = 500;
 export class SymbolRow {
   readonly el = el('div', 'symbol-row');
   private shown = '';
   private lib: SymbolLibrary | undefined;
+  private fonts = el('div', 'symbol-fonts');
   private backgrounds = el('div', 'symbol-backgrounds');
 
   constructor(private act: SymbolRowActions) {
     this.el.hidden = true;
+    this.fonts.setAttribute('role', 'group');
+    this.fonts.setAttribute('aria-label', 'Font');
     this.backgrounds.setAttribute('role', 'group');
     this.backgrounds.setAttribute('aria-label', 'Background');
   }
 
   /**
    * Show the groups' current symbols (an index into each; `adhocCurrent` into the ad-hoc group),
-   * the `active` group's pressed (-1 for ad hoc), while `groups` says they show; and the
-   * backgrounds, `undefined` to hide them.
+   * the `active` group's pressed (-1 for ad hoc), while `groups` says they show; the fonts, and
+   * the backgrounds, `undefined` to hide them.
    */
   show(
     lib: SymbolLibrary | undefined, current: readonly number[], adhocCurrent: number, active: number | undefined,
-    groups: boolean, backgrounds: BackgroundsView | undefined,
+    groups: boolean, fonts: FontsView | undefined, backgrounds: BackgroundsView | undefined,
   ) {
-    const key = `${lib ? lib.groups.map((_, i) => current[i] ?? 0).join() : ''}|${adhocCurrent}|${active}|${groups}|${backgrounds && `${backgrounds.pressed}${backgrounds.enabled}`}`;
+    const key = `${lib ? lib.groups.map((_, i) => current[i] ?? 0).join() : ''}|${adhocCurrent}|${active}|${groups}|${fonts && `${fonts.pressed}${fonts.choices.map((c) => c.id)}`}|${backgrounds && `${backgrounds.pressed}${backgrounds.enabled}`}`;
     if (lib === this.lib && key === this.shown) return;
     this.lib = lib;
     this.shown = key;
@@ -95,6 +104,22 @@ export class SymbolRow {
       parts.push(...lib.groups.flatMap((g, i) => (g.symbols.length ? [this.groupButton(g.symbols, i, current[i] ?? 0, active === i)] : [])));
       if (lib.adhoc.length) parts.push(this.groupButton(lib.adhoc, -1, adhocCurrent, active === -1));
       parts.push(button('+', () => this.act.add(), 'symbol-add'), button('Edit library…', () => this.act.edit()));
+    }
+    if (fonts) {
+      this.fonts.replaceChildren(...fonts.choices.map((c) => {
+        const b = el('button', 'symbol-font');
+        b.type = 'button';
+        b.textContent = c.name;
+        b.setAttribute('aria-label', c.name);
+        b.setAttribute('aria-pressed', String(fonts.pressed === c.id));
+        // Keep the focus in the typing field, so a tap here doesn't finish the typing.
+        b.addEventListener('pointerdown', (e) => e.preventDefault());
+        b.addEventListener('click', () => this.act.font(c.id));
+        // Its name in its own font once that has loaded.
+        void cssFamily(c.id).then((family) => { b.style.fontFamily = `"${family}"`; }, () => {});
+        return b;
+      }));
+      parts.push(this.fonts);
     }
     if (backgrounds) {
       this.backgrounds.replaceChildren(...BACKGROUNDS.map(([choice, label]) => {

@@ -16,8 +16,8 @@ export interface TypingRequest {
   start: [number, number];
   /** What the field starts with: '' for new text. */
   text: string;
-  /** Enter, or a tap elsewhere: what is in the field. */
-  done(text: string): void;
+  /** Enter, or a tap elsewhere: what is in the field, and its font (which `setFont` may have changed). */
+  done(text: string, font: string): void;
   /** Escape. */
   cancel(): void;
 }
@@ -41,6 +41,9 @@ export class TypingField {
   constructor(private stage: HTMLElement) {}
 
   get open() { return !!this.field; }
+
+  /** The font of the open field, if any. */
+  get font(): string | undefined { return this.request?.font; }
 
   /** Open the field (closing one already open as `finish` does), focused, its caret at the end. */
   async show(r: TypingRequest): Promise<void> {
@@ -91,10 +94,24 @@ export class TypingField {
     this.lift();
   }
 
+  /** Show the text in another font, keeping its baseline start, size and what is typed; `done` then gives the font too. */
+  async setFont(font: string): Promise<void> {
+    const { field, request } = this;
+    if (!field || !request || request.font === font) return;
+    const token = this.token;
+    const [family, m] = await Promise.all([cssFamily(font), fontMetrics(font)]);
+    if (token !== this.token || this.field !== field) return;
+    request.font = font;
+    field.style.fontFamily = `"${family}"`;
+    field.style.top = ((request.start[1] - m.ascent * request.size) / request.slot.frame.aspect) * 100 + '%';
+    this.lift();
+  }
+
   /** Close it, calling `done` with what was typed; nothing when it isn't open. */
   finish(): void {
     const text = this.field?.value ?? '';
-    this.close()?.done(text);
+    const request = this.close();
+    request?.done(text, request.font);
   }
 
   /** Take the field away and put the page back, giving the request it was for; each request is given once. */

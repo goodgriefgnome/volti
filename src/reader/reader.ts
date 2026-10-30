@@ -28,7 +28,7 @@ import { loadScore } from '../scores/store';
 import { loadSetlists } from '../setlists/store';
 import { type Setlist } from '../setlists/model';
 import { closeOverlay, showDialog } from '../ui/overlay';
-import { ACADEMICO, BRAVURA, fontChoices, fontMetrics, shapeWith } from '../fonts/fonts';
+import { ACADEMICO, BRAVURA, fontChoices, fontMetrics, shapeWith, type FontChoice } from '../fonts/fonts';
 import { saveGlyphs, saveLibrary } from '../markings/store';
 import { dpr, el } from '../ui/dom';
 import { Toast } from '../ui/toast';
@@ -47,7 +47,7 @@ import { glyphPicker } from './_glyph-picker';
 import { editLibrary } from './_library-editor';
 import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
 import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_spread';
-import type { BackgroundChoice, BackgroundsView } from './_symbol-row';
+import type { BackgroundChoice, BackgroundsView, FontsView } from './_symbol-row';
 import { backIcon, placesMarkings, Toolbar, turnIcon, type ToolChoice } from './_toolbar';
 import { ReaderMenus } from './_toolbar-menus';
 import { offerScore, turnFrom, type Offer } from './_turning';
@@ -164,6 +164,10 @@ class Reader {
   private pickerFont = BRAVURA;
   /** The background shape new text gets, while the app runs. */
   private textBackground: BackgroundChoice = 'none';
+  /** The font of new text, kept while the app runs. */
+  private textFont = ACADEMICO;
+  /** The fonts text can be typed in, once known. */
+  private textFonts: FontChoice[] = [];
   /** The placed marking showing its box, while a symbol is the tool. */
   private selected: Selected | undefined;
   private selection = new SelectionBox(() => this.deleteSelected());
@@ -242,6 +246,7 @@ class Reader {
       moveToGroup: (i, g) => this.moveToGroup(i, g),
       penColor: (c) => this.swatch(c),
       defaultColor: () => this.defaultColor(),
+      font: (id) => this.setFont(id),
       background: (b) => this.setBackground(b),
       undo: () => this.undo(),
       redo: () => this.redo(),
@@ -277,6 +282,7 @@ class Reader {
       filesChanged: (change) => { this.fileChanges.push(change); },
     });
     this.syncBar();
+    void fontChoices().then((all) => { this.textFonts = all.filter((c) => c.text); this.syncBar(); }, () => {});
     void savedLibrary().then((lib) => { if (lib && !this.symbolLib) { this.symbolLib = lib; this.syncBar(); } }, () => {});
     this.stage.append(this.spreadEl);
     this.scope.hidden = true;
@@ -441,6 +447,25 @@ class Reader {
     this.syncBar();
   }
 
+  /** A font button: the font of new text, of the text being typed, and of the selected text marking. */
+  private setFont(id: string) {
+    this.textFont = id;
+    if (this.typing.open) void this.typing.setFont(id).catch((e) => { console.error(e); this.say('Could not change the font.'); });
+    else if (this.selected?.mark.kind === 'text' && this.selected.mark.font !== id) {
+      const sel = this.selected;
+      void this.retext(sel, id, sel.mark.text);
+    }
+    this.syncBar();
+  }
+
+  /** What the font buttons show, while Text is the tool and there is a choice: the font of the text being typed, else of the selected text, else of new text. */
+  private fontsView(): FontsView | undefined {
+    if (this.tool !== 'text' || this.textFonts.length < 2) return undefined;
+    const sel = this.selected?.mark;
+    const own = sel?.kind === 'text' && this.textFonts.some((c) => c.id === sel.font) ? sel.font : undefined;
+    return { choices: this.textFonts, pressed: this.typing.font ?? own ?? this.textFont };
+  }
+
   /** What the background buttons show: the selected marking's shape, or with nothing selected the shape new text gets or the placing symbol's. */
   private backgroundsView(): BackgroundsView | undefined {
     if (!placesMarkings(this.tool)) return undefined;
@@ -473,7 +498,7 @@ class Reader {
   /** A tap with Text as the tool: start typing a new text marking with the middle of its capitals at `at`. */
   private newText(slot: FrameSlot, at: [number, number]) {
     this.select(undefined);
-    const font = ACADEMICO, size = textSizeOf(this.state.score);
+    const font = this.textFont, size = textSizeOf(this.state.score);
     void (async () => {
       try {
         const { capHeight } = await fontMetrics(font);
@@ -481,7 +506,7 @@ class Reader {
           slot, font, size, color: markColors().color,
           start: [at[0], at[1] + (capHeight / 2) * size],
           text: '',
-          done: (text) => void this.placeText(slot, font, size, text, [at[0], at[1] + (capHeight / 2) * size]),
+          done: (text, typed) => void this.placeText(slot, typed, size, text, [at[0], at[1] + (capHeight / 2) * size]),
           cancel: () => {},
         });
       } catch (e) { console.error(e); this.say('Could not place the text.'); }
@@ -502,23 +527,30 @@ class Reader {
     this.select({ cut: cut.id, mark: marking as PlacedMark });
   }
 
-  /** The selected text marking: open its field on it. */
-  private editText(sel: Selected) {
+  /** The slot showing the cut of a selected text marking, and the start of its baseline in that frame. */
+  private textSite(sel: Selected): { slot: FrameSlot; start: [number, number] } | undefined {
     const slot = this.slots.find((sl) => sl.frame.items.some((i) => i.cut.id === sel.cut));
     const item = slot?.frame.items.find((i) => i.cut.id === sel.cut);
-    if (!slot || !item) return;
+    if (!slot || !item) return undefined;
     const { mark } = sel, size = mark.size;
+    const [cx, cy] = centreOnFrame(item, mark, this.aspects[item.cut.page]), [bx, by] = baselineStart(mark);
+    return { slot, start: [cx + bx * size, cy + by * size] };
+  }
+
+  /** The selected text marking: open its field on it. */
+  private editText(sel: Selected) {
+    const site = this.textSite(sel);
+    if (!site) return;
+    const { slot, start } = site, { mark } = sel, size = mark.size;
     void (async () => {
       try {
         const font = (await fontChoices()).some((c) => c.id === mark.font) ? mark.font : ACADEMICO;
-        const [cx, cy] = centreOnFrame(item, mark, this.aspects[item.cut.page]), [bx, by] = baselineStart(mark);
-        const start: [number, number] = [cx + bx * size, cy + by * size];
         // Without the marking while its field is open.
         this.selection.show(undefined);
         this.paintInk(slot, replaceMarking(this.state, sel.cut, sel.mark));
         await this.typing.show({
           slot, font, size, color: mark.color ?? markColors().color, start, text: mark.text,
-          done: (text) => void this.editedText(slot, sel, font, text, start),
+          done: (text, typed) => void this.retext(sel, typed, text),
           cancel: () => { this.paintInk(slot, this.state); this.select(sel); },
         });
       } catch (e) {
@@ -531,7 +563,10 @@ class Reader {
   }
 
   /** The field on `sel` closed with `text`: change the marking, delete it when there is no ink, or leave it. */
-  private async editedText(slot: FrameSlot, sel: Selected, font: string, text: string, start: [number, number]) {
+  private async retext(sel: Selected, font: string, text: string) {
+    const site = this.textSite(sel);
+    if (!site) return;
+    const { slot, start } = site;
     const state = this.state, { mark } = sel;
     const restore = () => { this.paintInk(slot, this.state); this.select(sel); };
     if (!state.ink[sel.cut]?.includes(mark)) { this.paintInk(slot, state); return; }
@@ -677,7 +712,7 @@ class Reader {
       canRedo: this.undos.canRedo,
     });
     this.scope.hidden = this.reading.what.kind === 'score' || !this.editor.enabled;
-    this.toolbar.symbolRow.show(this.symbolLib, this.currents, this.adhocCurrent, this.tool === 'symbol' ? this.group : undefined, this.groupsShown && this.tool !== 'text', this.backgroundsView());
+    this.toolbar.symbolRow.show(this.symbolLib, this.currents, this.adhocCurrent, this.tool === 'symbol' ? this.group : undefined, this.groupsShown && this.tool !== 'text', this.fontsView(), this.backgroundsView());
     this.root.classList.toggle('writing', this.tool !== 'none');
     this.root.classList.toggle('editing', this.editor.enabled);
     this.root.style.setProperty('--bar-h', this.toolbar.el.offsetHeight + 'px');
