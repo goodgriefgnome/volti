@@ -7,13 +7,17 @@ import { _shape, _viewOf, type Shaped } from './_shape';
 /** Bravura's id: the first 8 hex digits of the SHA-256 of public/fonts/Bravura.woff2. */
 export const BRAVURA = 'e68df664';
 
-/** Academico's id: the first 8 hex digits of the SHA-256 of public/fonts/Academico.woff2 (version 0.902, made from the OTF of the npm package `@vexflow-fonts/academico`). */
-export const ACADEMICO = '551b7cce';
+/** Academico Regular's id: the first 8 hex digits of the SHA-256 of public/fonts/Academico.woff2 (release 0.905, made from the OTF of `dbenjaminmiller/academico-mirror`). */
+export const ACADEMICO = '299a6ac6';
+
+/** Academico Italic's id, the same way, of public/fonts/Academico-Italic.woff2. */
+export const ACADEMICO_ITALIC = 'fa5baf20';
 
 /** The bundled fonts' files, by id. */
 const FILES: Record<string, string> = {
   [BRAVURA]: 'fonts/Bravura.woff2',
   [ACADEMICO]: 'fonts/Academico.woff2',
+  [ACADEMICO_ITALIC]: 'fonts/Academico-Italic.woff2',
 };
 
 /** A font read: fontkit's, and the file's bytes, which a text field's `FontFace` is made from. */
@@ -55,11 +59,12 @@ export interface FontChoice {
   text: boolean;
 }
 
-/** The fonts the editor and the picker offer: Bravura, then Academico, for now. */
+/** The fonts the editor and the picker offer: Bravura, then Academico and its Italic, for now. */
 export async function fontChoices(): Promise<FontChoice[]> {
   return [
     { id: BRAVURA, name: 'Bravura', text: false },
     { id: ACADEMICO, name: 'Academico', text: true },
+    { id: ACADEMICO_ITALIC, name: 'Academico Italic', text: true },
   ];
 }
 

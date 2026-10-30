@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import * as fontkit from 'fontkit';
 import { _pathData, _shape, _viewOf, fontId } from './_shape';
-import { ACADEMICO, BRAVURA } from './fonts';
+import { ACADEMICO, ACADEMICO_ITALIC, BRAVURA } from './fonts';
 
 const bytes = new Uint8Array(readFileSync('public/fonts/Bravura.woff2'));
 const font = fontkit.create(bytes as Buffer) as fontkit.Font;
@@ -96,5 +96,34 @@ describe('Academico', () => {
     const { glyphs } = _shape(academico, 'AV');
     const advance = academico.getGlyph(glyphs[0].gid).advanceWidth / academico.unitsPerEm;
     expect(glyphs[1].x).toBeLessThan(advance);
+  });
+});
+
+describe('Academico Italic', () => {
+  const ibytes = new Uint8Array(readFileSync('public/fonts/Academico-Italic.woff2'));
+  const italic = fontkit.create(ibytes as Buffer) as fontkit.Font;
+  const regular = fontkit.create(new Uint8Array(readFileSync('public/fonts/Academico.woff2')) as Buffer) as fontkit.Font;
+
+  it('has the id the app expects', async () => {
+    expect(await fontId(ibytes)).toBe(ACADEMICO_ITALIC);
+  });
+
+  it('shapes "Ped." as four glyphs left to right', () => {
+    const { glyphs } = _shape(italic, 'Ped.');
+    expect(glyphs).toHaveLength(4);
+    for (let i = 1; i < 4; i++) expect(glyphs[i].x).toBeGreaterThan(glyphs[i - 1].x);
+  });
+
+  it('kerns "AC"', () => {
+    const { glyphs } = _shape(italic, 'AC');
+    const advance = italic.getGlyph(glyphs[0].gid).advanceWidth / italic.unitsPerEm;
+    expect(glyphs[1].x).toBeLessThan(advance);
+  });
+
+  it('has the Regular\'s vertical metrics, so a field\'s baseline is where it was', () => {
+    expect(italic.ascent).toBe(regular.ascent);
+    expect(italic.descent).toBe(regular.descent);
+    expect(italic.capHeight).toBe(regular.capHeight);
+    expect(italic.unitsPerEm).toBe(regular.unitsPerEm);
   });
 });

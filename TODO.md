@@ -104,10 +104,10 @@ scores.
   backgrounds, sizes, storage and export). Plans 1 (`text-and-symbol-markings-plan-1.md`: placing
   symbols from the starter library), 2 (the library editor and the glyph picker), 3 (text, with
   Academico) and 4 (backgrounds and the default colours) are done. What is left of the spec is
-  imported fonts, and with them the Text tool's fonts in the second row, still to plan. (Academico
-  has no public Italic, so none is bundled. Bravura
-  1.482's WOFF2 was checked against its OTF: same outlines. Academico's WOFF2 is its OTF converted
-  with wawoff2, since the npm package's own has no kerning: same outlines and kerning.)
+  imported fonts, and with them the Text tool's fonts in the second row, still to plan. (Bravura
+  1.482's WOFF2 was checked against its OTF: same outlines. Academico is 0.905, Regular and
+  Italic, from the OTFs of `dbenjaminmiller/academico-mirror` at `b10716d`, converted with
+  wawoff2 and checked: same outlines, advances and kerning.)
 - **Cropping, in batches of pages:** a mode of its own, like Edit cuts, for trimming the margins
   of the original's pages, applied to several pages at once. To think through: what a batch is (a
   range of pages, odd and even pages apart for scans of a book); whether it trims all four sides
