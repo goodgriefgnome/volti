@@ -101,7 +101,7 @@ scores.
     folder or Recently removed is, can't.
 - **Text and symbol markings**, beside the pen and highlighter: specified in
   `text-and-symbol-markings.md` (a library of symbols in groups, text typed on the music,
-  backgrounds, sizes, storage and export). Plans 1 (`text-and-symbol-markings-plan-1.md`: placing
+  backgrounds, sizes, storage and export). Plans 1 (placing
   symbols from the starter library), 2 (the library editor and the glyph picker), 3 (text, with
   Academico), 4 (backgrounds and the default colours) and 5 (Academico 0.905 with its Italic, and
   the Text tool's fonts in the second row) are done. What is left of the spec is imported fonts,
