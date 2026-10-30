@@ -41,6 +41,7 @@ The old database **`volti`**, from before scores, is deleted at start-up.
 | `ink:<id>` | `ScoreInk` | `scores/store.ts` |
 | `glyph:<font id>:<gid>` | `string`, a glyph's outline | `markings/store.ts` |
 | `symbols` | `SymbolLibrary` | `markings/store.ts` |
+| `placed-mark-colors` | `{ color?: string; background?: string }`, the default colours | `markings/store.ts` |
 | `last-read` | `LastRead` | `reader/_store.ts` |
 | `setlists` | `string[]`, setlist ids, newest first | `setlists/store.ts` |
 | `setlist:<id>` | `Setlist` | `setlists/store.ts` |
@@ -230,6 +231,12 @@ interface LibrarySymbol {
 One for the app, made from the starter (fingerings 1 to 5, and *pp* to *ff*, all Bravura at scale
 1) the first time it is needed. A symbol is known by its font and characters, which are unique in
 the library. Its glyphs are in `glyph:` records, written before the library.
+
+### `placed-mark-colors`: the default colours
+
+`{ color?: string; background?: string }`: the colour of placed markings, and of their backgrounds,
+that have none of their own. A missing one is the built-in colour (`#1c1f26`, and `#cce0ff`); only
+colours that differ from the built-in ones are stored.
 
 ### `last-read`: where to pick up
 

@@ -19,7 +19,7 @@ import { pageWidths, screenAt } from '../render/screen';
 import { type Hatches } from '../render/paint';
 import { replaceMarking, setInk, textSizeOf } from '../scores/edits';
 import { centreOnFrame, extentOnFrame, movedTo, type Selected } from '../scores/placing';
-import { baselineStart, PLACED_COLOR, textMark, type PlacedMark } from '../markings/placed';
+import { baselineStart, markColors, textMark, type PlacedMark } from '../markings/placed';
 import { claimMarking } from '../scores/ownership';
 import { compactMarking } from '../markings/model';
 import { A4, type Aspects, type Cut, type NamedExcerpt, type State } from '../scores/model';
@@ -440,7 +440,7 @@ class Reader {
       try {
         const { capHeight } = await fontMetrics(font);
         await this.typing.show({
-          slot, font, size, color: PLACED_COLOR,
+          slot, font, size, color: markColors().color,
           start: [at[0], at[1] + (capHeight / 2) * size],
           text: '',
           done: (text) => void this.placeText(slot, font, size, text, [at[0], at[1] + (capHeight / 2) * size]),
@@ -478,7 +478,7 @@ class Reader {
         this.selection.show(undefined);
         this.paintInk(slot, replaceMarking(this.state, sel.cut, sel.mark));
         await this.typing.show({
-          slot, font, size, color: mark.color ?? PLACED_COLOR, start, text: mark.text,
+          slot, font, size, color: mark.color ?? markColors().color, start, text: mark.text,
           done: (text) => void this.editedText(slot, sel, font, text, start),
           cancel: () => { this.paintInk(slot, this.state); this.select(sel); },
         });
@@ -627,7 +627,7 @@ class Reader {
       open: !!cur,
       tool: this.tool,
       groupsShown: this.groupsShown,
-      markColor: this.selected ? this.selected.mark.color ?? PLACED_COLOR : undefined,
+      markColor: this.selected ? this.selected.mark.color ?? markColors().color : undefined,
       penColor: this.penColor,
       editing: this.editor.enabled,
       archived: cur?.state.score.archived.length ?? 0,

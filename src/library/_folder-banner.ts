@@ -1,11 +1,12 @@
 // The tools at the top of the library, beside the name: the scores folder's buttons (Link scores
-// folder, Allow access), the library's ⋯ menu (the scores folder, Recently removed, and the storage
-// used), and Update when a new version of the app is ready.
+// folder, Allow access), the library's ⋯ menu (the scores folder, Recently removed, Marking
+// colours, and the storage used), and Update when a new version of the app is ready.
 
 import { canLinkFolder } from '../originals/device-score-fs';
 import { button, el } from '../ui/dom';
 import { showMenu } from '../ui/overlay';
 import type { LibraryHost } from './_host';
+import { openMarkColors } from './_mark-colors';
 import { openRecentlyRemoved } from './_removed';
 import { storageView } from './_storage';
 import { moreButton } from './_rows';
@@ -36,6 +37,7 @@ export class FolderBanner {
       f.kind !== 'none' && { label: 'Unlink', run: () => void lib.unlink() },
       f.kind !== 'none' && lib.leftIn > 0 && { label: `Move ${lib.leftIn === 1 ? 'the score' : `${lib.leftIn} scores`} left in Volti…`, run: () => void lib.moveLeftIn() },
       { label: 'Recently removed…', run: () => void openRecentlyRemoved(lib) },
+      { label: 'Marking colours…', run: openMarkColors },
       'Storage used on this tablet',
       storageView(),
     ]), 'More'));

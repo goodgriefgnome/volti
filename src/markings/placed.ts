@@ -18,8 +18,21 @@ export interface PlacedMark {
   color?: string;
 }
 
-/** The colour of a marking without its own, until the default colours can be set (plan 4). */
-export const PLACED_COLOR = '#1c1f26';
+/** The app's colours for placed markings without their own: the marking, and its background. */
+export interface MarkColors { color: string; background: string }
+
+/** Until the user sets them: the first pen colour, and light blue. */
+export const BUILT_IN_COLORS: MarkColors = { color: '#1c1f26', background: '#cce0ff' };
+
+let colors: MarkColors = BUILT_IN_COLORS;
+
+/** The default colours now. */
+export const markColors = (): MarkColors => colors;
+
+/** Set them, each missing one going back to its built-in colour. */
+export function setMarkColors(c: Partial<MarkColors>): void {
+  colors = { ...BUILT_IN_COLORS, ...c };
+}
 
 const round = (v: number) => Math.round(v * 10000) / 10000;
 
@@ -106,7 +119,7 @@ function drawPlaced(t: DrawTarget, m: PlacedMark) {
   const all = placeGlyphs(t, m);
   if (!all.length) return;
   t.draw.shape(all, { stroke: { color: '#ffffff', opacity: 0.5, multiply: false }, width: 0.04 * m.size * t.w });
-  t.draw.shape(all, { fill: { color: m.color ?? PLACED_COLOR, opacity: 1, multiply: false } });
+  t.draw.shape(all, { fill: { color: m.color ?? colors.color, opacity: 1, multiply: false } });
 }
 
 /** What markings/model.ts needs to know about placed markings. */
@@ -125,7 +138,7 @@ export const _placed: _KindBehaviour<PlacedMark> = {
   },
   draw: drawPlaced,
   annotation: (_t, m) =>
-    m.kind === 'text' ? { subtype: 'FreeText', contents: m.text } : { subtype: 'Stamp', contents: m.text, color: m.color ?? PLACED_COLOR },
+    m.kind === 'text' ? { subtype: 'FreeText', contents: m.text } : { subtype: 'Stamp', contents: m.text, color: m.color ?? colors.color },
   compact: (m) => ({ ...m, at: [round(m.at[0]), round(m.at[1])], size: round(m.size) }),
   copy: (m) => ({ ...m, at: [...m.at], glyphs: m.glyphs.map((g) => [...g]) }),
 };

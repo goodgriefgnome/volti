@@ -139,3 +139,5 @@
 .incoming-fields .hint { margin: 0; }
 .incoming-fields > button { justify-self: start; }
 @media (max-width: 600px) { .incoming-row { grid-template-columns: minmax(0, 1fr); } }
+.mark-colors-row { display: flex; align-items: center; gap: 12px; padding: 6px 0; }
+.mark-colors-row .name { flex: 1; }

@@ -27,6 +27,9 @@ export const keys = {
   /** The SymbolLibrary: the user's symbols in groups, one for the app (markings/store.ts). */
   symbols: 'symbols',
 
+  /** The default colours of placed markings and their backgrounds, { color?, background? } (markings/store.ts). */
+  markColors: 'placed-mark-colors',
+
   /* Setlists (setlists/store.ts). Cuts and markings are only ever stored in the score. */
   /** Setlist ids, newest first. */
   setlists: 'setlists',

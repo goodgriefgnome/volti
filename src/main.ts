@@ -4,6 +4,7 @@
 
 import { registerSW } from 'virtual:pwa-register';
 import { Library } from './library/library';
+import { loadMarkColors } from './markings/store';
 import { tidyStorage } from './originals/library-files';
 import { purgeRemoved } from './originals/trash-fs';
 import { el } from './ui/dom';
@@ -40,6 +41,7 @@ async function start() {
   await purgeRemoved().catch((e) => console.warn('Could not clear out Recently removed:', e));
   await library.addShared();
   if (location.search.includes('shared')) history.replaceState(null, '', location.pathname);
+  await loadMarkColors().catch((e) => console.warn('Could not load the marking colours:', e));
   await library.refresh();
 }
 

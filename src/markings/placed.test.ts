@@ -1,7 +1,7 @@
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { Drawing, Paint, PathCmd } from './draw';
 import { addGlyph } from './glyphs';
-import { _placed, baselineStart, centred, emExtent, glyphKeysIn, PLACED_COLOR, textMark, type PlacedMark } from './placed';
+import { _placed, baselineStart, centred, emExtent, glyphKeysIn, markColors, setMarkColors, textMark, type PlacedMark } from './placed';
 import type { DrawTarget } from './model';
 import type { Stroke } from './stroke';
 
@@ -93,9 +93,31 @@ describe('placed markings', () => {
     expect(shapes).toHaveLength(2);
     const [halo, fill] = shapes;
     expect(halo[1]).toEqual({ stroke: { color: '#ffffff', opacity: 0.5, multiply: false }, width: 0.04 * 0.1 * 1000 });
-    expect(fill[1]).toEqual({ fill: { color: PLACED_COLOR, opacity: 1, multiply: false } });
+    expect(fill[1]).toEqual({ fill: { color: markColors().color, opacity: 1, multiply: false } });
     // Glyph 1's first point: the centre (500, 700) plus (-0.5, 0.5) em of 100 px.
     expect(halo[0][0]).toEqual(['M', 450, 750]);
     expect(halo[0]).toBe(fill[0]);
+  });
+});
+
+describe('default colours', () => {
+  afterEach(() => setMarkColors({}));
+  const fillColor = (m: PlacedMark) => {
+    const paints: Paint[] = [];
+    const draw: Drawing = { path() {}, shape: (_c, paint) => void paints.push(paint) };
+    _placed.draw({ draw, w: 1000, h: 1400, ox: 0, oy: 0 }, m);
+    const fill = paints.find((p) => 'fill' in p);
+    return fill && 'fill' in fill ? fill.fill.color : undefined;
+  };
+  it('leave the other built in when one is set, and both when none is', () => {
+    setMarkColors({ color: '#800000' });
+    expect(markColors()).toEqual({ color: '#800000', background: '#cce0ff' });
+    setMarkColors({});
+    expect(markColors()).toEqual({ color: '#1c1f26', background: '#cce0ff' });
+  });
+  it('colour a marking without a colour of its own, and not one with its own', () => {
+    setMarkColors({ color: '#800000' });
+    expect(fillColor(mark)).toBe('#800000');
+    expect(fillColor({ ...mark, color: '#00ff00' })).toBe('#00ff00');
   });
 });
