@@ -138,7 +138,9 @@ export class Input {
     if (host.editor.onDown(e)) return;
 
     const eraserButton = e.pointerType === 'pen' && !!(e.buttons & 32); // the pen's eraser end or button
-    const tool = eraserButton ? 'eraser' : host.tool();
+    // A symbol as the tool has no tool of its own yet: it acts as none.
+    const chosen = host.tool();
+    const tool = eraserButton ? 'eraser' : chosen === 'symbol' ? 'none' : chosen;
     const toolbar = host.annotating();
     const penWrites = toolbar && tool !== 'none' && e.pointerType === 'pen';
     const turn = penWrites ? null : turnFor(this.stagePoint(e.clientX, e.clientY).x, host.stage.clientWidth, toolbar);

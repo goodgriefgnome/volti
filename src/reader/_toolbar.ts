@@ -3,6 +3,7 @@
 
 import { PEN_COLORS } from '../markings/stroke';
 import { el } from '../ui/dom';
+import { SymbolRow, type SymbolRowActions } from './_symbol-row';
 import { TOOL_NAMES, TOOLS, type ToolName } from './tools/_tools';
 
 /** The back arrow that leaves the reader for the library, on the toolbar and when it is hidden. */
@@ -41,9 +42,9 @@ export function turnIcon(dir: 'prev' | 'next'): SVGSVGElement {
 }
 
 /** The tool selected in the toolbar, if any. */
-export type ToolChoice = 'none' | ToolName;
+export type ToolChoice = 'none' | ToolName | 'symbol';
 
-export interface ToolbarActions {
+export interface ToolbarActions extends SymbolRowActions {
   close(): void;
   /** Hide the toolbar. */
   hide(): void;
@@ -57,6 +58,8 @@ export interface ToolbarActions {
   more(): void;
   /** Tapping the active tool again puts it away. */
   tool(t: ToolName): void;
+  /** Show or hide the symbol groups. */
+  symbols(): void;
   penColor(c: string): void;
   undo(): void;
   redo(): void;
@@ -70,6 +73,8 @@ export interface ToolbarView {
   /** The score is open; a score that can't be opened can't be written on or edited. */
   open: boolean;
   tool: ToolChoice;
+  /** The symbol groups are shown. */
+  groupsShown: boolean;
   penColor: string;
   editing: boolean;
   archived: number;
@@ -82,6 +87,8 @@ export class Toolbar {
   readonly el = el('div', 'bar');
   readonly title = el('span', 'title');
   readonly info = el('span', 'page-info');
+  /** The second row, under the rest: the symbol groups. */
+  readonly symbolRow: SymbolRow;
   private buttons: Record<string, HTMLButtonElement> = {};
 
   /** `reading` is what the reader reads, which decides the buttons on the right. */
@@ -94,7 +101,7 @@ export class Toolbar {
     left.append(back, this.title);
 
     const tools = el('div', 'group');
-    tools.append(...TOOL_NAMES.map((t) => this.button(t, TOOLS[t].label, () => act.tool(t))));
+    tools.append(...TOOL_NAMES.map((t) => this.button(t, TOOLS[t].label, () => act.tool(t))), this.button('symbols', 'Symbols', act.symbols));
     const swatches = el('div', 'group swatches');
     for (const c of PEN_COLORS) {
       const b = this.button('color' + c, '', () => act.penColor(c), 'swatch');
@@ -130,7 +137,8 @@ export class Toolbar {
       this.info,
       hide,
     );
-    this.el.append(left, tools, right);
+    this.symbolRow = new SymbolRow(act);
+    this.el.append(left, tools, right, this.symbolRow.el);
   }
 
   private button(key: string, label: string, onClick: () => void, cls = ''): HTMLButtonElement {
@@ -148,8 +156,10 @@ export class Toolbar {
     const pressed = (k: string, on: boolean) => this.buttons[k].setAttribute('aria-pressed', String(on));
     for (const t of TOOL_NAMES) pressed(t, v.tool === t);
     pressed('edit', v.editing);
+    pressed('symbols', v.groupsShown);
+    this.symbolRow.el.hidden = !(v.groupsShown || v.tool === 'symbol');
     for (const c of PEN_COLORS) pressed('color' + c, v.tool === 'pen' && v.penColor === c);
-    for (const k of [...TOOL_NAMES, 'edit', 'excerpt', 'excerpts']) if (this.buttons[k]) this.buttons[k].disabled = !v.open;
+    for (const k of [...TOOL_NAMES, 'symbols', 'edit', 'excerpt', 'excerpts']) if (this.buttons[k]) this.buttons[k].disabled = !v.open;
     this.buttons.archived.hidden = !v.editing || !v.archived;
     this.buttons.archived.textContent = `Archived (${v.archived})`;
     this.buttons.fit.hidden = !v.zoomed;

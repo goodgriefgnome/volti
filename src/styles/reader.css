@@ -39,6 +39,10 @@
 .bar button[aria-pressed="true"] { background: var(--bar-fg); color: #14161b; border-color: var(--bar-fg); }
 .bar .title { font: italic 1.05rem var(--font-brand); max-width: 32ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bar .page-info { font-size: 14px; font-variant-numeric: tabular-nums; opacity: 0.85; }
+.bar .symbol-row { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.bar .symbol-row[hidden] { display: none; }
+.bar .symbol-group { width: 48px; padding: 4px; display: grid; place-items: center; }
+.menu .symbol-choice { display: inline-grid; place-items: center; width: 48px; min-height: 44px; padding: 4px; }
 .bar .swatches { display: none; gap: 4px; }
 .writing .bar .swatches { display: flex; }
 .bar .swatch { width: 40px; padding: 0; position: relative; }

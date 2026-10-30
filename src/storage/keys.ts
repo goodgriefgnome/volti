@@ -24,6 +24,9 @@ export const keys = {
   /** A glyph's outline as path data, by `<font id>:<glyph index>` (markings/store.ts). */
   glyph: (key: string) => 'glyph:' + key,
 
+  /** The SymbolLibrary: the user's symbols in groups, one for the app (markings/store.ts). */
+  symbols: 'symbols',
+
   /* Setlists (setlists/store.ts). Cuts and markings are only ever stored in the score. */
   /** Setlist ids, newest first. */
   setlists: 'setlists',

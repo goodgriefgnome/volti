@@ -40,6 +40,7 @@ The old database **`volti`**, from before scores, is deleted at start-up.
 | `score:<id>` | `StoredScore` | `scores/store.ts` |
 | `ink:<id>` | `ScoreInk` | `scores/store.ts` |
 | `glyph:<font id>:<gid>` | `string`, a glyph's outline | `markings/store.ts` |
+| `symbols` | `SymbolLibrary` | `markings/store.ts` |
 | `last-read` | `LastRead` | `reader/_store.ts` |
 | `setlists` | `string[]`, setlist ids, newest first | `setlists/store.ts` |
 | `setlist:<id>` | `Setlist` | `setlists/store.ts` |
@@ -208,6 +209,26 @@ units, y downwards, from the glyph's origin. A font's id is the first 8 hex digi
 of its file, so a glyph never changes under its key. Never changed once written, and not yet
 collected when no longer used. Opening a score loads the glyphs its ink uses into the glyph
 table (`markings/glyphs.ts`), so drawing stays synchronous.
+
+### `symbols`: the symbol library
+
+```ts
+interface SymbolLibrary {
+  groups: SymbolGroup[];     // in their order on the toolbar
+  adhoc: LibrarySymbol[];    // placed ad hoc, newest first, at most 8; cycles as a group
+}
+interface SymbolGroup { symbols: LibrarySymbol[] }
+interface LibrarySymbol {
+  font: string;              // the font's id
+  text: string;              // its characters, Private Use Area included
+  scale: number;             // its size relative to the score's symbol size
+  glyphs: [gid: number, x: number, y: number][];  // as shaped when it was defined
+}
+```
+
+One for the app, made from the starter (fingerings 1 to 5, and *pp* to *ff*, all Bravura at scale
+1) the first time it is needed. A symbol is known by its font and characters, which are unique in
+the library. Its glyphs are in `glyph:` records, written before the library.
 
 ### `last-read`: where to pick up
 

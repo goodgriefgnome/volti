@@ -6,6 +6,7 @@
 import type { FileChange } from '../dialogs/score-files';
 import { ends } from '../scores/excerpts';
 import { PEN_COLORS } from '../markings/stroke';
+import type { SymbolLibrary } from '../markings/library';
 import { type Marking } from '../markings/model';
 import { knownTitles } from '../originals/library-files';
 import { NoAccess, PasswordNotGiven, type SourceFile } from '../originals/types';
@@ -32,6 +33,7 @@ import { Input } from './_input';
 import { OpenScores, openPages, type DrawPage, type DrawProgressive, type Item, type OpenScore } from './_open-scores';
 import { Reading, setlistItems, type ReadingKind, type ReadingSnapshot } from './_reading';
 import { Saver } from './_saver';
+import { savedLibrary, symbolLibrary } from './_symbols';
 import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
 import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_spread';
 import { backIcon, Toolbar, turnIcon, type ToolChoice } from './_toolbar';
@@ -136,6 +138,14 @@ class Reader {
 
   private tool: ToolChoice = 'none';
   private penColor: string = PEN_COLORS[0];
+  /** The symbol library, once it has been made. */
+  private symbolLib: SymbolLibrary | undefined;
+  /** The symbol groups show in the toolbar's second row. */
+  private groupsShown = false;
+  /** The group whose current symbol is the tool, while a symbol is. */
+  private group = 0;
+  /** Each group's current symbol, an index into it, while the app runs. */
+  private currents: number[] = [];
   private undos = new History<Undo>();
   private saver: Saver;
   private editor: CutEditor;
@@ -202,6 +212,9 @@ class Reader {
       excerpts: () => this.menus.excerpts(),
       more: () => void this.menus.more(),
       tool: (t) => this.setTool(t),
+      symbols: () => void this.toggleGroups(),
+      pick: (g) => this.pickGroup(g),
+      choose: (g, i) => this.chooseSymbol(g, i),
       penColor: (c) => { this.penColor = c; this.tool = 'pen'; this.syncBar(); },
       undo: () => this.undo(),
       redo: () => this.redo(),
@@ -237,6 +250,7 @@ class Reader {
       filesChanged: (change) => { this.fileChanges.push(change); },
     });
     this.syncBar();
+    void savedLibrary().then((lib) => { if (lib && !this.symbolLib) { this.symbolLib = lib; this.syncBar(); } }, () => {});
     this.stage.append(this.spreadEl);
     this.scope.hidden = true;
     // While the toolbar is hidden, a small back arrow at the top left still leads to the library.
@@ -340,11 +354,38 @@ class Reader {
     this.syncBar();
   }
 
+  /** The Symbols button: show or hide the groups, making the library the first time. The tool stays as it is. */
+  private async toggleGroups() {
+    if (!this.groupsShown && !this.symbolLib) {
+      try { this.symbolLib = await symbolLibrary(); } catch (e) { console.error(e); this.say('Could not load the symbols.'); return; }
+    }
+    this.groupsShown = !this.groupsShown;
+    this.syncBar();
+  }
+
+  /** A group's button: its current symbol becomes the tool, or the next one is current when it already is. */
+  private pickGroup(i: number) {
+    const symbols = this.symbolLib?.groups[i]?.symbols;
+    if (!symbols?.length) return;
+    if (this.tool === 'symbol' && this.group === i) this.currents[i] = ((this.currents[i] ?? 0) + 1) % symbols.length;
+    else { this.tool = 'symbol'; this.group = i; }
+    this.syncBar();
+  }
+
+  /** A symbol chosen from a group's long-press menu: current, and the tool. */
+  private chooseSymbol(i: number, j: number) {
+    this.currents[i] = j;
+    this.tool = 'symbol';
+    this.group = i;
+    this.syncBar();
+  }
+
   private syncBar() {
     const cur = this.current;
     this.toolbar.sync({
       open: !!cur,
       tool: this.tool,
+      groupsShown: this.groupsShown,
       penColor: this.penColor,
       editing: this.editor.enabled,
       archived: cur?.state.score.archived.length ?? 0,
@@ -353,6 +394,7 @@ class Reader {
       canRedo: this.undos.canRedo,
     });
     this.scope.hidden = this.reading.what.kind === 'score' || !this.editor.enabled;
+    this.toolbar.symbolRow.show(this.symbolLib, this.currents, this.tool === 'symbol' ? this.group : undefined);
     this.root.classList.toggle('writing', this.tool !== 'none');
     this.root.classList.toggle('editing', this.editor.enabled);
     this.root.style.setProperty('--bar-h', this.toolbar.el.offsetHeight + 'px');
