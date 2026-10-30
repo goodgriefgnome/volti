@@ -16,6 +16,14 @@ export interface PlacedMark {
   /** Its em size, in page widths. */
   size: number;
   color?: string;
+  /** None when missing. */
+  background?: Background;
+}
+
+export interface Background {
+  shape: 'box' | 'tag-left' | 'tag-right';
+  /** The default background colour when missing. */
+  color?: string;
 }
 
 /** The app's colours for placed markings without their own: the marking, and its background. */
@@ -48,6 +56,35 @@ export function emExtent(m: PlacedMark): Box | undefined {
     box = box ? [Math.min(box[0], moved[0]), Math.min(box[1], moved[1]), Math.max(box[2], moved[2]), Math.max(box[3], moved[3])] : moved;
   }
   return box;
+}
+
+/** A background's padding round the ink, in em. */
+const PADDING = 0.12;
+/** How far a tag's point sticks out, as a share of its height: each edge 30° off the vertical. */
+const POINT = Math.tan(Math.PI / 6) / 2;
+
+/**
+ * Its background's outline in em from its centre, clockwise from the top left: the ink's box grown
+ * by the padding, with a point at the middle of its left or right end for a tag; undefined
+ * without a background or ink.
+ */
+export function backgroundOutline(m: PlacedMark): [number, number][] | undefined {
+  const e = m.background && emExtent(m);
+  if (!e || !m.background) return undefined;
+  const x0 = e[0] - PADDING, y0 = e[1] - PADDING, x1 = e[2] + PADDING, y1 = e[3] + PADDING;
+  const mid = (y0 + y1) / 2, point = (y1 - y0) * POINT;
+  const out: [number, number][] = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
+  if (m.background.shape === 'tag-right') out.splice(2, 0, [x1 + point, mid]);
+  else if (m.background.shape === 'tag-left') out.push([x0 - point, mid]);
+  return out;
+}
+
+/** What it covers, in em from its centre: its ink, and its background when it has one. */
+export function markExtent(m: PlacedMark): Box | undefined {
+  const o = backgroundOutline(m);
+  if (!o) return emExtent(m);
+  const xs = o.map((p) => p[0]), ys = o.map((p) => p[1]);
+  return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
 }
 
 /**
@@ -115,9 +152,19 @@ function placeGlyphs(t: DrawTarget, m: PlacedMark): PathCmd[] {
   return out;
 }
 
+/** Its background's outline, placed on the target as a closed shape. */
+function placeBackground(t: DrawTarget, m: PlacedMark): PathCmd[] {
+  const o = backgroundOutline(m);
+  if (!o) return [];
+  const cx = m.at[0] * t.w - t.ox, cy = m.at[1] * t.h - t.oy, s = m.size * t.w;
+  return [...o.map(([x, y], i): PathCmd => [i ? 'L' : 'M', cx + x * s, cy + y * s]), ['Z']];
+}
+
 function drawPlaced(t: DrawTarget, m: PlacedMark) {
   const all = placeGlyphs(t, m);
   if (!all.length) return;
+  const back = placeBackground(t, m);
+  if (back.length) t.draw.shape(back, { fill: { color: m.background?.color ?? colors.background, opacity: 1, multiply: true } });
   t.draw.shape(all, { stroke: { color: '#ffffff', opacity: 0.5, multiply: false }, width: 0.04 * m.size * t.w });
   t.draw.shape(all, { fill: { color: m.color ?? colors.color, opacity: 1, multiply: false } });
 }
@@ -131,7 +178,7 @@ export const _placed: _KindBehaviour<PlacedMark> = {
     return { ...m, at: [x, y] };
   },
   hits: (m, p, aspect, radius) => {
-    const e = emExtent(m);
+    const e = markExtent(m);
     if (!e) return false;
     const dx = p[0] - m.at[0], dy = (p[1] - m.at[1]) * aspect;
     return dx >= e[0] * m.size - radius && dx <= e[2] * m.size + radius && dy >= e[1] * m.size - radius && dy <= e[3] * m.size + radius;
@@ -140,5 +187,8 @@ export const _placed: _KindBehaviour<PlacedMark> = {
   annotation: (_t, m) =>
     m.kind === 'text' ? { subtype: 'FreeText', contents: m.text } : { subtype: 'Stamp', contents: m.text, color: m.color ?? colors.color },
   compact: (m) => ({ ...m, at: [round(m.at[0]), round(m.at[1])], size: round(m.size) }),
-  copy: (m) => ({ ...m, at: [...m.at], glyphs: m.glyphs.map((g) => [...g]) }),
+  copy: (m) => ({
+    ...m, at: [...m.at], glyphs: m.glyphs.map((g) => [...g]),
+    ...(m.background && { background: { ...m.background } }),
+  }),
 };

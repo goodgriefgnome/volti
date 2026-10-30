@@ -41,6 +41,14 @@ describe('placedAt', () => {
     expect(placedAt(frame, ink, aspects, [0.51, y], 0)?.mark).toBe(above);
     expect(placedAt(frame, ink, aspects, [0.46, y], 0)?.mark).toBe(below);
   });
+  it('finds one by a tap on its background beyond its ink', () => {
+    const boxed = { ...mark(0.5, 0.5), background: { shape: 'box' as const } };
+    const list = { [c.id]: [boxed] };
+    // The ink ends at 0.55; the background's padding (0.12 em of 0.1) takes it to 0.562.
+    expect(placedAt(frame, list, aspects, [0.555, y], 0)?.mark).toBe(boxed);
+    expect(placedAt(frame, list, aspects, [0.57, y], 0)).toBeUndefined();
+    expect(placedAt(frame, { [c.id]: [mark(0.5, 0.5)] }, aspects, [0.555, y], 0)).toBeUndefined();
+  });
   it('finds one within the margin, and misses outside it', () => {
     expect(placedAt(frame, ink, aspects, [0.6, y], 0)).toBeUndefined();
     expect(placedAt(frame, ink, aspects, [0.58, y], 0.02)?.mark).toBe(above);

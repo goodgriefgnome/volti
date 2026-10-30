@@ -1,7 +1,7 @@
 // Pure. The symbol library's types and what is worked out from it: making a symbol from shaped
 // glyphs, finding a symbol, the next one in its group, and changing the library.
 
-import { centred } from './placed';
+import { centred, type Background } from './placed';
 
 export interface SymbolLibrary {
   /** The user's groups, in their order on the toolbar. */
@@ -19,6 +19,8 @@ export interface LibrarySymbol {
   /** Its characters, Private Use Area included. */
   text: string;
   scale: number;
+  /** A template: a marking placed as it gets a copy, which can then be changed freely. None when missing. */
+  background?: Background;
   /** As shaped when it was defined, so placing it needs no font. */
   glyphs: [gid: number, x: number, y: number][];
 }

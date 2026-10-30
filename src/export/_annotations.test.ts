@@ -118,6 +118,17 @@ describe('annotate a placed marking', () => {
     const ap = a.lookup(lib.PDFName.of('AP'), lib.PDFDict).lookup(lib.PDFName.of('N'), lib.PDFStream);
     expect(ap.getContents().length).toBeGreaterThan(0);
   });
+  it('includes a background in the box, drawn darkening only', async () => {
+    addGlyph('t:1', 'M 0 0 L 1 0 L 1 -1 L 0 -1 Z');
+    const plain: PlacedMark = { kind: 'symbol', text: 'x', font: 't', glyphs: [[1, -0.5, 0.5]], at: [0.5, 0.5], size: 0.05 };
+    const [a, b] = await exported(plain, { ...plain, background: { shape: 'box' } });
+    const width = (d: lib.PDFDict) => d.lookup(lib.PDFName.of('Rect'), lib.PDFArray).asArray().map((n) => (n as lib.PDFNumber).asNumber()).reduce((w, v, i) => (i % 2 ? w : v - w), 0);
+    expect(width(b)).toBeGreaterThan(width(a));
+    const ap = b.lookup(lib.PDFName.of('AP'), lib.PDFDict).lookup(lib.PDFName.of('N'), lib.PDFStream);
+    const gs = ap.dict.lookup(lib.PDFName.of('Resources'), lib.PDFDict).lookup(lib.PDFName.of('ExtGState'), lib.PDFDict);
+    const multiply = gs.keys().some((k) => gs.lookup(k, lib.PDFDict).get(lib.PDFName.of('BM')) === lib.PDFName.of('Multiply'));
+    expect(multiply).toBe(true);
+  });
   it('writes the Stamp\'s Private Use Area characters as the names it is given', async () => {
     addGlyph('t:1', 'M 0 0 L 1 0 L 1 -1 L 0 -1 Z');
     const m: PlacedMark = { kind: 'symbol', text: '\uED14\uED22', font: 't', glyphs: [[1, -0.5, 0.5]], at: [0.5, 0.5], size: 0.05 };

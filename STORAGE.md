@@ -198,6 +198,11 @@ interface PlacedMark {
   at: [x: number, y: number];                            // the centre of its extent, as fractions of the page's width and height
   size: number;                                          // its em size, in page widths
   color?: string;                                        // the default colour when missing
+  background?: Background;                               // none when missing
+}
+interface Background {
+  shape: 'box' | 'tag-left' | 'tag-right';
+  color?: string;                                        // the default background colour when missing
 }
 ```
 
@@ -224,6 +229,7 @@ interface LibrarySymbol {
   font: string;              // the font's id
   text: string;              // its characters, Private Use Area included
   scale: number;             // its size relative to the score's symbol size
+  background?: Background;   // a template: a marking placed as it gets a copy; none when missing
   glyphs: [gid: number, x: number, y: number][];  // as shaped when it was defined
 }
 ```

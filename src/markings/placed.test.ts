@@ -1,7 +1,7 @@
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { Drawing, Paint, PathCmd } from './draw';
 import { addGlyph } from './glyphs';
-import { _placed, baselineStart, centred, emExtent, glyphKeysIn, markColors, setMarkColors, textMark, type PlacedMark } from './placed';
+import { _placed, backgroundOutline, baselineStart, centred, emExtent, glyphKeysIn, markColors, markExtent, setMarkColors, textMark, type PlacedMark } from './placed';
 import type { DrawTarget } from './model';
 import type { Stroke } from './stroke';
 
@@ -119,5 +119,72 @@ describe('default colours', () => {
     setMarkColors({ color: '#800000' });
     expect(fillColor(mark)).toBe('#800000');
     expect(fillColor({ ...mark, color: '#00ff00' })).toBe('#00ff00');
+  });
+});
+
+describe('backgrounds', () => {
+  afterEach(() => setMarkColors({}));
+  // Its ink spans -1..2 across and -0.5..0.5 up and down, so 3 × 1 em; the padding makes it 3.24 × 1.24.
+  let ink: ReturnType<typeof emExtent> & {}, x0 = 0, y0 = 0, x1 = 0, y1 = 0, point = 0;
+  beforeAll(() => {
+    ink = emExtent(mark)!;
+    [x0, y0, x1, y1] = [ink[0] - 0.12, ink[1] - 0.12, ink[2] + 0.12, ink[3] + 0.12];
+    point = (y1 - y0) * (Math.tan(Math.PI / 6) / 2);
+  });
+  const boxed = (shape: 'box' | 'tag-left' | 'tag-right', color?: string): PlacedMark => ({ ...mark, background: { shape, color } });
+
+  it('have a box outline of the ink grown by the padding, clockwise from the top left', () => {
+    expect(backgroundOutline(boxed('box'))).toEqual([[x0, y0], [x1, y0], [x1, y1], [x0, y1]]);
+  });
+  it('point right from the middle of the right end, with the point third', () => {
+    const o = backgroundOutline(boxed('tag-right'))!;
+    expect(o).toHaveLength(5);
+    expect(o[2][0]).toBeCloseTo(x1 + point);
+    expect(o[2][1]).toBeCloseTo((y0 + y1) / 2);
+    expect(point).toBeCloseTo(0.2887 * (y1 - y0), 3);
+  });
+  it('point left as the mirror image', () => {
+    const o = backgroundOutline(boxed('tag-left'))!;
+    expect(o).toHaveLength(5);
+    expect(o[4][0]).toBeCloseTo(x0 - point);
+    expect(o[4][1]).toBeCloseTo((y0 + y1) / 2);
+  });
+  it('have no outline without a background', () => {
+    expect(backgroundOutline(mark)).toBeUndefined();
+  });
+  it('widen the extent by a tag\'s point, and leave it alone without a background', () => {
+    expect(markExtent(boxed('tag-right'))![2]).toBeCloseTo(x1 + point);
+    expect(markExtent(boxed('tag-right'))![0]).toBeCloseTo(x0);
+    expect(markExtent(mark)).toEqual(emExtent(mark));
+  });
+  it('are hit by a point in their padding only when there is one', () => {
+    // 0.06 em beyond the ink, to the right: 0.006 page widths.
+    const p: [number, number, number] = [0.5 + ink[2] * 0.1 + 0.006, 0.5, 0];
+    expect(_placed.hits(boxed('box'), p, 1.4, 0)).toBe(true);
+    expect(_placed.hits(mark, p, 1.4, 0)).toBe(false);
+  });
+  it('are drawn first, filled in the default background colour and darkening only', () => {
+    const shapes: [readonly PathCmd[], Paint][] = [];
+    const draw: Drawing = { path() {}, shape: (cmds, paint) => void shapes.push([cmds, paint]) };
+    const t: DrawTarget = { draw, w: 1000, h: 1400, ox: 0, oy: 0 };
+    _placed.draw(t, boxed('box'));
+    expect(shapes).toHaveLength(3);
+    expect(shapes[0][1]).toEqual({ fill: { color: '#cce0ff', opacity: 1, multiply: true } });
+    expect(shapes[0][0].at(-1)).toEqual(['Z']);
+    expect('stroke' in shapes[1][1]).toBe(true);
+    expect(shapes[2][1]).toEqual({ fill: { color: markColors().color, opacity: 1, multiply: false } });
+    setMarkColors({ background: '#ffc0cb' });
+    shapes.length = 0;
+    _placed.draw(t, boxed('box'));
+    expect(shapes[0][1]).toMatchObject({ fill: { color: '#ffc0cb' } });
+    shapes.length = 0;
+    _placed.draw(t, boxed('box', '#ffff00'));
+    expect(shapes[0][1]).toMatchObject({ fill: { color: '#ffff00' } });
+  });
+  it('are copied, not shared', () => {
+    const m = boxed('box');
+    const c = _placed.copy(m);
+    expect(c.background).toEqual(m.background);
+    expect(c.background).not.toBe(m.background);
   });
 });

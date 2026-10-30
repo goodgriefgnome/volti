@@ -1,7 +1,7 @@
 // Placed markings on a frame: where they are, which one is at a point, and moving them. Pure.
 
 import { compactMarking } from '../markings/model';
-import { emExtent, type PlacedMark } from '../markings/placed';
+import { markExtent, type PlacedMark } from '../markings/placed';
 import { replaceMarking, setInk } from './edits';
 import type { Frame, Placed } from './frames';
 import type { Aspects, Cut, ScoreInk, State } from './model';
@@ -12,9 +12,9 @@ export interface Selected { cut: string; mark: PlacedMark }
 
 type Box = [x0: number, y0: number, x1: number, y1: number];
 
-/** A placed marking's extent on a frame: x in frame widths, y in frame widths from its top. */
+/** A placed marking's extent on a frame, with its background: x in frame widths, y in frame widths from its top. */
 export function extentOnFrame(item: Placed, m: PlacedMark, aspect: number): Box | undefined {
-  const e = emExtent(m);
+  const e = markExtent(m);
   if (!e) return undefined;
   const x = m.at[0], y = item.top + (m.at[1] - item.cut.y0) * aspect;
   return [x + e[0] * m.size, y + e[1] * m.size, x + e[2] * m.size, y + e[3] * m.size];
