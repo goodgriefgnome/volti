@@ -253,3 +253,18 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
      pink, the yellow one isn't.
   10. Export a score with backgrounds and open it in another PDF app: the boxes and tags show as in
       Volti, the music darkened through them, and go with their annotations when hidden or deleted.
+- **Text fonts** (plan 5), on the tablet with a score open:
+  1. A text placed before this plan looks as it did. Edit it: it is now in Academico 0.905,
+     starting where it did.
+  2. Tap **Text**: the second row shows "Academico" and "Academico Italic", each in its own font,
+     Academico pressed, then the backgrounds.
+  3. Tap "Academico Italic", then the music, and type "dolce": it is italic in the field and when
+     placed, on the same baseline (no jump on Enter). The next text is italic too.
+  4. While typing, tap "Academico": the field turns upright without closing, the keyboard stays,
+     and Enter places it upright.
+  5. Select an italic text and tap "Academico": it turns upright, its start where it was; undo
+     turns it back.
+  6. With a symbol selected and Text as the tool, tap a font: the symbol doesn't change.
+  7. In the library editor, a symbol made in Academico before this plan shows "Font no longer
+     bundled"; choose Academico and its characters can be changed again.
+  8. Export a score with italic text: it shows as in Volti in another PDF app.
