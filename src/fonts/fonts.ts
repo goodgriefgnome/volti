@@ -2,7 +2,7 @@
 // something has to be shaped.
 
 import type { Font } from 'fontkit';
-import { _shape, type Shaped } from './_shape';
+import { _shape, _viewOf, type Shaped } from './_shape';
 
 /** Bravura's id: the first 8 hex digits of the SHA-256 of public/fonts/Bravura.woff2. */
 export const BRAVURA = 'e68df664';
@@ -22,13 +22,37 @@ async function readFont(id: string): Promise<Font> {
   return font;
 }
 
+function loadFont(id: string): Promise<Font> {
+  let loading = fonts.get(id);
+  if (!loading) {
+    loading = readFont(id);
+    fonts.set(id, loading);
+    loading.catch(() => fonts.delete(id));
+  }
+  return loading;
+}
+
 /** Shape `text` with a bundled font, loading fontkit and the font the first time. */
 export async function shapeWith(font: string, text: string): Promise<Shaped> {
-  let loading = fonts.get(font);
-  if (!loading) {
-    loading = readFont(font);
-    fonts.set(font, loading);
-    loading.catch(() => fonts.delete(font));
-  }
-  return _shape(await loading, text);
+  return _shape(await loadFont(font), text);
+}
+
+/** A font the app can use. Only bundled ones for now; imported ones join later. */
+export interface FontChoice { id: string; name: string }
+
+/** The fonts the editor and the picker offer: [{ id: BRAVURA, name: 'Bravura' }] for now. */
+export async function fontChoices(): Promise<FontChoice[]> {
+  return [{ id: BRAVURA, name: 'Bravura' }];
+}
+
+/** A font read for showing its glyphs: what the glyph picker needs. */
+export interface FontView {
+  /** Its code points that have a glyph (not .notdef), ascending. */
+  codePoints: number[];
+  /** The outline of the glyph at a code point, as path data (as `_pathData` gives). */
+  pathAt(cp: number): string;
+}
+
+export async function fontView(id: string): Promise<FontView> {
+  return _viewOf(await loadFont(id));
 }

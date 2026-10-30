@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import * as fontkit from 'fontkit';
-import { _pathData, _shape, fontId } from './_shape';
+import { _pathData, _shape, _viewOf, fontId } from './_shape';
 import { BRAVURA } from './fonts';
 
 const bytes = new Uint8Array(readFileSync('public/fonts/Bravura.woff2'));
@@ -61,5 +61,18 @@ describe('_pathData', () => {
       1000,
     );
     expect(d).toBe('M 0 0 C 0.2 -0.4 0.5 -0.4 0.9 0 Z');
+  });
+});
+
+describe('_viewOf', () => {
+  const view = _viewOf(font);
+  it('lists the code points that have a glyph, ascending', () => {
+    expect(view.codePoints).toContain(0xed14);
+    expect(view.codePoints).not.toContain(0x41);
+    expect(view.codePoints).toEqual([...view.codePoints].sort((a, b) => a - b));
+  });
+  it('gives the outline that shaping the character gives', () => {
+    const { glyphs, paths } = _shape(font, '\uED14');
+    expect(view.pathAt(0xed14)).toBe(paths.get(glyphs[0].gid));
   });
 });

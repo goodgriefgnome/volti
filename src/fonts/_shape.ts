@@ -1,6 +1,7 @@
 // Pure. Shapes text with a font read by fontkit, and turns glyph outlines into path data.
 
 import type { Font } from 'fontkit';
+import type { FontView } from './fonts';
 
 /** Text shaped with a font: its glyphs from the start of the baseline, and their outlines. Em units, y downwards. */
 export interface Shaped {
@@ -55,6 +56,15 @@ export function _pathData(commands: { command: string; args: number[] }[], units
     }
   }
   return out.join(' ');
+}
+
+/** A font read for showing its glyphs: the code points that have one, and their outlines. */
+export function _viewOf(font: Font): FontView {
+  const codePoints = [...font.characterSet].filter((cp) => font.glyphForCodePoint(cp).id !== 0).sort((a, b) => a - b);
+  return {
+    codePoints,
+    pathAt: (cp) => _pathData(font.glyphForCodePoint(cp).path.commands, font.unitsPerEm),
+  };
 }
 
 /** A font's id: the first 8 hex digits of the SHA-256 of its file. */
