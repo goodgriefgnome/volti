@@ -16,7 +16,7 @@ The code uses these words, always in these senses.
 | **aspects** | Each original page's shape, height / width. Lengths on a page are in page widths. | `Aspects` (`scores/model.ts`) |
 | **score** | What is shown of an original: its cuts in played order, its archived cuts and its named excerpts. Its id is its file's. It stays when its file is gone. | `Score` |
 | **cut** | A horizontal band of one original page (`y0`..`y1`, fractions of its height). A score is its cuts, stacked in the order they are played. | `Cut` |
-| **ink**, **marking** | A marking is one thing drawn on the music (so far, pen and highlighter strokes); a score's ink is its markings, kept by the cut that holds most of each. | `Marking`, `ScoreInk` |
+| **ink**, **marking** | A marking is one thing drawn on the music (pen and highlighter strokes, and symbols placed whole); a score's ink is its markings, kept by the cut that holds most of each. | `Marking`, `ScoreInk` |
 | **state** | A score and its ink, which every edit keeps in step. | `State` |
 | **frame** | One of the score's own pages: cuts stacked down it until it is full, shaped like the original page of its first cut. What the user calls a score's "pages" are its frames. | `Frame` (`scores/frames.ts`) |
 | **screen** | The frames shown at once: one, or two of the other orientation, side by side or one above the other. | `render/screen.ts` |
@@ -92,9 +92,9 @@ ask the Library to change it (`change`, `update`, `refresh`).
 
 ## Recipes
 
-**A new kind of marking** (text, a fingering): add it to the `Marking` union in
+**A new kind of marking** (a post-it, say): add it to the `Marking` union in
 `markings/model.ts` and pick it out in `behaviour()`; give its `_KindBehaviour` in a file of its own
-beside `stroke.ts`; add a tool to make it (below). Cut edits, the eraser, drawing and exporting then
+beside `stroke.ts` and `placed.ts`; add a tool to make it (below). Cut edits, the eraser, drawing and exporting then
 work for it, through `markings/model.ts`.
 
 **A new tool**: a file in `reader/tools/` exporting a `Tool` (its toolbar label, and what a pointer

@@ -154,3 +154,29 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - After the first start, the old keys and the `volti` database are gone, and scores, ink and
     setlists are all still there.
   - A folder linked before the storage change is still linked (`folder` held a bare handle then).
+- **Symbol markings** (placing symbols from the starter library), on the tablet with a score open
+  and the toolbar showing:
+  1. Tap **Symbols**: a second row shows two groups, 1 and *pp*. The toolbar's height grows with
+     it and the page-turn bands start below it.
+  2. Tap the 1 button: it is pressed. Tap the music: a 1 appears where you tapped, with its box
+     and handles. Tap the 1 button again: it shows 2. Tap the music elsewhere: a 2 appears, and
+     the 1 loses its box.
+  3. Tap the 2 on the music: it turns into 3, then 4, 5, 1. Undo steps back through each.
+  4. Long-press the *pp* button: all six dynamics show; choose *mf* and place it. It is bigger
+     than the fingerings in proportion to Bravura's own sizes (both at scale 1).
+  5. Resize a fingering by a corner, then place another: it comes at the new size. Resize from
+     each corner: the opposite one stays put.
+  6. Drag a symbol into another cut and to another system; cut edits (split, merge, archive) keep
+     it with its music.
+  7. Choose the red swatch with a symbol selected: it turns red, and the tool is still the symbol.
+  8. Zoom in: symbols are sharp in the close-up, and their halo shows where they cross staff
+     lines.
+  9. Use the pen: in the side bands it turns the page while a symbol is the tool; with Pen it
+     writes as before.
+  10. Erase a symbol with the eraser; delete one with its button.
+  11. Export the score as a PDF and open it in another PDF app: each symbol is a Stamp annotation,
+      looks as it did in Volti, and can be hidden or deleted.
+  12. Airplane mode, the app reopened: the Symbols row still works, and placing still works (the
+      font and fontkit came from the offline copy).
+  13. Hide the groups with **Symbols** while a symbol is the tool: the row still shows (the
+      spec's second row), and placing still works.

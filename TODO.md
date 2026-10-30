@@ -101,8 +101,9 @@ scores.
     folder or Recently removed is, can't.
 - **Text and symbol markings**, beside the pen and highlighter: specified in
   `text-and-symbol-markings.md` (a library of symbols in groups, text typed on the music,
-  backgrounds, sizes, storage and export). Next: a plan. Still to check: that fontkit reads
-  Bravura's WOFF2 to the same outlines as its OTF, and that Academico has an Italic to bundle.
+  backgrounds, sizes, storage and export). Plan 1 (`text-and-symbol-markings-plan-1.md`: placing
+  symbols from the starter library) is done; the next is plan 2. Still to check: that Academico
+  has an Italic to bundle. (Bravura 1.482's WOFF2 was checked against its OTF: same outlines.)
 - **Cropping, in batches of pages:** a mode of its own, like Edit cuts, for trimming the margins
   of the original's pages, applied to several pages at once. To think through: what a batch is (a
   range of pages, odd and even pages apart for scans of a book); whether it trims all four sides
