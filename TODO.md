@@ -99,15 +99,27 @@ scores.
     own), and settings and places. Most of an `original:` record can be worked out again from the
     files (page shapes; where a folder file is); a password, and where a file in Volti's own
     folder or Recently removed is, can't.
-- **Text and symbol markings**, beside the pen and highlighter: specified in
-  `text-and-symbol-markings.md` (a library of symbols in groups, text typed on the music,
-  backgrounds, sizes, storage and export). Plans 1 (placing
-  symbols from the starter library), 2 (the library editor and the glyph picker), 3 (text, with
-  Academico), 4 (backgrounds and the default colours) and 5 (Academico 0.905 with its Italic, and
-  the Text tool's fonts in the second row) are done. What is left of the spec is imported fonts,
-  still to plan. (Bravura 1.482's WOFF2 was checked against its OTF: same outlines. Academico is
-  0.905, Regular and Italic, from the OTFs of `dbenjaminmiller/academico-mirror` at `b10716d`,
-  converted with wawoff2 and checked: same outlines, advances and kerning.)
+- **Imported fonts** for text and symbol markings (the rest of markings is done; its spec and
+  plans are gone, so what was decided is here). The user adds a font file (TTF, OTF, WOFF or
+  WOFF2) from a **Fonts** section of the library editor, with import and remove; imported fonts
+  are listed by name, and offered beside the bundled ones wherever a font is picked (a library
+  symbol's font, the Text tool's fonts in the second row).
+  - A font's id is the first 8 hex digits of the SHA-256 of its file, as for the bundled fonts
+    (`fonts/fonts.ts`); the whole hash is never kept. Importing a file whose id is already a
+    font's adds nothing.
+  - Its bytes go in OPFS at `fonts/<id>`, and a new key `fonts` (owner `fonts/store.ts`, in
+    `storage/keys.ts` and `STORAGE.md`) holds `FontRecord[]`: `{ id: string; name: string }`, the
+    name being the family and style from the font. The storage bar gets a part for imported fonts.
+  - Removing one removes its bytes and its record. Markings and library symbols made with it stay
+    as they are, since each carries its glyphs; importing it again gives the same id, so its
+    `glyph:` records still fit. Editing a text marking whose font is gone shapes it again in
+    Academico Regular.
+  - Read with fontkit, as now, only when something has to be shaped. Variable fonts are used at
+    their default instance; collections (TTC) are not supported.
+  - `fonts/` holds this and knows nothing about markings; the reader puts fonts and markings
+    together.
+  - Not in this: fonts from the system (the Local Font Access API isn't on Android) or the web;
+    exporting imported fonts with the rest of the library; removing a font's glyph records with it.
 - **Cropping, in batches of pages:** a mode of its own, like Edit cuts, for trimming the margins
   of the original's pages, applied to several pages at once. To think through: what a batch is (a
   range of pages, odd and even pages apart for scans of a book); whether it trims all four sides
