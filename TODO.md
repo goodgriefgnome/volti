@@ -101,8 +101,9 @@ scores.
     folder or Recently removed is, can't.
 - **Text and symbol markings**, beside the pen and highlighter: specified in
   `text-and-symbol-markings.md` (a library of symbols in groups, text typed on the music,
-  backgrounds, sizes, storage and export). Plan 1 (`text-and-symbol-markings-plan-1.md`: placing
-  symbols from the starter library) is done; the next is plan 2. Still to check: that Academico
+  backgrounds, sizes, storage and export). Plans 1 (`text-and-symbol-markings-plan-1.md`: placing
+  symbols from the starter library) and 2 (the library editor and the glyph picker) are done; the
+  next is plan 3 (text, Academico). Imported fonts are still to plan, after plan 4. Still to check: that Academico
   has an Italic to bundle. (Bravura 1.482's WOFF2 was checked against its OTF: same outlines.)
 - **Cropping, in batches of pages:** a mode of its own, like Edit cuts, for trimming the margins
   of the original's pages, applied to several pages at once. To think through: what a batch is (a

@@ -180,3 +180,27 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
       font and fontkit came from the offline copy).
   13. Hide the groups with **Symbols** while a symbol is the tool: the row still shows (the
       spec's second row), and placing still works.
+  14. Plan 2, the library editor and glyph picker: the row now shows the two groups, then **+** and
+      **Edit library…**, and no ad-hoc group yet.
+  15. Tap **+**: the picker opens on Bravura with every glyph. Scroll to the end: glyphs draw as
+      they come into view, without stalling.
+  16. Search "fermata": only fermatas show. Tap one: it appears in the characters and the preview,
+      and its name shows under the grid. Tap **Place**, then the music: the fermata is placed, and
+      the ad-hoc group shows it after the groups.
+  17. Place nine different ad-hoc symbols through **+**: the ad-hoc group's long press shows the
+      newest eight.
+  18. Long-press the ad-hoc group, tap **To group**, choose the fingerings: the symbol moves to the
+      end of the fingerings, and is gone from the ad-hoc group.
+  19. Through **+**, pick fingering 3 (already in a group): the tool becomes the fingerings' 3, and
+      the ad-hoc group doesn't change.
+  20. **Edit library…**: the groups show. Add a group, add a symbol to it with **Pick glyphs…**:
+      "fingering4", "fingeringSubstitutionDash", "fingering5", then **Use** and **OK**: it is in the
+      new group, and the toolbar shows it.
+  21. Change that symbol's scale to 0.7: the preview shrinks beside fingering 1; placed ones don't
+      change, newly placed ones are smaller.
+  22. Move the dynamics group up (the ⋯ button of its row); delete a symbol; delete a group with
+      symbols (it asks first). Placed symbols stay, and the deleted ones no longer cycle.
+  23. Export a score with fingerings and open it in another PDF app: the stamps' comments read
+      "fingering4" and so on, not boxes.
+  24. Airplane mode, the app reopened: the picker's search still works (the names came from the
+      offline copy), and the editor still makes symbols.
