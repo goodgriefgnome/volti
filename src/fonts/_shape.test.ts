@@ -1,0 +1,65 @@
+import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+import * as fontkit from 'fontkit';
+import { _pathData, _shape, fontId } from './_shape';
+import { BRAVURA } from './fonts';
+
+const bytes = new Uint8Array(readFileSync('public/fonts/Bravura.woff2'));
+const font = fontkit.create(bytes as Buffer) as fontkit.Font;
+
+/** Every number in path data, in pairs. */
+const points = (d: string) => (d.match(/-?\d+(\.\d+)?/g) ?? []).map(Number);
+
+describe('Bravura', () => {
+  it('has the id the app expects', async () => {
+    expect(await fontId(bytes)).toBe(BRAVURA);
+  });
+
+  it('shapes fingering 4 above the baseline', () => {
+    const { glyphs, paths } = _shape(font, '');
+    expect(glyphs).toHaveLength(1);
+    expect(glyphs[0]).toMatchObject({ x: 0, y: 0 });
+    const d = paths.get(glyphs[0].gid)!;
+    expect(d).toMatch(/M/);
+    const n = points(d);
+    for (let i = 0; i < n.length; i += 2) {
+      expect(n[i]).toBeGreaterThanOrEqual(0);
+      expect(n[i]).toBeLessThanOrEqual(1);
+      expect(n[i + 1]).toBeLessThanOrEqual(0);
+      expect(n[i + 1]).toBeGreaterThanOrEqual(-1);
+    }
+  });
+
+  it('shapes mf wider than fingering 4', () => {
+    const wide = (t: string) => {
+      const n = points(_shape(font, t).paths.values().next().value!).filter((_, i) => i % 2 === 0);
+      return Math.max(...n) - Math.min(...n);
+    };
+    expect(wide('')).toBeGreaterThan(wide(''));
+  });
+
+  it('shapes three glyphs left to right', () => {
+    const { glyphs } = _shape(font, '');
+    expect(glyphs).toHaveLength(3);
+    expect(glyphs[0].x).toBeLessThan(glyphs[1].x);
+    expect(glyphs[1].x).toBeLessThan(glyphs[2].x);
+  });
+
+  it('gives .notdef for a code point it has not got', () => {
+    expect(_shape(font, '\u{10FFFD}').glyphs.map((g) => g.gid)).toEqual([0]);
+  });
+});
+
+describe('_pathData', () => {
+  it('makes a quadratic curve cubic, with control points at 2/3', () => {
+    const d = _pathData(
+      [
+        { command: 'moveTo', args: [0, 0] },
+        { command: 'quadraticCurveTo', args: [300, 600, 900, 0] },
+        { command: 'closePath', args: [] },
+      ],
+      1000,
+    );
+    expect(d).toBe('M 0 0 C 0.2 -0.4 0.5 -0.4 0.9 0 Z');
+  });
+});

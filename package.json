@@ -17,12 +17,14 @@
   },
   "dependencies": {
     "@pdfsmaller/pdf-decrypt": "github:goodgriefgnome/pdf-decrypt#a6af0ddfe5b80ad034868932dca661c1d974b833",
+    "fontkit": "2.0.4",
     "pdf-lib": "1.17.1",
     "pdfjs-dist": "6.4.299",
     "workbox-precaching": "7.4.1",
     "workbox-routing": "7.4.1"
   },
   "devDependencies": {
+    "@types/fontkit": "2.0.9",
     "typescript": "7.0.2",
     "vite": "8.3.5",
     "vite-plugin-pwa": "2.0.0",
