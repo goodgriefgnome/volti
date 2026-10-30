@@ -204,3 +204,28 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
       "fingering4" and so on, not boxes.
   24. Airplane mode, the app reopened: the picker's search still works (the names came from the
       offline copy), and the editor still makes symbols.
+- **Text markings** (plan 3), on the tablet with a score open:
+  1. Tap **Text**, then the music: a caret blinks where you tapped, and the keyboard opens without
+     the music moving or shrinking. Type "rit.": it shows in Academico, at the size it will be.
+  2. Press Enter: "rit." stays exactly where it was typed (no jump), with its halo, selected.
+  3. Tap a staff low on the page, so the field is where the keyboard will be: the music moves up so
+     the field shows above the keyboard, and back down after Enter.
+  4. Tap the text once more: the field opens on it. Add " poco a poco", press Enter: it grows to
+     the right from where it started. Undo: back to "rit.".
+  5. Edit it, delete everything, press Enter: it is gone. Undo brings it back.
+  6. Start typing, press Escape (or the keyboard's back): nothing is placed, and the reader doesn't
+     close. Start typing and tap elsewhere on the music: the text is placed, and no second field
+     opens.
+  7. Resize a text by a corner, then place a new text: it comes at the new size; a new fingering
+     comes at the size it did before.
+  8. In a score with no symbols, resize a text, then place a fingering: the fingering follows the
+     text (same size relation as before the resize).
+  9. With Text as the tool, tap a fingering twice: it cycles. With a symbol as the tool, tap a text
+     twice: it opens for editing.
+  10. Recolour a text with a swatch; drag it into the next system; delete it with its button.
+  11. Zoom in, then type: the field and the text are at the zoomed size, and sharp.
+  12. Export the score and open it in another PDF app: each text is a FreeText annotation showing
+      as in Volti, whose comment is the text.
+  13. In the library editor, make a symbol in Academico ("Ped.", scale 0.6): it places like any
+      symbol.
+  14. "AV" typed in the field and placed: the kerning looks the same before and after Enter.
