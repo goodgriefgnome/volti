@@ -257,8 +257,11 @@ Academico Regular (`363caf00`) and Bravura (`e68df664`).
   or its font** makes it another symbol: markings placed as the old one stay as they were, and no
   longer find it.
 - **Deleting a symbol** leaves its placed markings; they no longer cycle.
-- **The starter library**, made the first time the library is needed: a group with Bravura's
-  fingerings 1 to 5, and a group with Bravura's toe and heel; scale 1, no background.
+- **The starter library**, made the first time the library is needed: only what is common and
+  fiddly to draw, all Bravura, at scale 1, with no background:
+  - fingerings 1 to 5 (`fingering1` … `fingering5`);
+  - the dynamics *pp*, *p*, *mp*, *mf*, *f* and *ff* (`dynamicPP`, `dynamicPiano`, `dynamicMP`,
+    `dynamicMF`, `dynamicForte`, `dynamicFF`), each one glyph.
 
 ### The library editor
 
