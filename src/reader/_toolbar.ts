@@ -1,9 +1,10 @@
 // The reader's toolbar: building its buttons and showing the reader's state on them. The buttons
 // call back into the reader; what they do is not here.
 
+import { markColors } from '../markings/placed';
 import { PEN_COLORS } from '../markings/stroke';
 import { el } from '../ui/dom';
-import { SymbolRow, type SymbolRowActions } from './_symbol-row';
+import { SymbolRow, type BackgroundsView, type SymbolRowActions } from './_symbol-row';
 import { TOOL_NAMES, TOOLS, type ToolName } from './tools/_tools';
 
 /** The back arrow that leaves the reader for the library, on the toolbar and when it is hidden. */
@@ -64,6 +65,8 @@ export interface ToolbarActions extends SymbolRowActions {
   /** Show or hide the symbol groups. */
   symbols(): void;
   penColor(c: string): void;
+  /** The Default swatch: the selected marking goes back to the default colour. */
+  defaultColor(): void;
   undo(): void;
   redo(): void;
   toggleEditing(): void;
@@ -78,8 +81,12 @@ export interface ToolbarView {
   tool: ToolChoice;
   /** The symbol groups are shown. */
   groupsShown: boolean;
-  /** The selected marking's colour, while there is one. */
+  /** The selected marking's own colour; undefined when it has none, or none is selected. */
   markColor?: string;
+  /** A placed marking is selected. */
+  marked: boolean;
+  /** The second row's backgrounds; undefined hides them. */
+  backgrounds?: BackgroundsView;
   penColor: string;
   editing: boolean;
   archived: number;
@@ -108,6 +115,11 @@ export class Toolbar {
     const tools = el('div', 'group');
     tools.append(...TOOL_NAMES.map((t) => this.button(t, TOOLS[t].label, () => act.tool(t))), this.button('symbols', 'Symbols', act.symbols));
     const swatches = el('div', 'group swatches');
+    const plain = this.button('colorDefault', '', act.defaultColor, 'swatch swatch-default');
+    plain.style.setProperty('--swatch', markColors().color);
+    plain.setAttribute('aria-label', 'Default colour');
+    plain.title = 'Default colour';
+    swatches.append(plain);
     for (const c of PEN_COLORS) {
       const b = this.button('color' + c, '', () => act.penColor(c), 'swatch');
       b.style.setProperty('--swatch', c);
@@ -162,8 +174,11 @@ export class Toolbar {
     for (const t of TOOL_NAMES) pressed(t, v.tool === t);
     pressed('edit', v.editing);
     pressed('symbols', v.groupsShown);
-    // With Text as the tool the row holds its fonts and backgrounds, which come later: nothing yet.
-    this.symbolRow.el.hidden = !((v.groupsShown && v.tool !== 'text') || v.tool === 'symbol');
+    this.symbolRow.el.hidden = !(v.groupsShown || placesMarkings(v.tool));
+    // The default colour, as it may have been changed since the toolbar was made.
+    this.buttons.colorDefault.style.setProperty('--swatch', markColors().color);
+    this.buttons.colorDefault.hidden = !placesMarkings(v.tool);
+    pressed('colorDefault', placesMarkings(v.tool) && v.marked && !v.markColor);
     for (const c of PEN_COLORS) pressed('color' + c, v.tool === 'pen' ? v.penColor === c : placesMarkings(v.tool) && v.markColor === c);
     for (const k of [...TOOL_NAMES, 'symbols', 'edit', 'excerpt', 'excerpts']) if (this.buttons[k]) this.buttons[k].disabled = !v.open;
     this.buttons.archived.hidden = !v.editing || !v.archived;

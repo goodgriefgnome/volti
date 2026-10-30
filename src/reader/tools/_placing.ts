@@ -23,6 +23,7 @@ const HANDLE_INSET_PX = 3;
 /** A placed symbol made from a library symbol, centred at `at` of its frame. */
 export const placed = (sym: LibrarySymbol, at: [number, number], size: number): PlacedMark => ({
   kind: 'symbol', text: sym.text, font: sym.font, glyphs: sym.glyphs.map((g) => [...g]), at, size,
+  ...(sym.background && { background: { ...sym.background } }),
 });
 
 /** Replace the selected symbol with the next of its group, and make the size it implies the score's symbol size. */
@@ -31,7 +32,9 @@ function cycle(host: ToolHost, cut: string, mark: PlacedMark) {
   const next = lib && nextSymbol(lib, mark.font, mark.text);
   if (!lib || !next) return;
   const size = (mark.size / scaleOf(lib, mark.font, mark.text)) * next.scale;
-  const replacement = compactMarking({ ...placed(next, mark.at, size), ...(mark.color ? { color: mark.color } : {}) }) as PlacedMark;
+  // It keeps its own colour and background, not the next symbol's.
+  const { background: _, ...fresh } = placed(next, mark.at, size);
+  const replacement = compactMarking({ ...fresh, ...(mark.color ? { color: mark.color } : {}), ...(mark.background ? { background: { ...mark.background } } : {}) }) as PlacedMark;
   host.commit(setSymbolSize(replaceMarking(host.state(), cut, mark, replacement), size / next.scale), cut);
   host.select({ cut, mark: replacement });
 }

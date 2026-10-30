@@ -47,6 +47,7 @@ import { glyphPicker } from './_glyph-picker';
 import { editLibrary } from './_library-editor';
 import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
 import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_spread';
+import type { BackgroundChoice, BackgroundsView } from './_symbol-row';
 import { backIcon, placesMarkings, Toolbar, turnIcon, type ToolChoice } from './_toolbar';
 import { ReaderMenus } from './_toolbar-menus';
 import { offerScore, turnFrom, type Offer } from './_turning';
@@ -161,6 +162,8 @@ class Reader {
   private adhocCurrent = 0;
   /** The font last used in the glyph picker, while the app runs. */
   private pickerFont = BRAVURA;
+  /** The background shape new text gets, while the app runs. */
+  private textBackground: BackgroundChoice = 'none';
   /** The placed marking showing its box, while a symbol is the tool. */
   private selected: Selected | undefined;
   private selection = new SelectionBox(() => this.deleteSelected());
@@ -238,6 +241,8 @@ class Reader {
       edit: () => { if (this.symbolLib) editLibrary({ library: () => this.symbolLib!, change: (lib) => this.setLibrary(lib) }); },
       moveToGroup: (i, g) => this.moveToGroup(i, g),
       penColor: (c) => this.swatch(c),
+      defaultColor: () => this.defaultColor(),
+      background: (b) => this.setBackground(b),
       undo: () => this.undo(),
       redo: () => this.redo(),
       toggleEditing: () => void this.withAccess(() => { this.editor.setEnabled(!this.editor.enabled); this.syncBar(); this.decorate(); }),
@@ -412,6 +417,39 @@ class Reader {
     this.syncBar();
   }
 
+  /** The Default swatch: the selected marking goes back to the default colour. */
+  private defaultColor() {
+    const sel = this.selected;
+    if (!sel || sel.mark.color === undefined) return;
+    const { color: _, ...marked } = sel.mark;
+    this.commit(replaceMarking(this.state, sel.cut, sel.mark, marked), sel.cut);
+    this.selected = { cut: sel.cut, mark: marked };
+    this.refreshSelection();
+  }
+
+  /** A background button: the selected marking's shape, keeping its colour; with Text as the tool, also the shape of new text. */
+  private setBackground(b: BackgroundChoice) {
+    if (this.tool === 'text') this.textBackground = b;
+    const sel = this.selected;
+    if (sel && (sel.mark.background?.shape ?? 'none') !== b) {
+      const { background: old, ...rest } = sel.mark;
+      const marked: PlacedMark = b === 'none' ? rest : { ...rest, background: { shape: b, ...(old?.color ? { color: old.color } : {}) } };
+      this.commit(replaceMarking(this.state, sel.cut, sel.mark, marked), sel.cut);
+      this.selected = { cut: sel.cut, mark: marked };
+      this.refreshSelection();
+    }
+    this.syncBar();
+  }
+
+  /** What the background buttons show: the selected marking's shape, or with nothing selected the shape new text gets or the placing symbol's. */
+  private backgroundsView(): BackgroundsView | undefined {
+    if (!placesMarkings(this.tool)) return undefined;
+    if (this.selected) return { pressed: this.selected.mark.background?.shape ?? 'none', enabled: true };
+    if (this.tool === 'text') return { pressed: this.textBackground, enabled: true };
+    const sym = this.symbolLib && symbolsOf(this.symbolLib, this.group)[this.currentOf(this.group)];
+    return { pressed: sym?.background?.shape ?? 'none', enabled: false };
+  }
+
   /* ---------- typing ---------- */
 
   private select(s: Selected | undefined) {
@@ -454,8 +492,9 @@ class Reader {
   private async placeText(slot: FrameSlot, font: string, size: number, text: string, start: [number, number]) {
     if (!text.trim()) return;
     const shaped = await this.shaped(font, text);
-    const mark = shaped && textMark(font, text, shaped.glyphs, start, size);
-    if (!mark) return;
+    const made = shaped && textMark(font, text, shaped.glyphs, start, size);
+    if (!made) return;
+    const mark: PlacedMark = this.textBackground === 'none' ? made : { ...made, background: { shape: this.textBackground } };
     const claimed = claimMarking(slot.frame, compactMarking(mark), this.aspects);
     if (!claimed) return;
     const { cut, marking } = claimed, state = this.state;
@@ -627,7 +666,9 @@ class Reader {
       open: !!cur,
       tool: this.tool,
       groupsShown: this.groupsShown,
-      markColor: this.selected ? this.selected.mark.color ?? markColors().color : undefined,
+      markColor: this.selected?.mark.color,
+      marked: !!this.selected,
+      backgrounds: this.backgroundsView(),
       penColor: this.penColor,
       editing: this.editor.enabled,
       archived: cur?.state.score.archived.length ?? 0,
@@ -636,7 +677,7 @@ class Reader {
       canRedo: this.undos.canRedo,
     });
     this.scope.hidden = this.reading.what.kind === 'score' || !this.editor.enabled;
-    this.toolbar.symbolRow.show(this.symbolLib, this.currents, this.adhocCurrent, this.tool === 'symbol' ? this.group : undefined);
+    this.toolbar.symbolRow.show(this.symbolLib, this.currents, this.adhocCurrent, this.tool === 'symbol' ? this.group : undefined, this.groupsShown && this.tool !== 'text', this.backgroundsView());
     this.root.classList.toggle('writing', this.tool !== 'none');
     this.root.classList.toggle('editing', this.editor.enabled);
     this.root.style.setProperty('--bar-h', this.toolbar.el.offsetHeight + 'px');

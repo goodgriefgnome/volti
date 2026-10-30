@@ -48,6 +48,10 @@
 .bar .swatch { width: 40px; padding: 0; position: relative; }
 .bar .swatch::after { content: ""; position: absolute; inset: 10px; border-radius: 50%; background: var(--swatch); box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85); }
 .bar .swatch[aria-pressed="true"] { background: rgba(255, 255, 255, 0.25); }
+.bar .swatch-default::before { content: ""; position: absolute; left: 8px; right: 8px; top: 50%; height: 2px; z-index: 1; background: #ff4d4d; transform: rotate(-45deg); }
+.bar .symbol-backgrounds { display: flex; gap: 4px; margin-left: 8px; }
+.bar .symbol-background { width: 44px; padding: 4px; display: grid; place-items: center; }
+.bar .symbol-background[aria-pressed="true"] { background: rgba(255, 255, 255, 0.25); }
 
 /* The selected marking: its box, a delete button above; the corners take a drag without showing handles (reader/_selection.ts). */
 .selection { position: absolute; z-index: 3; pointer-events: none; outline: 1.5px solid #1f6fe0; }
