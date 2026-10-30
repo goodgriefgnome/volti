@@ -87,3 +87,6 @@
 .library-editor .preview { display: flex; gap: 12px; align-items: center; }
 .library-editor .preview-slot { width: 128px; height: 128px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 8px; }
 .library-editor .glyph-picker-body { height: calc(var(--seen-height, 100vh) - 130px); }
+
+/* The field text is typed in, over the music where the text will be (reader/_typing.ts); its font, size and place are set on it. */
+.typing { position: absolute; z-index: 4; margin: 0; padding: 0; border: 0; outline: none; background: transparent; line-height: normal; caret-color: currentColor; }

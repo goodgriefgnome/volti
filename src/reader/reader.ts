@@ -17,17 +17,19 @@ import { framesOnScreen } from '../render/layout';
 import { isZoomed, NO_ZOOM, type Zoom } from '../render/zoom';
 import { pageWidths, screenAt } from '../render/screen';
 import { type Hatches } from '../render/paint';
-import { replaceMarking } from '../scores/edits';
-import { extentOnFrame, type Selected } from '../scores/placing';
-import { PLACED_COLOR } from '../markings/placed';
+import { replaceMarking, setInk, textSizeOf } from '../scores/edits';
+import { centreOnFrame, extentOnFrame, movedTo, type Selected } from '../scores/placing';
+import { baselineStart, PLACED_COLOR, textMark, type PlacedMark } from '../markings/placed';
+import { claimMarking } from '../scores/ownership';
+import { compactMarking } from '../markings/model';
 import { A4, type Aspects, type Cut, type NamedExcerpt, type State } from '../scores/model';
 import { frameOf, pack, type Frame } from '../scores/frames';
 import { loadScore } from '../scores/store';
 import { loadSetlists } from '../setlists/store';
 import { type Setlist } from '../setlists/model';
 import { closeOverlay, showDialog } from '../ui/overlay';
-import { BRAVURA } from '../fonts/fonts';
-import { saveLibrary } from '../markings/store';
+import { ACADEMICO, BRAVURA, fontChoices, fontMetrics, shapeWith } from '../fonts/fonts';
+import { saveGlyphs, saveLibrary } from '../markings/store';
 import { dpr, el } from '../ui/dom';
 import { Toast } from '../ui/toast';
 import { CutEditor } from './cuts/_editor';
@@ -38,6 +40,7 @@ import { Input } from './_input';
 import { OpenScores, openPages, type DrawPage, type DrawProgressive, type Item, type OpenScore } from './_open-scores';
 import { Reading, setlistItems, type ReadingKind, type ReadingSnapshot } from './_reading';
 import { Saver } from './_saver';
+import { TypingField } from './_typing';
 import { SelectionBox } from './_selection';
 import { makeSymbol, savedLibrary, symbolLibrary } from './_symbols';
 import { glyphPicker } from './_glyph-picker';
@@ -161,6 +164,7 @@ class Reader {
   /** The placed marking showing its box, while a symbol is the tool. */
   private selected: Selected | undefined;
   private selection = new SelectionBox(() => this.deleteSelected());
+  private typing = new TypingField(this.stage);
   private undos = new History<Undo>();
   private saver: Saver;
   private editor: CutEditor;
@@ -302,8 +306,10 @@ class Reader {
       commit: (s, focus) => this.commit(s, focus),
       erased: (s, slot) => this.erased(s, slot),
       eraseEnded: (before, slot) => this.eraseEnded(before, slot),
-      newText: () => {},
-      editText: () => {},
+      newText: (slot, at) => this.newText(slot, at),
+      editText: (sel) => this.editText(sel),
+      typing: () => this.typing.open,
+      finishTyping: () => this.typing.finish(),
     });
     document.addEventListener('visibilitychange', this.onVisible);
     window.addEventListener('popstate', this.onPop);
@@ -383,7 +389,10 @@ class Reader {
 
   /** Change the tool; the selection ends with it, between Text and a symbol too. */
   private useTool(t: ToolChoice) {
-    if (t !== this.tool && this.selected) { this.selected = undefined; this.selection.show(undefined); }
+    if (t !== this.tool) {
+      this.typing.finish();
+      if (this.selected) { this.selected = undefined; this.selection.show(undefined); }
+    }
     this.tool = t;
   }
 
@@ -401,6 +410,100 @@ class Reader {
     this.penColor = c;
     this.tool = 'pen';
     this.syncBar();
+  }
+
+  /* ---------- typing ---------- */
+
+  private select(s: Selected | undefined) {
+    this.selected = s;
+    this.refreshSelection();
+  }
+
+  /** Shape typed text and store its glyphs; undefined, having said so, when that fails. */
+  private async shaped(font: string, text: string) {
+    try {
+      const shaped = await shapeWith(font, text);
+      await saveGlyphs(font, shaped.paths);
+      return shaped;
+    } catch (e) {
+      console.error(e);
+      this.say('Could not place the text.');
+      return undefined;
+    }
+  }
+
+  /** A tap with Text as the tool: start typing a new text marking with the middle of its capitals at `at`. */
+  private newText(slot: FrameSlot, at: [number, number]) {
+    this.select(undefined);
+    const font = ACADEMICO, size = textSizeOf(this.state.score);
+    void (async () => {
+      try {
+        const { capHeight } = await fontMetrics(font);
+        await this.typing.show({
+          slot, font, size, color: PLACED_COLOR,
+          start: [at[0], at[1] + (capHeight / 2) * size],
+          text: '',
+          done: (text) => void this.placeText(slot, font, size, text, [at[0], at[1] + (capHeight / 2) * size]),
+          cancel: () => {},
+        });
+      } catch (e) { console.error(e); this.say('Could not place the text.'); }
+    })();
+  }
+
+  /** Typed text, shaped, stored and placed in the frame of `slot`, then selected. */
+  private async placeText(slot: FrameSlot, font: string, size: number, text: string, start: [number, number]) {
+    if (!text.trim()) return;
+    const shaped = await this.shaped(font, text);
+    const mark = shaped && textMark(font, text, shaped.glyphs, start, size);
+    if (!mark) return;
+    const claimed = claimMarking(slot.frame, compactMarking(mark), this.aspects);
+    if (!claimed) return;
+    const { cut, marking } = claimed, state = this.state;
+    this.commit(setInk(state, cut.id, [...(state.ink[cut.id] ?? []), marking]), cut.id);
+    this.select({ cut: cut.id, mark: marking as PlacedMark });
+  }
+
+  /** The selected text marking: open its field on it. */
+  private editText(sel: Selected) {
+    const slot = this.slots.find((sl) => sl.frame.items.some((i) => i.cut.id === sel.cut));
+    const item = slot?.frame.items.find((i) => i.cut.id === sel.cut);
+    if (!slot || !item) return;
+    const { mark } = sel, size = mark.size;
+    void (async () => {
+      try {
+        const font = (await fontChoices()).some((c) => c.id === mark.font) ? mark.font : ACADEMICO;
+        const [cx, cy] = centreOnFrame(item, mark, this.aspects[item.cut.page]), [bx, by] = baselineStart(mark);
+        const start: [number, number] = [cx + bx * size, cy + by * size];
+        // Without the marking while its field is open.
+        this.selection.show(undefined);
+        this.paintInk(slot, replaceMarking(this.state, sel.cut, sel.mark));
+        await this.typing.show({
+          slot, font, size, color: mark.color ?? PLACED_COLOR, start, text: mark.text,
+          done: (text) => void this.editedText(slot, sel, font, text, start),
+          cancel: () => { this.paintInk(slot, this.state); this.select(sel); },
+        });
+      } catch (e) {
+        console.error(e);
+        this.say('Could not place the text.');
+        this.paintInk(slot, this.state);
+        this.select(sel);
+      }
+    })();
+  }
+
+  /** The field on `sel` closed with `text`: change the marking, delete it when there is no ink, or leave it. */
+  private async editedText(slot: FrameSlot, sel: Selected, font: string, text: string, start: [number, number]) {
+    const state = this.state, { mark } = sel;
+    const restore = () => { this.paintInk(slot, this.state); this.select(sel); };
+    if (!state.ink[sel.cut]?.includes(mark)) { this.paintInk(slot, state); return; }
+    if (text === mark.text && font === mark.font) { restore(); return; }
+    const shaped = text.trim() ? await this.shaped(font, text) : undefined;
+    if (text.trim() && !shaped) { restore(); return; }
+    const next = shaped && textMark(font, text, shaped.glyphs, start, mark.size);
+    if (!next) { this.commit(replaceMarking(state, sel.cut, mark), sel.cut); return; }
+    const moved = movedTo(state, slot.frame, sel, next.at, this.aspects, next.size, { text, font, glyphs: next.glyphs });
+    this.commit(moved.state, moved.selected.cut);
+    this.select(moved.selected);
   }
 
   /** The selected marking's delete button: take it away, as one undo step. */
@@ -586,6 +689,7 @@ class Reader {
 
   private async show() {
     const seq = ++this.seq; // a newer show() (turn, resize, edit) supersedes this one
+    this.typing.finish(); // its slot is about to go
     this.ahead.abort();
     this.ahead = new AbortController();
     const W = this.stage.clientWidth;
@@ -946,6 +1050,7 @@ class Reader {
   private onPop = () => void this.close();
 
   private async close() {
+    this.typing.finish();
     this.scores.closed = true;
     closeOverlay();
     window.removeEventListener('popstate', this.onPop);

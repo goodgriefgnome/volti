@@ -64,10 +64,13 @@ export function resizedFrom(ext: Box, corner: 0 | 1 | 2 | 3, p: readonly [number
 
 /**
  * The state with a placed marking moved to `at` on the frame (frame coordinates) and, when `size`
- * is given, resized, given to the cut holding its centre; and the marking as it is now.
+ * is given, resized, given to the cut holding its centre; and the marking as it is now. `content`
+ * is spread over the moved marking, for its new text, font and glyphs.
  */
-export function movedTo(s: State, frame: Frame, from: Selected, at: readonly [number, number], aspects: Aspects, size = from.mark.size): { state: State; selected: Selected } {
-  const claimed = claimMarking(frame, { ...from.mark, at: [at[0], at[1]], size }, aspects);
+export function movedTo(
+  s: State, frame: Frame, from: Selected, at: readonly [number, number], aspects: Aspects, size = from.mark.size, content: Partial<PlacedMark> = {},
+): { state: State; selected: Selected } {
+  const claimed = claimMarking(frame, { ...from.mark, ...content, at: [at[0], at[1]], size }, aspects);
   if (!claimed) return { state: s, selected: from };
   const mark = compactMarking(claimed.marking) as PlacedMark;
   const to = claimed.cut.id;

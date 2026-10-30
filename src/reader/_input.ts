@@ -28,6 +28,10 @@ export interface InputHost extends ToolHost {
   annotating(): boolean;
   /** Turn a page, or show or hide the toolbar. */
   act(g: Gesture): void;
+  /** The typing field is open. */
+  typing(): boolean;
+  /** Close the typing field, placing what is in it. */
+  finishTyping(): void;
 }
 
 /**
@@ -106,6 +110,11 @@ export class Input {
 
   private onDown = (e: PointerEvent) => {
     const { host } = this;
+    // While typing, a press inside the field is the field's; one elsewhere only finishes typing.
+    if (host.typing()) {
+      if (!(e.target as Element | null)?.closest?.('.typing')) host.finishTyping();
+      return;
+    }
     // The selected marking's delete button takes its own click: no capture, no tool.
     if ((e.target as Element | null)?.closest?.('.selection-delete')) return;
     const now = performance.now();
@@ -233,6 +242,7 @@ export class Input {
   }
 
   private onKey = (e: KeyboardEvent) => {
+    if ((e.target as Element | null)?.closest?.('.typing')) return; // typing never turns the page
     if (e.key === 'Escape') { if (!closeOverlay()) history.back(); return; }
     if (overlayOpen() || (e.target as Element | null)?.closest?.('.menu, .dialog')) return;
     const g = gestureForKey(e.key);

@@ -16,19 +16,23 @@ const FILES: Record<string, string> = {
   [ACADEMICO]: 'fonts/Academico.woff2',
 };
 
-const fonts = new Map<string, Promise<Font>>();
+/** A font read: fontkit's, and the file's bytes, which a text field's `FontFace` is made from. */
+interface Loaded { font: Font; bytes: Uint8Array }
 
-async function readFont(id: string): Promise<Font> {
+const fonts = new Map<string, Promise<Loaded>>();
+
+async function readFont(id: string): Promise<Loaded> {
   const file = FILES[id];
   if (!file) throw new Error(`Unknown font ${id}`);
   const [fontkit, res] = await Promise.all([import('fontkit'), fetch(import.meta.env.BASE_URL + file)]);
   if (!res.ok) throw new Error(`Font ${id} not found`);
-  const font = fontkit.create(new Uint8Array(await res.arrayBuffer()) as Buffer);
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  const font = fontkit.create(bytes as Buffer);
   if (!('layout' in font)) throw new Error('Font collections are not supported');
-  return font;
+  return { font, bytes };
 }
 
-function loadFont(id: string): Promise<Font> {
+function loadFont(id: string): Promise<Loaded> {
   let loading = fonts.get(id);
   if (!loading) {
     loading = readFont(id);
@@ -40,7 +44,7 @@ function loadFont(id: string): Promise<Font> {
 
 /** Shape `text` with a bundled font, loading fontkit and the font the first time. */
 export async function shapeWith(font: string, text: string): Promise<Shaped> {
-  return _shape(await loadFont(font), text);
+  return _shape((await loadFont(font)).font, text);
 }
 
 /** A font the app can use. Only bundled ones for now; imported ones join later. */
@@ -68,5 +72,41 @@ export interface FontView {
 }
 
 export async function fontView(id: string): Promise<FontView> {
-  return _viewOf(await loadFont(id));
+  return _viewOf((await loadFont(id)).font);
+}
+
+/** A font's vertical metrics, in em: ascent above the baseline, descent below it (positive), and its capitals' height. */
+export interface FontMetrics { ascent: number; descent: number; capHeight: number }
+
+export async function fontMetrics(id: string): Promise<FontMetrics> {
+  const { font } = await loadFont(id);
+  const em = font.unitsPerEm;
+  return { ascent: font.ascent / em, descent: -font.descent / em, capHeight: font.capHeight / em };
+}
+
+const families = new Map<string, Promise<string>>();
+
+/**
+ * The font as a CSS font family for a text field, made with `FontFace` from the same file and
+ * added to `document.fonts` the first time. Its ascent and descent are set to `fontMetrics`' and
+ * its line gap to 0 (`ascentOverride`, `descentOverride`, `lineGapOverride`), so a field one line
+ * high has its baseline exactly `ascent` below its top, whatever the browser would have taken.
+ */
+export function cssFamily(id: string): Promise<string> {
+  let made = families.get(id);
+  if (!made) {
+    made = (async () => {
+      const [{ bytes }, m] = await Promise.all([loadFont(id), fontMetrics(id)]);
+      const family = `volti-${id}`;
+      const percent = (v: number) => `${v * 100}%`;
+      const descriptors = { ascentOverride: percent(m.ascent), descentOverride: percent(m.descent), lineGapOverride: '0%' };
+      const face = new FontFace(family, bytes.slice().buffer, descriptors as FontFaceDescriptors);
+      await face.load();
+      document.fonts.add(face);
+      return family;
+    })();
+    families.set(id, made);
+    made.catch(() => families.delete(id));
+  }
+  return made;
 }
