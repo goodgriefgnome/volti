@@ -43,19 +43,19 @@ exported PDF and in every other PDF app, whatever fonts are around later.
 **Bundled**, cached for offline use with the rest of the app, in `public/fonts/`:
 
 - **Bravura** (SMuFL music font, SIL Open Font License), as WOFF2, about 323 KB.
-- **Academico** Regular (Steinberg's text font made to go with Bravura, Dorico's default; an open
-  reworking of Century Schoolbook; SIL Open Font License), as WOFF2, about 29 KB. Text is Academico
-  unless the user picks another font. Its only public release (0.902, in the npm package
-  `@vexflow-fonts/academico`) has Regular and Bold, and no Italic, so no italic is bundled. The
-  bundled WOFF2 is that package's OTF converted to WOFF2 losslessly: the package's own WOFF2
-  has lost the font's kerning.
+- **Academico** Regular and Italic (Steinberg's text font made to go with Bravura, Dorico's
+  default; an open reworking of Century Schoolbook; SIL Open Font License), release 0.905, as
+  WOFF2, about 30 KB each. Text is Academico Regular unless the user picks another font. Steinberg
+  publishes no download of its own; the files are the OTFs of `dbenjaminmiller/academico-mirror`
+  on GitHub, converted to WOFF2 losslessly. (Plan 3 bundled the Regular of release 0.902, from the
+  npm package `@vexflow-fonts/academico`, which has no Italic; 0.905 replaces it, as a new font.)
 
 **Imported**: the user adds a font file from the library editor (a file picker). Its bytes go in
 OPFS, at `fonts/<id>`; a record says its name. Importing a file whose id is already a font's adds
 nothing. Removing an imported font removes its bytes and its record; every marking and library
 symbol made with it stays as it is, since each carries its glyphs (below), and importing it again
 gives it the same id, so its glyph records still fit it. Editing a text marking whose font is gone
-shapes it again in Academico.
+shapes it again in Academico Regular.
 
 **Ids** are 8 hex digits (4 bytes) of the hash, and no more: with a handful of fonts, two files
 sharing them is too unlikely to guard against, and the whole hash is never kept. The bundled fonts'
@@ -234,7 +234,7 @@ interface LibrarySymbol {
 Examples, the first typed, the second picked from Bravura's glyphs ("fingering4",
 "fingeringSubstitutionDash", "fingering5"). Glyph positions here are from each glyph's advance
 only; fontkit's would include kerning. The ids are from the files these were worked out from:
-Academico Regular (`551b7cce`) and Bravura (`e68df664`).
+Academico Regular 0.902 (`551b7cce`) and Bravura (`e68df664`).
 
 ```json
 {
@@ -412,7 +412,7 @@ storage bar gets a part for imported fonts.
 
 ## Decided without discussion
 
-- The text font for new text, and the fallback for a font that is gone: Academico.
+- The text font for new text, and the fallback for a font that is gone: Academico Regular.
 - The default text scale: 0.6. The default symbol size: 0.035 page widths.
 - A placed marking's centre is the centre of its ink, and its glyphs are positioned from it.
 - Backgrounds' padding (0.12 em) and the tag's point (edges 30° off the vertical).
