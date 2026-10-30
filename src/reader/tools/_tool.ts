@@ -19,6 +19,8 @@ export interface ToolHost extends ReaderView {
   select(s: Selected | undefined): void;
   /** Draw a frame's ink again; `extra` is a marking still being made. */
   paintInk(slot: FrameSlot, extra?: Marking): void;
+  /** Draw a frame's ink as it would be in `s`, without taking the edit: a marking being dragged. The selection's box is hidden until the next `select`. */
+  paintState(slot: FrameSlot, s: State): void;
   /** Take an edit: undo, save, reflow, and show the frame holding `focus`. */
   commit(s: State, focus?: string): void;
   /** The eraser took markings away from the frame in `slot`: show and save it, without an undo step yet. */

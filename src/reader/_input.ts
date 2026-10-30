@@ -106,6 +106,8 @@ export class Input {
 
   private onDown = (e: PointerEvent) => {
     const { host } = this;
+    // The selected marking's delete button takes its own click: no capture, no tool.
+    if ((e.target as Element | null)?.closest?.('.selection-delete')) return;
     const now = performance.now();
     if (e.pointerType === 'pen') {
       this.lastPen = now;

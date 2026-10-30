@@ -152,7 +152,7 @@ class Reader {
   private currents: number[] = [];
   /** The placed marking showing its box, while a symbol is the tool. */
   private selected: Selected | undefined;
-  private selection = new SelectionBox(() => {});
+  private selection = new SelectionBox(() => this.deleteSelected());
   private undos = new History<Undo>();
   private saver: Saver;
   private editor: CutEditor;
@@ -281,6 +281,7 @@ class Reader {
       penColor: () => this.penColor,
       placing: () => this.symbolLib?.groups[this.group]?.symbols[this.currents[this.group] ?? 0],
       library: () => this.symbolLib,
+      paintState: (slot, s) => { this.selection.show(undefined); this.paintInk(slot, s); },
       selected: () => this.selected,
       select: (s) => { this.selected = s; this.refreshSelection(); },
       setZoom: (z) => this.setZoom(z),
@@ -381,6 +382,12 @@ class Reader {
     this.penColor = c;
     this.tool = 'pen';
     this.syncBar();
+  }
+
+  /** The selected marking's delete button: take it away, as one undo step. */
+  private deleteSelected() {
+    const sel = this.selected;
+    if (sel) this.commit(replaceMarking(this.state, sel.cut, sel.mark), sel.cut);
   }
 
   /** Show the selected marking's box, or none: a selection ends when its marking is gone from the state, or the tool isn't a symbol. */
