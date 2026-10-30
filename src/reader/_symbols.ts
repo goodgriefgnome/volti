@@ -17,14 +17,18 @@ export function symbolLibrary(): Promise<SymbolLibrary> {
   making ??= (async () => {
     const saved = await loadLibrary();
     if (saved) return saved;
-    const shaped = await Promise.all(STARTER.flat().map((text) => shapeWith(BRAVURA, text)));
-    // The glyphs are stored before the library that uses them.
-    await saveGlyphs(BRAVURA, new Map(shaped.flatMap((s) => [...s.paths])));
-    const made = new Map(STARTER.flat().map((text, i) => [text, symbolFrom(BRAVURA, text, 1, shaped[i].glyphs)]));
-    const lib: SymbolLibrary = { groups: STARTER.map((g) => ({ symbols: g.map((t): LibrarySymbol => made.get(t)!) })), adhoc: [] };
+    const made = await Promise.all(STARTER.map((g) => Promise.all(g.map((text) => makeSymbol(BRAVURA, text, 1)))));
+    const lib: SymbolLibrary = { groups: made.map((symbols) => ({ symbols })), adhoc: [] };
     await saveLibrary(lib);
     return lib;
   })();
   making.catch(() => { making = undefined; });
   return making;
+}
+
+/** A library symbol of `text` in `font`: shaped, its glyphs stored (before it is), centred. */
+export async function makeSymbol(font: string, text: string, scale: number): Promise<LibrarySymbol> {
+  const shaped = await shapeWith(font, text);
+  await saveGlyphs(font, shaped.paths);
+  return symbolFrom(font, text, scale, shaped.glyphs);
 }

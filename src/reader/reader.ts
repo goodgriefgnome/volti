@@ -6,7 +6,7 @@
 import type { FileChange } from '../dialogs/score-files';
 import { ends } from '../scores/excerpts';
 import { PEN_COLORS } from '../markings/stroke';
-import type { SymbolLibrary } from '../markings/library';
+import { addAdhoc, addGroup, findSymbol, putSymbol, symbolsOf, type SymbolLibrary } from '../markings/library';
 import { type Marking } from '../markings/model';
 import { knownTitles } from '../originals/library-files';
 import { NoAccess, PasswordNotGiven, type SourceFile } from '../originals/types';
@@ -25,7 +25,9 @@ import { frameOf, pack, type Frame } from '../scores/frames';
 import { loadScore } from '../scores/store';
 import { loadSetlists } from '../setlists/store';
 import { type Setlist } from '../setlists/model';
-import { closeOverlay } from '../ui/overlay';
+import { closeOverlay, showDialog } from '../ui/overlay';
+import { BRAVURA } from '../fonts/fonts';
+import { saveLibrary } from '../markings/store';
 import { dpr, el } from '../ui/dom';
 import { Toast } from '../ui/toast';
 import { CutEditor } from './cuts/_editor';
@@ -37,7 +39,8 @@ import { OpenScores, openPages, type DrawPage, type DrawProgressive, type Item, 
 import { Reading, setlistItems, type ReadingKind, type ReadingSnapshot } from './_reading';
 import { Saver } from './_saver';
 import { SelectionBox } from './_selection';
-import { savedLibrary, symbolLibrary } from './_symbols';
+import { makeSymbol, savedLibrary, symbolLibrary } from './_symbols';
+import { glyphPicker } from './_glyph-picker';
 import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
 import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_spread';
 import { backIcon, Toolbar, turnIcon, type ToolChoice } from './_toolbar';
@@ -146,10 +149,14 @@ class Reader {
   private symbolLib: SymbolLibrary | undefined;
   /** The symbol groups show in the toolbar's second row. */
   private groupsShown = false;
-  /** The group whose current symbol is the tool, while a symbol is. */
+  /** The group whose current symbol is the tool, while a symbol is; -1 for the ad-hoc group. */
   private group = 0;
   /** Each group's current symbol, an index into it, while the app runs. */
   private currents: number[] = [];
+  /** The ad-hoc group's current symbol. */
+  private adhocCurrent = 0;
+  /** The font last used in the glyph picker, while the app runs. */
+  private pickerFont = BRAVURA;
   /** The placed marking showing its box, while a symbol is the tool. */
   private selected: Selected | undefined;
   private selection = new SelectionBox(() => this.deleteSelected());
@@ -222,6 +229,8 @@ class Reader {
       symbols: () => void this.toggleGroups(),
       pick: (g) => this.pickGroup(g),
       choose: (g, i) => this.chooseSymbol(g, i),
+      add: () => this.addSymbol(),
+      moveToGroup: (i, g) => this.moveToGroup(i, g),
       penColor: (c) => this.swatch(c),
       undo: () => this.undo(),
       redo: () => this.redo(),
@@ -279,7 +288,7 @@ class Reader {
       editor: this.editor,
       tool: () => this.tool,
       penColor: () => this.penColor,
-      placing: () => this.symbolLib?.groups[this.group]?.symbols[this.currents[this.group] ?? 0],
+      placing: () => this.symbolLib && symbolsOf(this.symbolLib, this.group)[this.currentOf(this.group)],
       library: () => this.symbolLib,
       paintState: (slot, s) => { this.selection.show(undefined); this.paintInk(slot, s); },
       selected: () => this.selected,
@@ -410,21 +419,92 @@ class Reader {
     this.syncBar();
   }
 
+  private currentOf(group: number): number {
+    return group < 0 ? this.adhocCurrent : this.currents[group] ?? 0;
+  }
+
+  private setCurrent(group: number, index: number) {
+    if (group < 0) this.adhocCurrent = index;
+    else this.currents[group] = index;
+  }
+
   /** A group's button: its current symbol becomes the tool, or the next one is current when it already is. */
   private pickGroup(i: number) {
-    const symbols = this.symbolLib?.groups[i]?.symbols;
+    const symbols = this.symbolLib && symbolsOf(this.symbolLib, i);
     if (!symbols?.length) return;
-    if (this.tool === 'symbol' && this.group === i) this.currents[i] = ((this.currents[i] ?? 0) + 1) % symbols.length;
+    if (this.tool === 'symbol' && this.group === i) this.setCurrent(i, (this.currentOf(i) + 1) % symbols.length);
     else { this.tool = 'symbol'; this.group = i; }
     this.syncBar();
   }
 
   /** A symbol chosen from a group's long-press menu: current, and the tool. */
   private chooseSymbol(i: number, j: number) {
-    this.currents[i] = j;
+    this.setCurrent(i, j);
     this.tool = 'symbol';
     this.group = i;
     this.syncBar();
+  }
+
+  /**
+   * Change the library: saved, kept, and shown. Every change goes through here. Each group's current
+   * symbol stays in its group (the first when its place is gone), and a tool whose group is gone or
+   * empty falls to the first group with symbols, or to no tool.
+   */
+  setLibrary(lib: SymbolLibrary) {
+    this.symbolLib = lib;
+    void saveLibrary(lib).catch((e) => { console.error(e); this.say('Could not save the symbols.'); });
+    const clamp = (n: number, size: number) => (n < size ? n : 0);
+    this.currents = lib.groups.map((g, i) => clamp(this.currents[i] ?? 0, g.symbols.length));
+    this.adhocCurrent = clamp(this.adhocCurrent, lib.adhoc.length);
+    if (this.tool === 'symbol' && !symbolsOf(lib, this.group).length) {
+      const first = [...lib.groups.keys(), -1].find((g) => symbolsOf(lib, g).length);
+      if (first === undefined) this.tool = 'none';
+      else this.group = first;
+    }
+    this.syncBar();
+  }
+
+  /** + in the second row: pick glyphs, and make them the tool, among the ad-hoc symbols unless the library has them. */
+  private addSymbol() {
+    const dialog = showDialog('Place a symbol', 'glyph-picker');
+    glyphPicker(dialog, {
+      font: this.pickerFont,
+      text: '',
+      okLabel: 'Place',
+      cancel: () => closeOverlay(),
+      done: (font, text) => {
+        closeOverlay();
+        this.pickerFont = font;
+        void (async () => {
+          try {
+            const sym = await makeSymbol(font, text, 1);
+            const lib = this.symbolLib;
+            if (!lib) return;
+            const at = findSymbol(lib, font, text);
+            if (at && at.group >= 0) this.chooseSymbol(at.group, at.index);
+            else {
+              this.setLibrary(addAdhoc(lib, sym));
+              this.chooseSymbol(-1, 0);
+            }
+          } catch (e) { console.error(e); this.say('Could not make the symbol.'); }
+        })();
+      },
+    });
+  }
+
+  /** An ad-hoc symbol moved into a group (a new one at the end for 'new'); the tool follows it if it was the tool. */
+  private moveToGroup(index: number, group: number | 'new') {
+    const lib = this.symbolLib;
+    const sym = lib?.adhoc[index];
+    if (!lib || !sym) return;
+    const wasTool = this.tool === 'symbol' && this.group === -1 && this.adhocCurrent === index;
+    const to = group === 'new' ? lib.groups.length : group;
+    const next = putSymbol(group === 'new' ? addGroup(lib) : lib, sym, to);
+    this.setLibrary(next);
+    if (wasTool) {
+      const at = findSymbol(next, sym.font, sym.text);
+      if (at) this.chooseSymbol(at.group, at.index);
+    }
   }
 
   private syncBar() {
@@ -443,7 +523,7 @@ class Reader {
       canRedo: this.undos.canRedo,
     });
     this.scope.hidden = this.reading.what.kind === 'score' || !this.editor.enabled;
-    this.toolbar.symbolRow.show(this.symbolLib, this.currents, this.tool === 'symbol' ? this.group : undefined);
+    this.toolbar.symbolRow.show(this.symbolLib, this.currents, this.adhocCurrent, this.tool === 'symbol' ? this.group : undefined);
     this.root.classList.toggle('writing', this.tool !== 'none');
     this.root.classList.toggle('editing', this.editor.enabled);
     this.root.style.setProperty('--bar-h', this.toolbar.el.offsetHeight + 'px');
