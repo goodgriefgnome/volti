@@ -8,7 +8,7 @@ import { closeOverlay, overlayOpen } from '../ui/overlay';
 import type { CutEditor } from './cuts/_editor';
 import { gestureForKey, isTap, turnFor, type Gesture } from './_gestures';
 import type { FrameSlot } from './_spread';
-import type { ToolChoice } from './_toolbar';
+import { placesMarkings, type ToolChoice } from './_toolbar';
 import { symbolTool } from './tools/_symbol';
 import { TOOLS } from './tools/_tools';
 import type { ToolHost, ToolPointer } from './tools/_tool';
@@ -143,8 +143,8 @@ export class Input {
     const eraserButton = e.pointerType === 'pen' && !!(e.buttons & 32); // the pen's eraser end or button
     const tool = eraserButton ? 'eraser' : host.tool();
     const toolbar = host.annotating();
-    // With a symbol as the tool the pen acts as a finger: it taps and drags, and turns pages at the sides.
-    const penWrites = toolbar && tool !== 'none' && tool !== 'symbol' && e.pointerType === 'pen';
+    // With a symbol or text as the tool the pen acts as a finger: it taps and drags, and turns pages at the sides.
+    const penWrites = toolbar && tool !== 'none' && !placesMarkings(tool) && e.pointerType === 'pen';
     const turn = penWrites ? null : turnFor(this.stagePoint(e.clientX, e.clientY).x, host.stage.clientWidth, toolbar);
     if (turn) {
       host.editor.cancel(); // no long press on the page it turned from

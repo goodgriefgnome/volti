@@ -44,6 +44,9 @@ export function turnIcon(dir: 'prev' | 'next'): SVGSVGElement {
 /** The tool selected in the toolbar, if any. */
 export type ToolChoice = 'none' | ToolName | 'symbol';
 
+/** The tools that place markings whole: a symbol, or text. */
+export const placesMarkings = (tool: ToolChoice) => tool === 'symbol' || tool === 'text';
+
 export interface ToolbarActions extends SymbolRowActions {
   close(): void;
   /** Hide the toolbar. */
@@ -159,8 +162,9 @@ export class Toolbar {
     for (const t of TOOL_NAMES) pressed(t, v.tool === t);
     pressed('edit', v.editing);
     pressed('symbols', v.groupsShown);
-    this.symbolRow.el.hidden = !(v.groupsShown || v.tool === 'symbol');
-    for (const c of PEN_COLORS) pressed('color' + c, v.tool === 'pen' ? v.penColor === c : v.tool === 'symbol' && v.markColor === c);
+    // With Text as the tool the row holds its fonts and backgrounds, which come later: nothing yet.
+    this.symbolRow.el.hidden = !((v.groupsShown && v.tool !== 'text') || v.tool === 'symbol');
+    for (const c of PEN_COLORS) pressed('color' + c, v.tool === 'pen' ? v.penColor === c : placesMarkings(v.tool) && v.markColor === c);
     for (const k of [...TOOL_NAMES, 'symbols', 'edit', 'excerpt', 'excerpts']) if (this.buttons[k]) this.buttons[k].disabled = !v.open;
     this.buttons.archived.hidden = !v.editing || !v.archived;
     this.buttons.archived.textContent = `Archived (${v.archived})`;

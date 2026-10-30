@@ -3,12 +3,14 @@
 
 import { eraserTool } from './_eraser';
 import { penTool } from './_pen';
+import { textTool } from './_text';
 import type { Tool } from './_tool';
 
 export const TOOLS = {
   pen: penTool('pen'),
   highlighter: penTool('highlighter'),
   eraser: eraserTool,
+  text: textTool,
 } satisfies Record<string, Tool>;
 
 export type ToolName = keyof typeof TOOLS;

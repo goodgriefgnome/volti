@@ -44,7 +44,7 @@ import { glyphPicker } from './_glyph-picker';
 import { editLibrary } from './_library-editor';
 import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
 import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_spread';
-import { backIcon, Toolbar, turnIcon, type ToolChoice } from './_toolbar';
+import { backIcon, placesMarkings, Toolbar, turnIcon, type ToolChoice } from './_toolbar';
 import { ReaderMenus } from './_toolbar-menus';
 import { offerScore, turnFrom, type Offer } from './_turning';
 import type { ToolName } from './tools/_tools';
@@ -302,6 +302,8 @@ class Reader {
       commit: (s, focus) => this.commit(s, focus),
       erased: (s, slot) => this.erased(s, slot),
       eraseEnded: (before, slot) => this.eraseEnded(before, slot),
+      newText: () => {},
+      editText: () => {},
     });
     document.addEventListener('visibilitychange', this.onVisible);
     window.addEventListener('popstate', this.onPop);
@@ -375,13 +377,19 @@ class Reader {
 
   /** Tapping the active tool again puts it away. */
   private setTool(t: ToolName) {
-    this.tool = this.tool === t ? 'none' : t;
+    this.useTool(this.tool === t ? 'none' : t);
     this.syncBar();
+  }
+
+  /** Change the tool; the selection ends with it, between Text and a symbol too. */
+  private useTool(t: ToolChoice) {
+    if (t !== this.tool && this.selected) { this.selected = undefined; this.selection.show(undefined); }
+    this.tool = t;
   }
 
   /** A swatch: with a symbol as the tool, the selected marking's colour (the tool stays); otherwise the pen's colour, and the pen. */
   private swatch(c: string) {
-    if (this.tool === 'symbol') {
+    if (placesMarkings(this.tool)) {
       const sel = this.selected;
       if (!sel) return;
       const marked = { ...sel.mark, color: c };
@@ -404,7 +412,7 @@ class Reader {
   /** Show the selected marking's box, or none: a selection ends when its marking is gone from the state, or the tool isn't a symbol. */
   private refreshSelection() {
     const sel = this.selected, cur = this.current;
-    if (sel && (!cur || this.tool !== 'symbol' || !cur.state.ink[sel.cut]?.includes(sel.mark))) this.selected = undefined;
+    if (sel && (!cur || !placesMarkings(this.tool) || !cur.state.ink[sel.cut]?.includes(sel.mark))) this.selected = undefined;
     const now = this.selected;
     const slot = now && this.slots.find((sl) => sl.frame.items.some((i) => i.cut.id === now.cut));
     const item = slot && slot.frame.items.find((i) => i.cut.id === now!.cut);
@@ -435,14 +443,14 @@ class Reader {
     const symbols = this.symbolLib && symbolsOf(this.symbolLib, i);
     if (!symbols?.length) return;
     if (this.tool === 'symbol' && this.group === i) this.setCurrent(i, (this.currentOf(i) + 1) % symbols.length);
-    else { this.tool = 'symbol'; this.group = i; }
+    else { this.useTool('symbol'); this.group = i; }
     this.syncBar();
   }
 
   /** A symbol chosen from a group's long-press menu: current, and the tool. */
   private chooseSymbol(i: number, j: number) {
     this.setCurrent(i, j);
-    this.tool = 'symbol';
+    this.useTool('symbol');
     this.group = i;
     this.syncBar();
   }
@@ -511,7 +519,7 @@ class Reader {
 
   private syncBar() {
     const cur = this.current;
-    if (this.selected && this.tool !== 'symbol') { this.selected = undefined; this.selection.show(undefined); }
+    if (this.selected && !placesMarkings(this.tool)) { this.selected = undefined; this.selection.show(undefined); }
     this.toolbar.sync({
       open: !!cur,
       tool: this.tool,
