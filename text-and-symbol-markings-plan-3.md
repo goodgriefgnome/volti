@@ -38,10 +38,11 @@ passing. Do them in order.
 
 **Files to add**
 
-- `public/fonts/Academico.woff2`: `academico.woff2` from the npm package `@vexflow-fonts/academico`
+- `public/fonts/Academico.woff2`: `academico.otf` from the npm package `@vexflow-fonts/academico`
   1.0.1 (`https://registry.npmjs.org/@vexflow-fonts/academico/-/academico-1.0.1.tgz`), which
-  holds Academico 0.902 as Dorico installs it. Steinberg publishes no other copy. Its id is
-  `363caf00`; check it with `sha256sum`.
+  holds Academico 0.902 as Dorico installs it, converted to WOFF2 (with `wawoff2`, in a scratch
+  folder). Steinberg publishes no other copy, and the package's own `academico.woff2` has lost
+  the font's kerning, so it is not used. Its id is `551b7cce`; check it with `sha256sum`.
 - `public/fonts/Academico-OFL.txt`: the package's `LICENSE.txt`. Rename the existing
   `public/fonts/OFL.txt` to `Bravura-OFL.txt`, so each licence says whose it is.
 
@@ -49,13 +50,15 @@ Download into a scratch folder, not the repository; only the two files above are
 add the package as a dependency.
 
 **The one-off check, before committing**, as stage 1 of plan 1 did for Bravura: the package also
-holds `academico.otf`; with a throwaway script, compare every glyph's path data read through
-fontkit from the two files. They must be the same; say so in the commit message. If they differ,
+holds `academico.otf`; with a throwaway script, compare every glyph's path data and advance width
+read through fontkit from the OTF and the converted file, and the kerning of every pair of
+letters. They must be the same (they were: 423 glyphs, 128 kerned pairs); say so in the commit
+message. If they differ,
 stop and say so.
 
 **`src/fonts/fonts.ts`**:
 
-- `export const ACADEMICO = '363caf00';` with a comment like `BRAVURA`'s.
+- `export const ACADEMICO = '551b7cce';` with a comment like `BRAVURA`'s.
 - `FILES` gains `[ACADEMICO]: 'fonts/Academico.woff2'`.
 - `fontChoices()` gives Bravura, then `{ id: ACADEMICO, name: 'Academico' }`.
 - `FontChoice` gains `text: boolean`: the font has letters, so text can be typed in it (Bravura
@@ -344,7 +347,8 @@ On the tablet, with a score open:
 ## Decisions made here that the spec doesn't make
 
 - Academico comes from the npm package `@vexflow-fonts/academico` 1.0.1, the only public copy;
-  its WOFF2 is checked against its OTF once, by hand. Bravura's licence file is renamed so each
+  its OTF is converted to WOFF2, since the package's WOFF2 has no kerning, and the result is
+  checked against the OTF once, by hand. Bravura's licence file is renamed so each
   font has its own.
 - A font says whether it has letters (`FontChoice.text`); Bravura hasn't. The Text tool's fonts
   row waits for a second text font (spec updated).

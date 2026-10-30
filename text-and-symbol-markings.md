@@ -44,9 +44,11 @@ exported PDF and in every other PDF app, whatever fonts are around later.
 
 - **Bravura** (SMuFL music font, SIL Open Font License), as WOFF2, about 323 KB.
 - **Academico** Regular (Steinberg's text font made to go with Bravura, Dorico's default; an open
-  reworking of Century Schoolbook; SIL Open Font License), as WOFF2, about 23 KB. Text is Academico
+  reworking of Century Schoolbook; SIL Open Font License), as WOFF2, about 29 KB. Text is Academico
   unless the user picks another font. Its only public release (0.902, in the npm package
-  `@vexflow-fonts/academico`) has Regular and Bold, and no Italic, so no italic is bundled.
+  `@vexflow-fonts/academico`) has Regular and Bold, and no Italic, so no italic is bundled. The
+  bundled WOFF2 is that package's OTF converted to WOFF2 losslessly: the package's own WOFF2
+  has lost the font's kerning.
 
 **Imported**: the user adds a font file from the library editor (a file picker). Its bytes go in
 OPFS, at `fonts/<id>`; a record says its name. Importing a file whose id is already a font's adds
@@ -232,11 +234,11 @@ interface LibrarySymbol {
 Examples, the first typed, the second picked from Bravura's glyphs ("fingering4",
 "fingeringSubstitutionDash", "fingering5"). Glyph positions here are from each glyph's advance
 only; fontkit's would include kerning. The ids are from the files these were worked out from:
-Academico Regular (`363caf00`) and Bravura (`e68df664`).
+Academico Regular (`551b7cce`) and Bravura (`e68df664`).
 
 ```json
 {
-  "font": "363caf00",
+  "font": "551b7cce",
   "text": "Ped.",
   "scale": 0.6,
   "background": { "shape": "tag-right" },
