@@ -1,14 +1,22 @@
 // What every tool is: the Tool interface, and what a tool may ask of the reader. A tool acts on the
 // frames with a pointer; each tool has its own file here, and tools.ts lists them.
 
+import type { SymbolLibrary, LibrarySymbol } from '../../markings/library';
 import type { Marking, Point } from '../../markings/model';
 import type { State } from '../../scores/model';
+import type { Selected } from '../../scores/placing';
 import type { FrameSlot } from '../_spread';
 import type { ReaderView } from '../_view';
 
 /** What a tool needs from the reader. */
 export interface ToolHost extends ReaderView {
   penColor(): string;
+  /** The symbol the symbol tool places: the current one of its group. */
+  placing(): LibrarySymbol | undefined;
+  library(): SymbolLibrary | undefined;
+  /** The placed marking showing its box, if any. */
+  selected(): Selected | undefined;
+  select(s: Selected | undefined): void;
   /** Draw a frame's ink again; `extra` is a marking still being made. */
   paintInk(slot: FrameSlot, extra?: Marking): void;
   /** Take an edit: undo, save, reflow, and show the frame holding `focus`. */

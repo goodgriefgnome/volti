@@ -75,6 +75,8 @@ export interface ToolbarView {
   tool: ToolChoice;
   /** The symbol groups are shown. */
   groupsShown: boolean;
+  /** The selected marking's colour, while there is one. */
+  markColor?: string;
   penColor: string;
   editing: boolean;
   archived: number;
@@ -158,7 +160,7 @@ export class Toolbar {
     pressed('edit', v.editing);
     pressed('symbols', v.groupsShown);
     this.symbolRow.el.hidden = !(v.groupsShown || v.tool === 'symbol');
-    for (const c of PEN_COLORS) pressed('color' + c, v.tool === 'pen' && v.penColor === c);
+    for (const c of PEN_COLORS) pressed('color' + c, v.tool === 'pen' ? v.penColor === c : v.tool === 'symbol' && v.markColor === c);
     for (const k of [...TOOL_NAMES, 'symbols', 'edit', 'excerpt', 'excerpts']) if (this.buttons[k]) this.buttons[k].disabled = !v.open;
     this.buttons.archived.hidden = !v.editing || !v.archived;
     this.buttons.archived.textContent = `Archived (${v.archived})`;

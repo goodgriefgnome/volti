@@ -9,6 +9,7 @@ import type { CutEditor } from './cuts/_editor';
 import { gestureForKey, isTap, turnFor, type Gesture } from './_gestures';
 import type { FrameSlot } from './_spread';
 import type { ToolChoice } from './_toolbar';
+import { symbolTool } from './tools/_symbol';
 import { TOOLS } from './tools/_tools';
 import type { ToolHost, ToolPointer } from './tools/_tool';
 
@@ -138,11 +139,10 @@ export class Input {
     if (host.editor.onDown(e)) return;
 
     const eraserButton = e.pointerType === 'pen' && !!(e.buttons & 32); // the pen's eraser end or button
-    // A symbol as the tool has no tool of its own yet: it acts as none.
-    const chosen = host.tool();
-    const tool = eraserButton ? 'eraser' : chosen === 'symbol' ? 'none' : chosen;
+    const tool = eraserButton ? 'eraser' : host.tool();
     const toolbar = host.annotating();
-    const penWrites = toolbar && tool !== 'none' && e.pointerType === 'pen';
+    // With a symbol as the tool the pen acts as a finger: it taps and drags, and turns pages at the sides.
+    const penWrites = toolbar && tool !== 'none' && tool !== 'symbol' && e.pointerType === 'pen';
     const turn = penWrites ? null : turnFor(this.stagePoint(e.clientX, e.clientY).x, host.stage.clientWidth, toolbar);
     if (turn) {
       host.editor.cancel(); // no long press on the page it turned from
@@ -156,7 +156,7 @@ export class Input {
     if (tool !== 'none') {
       const hit = this.slotAt(e.clientX, e.clientY);
       if (!hit) return;
-      const use = TOOLS[tool].start(host, hit.slot, this.point(e, hit.rect));
+      const use = (tool === 'symbol' ? symbolTool : TOOLS[tool]).start(host, hit.slot, this.point(e, hit.rect));
       this.active = { id: e.pointerId, type: e.pointerType, ...hit, use };
       return;
     }

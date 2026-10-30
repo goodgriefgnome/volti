@@ -17,6 +17,9 @@ import { framesOnScreen } from '../render/layout';
 import { isZoomed, NO_ZOOM, type Zoom } from '../render/zoom';
 import { pageWidths, screenAt } from '../render/screen';
 import { type Hatches } from '../render/paint';
+import { replaceMarking } from '../scores/edits';
+import { extentOnFrame, type Selected } from '../scores/placing';
+import { PLACED_COLOR } from '../markings/placed';
 import { A4, type Aspects, type Cut, type NamedExcerpt, type State } from '../scores/model';
 import { frameOf, pack, type Frame } from '../scores/frames';
 import { loadScore } from '../scores/store';
@@ -33,6 +36,7 @@ import { Input } from './_input';
 import { OpenScores, openPages, type DrawPage, type DrawProgressive, type Item, type OpenScore } from './_open-scores';
 import { Reading, setlistItems, type ReadingKind, type ReadingSnapshot } from './_reading';
 import { Saver } from './_saver';
+import { SelectionBox } from './_selection';
 import { savedLibrary, symbolLibrary } from './_symbols';
 import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
 import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_spread';
@@ -146,6 +150,9 @@ class Reader {
   private group = 0;
   /** Each group's current symbol, an index into it, while the app runs. */
   private currents: number[] = [];
+  /** The placed marking showing its box, while a symbol is the tool. */
+  private selected: Selected | undefined;
+  private selection = new SelectionBox(() => {});
   private undos = new History<Undo>();
   private saver: Saver;
   private editor: CutEditor;
@@ -215,7 +222,7 @@ class Reader {
       symbols: () => void this.toggleGroups(),
       pick: (g) => this.pickGroup(g),
       choose: (g, i) => this.chooseSymbol(g, i),
-      penColor: (c) => { this.penColor = c; this.tool = 'pen'; this.syncBar(); },
+      penColor: (c) => this.swatch(c),
       undo: () => this.undo(),
       redo: () => this.redo(),
       toggleEditing: () => void this.withAccess(() => { this.editor.setEnabled(!this.editor.enabled); this.syncBar(); this.decorate(); }),
@@ -272,6 +279,10 @@ class Reader {
       editor: this.editor,
       tool: () => this.tool,
       penColor: () => this.penColor,
+      placing: () => this.symbolLib?.groups[this.group]?.symbols[this.currents[this.group] ?? 0],
+      library: () => this.symbolLib,
+      selected: () => this.selected,
+      select: (s) => { this.selected = s; this.refreshSelection(); },
       setZoom: (z) => this.setZoom(z),
       annotating: () => this.annotating,
       act: (g) => this.act(g),
@@ -311,6 +322,8 @@ class Reader {
   private async goTo(k: number, at?: string | 'first' | 'last') {
     const seq = ++this.goSeq;
     this.loading = true;
+    this.selected = undefined;
+    this.selection.show(undefined);
     if (k !== this.k) { this.editor.dismiss(); this.toolbar.info.textContent = 'Opening…'; }
     await this.scores.ensure(k, true);
     if (seq !== this.goSeq || this.scores.closed) return;
@@ -354,6 +367,33 @@ class Reader {
     this.syncBar();
   }
 
+  /** A swatch: with a symbol as the tool, the selected marking's colour (the tool stays); otherwise the pen's colour, and the pen. */
+  private swatch(c: string) {
+    if (this.tool === 'symbol') {
+      const sel = this.selected;
+      if (!sel) return;
+      const marked = { ...sel.mark, color: c };
+      this.commit(replaceMarking(this.state, sel.cut, sel.mark, marked), sel.cut);
+      this.selected = { cut: sel.cut, mark: marked };
+      this.refreshSelection();
+      return;
+    }
+    this.penColor = c;
+    this.tool = 'pen';
+    this.syncBar();
+  }
+
+  /** Show the selected marking's box, or none: a selection ends when its marking is gone from the state, or the tool isn't a symbol. */
+  private refreshSelection() {
+    const sel = this.selected, cur = this.current;
+    if (sel && (!cur || this.tool !== 'symbol' || !cur.state.ink[sel.cut]?.includes(sel.mark))) this.selected = undefined;
+    const now = this.selected;
+    const slot = now && this.slots.find((sl) => sl.frame.items.some((i) => i.cut.id === now.cut));
+    const item = slot && slot.frame.items.find((i) => i.cut.id === now!.cut);
+    this.selection.show(slot || undefined, item && now ? extentOnFrame(item, now.mark, this.aspects[item.cut.page]) : undefined);
+    if (cur) this.syncBar();
+  }
+
   /** The Symbols button: show or hide the groups, making the library the first time. The tool stays as it is. */
   private async toggleGroups() {
     if (!this.groupsShown && !this.symbolLib) {
@@ -382,10 +422,12 @@ class Reader {
 
   private syncBar() {
     const cur = this.current;
+    if (this.selected && this.tool !== 'symbol') { this.selected = undefined; this.selection.show(undefined); }
     this.toolbar.sync({
       open: !!cur,
       tool: this.tool,
       groupsShown: this.groupsShown,
+      markColor: this.selected ? this.selected.mark.color ?? PLACED_COLOR : undefined,
       penColor: this.penColor,
       editing: this.editor.enabled,
       archived: cur?.state.score.archived.length ?? 0,
@@ -497,6 +539,7 @@ class Reader {
     this.spreadEl.replaceChildren(...this.slots.map((s) => s.box), ...extra);
     this.setZoom(NO_ZOOM);
     this.decorate();
+    this.refreshSelection();
     // The score's pages are its frames; in a setlist, the excerpt's own.
     const last = this.frame + on.length;
     this.toolbar.info.textContent = on.length > 1 ? `Pages ${this.frame + 1}–${last} of ${this.frames.length}` : `Page ${last} of ${this.frames.length}`;
@@ -644,6 +687,7 @@ class Reader {
     const place = { k: this.k, items: this.items.length, frame: this.frame, shown: this.shown, frames: this.frames.length };
     const t = turnFrom(place, dir, this.reading.what.kind);
     if (t.to !== 'score') this.offered = null;
+    if (t.to !== 'score') { this.selected = undefined; this.selection.show(undefined); }
     if (t.to === 'frame') {
       this.frame = t.frame;
       this.syncBar();
@@ -741,6 +785,7 @@ class Reader {
         this.paintInk(slot, s);
       }
       this.decorate();
+      this.refreshSelection();
       return;
     }
     this.frame = Math.min(target, Math.max(0, this.frames.length - 1));

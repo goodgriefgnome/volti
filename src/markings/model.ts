@@ -56,7 +56,7 @@ export const shareOf = (m: Marking, lo: number, hi: number, aspect: number) => b
 export const anchorOf = (m: Marking) => behaviour(m).anchor(m);
 export const mapMarking = (m: Marking, f: (p: Point) => Point) => behaviour(m).map(m, f);
 export const hits = (m: Marking, p: Point, aspect: number, radius: number) => behaviour(m).hits(m, p, aspect, radius);
-export const _compactMarking = (m: Marking) => behaviour(m).compact(m);
+export const compactMarking = (m: Marking) => behaviour(m).compact(m);
 export const copyMarking = (m: Marking) => behaviour(m).copy(m);
 
 export const annotationOf = (t: DrawTarget, m: Marking) => behaviour(m).annotation(t, m);
