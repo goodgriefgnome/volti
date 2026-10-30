@@ -21,6 +21,9 @@ export const keys = {
   /** ScoreInk, markings by cut id. */
   ink: (id: string) => 'ink:' + id,
 
+  /** A glyph's outline as path data, by `<font id>:<glyph index>` (markings/store.ts). */
+  glyph: (key: string) => 'glyph:' + key,
+
   /* Setlists (setlists/store.ts). Cuts and markings are only ever stored in the score. */
   /** Setlist ids, newest first. */
   setlists: 'setlists',

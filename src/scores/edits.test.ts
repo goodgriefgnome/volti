@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   cutAt, deleteArchived, edgeKind, edgeRange, insertArchived, insertPages, joinNext,
-  release, remove, setEdge, setInk, setPad, split, tidy,
+  release, remove, replaceMarking, setEdge, setInk, setPad, setSymbolSize, split, tidy,
 } from './edits';
+import type { Stroke } from '../markings/stroke';
 import { pack } from './frames';
-import { A4, aspects, cut, _line, _pages, sarabande, state } from './testing';
+import { A4, aspects, cut, _line, _mark, _pages, sarabande, state } from './testing';
 
 describe('edges', () => {
   const s = state([cut(0, 0.1, 0.4), cut(0, 0.4, 0.6), cut(0, 0.8, 1), cut(1, 0, 0.9), cut(0)]);
@@ -159,7 +160,7 @@ describe('insertPages', () => {
     const s = state([cut(0), top, bottom, cut(2), again], ink);
     const r = insertPages(s, { id: again.id, after: true }, 1, 1, true, aspects);
     const copied = r.state.ink[r.first];
-    expect(copied.map((st) => st.points[0][1])).toEqual([0.1, 0.6]);
+    expect(copied.map((st) => (st as Stroke).points[0][1])).toEqual([0.1, 0.6]);
     expect(copied[0]).not.toBe(ink[top.id][0]);
     expect(r.state.score.cuts.find((c) => c.id === r.first)!.ownInk).toBeUndefined();
   });
@@ -175,5 +176,26 @@ describe('setPad', () => {
     const c = cut(0);
     expect(setPad(state([c]), c.id, 5, aspects).score.cuts[0].pad).toBeCloseTo(0.6 * A4);
     expect('pad' in setPad(state([{ ...c, pad: 0.2 }]), c.id, 0, aspects).score.cuts[0]).toBe(false);
+  });
+});
+
+describe('replaceMarking', () => {
+  it('replaces a marking by identity, and marks the cut as having ink of its own', () => {
+    const c = cut(0), a = _line(0.1, 0.2), b = _mark(0.5, 0.5), n = _mark(0.6, 0.6);
+    const s = replaceMarking(state([c], { [c.id]: [a, b] }), c.id, b, n);
+    expect(s.ink[c.id]).toEqual([a, n]);
+    expect(s.ink[c.id][1]).toBe(n);
+    expect(s.score.cuts[0].ownInk).toBe(true);
+  });
+  it('removes it when there is nothing to replace it with', () => {
+    const c = cut(0), a = _line(0.1, 0.2), b = _mark(0.5, 0.5);
+    expect(replaceMarking(state([c], { [c.id]: [a, b] }), c.id, b).ink[c.id]).toEqual([a]);
+    expect(replaceMarking(state([c], { [c.id]: [b] }), c.id, b).ink[c.id]).toBeUndefined();
+  });
+});
+
+describe('setSymbolSize', () => {
+  it('sets the score\'s symbol size', () => {
+    expect(setSymbolSize(state([cut(0)]), 0.05).score.symbolSize).toBe(0.05);
   });
 });

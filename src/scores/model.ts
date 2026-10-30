@@ -36,7 +36,14 @@ export interface Score {
    * score. Missing until one is named.
    */
   excerpts?: NamedExcerpt[];
+  /** The size a symbol of scale 1 is placed at, in page widths: the one the last symbol edit implied. */
+  symbolSize?: number;
 }
+
+/** The symbol size of a score that has none set: 0.035 page widths (a 7 mm staff on an A4 page). */
+export const DEFAULT_SYMBOL_SIZE = 0.035;
+
+export const symbolSizeOf = (s: Score) => s.symbolSize ?? DEFAULT_SYMBOL_SIZE;
 
 /** A name on the cuts from `first` to `last`; a missing end is the score's start or end. */
 export interface NamedExcerpt { first?: string; last?: string; name: string }

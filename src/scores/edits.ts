@@ -174,3 +174,12 @@ export function setInk(s: State, id: string, markings: Marking[]): State {
   if (markings.length) ink[id] = markings; else delete ink[id];
   return { ...mapCut(s, id, (c) => (c.ownInk ? c : { ...c, ownInk: true })), ink };
 }
+
+/** The score's symbol size set, which what placed it or resized it implied. */
+export const setSymbolSize = (s: State, size: number): State => ({ ...s, score: { ...s.score, symbolSize: size } });
+
+/** A marking of a cut replaced by `next` (taken away when there is none), as an edit by hand. */
+export function replaceMarking(s: State, cutId: string, old: Marking, next?: Marking): State {
+  const list = (s.ink[cutId] ?? []).flatMap((m) => (m !== old ? [m] : next ? [next] : []));
+  return setInk(s, cutId, list);
+}

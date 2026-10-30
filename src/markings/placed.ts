@@ -1,0 +1,92 @@
+// Symbols and text, placed whole at a point: their data, extent and drawing. Only what is
+// particular to them; what all markings share is in model.ts.
+
+import type { PathCmd } from './draw';
+import { glyphKey, glyphOf } from './glyphs';
+import type { DrawTarget, Marking, Point, _KindBehaviour } from './model';
+
+export interface PlacedMark {
+  kind: 'symbol' | 'text';
+  text: string;
+  font: string;
+  /** Glyph index, then origin in em from the centre of its extent, y downwards. */
+  glyphs: [gid: number, x: number, y: number][];
+  /** The centre of its extent, as fractions of the page's width and height. */
+  at: [x: number, y: number];
+  /** Its em size, in page widths. */
+  size: number;
+  color?: string;
+}
+
+/** The colour of a marking without its own, until the default colours can be set (plan 4). */
+export const PLACED_COLOR = '#1c1f26';
+
+type Box = [x0: number, y0: number, x1: number, y1: number];
+
+/** Its extent in em, from its centre; undefined when none of its glyphs has an outline (or is loaded). */
+export function emExtent(m: PlacedMark): Box | undefined {
+  let box: Box | undefined;
+  for (const [gid, x, y] of m.glyphs) {
+    const b = glyphOf(glyphKey(m.font, gid))?.bounds;
+    if (!b) continue;
+    const moved: Box = [b[0] + x, b[1] + y, b[2] + x, b[3] + y];
+    box = box ? [Math.min(box[0], moved[0]), Math.min(box[1], moved[1]), Math.max(box[2], moved[2]), Math.max(box[3], moved[3])] : moved;
+  }
+  return box;
+}
+
+/** The glyph keys a score's ink needs. */
+export function glyphKeysIn(ink: Record<string, readonly Marking[]>): Set<string> {
+  const keys = new Set<string>();
+  for (const list of Object.values(ink)) {
+    for (const m of list) if ('kind' in m) for (const [gid] of m.glyphs) keys.add(glyphKey(m.font, gid));
+  }
+  return keys;
+}
+
+const round = (v: number) => Math.round(v * 10000) / 10000;
+
+/** Every glyph's commands, placed on the target. */
+function placeGlyphs(t: DrawTarget, m: PlacedMark): PathCmd[] {
+  const cx = m.at[0] * t.w - t.ox, cy = m.at[1] * t.h - t.oy, s = m.size * t.w;
+  const out: PathCmd[] = [];
+  for (const [gid, gx, gy] of m.glyphs) {
+    const g = glyphOf(glyphKey(m.font, gid));
+    if (!g) continue;
+    const X = (x: number) => cx + (gx + x) * s;
+    const Y = (y: number) => cy + (gy + y) * s;
+    for (const c of g.cmds) {
+      if (c[0] === 'M' || c[0] === 'L') out.push([c[0], X(c[1]), Y(c[2])]);
+      else if (c[0] === 'C') out.push(['C', X(c[1]), Y(c[2]), X(c[3]), Y(c[4]), X(c[5]), Y(c[6])]);
+      else out.push(['Z']);
+    }
+  }
+  return out;
+}
+
+function drawPlaced(t: DrawTarget, m: PlacedMark) {
+  const all = placeGlyphs(t, m);
+  if (!all.length) return;
+  t.draw.shape(all, { stroke: { color: '#ffffff', opacity: 0.5, multiply: false }, width: 0.04 * m.size * t.w });
+  t.draw.shape(all, { fill: { color: m.color ?? PLACED_COLOR, opacity: 1, multiply: false } });
+}
+
+/** What markings/model.ts needs to know about placed markings. */
+export const _placed: _KindBehaviour<PlacedMark> = {
+  share: (m, lo, hi) => (m.at[1] >= lo && m.at[1] <= hi ? 1 : 0),
+  anchor: (m): Point => [m.at[0], m.at[1], 0],
+  map: (m, f) => {
+    const [x, y] = f([m.at[0], m.at[1], 0]);
+    return { ...m, at: [x, y] };
+  },
+  hits: (m, p, aspect, radius) => {
+    const e = emExtent(m);
+    if (!e) return false;
+    const dx = p[0] - m.at[0], dy = (p[1] - m.at[1]) * aspect;
+    return dx >= e[0] * m.size - radius && dx <= e[2] * m.size + radius && dy >= e[1] * m.size - radius && dy <= e[3] * m.size + radius;
+  },
+  draw: drawPlaced,
+  annotation: (_t, m) => ({ subtype: 'Stamp', contents: m.text, color: m.color ?? PLACED_COLOR }),
+  compact: (m) => ({ ...m, at: [round(m.at[0]), round(m.at[1])], size: round(m.size) }),
+  copy: (m) => ({ ...m, at: [...m.at], glyphs: m.glyphs.map((g) => [...g]) }),
+};

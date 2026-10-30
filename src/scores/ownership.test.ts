@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import type { PlacedMark } from '../markings/placed';
 import { share, type Stroke } from '../markings/stroke';
 import { pack } from './frames';
 import { _claimFirstPass, claimMarking, _splitMarkings, visible } from './ownership';
-import { A4, aspects, cut, _line, sarabande } from './testing';
+import { A4, aspects, cut, _line, _mark, sarabande } from './testing';
 
 describe('ink shares', () => {
   it('weights by path length, scaling vertical distance by the page aspect', () => {
@@ -34,12 +35,27 @@ describe('claimMarking', () => {
     const s: Stroke = { ..._line(0, 0), points: [[0.5, seam - 0.05, 0.5], [0.5, seam + 0.2, 0.5]] };
     const r = claimMarking(f, s, aspects)!;
     expect(r.cut.page).toBe(1);
-    expect(r.marking.points[0][1]).toBeCloseTo(2 / 3 - 0.05 / A4);
-    expect(r.marking.points[1][1]).toBeCloseTo(2 / 3 + 0.2 / A4);
+    expect((r.marking as Stroke).points[0][1]).toBeCloseTo(2 / 3 - 0.05 / A4);
+    expect((r.marking as Stroke).points[1][1]).toBeCloseTo(2 / 3 + 0.2 / A4);
   });
   it('gives a stroke in blank space to the nearest cut', () => {
     const [, , f] = pack(sarabande().score.cuts, aspects);
     const s: Stroke = { ..._line(0, 0), points: [[0.5, A4 - 0.05, 0.5]] };
     expect(claimMarking(f, s, aspects)!.cut.page).toBe(1);
+  });
+});
+
+describe('placed markings', () => {
+  it('go to the cut holding their centre, with their centre on that cut\'s page', () => {
+    const [, , f] = pack(sarabande().score.cuts, aspects);
+    const seam = A4 / 3;
+    const r = claimMarking(f, _mark(0.5, seam + 0.1), aspects)!;
+    expect(r.cut.page).toBe(1);
+    expect((r.marking as PlacedMark).at[1]).toBeCloseTo(2 / 3 + 0.1 / A4);
+  });
+  it('are split whole, to the side holding their centre', () => {
+    const [up, down] = _splitMarkings([_mark(0.5, 0.45), _mark(0.5, 0.55)], 0.5, A4);
+    expect(up).toHaveLength(1);
+    expect(down).toHaveLength(1);
   });
 });

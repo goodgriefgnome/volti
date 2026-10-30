@@ -1,7 +1,9 @@
 import * as lib from 'pdf-lib';
 import { describe, expect, it } from 'vitest';
-import { drawMarkings } from '../markings/model';
+import { drawMarkings, type Marking } from '../markings/model';
 import { type Drawing } from '../markings/draw';
+import { addGlyph } from '../markings/glyphs';
+import { type PlacedMark } from '../markings/placed';
 import { type Stroke } from '../markings/stroke';
 import { annotate, PdfDrawing, rgb } from './_annotations';
 
@@ -10,7 +12,7 @@ const pen: Stroke = { tool: 'pen', color: '#c2271d', size: 0.002, points: [[0.1,
 const highlight: Stroke = { tool: 'highlighter', color: '#ffd400', size: 0.018, points: [[0.1, 0.5, 1], [0.6, 0.5, 1], [0.1, 0.52, 1]] };
 const whole = (draw: Drawing) => ({ draw, w: W, h: H, ox: 0, oy: 0 });
 
-async function exported(...strokes: Stroke[]) {
+async function exported(...strokes: Marking[]) {
   const doc = await lib.PDFDocument.create();
   const page = doc.addPage([W, H]);
   strokes.forEach((s, i) => annotate(lib, doc, page, s, whole, `m${i}`));
@@ -90,5 +92,18 @@ describe('annotate', () => {
     const gs = ap.dict.lookup(lib.PDFName.of('Resources'), lib.PDFDict).lookup(lib.PDFName.of('ExtGState'), lib.PDFDict).lookup(lib.PDFName.of('G0'), lib.PDFDict);
     expect(gs.get(lib.PDFName.of('BM'))).toEqual(lib.PDFName.of('Multiply'));
     expect(gs.lookup(lib.PDFName.of('ca'), lib.PDFNumber).asNumber()).toBe(0.35);
+  });
+});
+
+describe('annotate a placed marking', () => {
+  it('adds one Stamp with its characters as Contents and an appearance', async () => {
+    addGlyph('t:1', 'M 0 0 L 1 0 L 1 -1 L 0 -1 Z');
+    const m: PlacedMark = { kind: 'symbol', text: '\uED14', font: 't', glyphs: [[1, -0.5, 0.5]], at: [0.5, 0.5], size: 0.05 };
+    const [a] = await exported(m);
+    expect(a.get(lib.PDFName.of('Subtype'))).toEqual(lib.PDFName.of('Stamp'));
+    expect(a.lookup(lib.PDFName.of('Contents'), lib.PDFHexString).decodeText()).toBe('\uED14');
+    expect(a.lookup(lib.PDFName.of('C'), lib.PDFArray).asArray().map((n) => (n as lib.PDFNumber).asNumber())).toEqual(rgb('#1c1f26'));
+    const ap = a.lookup(lib.PDFName.of('AP'), lib.PDFDict).lookup(lib.PDFName.of('N'), lib.PDFStream);
+    expect(ap.getContents().length).toBeGreaterThan(0);
   });
 });

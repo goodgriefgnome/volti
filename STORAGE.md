@@ -39,6 +39,7 @@ The old database **`volti`**, from before scores, is deleted at start-up.
 | `folder` | `FolderLink` | `originals/device-score-fs.ts` |
 | `score:<id>` | `StoredScore` | `scores/store.ts` |
 | `ink:<id>` | `ScoreInk` | `scores/store.ts` |
+| `glyph:<font id>:<gid>` | `string`, a glyph's outline | `markings/store.ts` |
 | `last-read` | `LastRead` | `reader/_store.ts` |
 | `setlists` | `string[]`, setlist ids, newest first | `setlists/store.ts` |
 | `setlist:<id>` | `Setlist` | `setlists/store.ts` |
@@ -164,6 +165,7 @@ interface Score {           // scores/model.ts, in memory
   cuts: Cut[];              // the played order
   archived: Cut[];          // removed cuts that had their own ink
   excerpts?: NamedExcerpt[]; // the score's named excerpts; missing until one is named
+  symbolSize?: number;       // the size a symbol of scale 1 is placed at, in page widths; 0.035 until set
 }
 interface Cut { id: string; page: number; y0: number; y1: number; pad?: number; ownInk?: boolean }
 interface NamedExcerpt { first?: string; last?: string; name: string }
@@ -177,16 +179,35 @@ named excerpts of an earlier version, now `excerpts`) without carrying it over.
 
 ```ts
 type ScoreInk = Record<string /* cut id */, Marking[]>;
-type Marking = Stroke;
+type Marking = Stroke | PlacedMark;
 interface Stroke {
   tool: 'pen' | 'highlighter';
   color: string;
   size: number;                                          // line width, as a fraction of the page width
   points: [x: number, y: number, pressure: number][];    // x, y as fractions of the page's width and height
 }
+/** A symbol (text comes later): glyphs placed whole at a point. A stroke has no `kind`. */
+interface PlacedMark {
+  kind: 'symbol' | 'text';
+  text: string;                                          // its characters, as placed from the library
+  font: string;                                          // the font's id
+  glyphs: [gid: number, x: number, y: number][];         // each glyph's index, and its origin in em from the centre of the extent, y downwards
+  at: [x: number, y: number];                            // the centre of its extent, as fractions of the page's width and height
+  size: number;                                          // its em size, in page widths
+  color?: string;                                        // the default colour when missing
+}
 ```
 
-A score and its ink are always written in one transaction, so they never disagree.
+A score and its ink are always written in one transaction, so they never disagree. The glyphs a
+marking names are in `glyph:` records, written before the marking that first uses them.
+
+### `glyph:<font id>:<gid>`: one outline
+
+A `string`: the glyph's outline as SVG path data, absolute `M`, `L`, `C` and `Z` only, in em
+units, y downwards, from the glyph's origin. A font's id is the first 8 hex digits of the SHA-256
+of its file, so a glyph never changes under its key. Never changed once written, and not yet
+collected when no longer used. Opening a score loads the glyphs its ink uses into the glyph
+table (`markings/glyphs.ts`), so drawing stays synchronous.
 
 ### `last-read`: where to pick up
 

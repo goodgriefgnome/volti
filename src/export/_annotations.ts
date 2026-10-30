@@ -117,13 +117,15 @@ export function annotate(lib: PdfLib, doc: PDFDocument, page: PDFPage, m: Markin
   const rect = drawing.rect();
   const appearance = context.formXObject(drawing.ops, { BBox: rect, Resources: drawing.resources(context) });
   const a = annotationOf(t, m);
+  const own =
+    a.subtype === 'Ink'
+      ? { InkList: a.paths.map((path) => path.flatMap(([x, y]) => [round(x), round(H - y)])), C: rgb(a.color), BS: { W: round(a.width) } }
+      : { Contents: lib.PDFHexString.fromText(a.contents), C: rgb(a.color) };
   const annotation = context.obj({
     Type: 'Annot',
     Subtype: a.subtype,
     Rect: rect,
-    InkList: a.paths.map((path) => path.flatMap(([x, y]) => [round(x), round(H - y)])),
-    C: rgb(a.color),
-    BS: { W: round(a.width) },
+    ...own,
     F: 4, // print
     NM: lib.PDFString.of(name),
     AP: { N: context.register(appearance) },

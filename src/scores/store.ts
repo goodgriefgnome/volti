@@ -1,6 +1,8 @@
 // Loading and saving scores and their ink in the kv store. The only place scores
 // touch storage.
 
+import { glyphKeysIn } from '../markings/placed';
+import { loadGlyphs } from '../markings/store';
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
 import { _forPages, newScore, type Aspects, type Score, type ScoreInk, type State } from './model';
@@ -24,6 +26,7 @@ const loaded = (id: string, s: StoredScore): Score => {
 export async function loadScore(id: string, aspects: Aspects): Promise<{ state: State }> {
   const [score, ink] = await Promise.all([kv.get<StoredScore>(keys.score(id)), kv.get<ScoreInk>(keys.ink(id))]);
   if (!score) return { state: { score: newScore(id, aspects), ink: {} } };
+  await loadGlyphs(glyphKeysIn(ink ?? {}));
   return { state: _forPages({ score: loaded(id, score), ink: ink ?? {} }, aspects) };
 }
 
