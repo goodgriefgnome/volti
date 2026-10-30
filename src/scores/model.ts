@@ -38,12 +38,19 @@ export interface Score {
   excerpts?: NamedExcerpt[];
   /** The size a symbol of scale 1 is placed at, in page widths: the one the last symbol edit implied. */
   symbolSize?: number;
+  /** Text's size relative to the symbol size: the one the last text resize implied. */
+  textScale?: number;
 }
 
 /** The symbol size of a score that has none set: 0.035 page widths (a 7 mm staff on an A4 page). */
 export const DEFAULT_SYMBOL_SIZE = 0.035;
 
 export const symbolSizeOf = (s: Score) => s.symbolSize ?? DEFAULT_SYMBOL_SIZE;
+
+/** The text scale of a score that has none set. */
+export const DEFAULT_TEXT_SCALE = 0.6;
+
+export const textScaleOf = (s: Score) => s.textScale ?? DEFAULT_TEXT_SCALE;
 
 /** A name on the cuts from `first` to `last`; a missing end is the score's start or end. */
 export interface NamedExcerpt { first?: string; last?: string; name: string }

@@ -167,6 +167,7 @@ interface Score {           // scores/model.ts, in memory
   archived: Cut[];          // removed cuts that had their own ink
   excerpts?: NamedExcerpt[]; // the score's named excerpts; missing until one is named
   symbolSize?: number;       // the size a symbol of scale 1 is placed at, in page widths; 0.035 until set
+  textScale?: number;        // text's size relative to the symbol size: the one the last text resize implied; 0.6 until set
 }
 interface Cut { id: string; page: number; y0: number; y1: number; pad?: number; ownInk?: boolean }
 interface NamedExcerpt { first?: string; last?: string; name: string }
@@ -187,10 +188,10 @@ interface Stroke {
   size: number;                                          // line width, as a fraction of the page width
   points: [x: number, y: number, pressure: number][];    // x, y as fractions of the page's width and height
 }
-/** A symbol (text comes later): glyphs placed whole at a point. A stroke has no `kind`. */
+/** A symbol or text: glyphs placed whole at a point. A stroke has no `kind`. */
 interface PlacedMark {
   kind: 'symbol' | 'text';
-  text: string;                                          // its characters, as placed from the library
+  text: string;                                          // a symbol's characters, as placed from the library; a text marking's, what was typed
   font: string;                                          // the font's id
   glyphs: [gid: number, x: number, y: number][];         // each glyph's index, and its origin in em from the centre of the extent, y downwards
   at: [x: number, y: number];                            // the centre of its extent, as fractions of the page's width and height

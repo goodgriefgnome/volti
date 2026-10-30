@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   cutAt, deleteArchived, edgeKind, edgeRange, insertArchived, insertPages, joinNext,
-  release, remove, replaceMarking, setEdge, setInk, setPad, setSymbolSize, split, tidy,
+  release, remove, replaceMarking, setEdge, setInk, setPad, setSymbolSize, split, textResized, textSizeOf, tidy,
 } from './edits';
 import type { Stroke } from '../markings/stroke';
 import { pack } from './frames';
@@ -197,5 +197,36 @@ describe('replaceMarking', () => {
 describe('setSymbolSize', () => {
   it('sets the score\'s symbol size', () => {
     expect(setSymbolSize(state([cut(0)]), 0.05).score.symbolSize).toBe(0.05);
+  });
+});
+
+describe('textSizeOf', () => {
+  it('is the symbol size times the text scale, each by default until set', () => {
+    const s = state([cut(0)]).score;
+    expect(textSizeOf(s)).toBeCloseTo(0.035 * 0.6);
+    expect(textSizeOf({ ...s, symbolSize: 0.05, textScale: 0.5 })).toBeCloseTo(0.025);
+  });
+});
+
+describe('textResized', () => {
+  const symbol = { ..._mark(0.5, 0.5), kind: 'symbol' as const };
+  it('sets the text scale, leaving the symbol size, while the ink has a symbol', () => {
+    const c = cut(0);
+    const s = textResized(state([c], { [c.id]: [symbol] }), 0.021);
+    expect(s.score.textScale).toBeCloseTo(0.6);
+    expect(s.score.symbolSize).toBeUndefined();
+    expect(textResized(state([c], { [c.id]: [symbol] }), 0.014).score.textScale).toBeCloseTo(0.4);
+  });
+  it('sets the symbol size, leaving the text scale, while the ink has none', () => {
+    const s = textResized(state([cut(0)]), 0.03);
+    expect(s.score.symbolSize).toBeCloseTo(0.05);
+    expect(s.score.textScale).toBeUndefined();
+  });
+  it('counts a symbol in an archived cut\'s ink', () => {
+    const c = cut(0), gone = cut(0);
+    const base = state([c], { [gone.id]: [symbol] });
+    const s = textResized({ ...base, score: { ...base.score, archived: [gone] } }, 0.014);
+    expect(s.score.textScale).toBeCloseTo(0.4);
+    expect(s.score.symbolSize).toBeUndefined();
   });
 });

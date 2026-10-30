@@ -97,6 +97,17 @@ describe('annotate', () => {
 });
 
 describe('annotate a placed marking', () => {
+  it('adds one FreeText with its text as Contents, a DA, an appearance and no C', async () => {
+    addGlyph('t:1', 'M 0 0 L 1 0 L 1 -1 L 0 -1 Z');
+    const m: PlacedMark = { kind: 'text', text: 'rit.', font: 't', glyphs: [[1, -0.5, 0.5]], at: [0.5, 0.5], size: 0.05 };
+    const [a] = await exported(m);
+    expect(a.get(lib.PDFName.of('Subtype'))).toEqual(lib.PDFName.of('FreeText'));
+    expect(a.lookup(lib.PDFName.of('Contents'), lib.PDFHexString).decodeText()).toBe('rit.');
+    expect(a.lookup(lib.PDFName.of('DA'), lib.PDFString).decodeText()).toBe('/Helv 12 Tf 0 g');
+    expect(a.has(lib.PDFName.of('C'))).toBe(false);
+    const ap = a.lookup(lib.PDFName.of('AP'), lib.PDFDict).lookup(lib.PDFName.of('N'), lib.PDFStream);
+    expect(ap.getContents().length).toBeGreaterThan(0);
+  });
   it('adds one Stamp with its characters as Contents and an appearance', async () => {
     addGlyph('t:1', 'M 0 0 L 1 0 L 1 -1 L 0 -1 Z');
     const m: PlacedMark = { kind: 'symbol', text: '\uED14', font: 't', glyphs: [[1, -0.5, 0.5]], at: [0.5, 0.5], size: 0.05 };

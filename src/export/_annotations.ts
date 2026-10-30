@@ -124,7 +124,10 @@ export function annotate(
   const own =
     a.subtype === 'Ink'
       ? { InkList: a.paths.map((path) => path.flatMap(([x, y]) => [round(x), round(H - y)])), C: rgb(a.color), BS: { W: round(a.width) } }
-      : { Contents: lib.PDFHexString.fromText(describe(a.contents)), C: rgb(a.color) };
+      : a.subtype === 'Stamp'
+        ? { Contents: lib.PDFHexString.fromText(describe(a.contents)), C: rgb(a.color) }
+        // No C: some apps fill a FreeText's box with it. DA names a font for apps that insist on one.
+        : { Contents: lib.PDFHexString.fromText(a.contents), DA: lib.PDFString.of('/Helv 12 Tf 0 g') };
   const annotation = context.obj({
     Type: 'Annot',
     Subtype: a.subtype,

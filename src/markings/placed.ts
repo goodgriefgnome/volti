@@ -21,6 +21,8 @@ export interface PlacedMark {
 /** The colour of a marking without its own, until the default colours can be set (plan 4). */
 export const PLACED_COLOR = '#1c1f26';
 
+const round = (v: number) => Math.round(v * 10000) / 10000;
+
 type Box = [x0: number, y0: number, x1: number, y1: number];
 
 /** Its extent in em, from its centre; undefined when none of its glyphs has an outline (or is loaded). */
@@ -35,6 +37,44 @@ export function emExtent(m: PlacedMark): Box | undefined {
   return box;
 }
 
+/**
+ * Shaped glyphs (origins in em from the start of the baseline) moved so the centre of their ink is
+ * the origin, and that centre from the start of the baseline; undefined when they have no ink.
+ * The glyphs must be in the glyph table.
+ */
+export function centred(
+  font: string, glyphs: readonly { gid: number; x: number; y: number }[],
+): { glyphs: [number, number, number][]; centre: [number, number] } | undefined {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const g of glyphs) {
+    const b = glyphOf(glyphKey(font, g.gid))?.bounds;
+    if (!b) continue;
+    x0 = Math.min(x0, b[0] + g.x); x1 = Math.max(x1, b[2] + g.x);
+    y0 = Math.min(y0, b[1] + g.y); y1 = Math.max(y1, b[3] + g.y);
+  }
+  if (x0 === Infinity) return undefined;
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  return { glyphs: glyphs.map((g) => [g.gid, round(g.x - cx), round(g.y - cy)]), centre: [cx, cy] };
+}
+
+/** Where the start of its baseline is, in em from its centre (its first glyph's origin). */
+export function baselineStart(m: PlacedMark): [number, number] {
+  return m.glyphs.length ? [m.glyphs[0][1], m.glyphs[0][2]] : [0, 0];
+}
+
+/**
+ * A text marking of `text` in `font`, shaped as `glyphs`, at `size`, its baseline starting at
+ * `start` (frame coordinates: x in frame widths, y in frame widths from the frame's top); undefined
+ * when it has no ink (empty, or spaces only).
+ */
+export function textMark(
+  font: string, text: string, glyphs: readonly { gid: number; x: number; y: number }[], start: readonly [number, number], size: number,
+): PlacedMark | undefined {
+  const c = centred(font, glyphs);
+  if (!c) return undefined;
+  return { kind: 'text', text, font, glyphs: c.glyphs, at: [start[0] + c.centre[0] * size, start[1] + c.centre[1] * size], size };
+}
+
 /** The glyph keys a score's ink needs. */
 export function glyphKeysIn(ink: Record<string, readonly Marking[]>): Set<string> {
   const keys = new Set<string>();
@@ -43,8 +83,6 @@ export function glyphKeysIn(ink: Record<string, readonly Marking[]>): Set<string
   }
   return keys;
 }
-
-const round = (v: number) => Math.round(v * 10000) / 10000;
 
 /** Every glyph's commands, placed on the target. */
 function placeGlyphs(t: DrawTarget, m: PlacedMark): PathCmd[] {
@@ -86,7 +124,8 @@ export const _placed: _KindBehaviour<PlacedMark> = {
     return dx >= e[0] * m.size - radius && dx <= e[2] * m.size + radius && dy >= e[1] * m.size - radius && dy <= e[3] * m.size + radius;
   },
   draw: drawPlaced,
-  annotation: (_t, m) => ({ subtype: 'Stamp', contents: m.text, color: m.color ?? PLACED_COLOR }),
+  annotation: (_t, m) =>
+    m.kind === 'text' ? { subtype: 'FreeText', contents: m.text } : { subtype: 'Stamp', contents: m.text, color: m.color ?? PLACED_COLOR },
   compact: (m) => ({ ...m, at: [round(m.at[0]), round(m.at[1])], size: round(m.size) }),
   copy: (m) => ({ ...m, at: [...m.at], glyphs: m.glyphs.map((g) => [...g]) }),
 };

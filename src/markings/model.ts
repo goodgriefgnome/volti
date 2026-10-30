@@ -24,11 +24,12 @@ export interface DrawTarget { draw: Drawing; w: number; h: number; ox: number; o
 /**
  * A marking's PDF annotation, besides its appearance: an Ink annotation's paths (in the target's
  * units, y downwards), colour, and a width for apps that draw it themselves; a Stamp's contents
- * and colour.
+ * and colour; a FreeText's contents.
  */
 export type _Annotation =
   | { subtype: 'Ink'; paths: (readonly [number, number])[][]; color: string; width: number }
-  | { subtype: 'Stamp'; contents: string; color: string };
+  | { subtype: 'Stamp'; contents: string; color: string }
+  | { subtype: 'FreeText'; contents: string };
 
 /** What each kind of marking does. Lengths are in page widths; `aspect` is the page's height / width. */
 export interface _KindBehaviour<M> {

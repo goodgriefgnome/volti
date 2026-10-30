@@ -3,7 +3,7 @@
 // the ink in step. Pure: no DOM, no storage.
 
 import { copyMarking, type Marking } from '../markings/model';
-import { _EPS, _newCutId, type Aspects, type Cut, type State } from './model';
+import { _EPS, _newCutId, symbolSizeOf, textScaleOf, type Aspects, type Cut, type Score, type State } from './model';
 import { _claimFirstPass, _splitMarkings } from './ownership';
 
 export const _MIN_CUT = 0.004;
@@ -177,6 +177,20 @@ export function setInk(s: State, id: string, markings: Marking[]): State {
 
 /** The score's symbol size set, which what placed it or resized it implied. */
 export const setSymbolSize = (s: State, size: number): State => ({ ...s, score: { ...s.score, symbolSize: size } });
+
+/** The size new text is placed at: the score's symbol size × its text scale. */
+export const textSizeOf = (score: Score) => symbolSizeOf(score) * textScaleOf(score);
+
+/**
+ * After a text marking is resized to `size`: the score's text scale becomes size / its symbol
+ * size; but while its ink (every cut's, archived ones included) has no symbol, its symbol size
+ * becomes size / its text scale instead.
+ */
+export function textResized(s: State, size: number): State {
+  const hasSymbol = Object.values(s.ink).some((list) => list.some((m) => 'kind' in m && m.kind === 'symbol'));
+  if (hasSymbol) return { ...s, score: { ...s.score, textScale: size / symbolSizeOf(s.score) } };
+  return setSymbolSize(s, size / textScaleOf(s.score));
+}
 
 /** A marking of a cut replaced by `next` (taken away when there is none), as an edit by hand. */
 export function replaceMarking(s: State, cutId: string, old: Marking, next?: Marking): State {

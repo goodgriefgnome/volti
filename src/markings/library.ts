@@ -1,7 +1,7 @@
 // Pure. The symbol library's types and what is worked out from it: making a symbol from shaped
 // glyphs, finding a symbol, the next one in its group, and changing the library.
 
-import { glyphKey, glyphOf } from './glyphs';
+import { centred } from './placed';
 
 export interface SymbolLibrary {
   /** The user's groups, in their order on the toolbar. */
@@ -25,16 +25,9 @@ export interface LibrarySymbol {
 
 /** A symbol from shaped text: its glyphs moved so the centre of their ink is the origin. The glyphs must be in the glyph table. */
 export function symbolFrom(font: string, text: string, scale: number, glyphs: { gid: number; x: number; y: number }[]): LibrarySymbol {
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  for (const g of glyphs) {
-    const b = glyphOf(glyphKey(font, g.gid))?.bounds;
-    if (!b) continue;
-    x0 = Math.min(x0, b[0] + g.x); x1 = Math.max(x1, b[2] + g.x);
-    y0 = Math.min(y0, b[1] + g.y); y1 = Math.max(y1, b[3] + g.y);
-  }
-  const cx = x0 === Infinity ? 0 : (x0 + x1) / 2, cy = x0 === Infinity ? 0 : (y0 + y1) / 2;
+  const c = centred(font, glyphs);
   const r = (v: number) => Math.round(v * 10000) / 10000;
-  return { font, text, scale, glyphs: glyphs.map((g) => [g.gid, r(g.x - cx), r(g.y - cy)]) };
+  return { font, text, scale, glyphs: c ? c.glyphs : glyphs.map((g) => [g.gid, r(g.x), r(g.y)]) };
 }
 
 /** Where the symbol with this font and text is: its group (-1 for adhoc) and place. */
