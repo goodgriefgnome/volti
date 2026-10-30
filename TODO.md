@@ -99,20 +99,10 @@ scores.
     own), and settings and places. Most of an `original:` record can be worked out again from the
     files (page shapes; where a folder file is); a password, and where a file in Volti's own
     folder or Recently removed is, can't.
-- **Text and symbol markings**, beside the pen and highlighter, each exported as a PDF annotation
-  with its own vector appearance, as they are (`export/_annotations.ts`; the drawing interface in
-  `markings/draw.ts` would need fills, and text or glyph outlines):
-  - *Text:* typed on the music ("rit.", cues, bar numbers), with an optional shape behind it: a
-    plain rectangle with a see-through fill, or a rectangle pointing left or right (a tag). A
-    FreeText annotation, its appearance drawing the shape, then the text.
-  - *Symbols:* fingerings (finger numbers 1–5, and substitutions such as 4–5) and organ pedal
-    marks (toe and heel, for the left and right foot, as above or below the staff). Stamp
-    annotations, each symbol's outline drawn as vector paths from an open music font (Bravura,
-    SIL Open Font License, SMuFL's keyboard pedal glyphs), so nothing depends on the viewer's
-    fonts. Placed with a tap, then moved and resized.
-  - To think through: the toolbar (one tool with a palette of symbols rather than a button each;
-    text entry and editing on the music); sizes relative to the staff; colours; how the eraser and
-    undo treat them; and keeping each on its original page and cut, as strokes are.
+- **Text and symbol markings**, beside the pen and highlighter: specified in
+  `text-and-symbol-markings.md` (a library of symbols in groups, text typed on the music,
+  backgrounds, sizes, storage and export). Next: a plan. Still to check: that fontkit reads
+  Bravura's WOFF2 to the same outlines as its OTF, and that Academico has an Italic to bundle.
 - **Cropping, in batches of pages:** a mode of its own, like Edit cuts, for trimming the margins
   of the original's pages, applied to several pages at once. To think through: what a batch is (a
   range of pages, odd and even pages apart for scans of a book); whether it trims all four sides
