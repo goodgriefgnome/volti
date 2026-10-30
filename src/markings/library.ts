@@ -1,5 +1,5 @@
 // Pure. The symbol library's types and what is worked out from it: making a symbol from shaped
-// glyphs, finding a symbol, and the next one in its group.
+// glyphs, finding a symbol, the next one in its group, and changing the library.
 
 import { glyphKey, glyphOf } from './glyphs';
 
@@ -62,4 +62,75 @@ export function scaleOf(lib: SymbolLibrary | undefined, font: string, text: stri
   const at = findSymbol(lib, font, text);
   if (!at) return 1;
   return (at.group < 0 ? lib.adhoc : lib.groups[at.group].symbols)[at.index].scale;
+}
+
+const same = (a: { font: string; text: string }) => (s: LibrarySymbol) => s.font === a.font && s.text === a.text;
+
+/** The most ad-hoc symbols kept. */
+const ADHOC = 8;
+
+/** A group's symbols; adhoc for -1; [] for no such group. */
+export function symbolsOf(lib: SymbolLibrary, group: number): readonly LibrarySymbol[] {
+  return group < 0 ? lib.adhoc : lib.groups[group]?.symbols ?? [];
+}
+
+/** A copy of the library without the symbol with this font and text, wherever it is. */
+function without(lib: SymbolLibrary, font: string, text: string): SymbolLibrary {
+  const not = (s: LibrarySymbol) => !same({ font, text })(s);
+  return { groups: lib.groups.map((g) => ({ ...g, symbols: g.symbols.filter(not) })), adhoc: lib.adhoc.filter(not) };
+}
+
+/** A new empty group, at the end. */
+export function addGroup(lib: SymbolLibrary): SymbolLibrary {
+  return { ...lib, groups: [...lib.groups, { symbols: [] }] };
+}
+
+/** Without a group, and its symbols. */
+export function removeGroup(lib: SymbolLibrary, group: number): SymbolLibrary {
+  return { ...lib, groups: lib.groups.filter((_, i) => i !== group) };
+}
+
+/** The group ends up at `to`, as `moveEntry` (setlists/) has it. */
+export function moveGroup(lib: SymbolLibrary, from: number, to: number): SymbolLibrary {
+  const groups = [...lib.groups];
+  const [g] = groups.splice(from, 1);
+  groups.splice(to, 0, g);
+  return { ...lib, groups };
+}
+
+/**
+ * Put `sym` in a group (not adhoc) at `index` (the end when missing). A symbol with its font and
+ * text that is somewhere else in the library is taken out of there first, so it is in one place.
+ */
+export function putSymbol(lib: SymbolLibrary, sym: LibrarySymbol, group: number, index?: number): SymbolLibrary {
+  if (!lib.groups[group]) return lib;
+  const out = without(lib, sym.font, sym.text);
+  const symbols = [...out.groups[group].symbols];
+  symbols.splice(index === undefined ? symbols.length : Math.max(0, Math.min(index, symbols.length)), 0, sym);
+  return { ...out, groups: out.groups.map((g, i) => (i === group ? { ...g, symbols } : g)) };
+}
+
+/** Replace the symbol with font and text `was` by `sym` where it is; another with sym's font and text is taken out. */
+export function replaceSymbol(lib: SymbolLibrary, was: { font: string; text: string }, sym: LibrarySymbol): SymbolLibrary {
+  const at = findSymbol(lib, was.font, was.text);
+  if (!at) return lib;
+  const isWas = same(was), isSym = same(sym);
+  // Replace the one, and drop any other like `sym`, in the same pass so the place is kept.
+  const swap = (list: LibrarySymbol[]) => list.flatMap((s) => (isWas(s) ? [sym] : isSym(s) ? [] : [s]));
+  return { groups: lib.groups.map((g) => ({ ...g, symbols: swap(g.symbols) })), adhoc: swap(lib.adhoc) };
+}
+
+export function removeSymbol(lib: SymbolLibrary, font: string, text: string): SymbolLibrary {
+  return without(lib, font, text);
+}
+
+/**
+ * An ad-hoc symbol placed through +: at the front of adhoc, at most 8 kept (the oldest goes). One
+ * already in a group stays there and the library is unchanged; one already in adhoc moves to the front.
+ */
+export function addAdhoc(lib: SymbolLibrary, sym: LibrarySymbol): SymbolLibrary {
+  const at = findSymbol(lib, sym.font, sym.text);
+  if (at && at.group >= 0) return lib;
+  const rest = lib.adhoc.filter((s) => !same(sym)(s));
+  return { ...lib, adhoc: [sym, ...rest].slice(0, ADHOC) };
 }
