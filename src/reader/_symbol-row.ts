@@ -18,9 +18,9 @@ export interface SymbolRowActions {
 /** How long a press is held to count as a long press. */
 const LONG_PRESS_MS = 500;
 /** The size of a symbol's picture, in CSS pixels. */
-const PICTURE_PX = 40;
+const PICTURE_PX = 48;
 /** The em of a symbol of scale 1 in its picture, in CSS pixels: pictures are in proportion to their scales. */
-const EM_PX = 18;
+const EM_PX = 36;
 
 /** A canvas showing a symbol, centred, its size in proportion to its scale, in `color`. */
 function picture(sym: LibrarySymbol, color: string): HTMLCanvasElement {
