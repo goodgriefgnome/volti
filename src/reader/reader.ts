@@ -450,7 +450,8 @@ class Reader {
   /** A font button: the font of new text, of the text being typed, and of the selected text marking. */
   private setFont(id: string) {
     this.textFont = id;
-    if (this.typing.open) void this.typing.setFont(id).catch((e) => { console.error(e); this.say('Could not change the font.'); });
+    // The field takes the font once it has loaded, and the font buttons show the field's.
+    if (this.typing.open) void this.typing.setFont(id).then(() => this.syncBar(), (e) => { console.error(e); this.say('Could not change the font.'); });
     else if (this.selected?.mark.kind === 'text' && this.selected.mark.font !== id) {
       const sel = this.selected;
       void this.retext(sel, id, sel.mark.text);
