@@ -425,7 +425,7 @@ storage bar gets a part for imported fonts.
 - A **Default** swatch takes a marking's own colour away.
 - The eraser takes placed markings whole, by their extent.
 - A tap on the selected text edits it, as a tap on the selected symbol cycles it.
-- Dragging an unselected marking moves it without selecting it first.
+- Dragging a marking moves it and selects it, without selecting it first.
 - The selected marking has a delete button above its box.
 - Tapping empty music with a symbol as the tool places it, ending the selection; nothing else
   ends a selection short of changing tool or turning the page.
