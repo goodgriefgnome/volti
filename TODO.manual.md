@@ -229,3 +229,27 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   13. In the library editor, make a symbol in Academico ("Ped.", scale 0.6): it places like any
       symbol.
   14. "AV" typed in the field and placed: the kerning looks the same before and after Enter.
+- **Backgrounds and default colours** (plan 4), on the tablet with a score open:
+  1. In the library, Volti menu, **Marking colours…**: set the marking colour to dark red. Open a
+     score: every symbol and text without a colour of its own is dark red; ones recoloured with a
+     swatch, and pen strokes, are not. **Built-in** sets it back.
+  2. With a symbol as the tool and a fingering selected, tap the **Default** swatch: it takes the
+     default colour, and the Default swatch is pressed. With Pen as the tool, the Default swatch
+     doesn't show.
+  3. With a fingering selected, tap the box: a light blue box shows behind it, the staff lines
+     darkened through it, not covered; the halo still shows round the glyph. Tap tag right: it
+     points right, its point shorter than a 45° one. Tap none: it is gone. Undo steps back through
+     each.
+  4. Tap Text, choose tag left, and type "a tempo": it is placed with a tag pointing left. Type
+     another: it has one too. Choose none: the next has none.
+  5. Tap a text's tag just beyond its letters: it selects. The selection's box and corners include
+     the tag; resizing scales it.
+  6. The eraser takes a marking when it touches only its background.
+  7. Cycle a fingering with a box: the next one keeps the box.
+  8. In the library editor, give the 1 a box with its own yellow colour: the preview shows it. Place
+     a 1: it has the yellow box. Change the library's 1 to no background: the placed one keeps its
+     box.
+  9. In **Marking colours…**, set the background colour to pink: boxes without their own colour are
+     pink, the yellow one isn't.
+  10. Export a score with backgrounds and open it in another PDF app: the boxes and tags show as in
+      Volti, the music darkened through them, and go with their annotations when hidden or deleted.
