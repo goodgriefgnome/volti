@@ -20,7 +20,7 @@ exported PDF and in every other PDF app, whatever fonts are around later.
 ## Words
 
 - **font**: a font file (TTF, OTF, WOFF or WOFF2). Its **id** is the first 8 hex digits of the
-  SHA-256 of the file. Three are bundled with the app; the user can import more.
+  SHA-256 of the file. Two are bundled with the app; the user can import more.
 - **glyph**: one outline of one font, known by `<font id>:<glyph index>`. Fonts never change under
   their id, so neither does a glyph.
 - **shaping**: turning characters into positioned glyphs with the font's rules: kerning,
@@ -43,16 +43,17 @@ exported PDF and in every other PDF app, whatever fonts are around later.
 **Bundled**, cached for offline use with the rest of the app, in `public/fonts/`:
 
 - **Bravura** (SMuFL music font, SIL Open Font License), as WOFF2, about 323 KB.
-- **Academico** Regular and Italic (Steinberg's text font made to go with Bravura, Dorico's
-  default; an open reworking of Century Schoolbook; SIL Open Font License), as WOFF2, about 23 KB
-  each. Text is Academico Regular unless the user picks another font.
+- **Academico** Regular (Steinberg's text font made to go with Bravura, Dorico's default; an open
+  reworking of Century Schoolbook; SIL Open Font License), as WOFF2, about 23 KB. Text is Academico
+  unless the user picks another font. Its only public release (0.902, in the npm package
+  `@vexflow-fonts/academico`) has Regular and Bold, and no Italic, so no italic is bundled.
 
 **Imported**: the user adds a font file from the library editor (a file picker). Its bytes go in
 OPFS, at `fonts/<id>`; a record says its name. Importing a file whose id is already a font's adds
 nothing. Removing an imported font removes its bytes and its record; every marking and library
 symbol made with it stays as it is, since each carries its glyphs (below), and importing it again
 gives it the same id, so its glyph records still fit it. Editing a text marking whose font is gone
-shapes it again in Academico Regular.
+shapes it again in Academico.
 
 **Ids** are 8 hex digits (4 bytes) of the hash, and no more: with a handful of fonts, two files
 sharing them is too unlikely to guard against, and the whole hash is never kept. The bundled fonts'
@@ -288,7 +289,8 @@ A dialog, opened from the end of the groups (below):
   - **the groups**, while they are shown and Text isn't the tool: a button for each group,
     showing that group's current symbol, then the ad-hoc symbols as one more group, then **+**
     (the glyph picker, to place an ad-hoc symbol), then **Edit library…**;
-  - **the fonts**, while Text is the tool;
+  - **the fonts**, while Text is the tool and there is more than one text font (Bravura, which has
+    no letters, isn't one);
   - **the backgrounds** (none, box, tag left, tag right), while a symbol or Text is the tool.
 - **Symbols**: a button that shows or hides the groups. Hiding them leaves the tool as it is.
 - **The groups**:
@@ -338,7 +340,7 @@ looks like the result. The browser shows ligatures and kerning in it too.
 
 - While it is open, the on-screen keyboard covers the page instead of resizing it
   (`navigator.virtualKeyboard.overlaysContent`), so the frames don't move; if the field would be
-  under the keyboard, the zoom pans to keep it above.
+  under the keyboard, the music moves up until it is above, and back down when typing ends.
 - Enter, or tapping elsewhere, finishes: the text is shaped, its new glyphs stored, and the
   marking placed (or changed) and selected. Escape cancels. Text left empty places nothing, or
   deletes the marking being edited.
@@ -408,7 +410,7 @@ storage bar gets a part for imported fonts.
 
 ## Decided without discussion
 
-- The text font for new text, and the fallback for a font that is gone: Academico Regular.
+- The text font for new text, and the fallback for a font that is gone: Academico.
 - The default text scale: 0.6. The default symbol size: 0.035 page widths.
 - A placed marking's centre is the centre of its ink, and its glyphs are positioned from it.
 - Backgrounds' padding (0.12 em) and the tag's point (edges 30° off the vertical).
