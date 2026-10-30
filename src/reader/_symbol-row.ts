@@ -13,6 +13,8 @@ export interface SymbolRowActions {
   choose(group: number, index: number): void;
   /** + was pressed: pick a symbol to place. */
   add(): void;
+  /** Edit library… was pressed. */
+  edit(): void;
   /** An ad-hoc symbol was chosen to go to a group, or to a new one. */
   moveToGroup(index: number, group: number | 'new'): void;
 }
@@ -38,7 +40,7 @@ export class SymbolRow {
     // Groups with no symbols have no button; the ad-hoc group shows once it has some.
     const groups = lib.groups.flatMap((g, i) => (g.symbols.length ? [this.groupButton(g.symbols, i, current[i] ?? 0, active === i)] : []));
     if (lib.adhoc.length) groups.push(this.groupButton(lib.adhoc, -1, adhocCurrent, active === -1));
-    this.el.replaceChildren(...groups, button('+', () => this.act.add(), 'symbol-add'));
+    this.el.replaceChildren(...groups, button('+', () => this.act.add(), 'symbol-add'), button('Edit library…', () => this.act.edit()));
   }
 
   private groupButton(symbols: readonly LibrarySymbol[], group: number, index: number, pressed: boolean): HTMLButtonElement {

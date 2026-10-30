@@ -41,6 +41,7 @@ import { Saver } from './_saver';
 import { SelectionBox } from './_selection';
 import { makeSymbol, savedLibrary, symbolLibrary } from './_symbols';
 import { glyphPicker } from './_glyph-picker';
+import { editLibrary } from './_library-editor';
 import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
 import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_spread';
 import { backIcon, Toolbar, turnIcon, type ToolChoice } from './_toolbar';
@@ -230,6 +231,7 @@ class Reader {
       pick: (g) => this.pickGroup(g),
       choose: (g, i) => this.chooseSymbol(g, i),
       add: () => this.addSymbol(),
+      edit: () => { if (this.symbolLib) editLibrary({ library: () => this.symbolLib!, change: (lib) => this.setLibrary(lib) }); },
       moveToGroup: (i, g) => this.moveToGroup(i, g),
       penColor: (c) => this.swatch(c),
       undo: () => this.undo(),

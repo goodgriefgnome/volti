@@ -60,13 +60,11 @@ export function glyphPicker(into: HTMLElement, o: GlyphPickerOptions): void {
   const cancel = button('Cancel', () => o.cancel());
   const ok = button(o.okLabel, () => o.done(font, text), 'primary');
   ok.disabled = true;
-  into.append(
-    select,
-    el('div', 'glyph-chars'),
-    search, grid, caption,
-    buttonRow(cancel, ok),
-  );
-  into.querySelector('.glyph-chars')!.append(chars, back, preview);
+  const typed = el('div', 'glyph-chars');
+  typed.append(chars, back, preview);
+  const body = el('div', 'glyph-picker-body');
+  body.append(select, typed, search, grid, caption, buttonRow(cancel, ok));
+  into.append(body);
 
   function setText(t: string) {
     text = t;
