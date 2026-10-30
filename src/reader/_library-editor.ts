@@ -1,4 +1,4 @@
-// The library editor: groups and their symbols, and a symbol's font, characters and scale. One
+// The library editor: groups and their symbols, and a symbol's font, characters, scale and background. One
 // dialog whose content changes between views.
 
 import { BRAVURA, fontChoices, shapeWith, type FontChoice } from '../fonts/fonts';
@@ -7,9 +7,11 @@ import {
   addGroup, findSymbol, moveGroup, putSymbol, removeGroup, removeSymbol, replaceSymbol, symbolFrom, symbolsOf,
   type LibrarySymbol, type SymbolLibrary,
 } from '../markings/library';
+import { markColors, type Background } from '../markings/placed';
 import { button, el, plural } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog, showOnTop } from '../ui/overlay';
 import { glyphPicker } from './_glyph-picker';
+import { BACKGROUNDS, backgroundPicture } from './_symbol-row';
 import { hasInk, symbolPicture } from './_symbol-picture';
 import { makeSymbol } from './_symbols';
 
@@ -32,7 +34,13 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 const clampScale = (n: number) => round2(Math.min(MAX_SCALE, Math.max(MIN_SCALE, n)));
 
 /** A symbol being edited: what the fields hold. */
-interface Draft { font: string; text: string; scale: number; group: number }
+interface Draft { font: string; text: string; scale: number; group: number; background?: Background }
+
+/** The symbol with this background, or none, without a `background` key when none. */
+function withBackground(sym: LibrarySymbol, background: Background | undefined): LibrarySymbol {
+  const { background: _, ...rest } = sym;
+  return background ? { ...rest, background: { ...background } } : rest;
+}
 
 /** Open the editor on its groups view. */
 export function editLibrary(host: LibraryEditorHost): void {
@@ -102,7 +110,7 @@ export function editLibrary(host: LibraryEditorHost): void {
   async function symbolView(start: { group: number; was?: LibrarySymbol }, resume?: Draft) {
     await choicesLoaded;
     const was = start.was;
-    const draft: Draft = resume ?? { font: was?.font ?? BRAVURA, text: was?.text ?? '', scale: was?.scale ?? 1, group: start.group };
+    const draft: Draft = resume ?? { font: was?.font ?? BRAVURA, text: was?.text ?? '', scale: was?.scale ?? 1, group: start.group, background: was?.background };
     const fontGone = !!was && !choices.some((c) => c.id === was.font);
     const lib = () => host.library();
 
@@ -136,6 +144,48 @@ export function editLibrary(host: LibraryEditorHost): void {
       if (v >= MIN_SCALE && v <= MAX_SCALE) { draft.scale = v; void refresh(); }
     });
     scale.addEventListener('change', () => setScale(parseFloat(scale.value) || draft.scale));
+    const shapes = el('div', 'symbol-backgrounds');
+    shapes.setAttribute('role', 'group');
+    shapes.setAttribute('aria-label', 'Background');
+    const own = el('input');
+    own.type = 'checkbox';
+    own.setAttribute('aria-label', 'Default background colour');
+    const tint = el('input');
+    tint.type = 'color';
+    tint.setAttribute('aria-label', 'Background colour');
+    const colorRow = el('label', 'field');
+    colorRow.append(el('span', 'field-label', 'Background colour'), own, el('span', '', 'Default'), tint);
+    /** The background buttons and colour fields as the draft has them. */
+    const showBackground = () => {
+      const shape = draft.background?.shape ?? 'none';
+      shapes.replaceChildren(...BACKGROUNDS.map(([choice, label]) => {
+        const b = button('', () => setShape(choice));
+        b.classList.add('symbol-background');
+        b.setAttribute('aria-label', label);
+        b.title = label;
+        b.setAttribute('aria-pressed', String(shape === choice));
+        b.append(backgroundPicture(choice));
+        return b;
+      }));
+      colorRow.hidden = !draft.background;
+      own.checked = !draft.background?.color;
+      tint.disabled = own.checked;
+      tint.value = draft.background?.color ?? markColors().background;
+    };
+    const setShape = (choice: (typeof BACKGROUNDS)[number][0]) => {
+      draft.background = choice === 'none' ? undefined : { shape: choice, ...(draft.background?.color ? { color: draft.background.color } : {}) };
+      showBackground();
+      void refresh();
+    };
+    const setTint = () => {
+      if (!draft.background) return;
+      draft.background = { shape: draft.background.shape, ...(own.checked ? {} : { color: tint.value }) };
+      showBackground();
+      void refresh();
+    };
+    own.addEventListener('change', setTint);
+    tint.addEventListener('input', setTint);
+    showBackground();
     const group = el('select');
     group.setAttribute('aria-label', 'Group');
     group.append(...lib().groups.map((_, i) => { const o = el('option', '', `Group ${i + 1}`); o.value = String(i); return o; }));
@@ -167,12 +217,12 @@ export function editLibrary(host: LibraryEditorHost): void {
       if (wait) await new Promise<void>((r) => { timer = setTimeout(r, wait); });
       if (mineSeq !== seq) return;
       let next: LibrarySymbol | undefined;
-      if (!changedText() && was) next = { ...was, scale: draft.scale };
+      if (!changedText() && was) next = withBackground({ ...was, scale: draft.scale }, draft.background);
       else if (draft.text) {
         try {
           const shaped = await shapeWith(draft.font, draft.text);
           for (const [gid, d] of shaped.paths) addGlyph(glyphKey(draft.font, gid), d);
-          next = symbolFrom(draft.font, draft.text, draft.scale, shaped.glyphs);
+          next = withBackground(symbolFrom(draft.font, draft.text, draft.scale, shaped.glyphs), draft.background);
         } catch (e) { console.error(e); }
       }
       if (mineSeq !== seq) return;
@@ -183,7 +233,7 @@ export function editLibrary(host: LibraryEditorHost): void {
     /** Draw the preview and say what OK would do. */
     function update() {
       const inked = !!sym && hasInk(sym);
-      mine.replaceChildren(...(sym && inked ? [symbolPicture(sym, color(), PREVIEW_PX, PREVIEW_EM)] : []));
+      mine.replaceChildren(...(sym && inked ? [symbolPicture(sym, color(), PREVIEW_PX, PREVIEW_EM, sym.background)] : []));
       // What is in the way: no ink, or the same characters in the library already.
       const other = changedText() && draft.text ? findSymbol(lib(), draft.font, draft.text) : undefined;
       let why = '';
@@ -208,7 +258,9 @@ export function editLibrary(host: LibraryEditorHost): void {
     async function save() {
       ok.disabled = true;
       try {
-        const made = changedText() ? await makeSymbol(draft.font, draft.text, draft.scale) : { ...was!, scale: draft.scale };
+        const made = withBackground(
+          changedText() ? await makeSymbol(draft.font, draft.text, draft.scale) : { ...was!, scale: draft.scale }, draft.background,
+        );
         let next = was ? replaceSymbol(lib(), was, made) : putSymbol(lib(), made, draft.group);
         const now = findSymbol(next, made.font, made.text);
         if (now && now.group !== draft.group) next = putSymbol(next, made, draft.group);
@@ -233,6 +285,7 @@ export function editLibrary(host: LibraryEditorHost): void {
       field('Font', font),
       field('Characters', chars), pick,
       field('Scale', scaleRow),
+      field('Background', shapes), colorRow,
       field('Group', group), el('div', 'move-row'),
       previews, hint,
       buttonRow(...[was ? del : null, button('Cancel', () => groupsView()), ok]),

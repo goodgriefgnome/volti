@@ -25,7 +25,7 @@ export interface SymbolRowActions {
 /** A marking's background: none, or the shape of one. */
 export type BackgroundChoice = 'none' | Background['shape'];
 
-const BACKGROUNDS: [choice: BackgroundChoice, label: string][] = [
+export const BACKGROUNDS: [choice: BackgroundChoice, label: string][] = [
   ['none', 'No background'], ['box', 'Box'], ['tag-left', 'Tag pointing left'], ['tag-right', 'Tag pointing right'],
 ];
 
@@ -37,7 +37,7 @@ const SHAPE_POINTS: Record<Background['shape'], string> = {
 };
 
 /** A small picture of a background shape in the default background colour (none: an empty square crossed by a line). */
-function backgroundPicture(choice: BackgroundChoice): SVGSVGElement {
+export function backgroundPicture(choice: BackgroundChoice): SVGSVGElement {
   const ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns, 'svg');
   svg.setAttribute('viewBox', '0 0 24 16');
