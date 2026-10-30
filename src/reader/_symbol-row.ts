@@ -18,18 +18,19 @@ export interface SymbolRowActions {
 /** How long a press is held to count as a long press. */
 const LONG_PRESS_MS = 500;
 /** The size of a symbol's picture, in CSS pixels. */
-const PICTURE_PX = 28;
+const PICTURE_PX = 40;
+/** The em of a symbol of scale 1 in its picture, in CSS pixels: pictures are in proportion to their scales. */
+const EM_PX = 18;
 
-/** A canvas showing a symbol, centred and fitted to it, in `color`. */
+/** A canvas showing a symbol, centred, its size in proportion to its scale, in `color`. */
 function picture(sym: LibrarySymbol, color: string): HTMLCanvasElement {
   const side = PICTURE_PX, scale = dpr();
   const canvas = el('canvas');
   canvas.width = canvas.height = Math.round(side * scale);
   canvas.style.width = canvas.style.height = side + 'px';
   const mark: PlacedMark = { kind: 'symbol', text: sym.text, font: sym.font, glyphs: sym.glyphs, at: [0.5, 0.5], size: 1, color };
-  const e = emExtent(mark);
-  if (e) {
-    mark.size = 0.8 / Math.max(e[2] - e[0], e[3] - e[1], 0.01);
+  if (emExtent(mark)) {
+    mark.size = (EM_PX * sym.scale) / side;
     const ctx = canvas.getContext('2d');
     if (ctx) drawMarkings({ draw: canvasDrawing(ctx), w: canvas.width, h: canvas.height, ox: 0, oy: 0 }, [mark]);
   }

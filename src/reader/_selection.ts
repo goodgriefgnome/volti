@@ -1,5 +1,4 @@
-// The selected marking's box over its frame: an outline, a handle at each corner and a delete button
-// above. DOM elements in the frame's box, so they zoom with it; on screen only, never exported.
+// The selected marking's box over its frame: an outline and a delete button above (the corners resize without showing handles). DOM elements in the frame's box, so they zoom with it; on screen only, never exported.
 
 import { el } from '../ui/dom';
 import type { FrameSlot } from './_spread';
@@ -12,7 +11,7 @@ export class SelectionBox {
     this.remove.type = 'button';
     this.remove.setAttribute('aria-label', 'Delete');
     this.remove.addEventListener('click', onDelete);
-    this.box.append(...[0, 1, 2, 3].map((i) => el('div', `selection-handle c${i}`)), this.remove);
+    this.box.append(this.remove);
     this.box.hidden = true;
   }
 
