@@ -56,7 +56,9 @@ shapes it again in Academico Regular.
 
 **Ids** are 8 hex digits (4 bytes) of the hash, and no more: with a handful of fonts, two files
 sharing them is too unlikely to guard against, and the whole hash is never kept. The bundled fonts'
-ids are fixed by their files.
+ids are fixed by their files. A new version of the app may bundle a newer release of a font: that is a
+new font, with a new id. Markings and library symbols made with the old one keep their glyphs and
+look as they did; editing them treats the old font as gone.
 
 **Reading fonts** is done with **fontkit**: it reads all four formats (WOFF2 included), shapes
 fully, and gives glyph outlines. It is loaded only when a font has to be read: defining a library
@@ -244,7 +246,7 @@ Academico Regular (`363caf00`) and Bravura (`e68df664`).
 ```json
 {
   "font": "e68df664",
-  "text": "",
+  "text": "\uED14\uED22\uED15",
   "scale": 1,
   "glyphs": [[2575, -0.33, 0.129], [2589, -0.093, 0.129], [2576, 0.104, 0.129]]
 }
