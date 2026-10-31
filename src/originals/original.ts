@@ -35,7 +35,7 @@ export async function savedPages(id: string): Promise<Pages | null> {
   const [aspects, saved] = await Promise.all([knownAspects(id), hasSaved(id)]);
   if (!aspects || !saved) return null;
   const request = (page: number, pxWidth: number, o?: DrawOptions): DrawRequest =>
-    ({ id, page, pxWidth, aspect: aspects[page - 1], crop: o?.crop, priority: o?.priority ?? 'now', signal: o?.signal, keep: o?.keep });
+    ({ id, page, pxWidth, aspect: aspects[page - 1], crop: o?.crop, priority: o?.priority ?? 'now', signal: o?.signal });
   return {
     id,
     whole: false,
@@ -113,7 +113,7 @@ class FileOriginal implements Original {
   private async request(page: number, pxWidth: number, o?: DrawOptions): Promise<DrawRequest> {
     this.use();
     const aspect = (await this.aspects())[page - 1];
-    return { id: this.id, source: this.source, page, pxWidth, aspect, crop: o?.crop, priority: o?.priority ?? 'now', signal: o?.signal, keep: o?.keep };
+    return { id: this.id, source: this.source, page, pxWidth, aspect, crop: o?.crop, priority: o?.priority ?? 'now', signal: o?.signal };
   }
   async draw(page: number, pxWidth: number, options?: DrawOptions) { this.use(); return drawPage(await this.request(page, pxWidth, options)); }
   async *drawProgressive(page: number, pxWidth: number, options?: DrawOptions) {

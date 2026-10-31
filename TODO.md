@@ -167,16 +167,15 @@ scores.
   for the same widths, which the cache now holds: it costs little, but it redraws the screen for
   nothing. To work out: whether to skip the observer's first report, or only show again when the
   size differs from the one last shown.
-- **Opening scores faster still: a small first page kept for each score** [needs thought]: the
-  pages the reader shows are saved as they are drawn (`keep`, `page-cache/cache.ts`), so a score
-  shown before opens at once after a restart; one never opened is still drawn from its file. Keep
-  each score's first screen, at a low resolution, so opening any score shows it at once and
-  sharpens after, as turning does now. To work out: how it is drawn in the background (like the
-  offline pages, `library/_offline-pages.ts`), and the room it takes.
-  - Opening still reads the file before the first screen shows, even when that screen is saved
-    (`openPages`, `reader/_open-scores.ts`: the file's first bytes, and a PDF's password check).
-    If opening is still slow on the tablet with the screen saved, show the saved screen first, from
-    the stored aspects, and read the file after.
+- **Opening a score just after starting the app is slow** [needs thought]: 4 to 7 seconds, for
+  images and PDFs alike, so more than the PDF check in "The first open of a PDF still lags". To
+  measure on the tablet: where the time goes between the tap and the first screen (the first
+  screen also waits for full screen, `Reader`'s constructor in `reader/reader.ts`).
+- **Opening scores faster still: a small first page kept for each score** [needs thought]: keep
+  each score's first screen, at a low resolution, so opening one shows it at once and sharpens
+  after, as turning does now. To work out: how it sits with the page cache and the offline pages
+  (`page-cache/`), which first pages (a score's start, or where it was last read), and the room
+  they take.
 - **A file put back appears in the library at once** [needs thought]: after **Put back**
   (`library/_removed.ts`) the file shows only after `lib.refresh()` has read the scores folder
   again; it should show at once, as a renamed file does.

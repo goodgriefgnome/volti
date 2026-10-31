@@ -31,8 +31,6 @@ export interface DrawRequest {
   crop?: Crop;
   priority: Priority;
   signal?: AbortSignal;
-  /** Save the whole page as soon as it is had, whatever it would take to draw again: a page on the reader's screen, to show at once after a restart. */
-  keep?: boolean;
 }
 
 export interface Drawn {
