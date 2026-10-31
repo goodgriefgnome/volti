@@ -150,6 +150,10 @@ export class Library implements LibraryHost {
         this.reading = left > 0;
         this.say(left ? `Reading new scores: ${left} left…` : before ?? '');
         if (!shown) { shown = true; void this.loadSetlists().then(() => this.scoresSection.render()); } else this.scoresSection.render();
+      }, (originals) => {
+        // Pass 2 found a file changed in place.
+        this.originals = originals;
+        void this.loadSetlists().then(() => this.scoresSection.render());
       });
       this.originals = originals;
     } catch (e) {

@@ -6,7 +6,7 @@
 
 import { kv } from '../storage/kv';
 import { _canRead, _linked, _needAccess } from './device-score-fs';
-import { hashFile, walk } from './_filesystem-utils';
+import { hashFile, inTurns, walk } from './_filesystem-utils';
 import { _dropInboxBytes } from './inbox-fs';
 import { _internalFiles, _opfsRoot, _removeInternalFile } from './internal-score-fs';
 import { _bytesName, _resolveListing, type _Found, type OriginalRecord, type Where } from './_record-model';
@@ -46,11 +46,11 @@ export async function _makeFolder(path: string): Promise<FileSystemDirectoryHand
   return d;
 }
 
-/** The PDFs and images in the root, read now, by path; access must be granted. */
-export async function _folderFiles(): Promise<{ path: string; file: File }[]> {
+/** The PDFs and images in the root, by path, as handles: no file is got. Access must be granted. */
+export async function _folderFiles(): Promise<{ path: string; handle: FileSystemFileHandle }[]> {
   const found: [string, FileSystemFileHandle][] = [];
   await walk(await root(), '', 0, found);
-  return Promise.all(found.map(async ([path, h]) => ({ path, file: await h.getFile() })));
+  return found.map(([path, handle]) => ({ path, handle }));
 }
 
 /* ---------- its files ---------- */
@@ -201,43 +201,27 @@ const hidden: Record<'folder' | 'internal', Map<string, _Found>> = { folder: new
  */
 type Progress = (originals: SourceFile[], left: number) => void;
 
+/** New files are few and wanted soon, so their hashing goes this many at once. */
+const NEW_FILES_AT_ONCE = 8;
 /**
- * List the `entries` of a root of `kind` (the linked folder, or Volti's own folder), after the
- * records are loaded: work out each file's id, hashing only those the records can't vouch for
- * (a folder file whose size and modified time are as recorded; any file of Volti's own folder at
- * the path recorded, as only Volti changes those), one at a time, then write what the listing
- * means for the records and delete the bytes of places given up. Gives the files that win, each
- * at its canonical path.
+ * Known files are checked in the background, behind whatever else reads the folder (such as a score
+ * being opened): each `getFile()` is a request to Android's storage framework, so one at a time.
  */
-async function listing(kind: 'folder' | 'internal', entries: { path: string; file: File }[], linked: boolean, progress?: Progress): Promise<{ id: string; path: string }[]> {
-  // A snapshot: the copy in memory changes as records are written meanwhile.
-  const records = new Map(_records());
-  const at = new Map<string, { id: string; where: Where }>();
-  for (const [id, r] of records) if (r.where.kind === kind) at.set(r.path, { id, where: r.where });
-  const idOf = (path: string, file: File): string | undefined => {
-    const r = at.get(path);
-    if (r) {
-      if (kind === 'internal') return r.id;
-      if (r.where.kind === 'folder' && r.where.size === file.size && r.where.modified === file.lastModified) return r.id;
-    }
-    const copy = hidden[kind].get(path);
-    return copy && copy.size === file.size && copy.modified === file.lastModified ? copy.id : undefined;
-  };
-  const found: _Found[] = [];
-  const fresh: { path: string; file: File }[] = [];
-  for (const e of entries) {
-    const id = idOf(e.path, e.file);
-    if (id) found.push({ path: e.path, id, size: e.file.size, modified: e.file.lastModified }); else fresh.push(e);
-  }
-  const shown = () => _resolveListing(kind, records, found, linked).files.map((f) => _sourceFileOf(f.id, f.path)).sort(byTitle);
-  for (const [n, e] of fresh.entries()) {
-    if (n === 0) progress?.(shown(), fresh.length);
-    found.push({ path: e.path, id: await hashFile(e.file), size: e.file.size, modified: e.file.lastModified });
-    progress?.(shown(), fresh.length - n - 1);
-  }
+const KNOWN_FILES_AT_ONCE = 1;
 
+/** An entry of a listing: a file's path, and its handle (the linked folder) or the file itself (Volti's own). */
+interface Entry { path: string; handle?: FileSystemFileHandle; file?: File }
+
+/** A file trusted to be the one recorded, to be checked in pass 2. */
+interface Known { path: string; handle: FileSystemFileHandle; found: _Found }
+
+/**
+ * Write what a listing means for the records, with each record written only if it is still as the
+ * `records` snapshot saw it (a share made meanwhile wins), and delete the bytes of places given
+ * up. Gives the files that win, each at its canonical path.
+ */
+async function settle(kind: 'folder' | 'internal', records: ReadonlyMap<string, OriginalRecord>, found: readonly _Found[], linked: boolean): Promise<{ id: string; path: string }[]> {
   const result = _resolveListing(kind, records, found, linked);
-  // Each record is written only if it is still as the listing saw it: a share made meanwhile wins.
   await _updateRecords([...result.changed].map(([id, next]) => [id, (stored) => (same(stored as OriginalRecord | undefined, records.get(id)) ? next : stored)]));
   for (const d of result.drop) {
     // A place given up is deleted only if the record did move.
@@ -249,16 +233,108 @@ async function listing(kind: 'folder' | 'internal', entries: { path: string; fil
 }
 
 /**
- * The library's files, sorted by title: the same SourceFile for an id as before; two of the same
- * file show the first. Files new or changed since last time are hashed, which reads them whole, one
- * at a time; `progress` hears the files known so far before the first and after each. While the
- * linked folder is locked, its files are the ones its records say.
+ * List the `entries` of a root of `kind` (the linked folder, or Volti's own folder), after the
+ * records are loaded: work out each file's id by names only. A path the records have (or, in the
+ * linked folder, a hidden copy) is trusted to be the file recorded, without getting it; the others
+ * are got and hashed, `NEW_FILES_AT_ONCE` at a time. Then write what the listing means for the
+ * records and delete the bytes of places given up. Gives the files that win, each at its canonical
+ * path, and the trusted files with what was trusted of them, for pass 2 to check.
  */
-export async function libraryFiles(state: FolderState, progress?: Progress): Promise<SourceFile[]> {
+async function listing(kind: 'folder' | 'internal', entries: Entry[], linked: boolean, progress?: Progress): Promise<{ files: { id: string; path: string }[]; known: Known[]; found: _Found[] }> {
+  // A snapshot: the copy in memory changes as records are written meanwhile.
+  const records = new Map(_records());
+  const at = new Map<string, { id: string; where: Where }>();
+  for (const [id, r] of records) if (r.where.kind === kind) at.set(r.path, { id, where: r.where });
+  const trusted = (e: Entry): _Found | undefined => {
+    const r = at.get(e.path);
+    if (r) return { path: e.path, id: r.id, size: r.where.kind === 'folder' ? r.where.size : e.file?.size ?? 0, modified: r.where.kind === 'folder' ? r.where.modified : e.file?.lastModified ?? 0 };
+    const copy = hidden[kind].get(e.path);
+    return copy && { ...copy, path: e.path };
+  };
+  const found: _Found[] = [];
+  const known: Known[] = [];
+  const fresh: Entry[] = [];
+  for (const e of entries) {
+    const f = trusted(e);
+    if (!f) fresh.push(e);
+    else {
+      found.push(f);
+      if (e.handle) known.push({ path: e.path, handle: e.handle, found: f });
+    }
+  }
+  const hashed: _Found[] = [];
+  const shown = () => _resolveListing(kind, records, [...found, ...hashed], linked).files.map((f) => _sourceFileOf(f.id, f.path)).sort(byTitle);
+  if (fresh.length) progress?.(shown(), fresh.length);
+  const results = await inTurns(fresh, NEW_FILES_AT_ONCE, async (e) => {
+    const file = e.file ?? (await e.handle!.getFile());
+    const f = { path: e.path, id: await hashFile(file), size: file.size, modified: file.lastModified };
+    hashed.push(f);
+    progress?.(shown(), fresh.length - hashed.length);
+    return f;
+  });
+  found.push(...results);
+  return { files: await settle(kind, records, found, linked), known, found };
+}
+
+/**
+ * Pass 2 of a scan of the linked folder: get the `known` files, `KNOWN_FILES_AT_ONCE` at a time,
+ * and hash one whose size or modified time differs from what was trusted, replacing its `_Found`
+ * in `all` (every file found, which the listing is resolved from). After each one that changed,
+ * the listing is resolved again from a fresh snapshot of the records and written, and `changed`
+ * hears the files. A file gone meanwhile is skipped: the next scan sees it missing.
+ */
+async function checkKnown(known: Known[], all: _Found[], signal: AbortSignal, changed: (originals: SourceFile[]) => void): Promise<void> {
+  await inTurns(known, KNOWN_FILES_AT_ONCE, async (k) => {
+    let file: File;
+    try {
+      file = await k.handle.getFile();
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'NotFoundError') return;
+      throw e;
+    }
+    if (file.size === k.found.size && file.lastModified === k.found.modified) return;
+    const now = { path: k.path, id: await hashFile(file), size: file.size, modified: file.lastModified };
+    // A newer scan has taken over: what it wrote is not to be written over.
+    if (signal.aborted) return;
+    all[all.indexOf(k.found)] = now;
+    k.found = now;
+    const files = await settle('folder', new Map(_records()), all, true);
+    if (!signal.aborted) changed(files.map((f) => _sourceFileOf(f.id, f.path)).sort(byTitle));
+  }, signal);
+}
+
+/** The pass 2 still running, if any. */
+let checking: AbortController | undefined;
+
+/**
+ * The library's files, sorted by title: the same SourceFile for an id as before; two of the same
+ * file show the first. A scan of the linked folder has two passes. Pass 1 goes by names: only names
+ * no record has are got and hashed (which reads them whole), a few at a time, and `progress` hears
+ * the files known so far before the first and after each; a name the records have is trusted to be
+ * the file recorded. Pass 2 then runs in the background, without being waited for, getting the
+ * trusted files one at a time and hashing one whose size or modified time differs from its record;
+ * `changed` hears the library's files each time it finds one. A new scan stops a pass 2 still
+ * running. While the linked folder is locked, its files are the ones its records say.
+ */
+export async function libraryFiles(state: FolderState, progress?: Progress, changed?: (originals: SourceFile[]) => void): Promise<SourceFile[]> {
+  checking?.abort();
+  const mine = (checking = new AbortController());
   await _loadRecords();
-  const files = state.kind === 'locked'
-    ? [..._records()].flatMap(([id, r]) => (r.where.kind === 'folder' ? [{ id, path: r.path }] : []))
-    : await listing(state.kind === 'ready' ? 'folder' : 'internal', await _folderFiles(), state.kind === 'ready', progress);
+  let files: { id: string; path: string }[];
+  if (state.kind === 'locked') files = [..._records()].flatMap(([id, r]) => (r.where.kind === 'folder' ? [{ id, path: r.path }] : []));
+  else if (state.kind === 'ready') {
+    const listed = await listing('folder', await _folderFiles(), true, progress);
+    files = listed.files;
+    // Unless a newer scan began meanwhile, which has taken over.
+    if (changed && listed.known.length && checking === mine) {
+      void checkKnown(listed.known, listed.found, mine.signal, changed).catch((e) => {
+        if (e?.name !== 'AbortError') console.warn('Checking the known files stopped:', e);
+      });
+    }
+  } else {
+    const entries = await _internalFiles();
+    files = (await listing('internal', entries, false, progress)).files;
+  }
   return files.map((f) => _sourceFileOf(f.id, f.path)).sort(byTitle);
 }
 
@@ -270,7 +346,7 @@ export async function _listInternal(): Promise<{ id: string; path: string; file:
   await _loadRecords();
   const entries = await _internalFiles();
   const files = new Map(entries.map((e) => [e.path, e.file]));
-  return (await listing('internal', entries, true)).map((f) => ({ ...f, file: files.get(f.path)! }));
+  return (await listing('internal', entries, true)).files.map((f) => ({ ...f, file: files.get(f.path)! }));
 }
 
 /** The keys earlier versions wrote that are not in the format of STORAGE.md; what they held is not carried over. */

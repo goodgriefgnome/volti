@@ -151,3 +151,16 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
      pink, the yellow one isn't.
   10. Export a score with backgrounds and open it in another PDF app: the boxes and tags show as in
       Volti, the music darkened through them, and go with their annotations when hidden or deleted.
+- **Scanning the linked folder by names first** (folder linked):
+  - Restart, allow access, and open a score at once: it opens in about the time it takes once the
+    library has settled, not several seconds more.
+  - Add three PDFs to the folder in the Files app, and come back to Volti: "Reading new scores"
+    counts them down, and they appear.
+  - Rename a PDF in the Files app, and come back: it shows under its new name, with its cuts and
+    markings.
+  - Delete a PDF in the Files app, and come back: it is gone from the library (its setlist entries
+    say so).
+  - Replace a PDF in the Files app with a different file of the same name, and come back: a moment
+    after the library shows, the score changes to the new file's (its old cuts and markings aren't
+    on it).
+  - Unlink, then link the same folder: everything is back, and nothing is hashed again.

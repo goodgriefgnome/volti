@@ -126,10 +126,12 @@ are treated the same way.
 
 #### The hash cache
 
-For a `folder` record, the stored `size` and `modified` let a listing trust the id without
-reading the file: a file at the record's path with the same size and modified time has the
-record's id. Anything else is hashed again. Files in Volti's own folder are trusted by path
-alone, because only Volti changes them.
+A scan of the linked folder goes by names first: a file at a `folder` record's path is trusted to
+have the record's id without reading it, and only names no record has are hashed. The library is
+shown then. A pass in the background follows, getting the trusted files one at a time and hashing
+one whose size or modified time differs from the record's `size` and `modified`; so a file changed
+in place is noticed a little after the library shows. Files in Volti's own folder are trusted by
+path alone, because only Volti changes them.
 
 There is no separate path → id record. The app builds that map in memory from the
 `original:` records whenever it lists the library.
@@ -324,7 +326,7 @@ Two contexts write: the page, and the service worker (sharing). So:
 
 | Operation | Records | Bytes |
 | --- | --- | --- |
-| **Listing a readable linked folder** | Each id found: `folder` at its canonical path, with its size and modified time; any lower place gives way. Each `folder` record whose id wasn't found: `gone`. | Lower places' bytes deleted. |
+| **Listing a readable linked folder** | Each id found: `folder` at its canonical path, with its size and modified time (those recorded, for a file trusted by its name; a changed one is noticed a little after, and its record rewritten then); any lower place gives way. Each `folder` record whose id wasn't found: `gone`. | Lower places' bytes deleted. |
 | **Listing while locked** | None changed. The library is the `folder` records. | |
 | **Listing Volti's own folder** | Each id found that ranks above its record: `internal`, and lower places give way. A file whose id has a better place is dropped. Each `internal` record whose id wasn't found: `gone`. | Lower places' bytes deleted, and dropped files deleted. |
 | **Adding a file** (Add PDFs, a share, putting back, moving one left in Volti's folder) | `folder` or `internal` at the chosen path. | Written into the root, then the old place's bytes deleted. |

@@ -19,7 +19,8 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   when turning to a page with nothing saved, or for something on the toolbar that reads the PDFs
   (**Edit cuts**, **Excerpts**). When allowing access takes long and the reader doesn't go full
   screen, it does at the next turn. Coming back to Volti after a
-  while (say, from the Files app) reads the folder again, so PDFs added meanwhile appear.
+  while (say, from the Files app) reads the folder again, so PDFs added meanwhile appear. A PDF
+  changed in place is noticed a little after the library shows.
 - Without a linked folder (before one is linked, or where the browser can't link one), the
   library is a folder of Volti's own, inside the app, read the same way. Linking a folder moves
   its scores into the folder at their paths, overwriting nothing: one the folder has already is
