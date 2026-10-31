@@ -13,24 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **The types of pinned pages are named for what they are.** In `page-cache/types.ts`,
-  `OfflinePage` (`{ page, pxWidth, aspect }`) is a page of one original to pin, at an exact width,
-  and `OfflineKey` (`{ id, page, pxWidth }`) is a pinned page of any original. Their names say
-  neither.
-
-  After this they are `PinnedPage` and `PinnedKey`, with comments saying so; nothing else
-  changes. `pinOffline`, `saveOffline` and `savePageOffline` keep their names: they are about
-  keeping pages offline, which pinning is how.
-
-  One commit.
-  - **`page-cache/types.ts`:** rename the two interfaces, and make their comments say what each
-    is: a page of an original to pin, at exactly this width (with its aspect, to draw it); a
-    pinned page: an original's page (from 1), at a width.
-  - Follow the renames in `page-cache/cache.ts` (`pinOffline`), `originals/original.ts`
-    (`savePageOffline`) and `library/_offline-pages.ts` (`make`, `keyed`), imports included.
-  - **Tests:** none change; `npm test` and `npm run build` pass.
-  - **Manual check:** none; nothing the app does changes.
-
 - **Scanning the linked folder by names first, so opening a score doesn't wait behind it.**
   Opening a score just after allowing access to the linked folder takes about 7 s on the tablet,
   against about 1 s once the library has finished reading the folder. Each scan of the linked

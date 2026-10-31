@@ -5,7 +5,7 @@
 
 import { readImage } from './_image-source';
 import { drawPage, drawPageProgressive, hasSaved, saveOffline } from '../page-cache/cache';
-import { NotSaved, type DrawRequest, type OfflinePage, type PageSource } from '../page-cache/types';
+import { NotSaved, type DrawRequest, type PinnedPage, type PageSource } from '../page-cache/types';
 import type { Content, Readable } from './_types';
 import { _contents, _noteContents } from './_record-store';
 import { sharePages, type SharedPages } from './_sources';
@@ -62,7 +62,7 @@ async function storeAspects(id: string, aspects: number[]) {
 }
 
 /** page-cache's saveOffline, for originals: draws the page from the original's source. */
-export async function savePageOffline(o: Original, page: OfflinePage, signal: AbortSignal): Promise<void> {
+export async function savePageOffline(o: Original, page: PinnedPage, signal: AbortSignal): Promise<void> {
   if (!(o instanceof FileOriginal)) throw new NotSaved(`${o.id} can't be drawn`);
   return saveOffline({ id: o.id, source: o.source, page: page.page, pxWidth: page.pxWidth, aspect: page.aspect, priority: 'later', signal });
 }

@@ -42,11 +42,11 @@ export interface Drawn {
   exact: boolean;
 }
 
-/** A page to keep offline, at exactly this width. */
-export interface OfflinePage { page: number; pxWidth: number; aspect: number }
+/** A page of one original to pin, at exactly this width (with its aspect, to draw it). */
+export interface PinnedPage { page: number; pxWidth: number; aspect: number }
 
-/** A page kept offline: a score's page (from 1), at a width. */
-export interface OfflineKey { id: string; page: number; pxWidth: number }
+/** A pinned page: an original's page (from 1), at a width. */
+export interface PinnedKey { id: string; page: number; pxWidth: number }
 
 /** Thrown when there is no source and nothing held or saved for the request. */
 export class NotSaved extends Error { name = 'NotSaved'; }

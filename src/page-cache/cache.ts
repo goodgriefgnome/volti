@@ -9,7 +9,7 @@ import { diskBudget, worthSaving } from './_budget';
 import { Held } from './_memory';
 import { resetScheduler, schedule } from './_scheduler';
 import { Saved } from './_disk';
-import { NotSaved, type Crop, type DrawRequest, type Drawn, type OfflineKey } from './types';
+import { NotSaved, type Crop, type DrawRequest, type Drawn, type PinnedKey } from './types';
 
 let held = new Held();
 let saved = new Saved();
@@ -120,10 +120,10 @@ export async function* canvasesOf(drawn: AsyncIterable<Drawn>): AsyncGenerator<H
  * other pinned page becomes an ordinary saved one. Gives those of `pages` already saved at exactly
  * their width.
  */
-export async function pinOffline(pages: readonly OfflineKey[], unknown: readonly string[]): Promise<OfflineKey[]> {
+export async function pinOffline(pages: readonly PinnedKey[], unknown: readonly string[]): Promise<PinnedKey[]> {
   pinned = new Set(pages.map((p) => keyOf(p.id, p.page, p.pxWidth)));
   await saved.pin(pinned, new Set(unknown));
-  const already: OfflineKey[] = [];
+  const already: PinnedKey[] = [];
   for (const p of pages) if ((await saved.widths(p.id, p.page)).includes(p.pxWidth)) already.push(p);
   return already;
 }

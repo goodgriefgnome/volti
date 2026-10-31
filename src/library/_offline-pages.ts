@@ -9,7 +9,7 @@ import { knownTitles } from '../originals/library-files';
 import { titleOf } from '../originals/path-utils';
 import { NoAccess, PasswordNotGiven, type Original, type SourceFile } from '../originals/types';
 import { pinOffline } from '../page-cache/cache';
-import type { OfflineKey, OfflinePage } from '../page-cache/types';
+import type { PinnedKey, PinnedPage } from '../page-cache/types';
 import { offlinePageWidths } from '../render/screen';
 import { loadScore } from '../scores/store';
 import { pack } from '../scores/frames';
@@ -50,7 +50,7 @@ async function make(signal: AbortSignal, originals: readonly SourceFile[], setli
   const W = screen.width, H = screen.height, scale = dpr();
   // Scores whose pages can't be worked out (never opened, and their PDF can't be now): their pages stay as they are.
   const unknown: string[] = [];
-  const scores = new Map<string, OfflinePage[]>();
+  const scores = new Map<string, PinnedPage[]>();
   /** Why each score's pages may not be saved; a score that can be read but whose pages fail to draw is `missing`. */
   const blocked = new Map<string, { why: Blocked; title: string }>();
   /** The pages each entry plays. */
@@ -111,7 +111,7 @@ async function make(signal: AbortSignal, originals: readonly SourceFile[], setli
     last = Date.now();
     heard(statuses(finished));
   };
-  const keyed = (id: string, p: OfflinePage): OfflineKey => ({ id, page: p.page, pxWidth: p.pxWidth });
+  const keyed = (id: string, p: PinnedPage): PinnedKey => ({ id, page: p.page, pxWidth: p.pxWidth });
   for (const k of await pinOffline([...scores].flatMap(([id, pages]) => pages.map((p) => keyed(id, p))), unknown)) saved.add(pageKey(k.id, k.page, k.pxWidth));
   if (signal.aborted) return;
   tell(false);
