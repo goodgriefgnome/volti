@@ -32,6 +32,14 @@ When asked for a plan:
   "Work for the immediate future" in `TODO.md` as a whole: it does every item there, in order, as
   the file says. Don't name or pick items.
 
+## Changing code
+
+- Never change code unless I ask you to in so many words ("implement", "code", "fix it" and the
+  like). If a request could be read as asking only for an investigation, only investigate: report
+  what you found, and stop.
+- Report doubts with what you found: if you couldn't reproduce what I described, say so rather
+  than fixing what you did find.
+
 ## Design discussions
 
 - Read the code before answering, and cite `file:line` for claims about how it behaves now.
