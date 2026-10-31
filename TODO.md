@@ -167,6 +167,44 @@ scores.
   for the same widths, which the cache now holds: it costs little, but it redraws the screen for
   nothing. To work out: whether to skip the observer's first report, or only show again when the
   size differs from the one last shown.
+- **Zooming with the toolbar hidden** [needs thought]: a pinch only zooms while the toolbar shows
+  (`reader/_input.ts`, `startPinch` behind `host.annotating()`), and hiding it resets the zoom
+  (`showChrome`, `reader/reader.ts`). With the toolbar hidden, a pinch whose first finger lands
+  outside the turning zones should zoom, and show the toolbar. To work out: what a first finger in
+  the middle does until the second lands (now it can only become a tap, which shows the toolbar).
+- **The Add excerpt screen shows blank scores** [needs thought]: its thumbnails
+  (`addExcerpt` in `dialogs/excerpts.ts`, through the excerpt picker's `ThumbStrip`) stay blank. To find out:
+  whether from the library's menu (`library/_scores-section.ts`), the reader's
+  (`reader/_toolbar-menus.ts`) or both, and for PDFs and images alike.
+- **Opening a score just after starting the app is slow** [needs thought]: 4 to 7 seconds, for
+  images and PDFs alike, so more than the PDF check in "The first open of a PDF still lags". To
+  measure on the tablet: where the time goes between the tap and the first screen (the first
+  screen also waits for full screen, `Reader`'s constructor in `reader/reader.ts`).
+- **Opening scores faster still: a small first page kept for each score** [needs thought]: keep
+  each score's first screen, at a low resolution, so opening one shows it at once and sharpens
+  after, as turning does now. To work out: how it sits with the page cache and the offline pages
+  (`page-cache/`), which first pages (a score's start, or where it was last read), and the room
+  they take.
+- **A setlist with the folder locked asks for access at the wrong tap** [needs thought]: opening a
+  setlist asks for full screen even when the scores folder is locked (`read`,
+  `library/library.ts`), so the tap is used up and access isn't asked for then; it is asked for
+  when the next excerpt is turned to. It should be asked for as the setlist is opened, as for a
+  score, and not when turning. To work out: whether to ask only when the setlist's first entry
+  can't be shown from its saved pages.
+- **Full screen when it was missed** [needs thought]: when allowing access to a locked folder
+  takes long, the tap's activation runs out and the reader doesn't go full screen, as expected;
+  but turning a page doesn't go full screen either. A turn (a tap) should ask for it again while
+  the reader isn't full screen.
+- **A file put back appears in the library at once** [needs thought]: after **Put back**
+  (`library/_removed.ts`) the file shows only after `lib.refresh()` has read the scores folder
+  again; it should show at once, as a renamed file does.
+- **Tapping low on the page for text** [needs thought]: with a finger, the music sometimes moves
+  up too far, leaving a gap between the page and the keyboard (`lift`, `reader/_typing.ts`); with
+  the pen, the keyboard shows and hides at once, so the field likely loses the focus as the pen
+  lifts (its `blur` finishes the typing).
+- **Typing text keeps the zoom** [needs thought]: when the keyboard goes away the zoom resets. The
+  suspicion: `close` (`reader/_typing.ts`) turns `overlaysContent` off, the stage resizes, and
+  `show()` sets `NO_ZOOM` (`reader/reader.ts`).
 
 ## Speculative future ideas
 

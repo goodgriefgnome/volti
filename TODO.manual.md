@@ -3,70 +3,10 @@
 Things to try on the tablet, grouped so each group can be done in one go. Some groups need
 DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the records.
 
-- **Reading, with any score open** (no setup):
-  - Turning: the page turns as the finger goes down, at the sides with the toolbar hidden; with it
-    showing, only in the shaded band at each side (a cut tab there still takes the press first),
-    and a tap elsewhere hides the toolbar. The chevron at the toolbar's right end hides it.
-  - The pen: nothing turns while the pen is down or just after it lifts, and turning no longer
-    puts the pen away. Watch for a palm landing in a band before the pen touches, and a pinch or
-    pan whose first finger lands in a band: they turn the page.
-  - Writing with the pen and erasing, zoomed in and out, with the palm resting. Editing cuts by
-    long press and by dragging tabs.
-  - Drawing: reading, turning quickly, zooming in and out and close-ups look as before, on a PDF
-    and on a phone photo. Rotate the tablet: pages show at once, soft, then sharpen. Turn quickly:
-    no page from an earlier screen flashes onto a later one.
-  - Thumbnails: the excerpt picker on a long score, the cut editor's insert picker and the
-    incoming screen's preview each fill at once, then sharpen.
-  - A phone photo shows upright, and sharp at every width and in the zoomed close-up.
-  - Opening times: how long the first page of a large PDF and of a large photo takes, and turning
-    to and zooming in on a big photo.
-  - A long setlist doesn't run the tablet out of memory.
-  - With a setlist whose pages aren't all saved yet (the library shows it saving), open a PDF
-    score: its first page shows as quickly as with nothing saving.
-  - In the installed app, with the tablet in landscape, let a setlist of portrait PDF pages finish
-    saving, then turn on airplane mode and play it: each page is sharp at once, with no blurred
-    stand-in first.
-- **Offline pages, score by score, for both orientations:**
-  1. With the tablet in landscape, let a setlist finish saving; then in airplane mode, play it
-     in landscape and in portrait: every page is sharp at once, with no blurred stand-in first.
-  2. Restart Volti with the tablet upright: the setlist stays ready (the landscape pages aren't
-     unpinned), and the setlists section's saved size doesn't drop.
-  3. With the scores folder locked, a setlist with pages still to save says it needs access;
-     with a PDF whose password isn't given, it says that score needs its password.
-  4. While a setlist saves, open a score from the library: it shows as quickly as with nothing
-     saving.
-- **Originals closed when done with, one open file per id:**
-  1. Open a long PDF never opened before: it opens noticeably sooner than before, as it is
-     read and opened once.
-  2. Turn through a long setlist and back, go back to the library and open the same score
-     again, choose an excerpt, add scores to a setlist with previews, add a file shared to
-     Volti, export a setlist: no "Closed more often than it was got" or "Used after it was
-     closed" in the console (`chrome://inspect`).
-  3. With a setlist saving in the background, read a score in it and turn pages quickly: no
-     "Could not draw this page".
-- **Full screen at the tap:**
-  1. With the scores folder open, open a PDF score, an image score and a setlist from the library:
-     full screen starts at the tap, and the first screen shows once, at full size, with no jump.
-  2. Close Volti so the scores folder locks (the library says so), then open a score: access is
-     asked for and the score opens (going full screen as late as before, or not at all if Chrome
-     refuses it). Open a setlist while locked: it goes full screen at the tap.
-  3. A score that fails to open (refuse its password): the library shows again, not in full
-     screen, at the place it was scrolled to.
-  4. Going back to the library still leaves full screen, at the place it was scrolled to.
 - **A PDF that opens without a password is marked checked by any read:** with a setlist holding a
   PDF not opened since PDFs stopped going through pdf-lib, restart Volti and wait for the setlists'
   pages to finish saving; then open that score from the library: it opens without the first-open
   lag.
-- **Reader's middle tap and band icons:**
-  1. With the toolbar hidden, press near the left and right edges, and just inside 40% from each
-     side: the page turns as the finger goes down.
-  2. Tap the middle: the toolbar shows. Drag or long-press in the middle: nothing happens.
-  3. There is no button at the top right; the back arrow at the top left still goes to the
-     library.
-  4. With the toolbar showing, each band shows its triangle, centred, over both dark stage and
-     white paper. Tapping a band turns the page, and the pen writes in a band as before.
-  5. With a pen tool selected and the toolbar hidden, the pen in the middle shows the toolbar
-     rather than writing.
 - **Reading PDFs without pdf-lib:**
   1. Open a large unencrypted PDF that isn't saved yet: its first page shows noticeably sooner
      than before.
@@ -120,15 +60,6 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     it appears without asking.
   - Unlink: the library is empty. Relink the same folder: scores, markings and setlists are back,
     and nothing is hashed again. Link a different folder: the old folder's records become `gone`.
-- **Removing and putting back:**
-  - Remove a score from its ⋯ menu, in the library and in the reader. Its file leaves the folder
-    (gone in the Files app too), its record is `removed`, and the file is in OPFS `removed/`.
-  - The library's ⋯ menu lists it under Recently removed. Put back puts it where it was, with its
-    cuts and markings: the record is `folder` again, and `removed/` is empty.
-  - Putting back a file whose place is now taken opens the incoming screen for it.
-  - The storage view shows Trash.
-  - Purge: set a removed record's `removedAt` to 8 days ago in DevTools and reload. The record is
-    `gone`, its bytes are deleted, and it has left the list.
 - **Sharing from another app** (Android):
   - Share a PDF while Volti is closed. Its record is `inbox`, with bytes in OPFS `inbox/`. Open
     Volti: the incoming screen shows it. Cancel: it's in Recently removed. Share it again: it's in
@@ -150,10 +81,6 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   check the folder): rotate the tablet while playing the setlist. The gone score's pages show
   soft, from the saved ones. "Not saved for this screen" shows only for a page with nothing saved
   at all.
-- **On a device that had an earlier version:**
-  - After the first start, the old keys and the `volti` database are gone, and scores, ink and
-    setlists are all still there.
-  - A folder linked before the storage change is still linked (`folder` held a bare handle then).
 - **Symbol markings** (placing symbols from the starter library), on the tablet with a score open
   and the toolbar showing:
   1. Tap **Symbols**: a second row shows two groups, 1 and *pp*. The toolbar's height grows with
@@ -204,31 +131,6 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
       "fingering4" and so on, not boxes.
   24. Airplane mode, the app reopened: the picker's search still works (the names came from the
       offline copy), and the editor still makes symbols.
-- **Text markings** (plan 3), on the tablet with a score open:
-  1. Tap **Text**, then the music: a caret blinks where you tapped, and the keyboard opens without
-     the music moving or shrinking. Type "rit.": it shows in Academico, at the size it will be.
-  2. Press Enter: "rit." stays exactly where it was typed (no jump), with its halo, selected.
-  3. Tap a staff low on the page, so the field is where the keyboard will be: the music moves up so
-     the field shows above the keyboard, and back down after Enter.
-  4. Tap the text once more: the field opens on it. Add " poco a poco", press Enter: it grows to
-     the right from where it started. Undo: back to "rit.".
-  5. Edit it, delete everything, press Enter: it is gone. Undo brings it back.
-  6. Start typing, press Escape (or the keyboard's back): nothing is placed, and the reader doesn't
-     close. Start typing and tap elsewhere on the music: the text is placed, and no second field
-     opens.
-  7. Resize a text by a corner, then place a new text: it comes at the new size; a new fingering
-     comes at the size it did before.
-  8. In a score with no symbols, resize a text, then place a fingering: the fingering follows the
-     text (same size relation as before the resize).
-  9. With Text as the tool, tap a fingering twice: it cycles. With a symbol as the tool, tap a text
-     twice: it opens for editing.
-  10. Recolour a text with a swatch; drag it into the next system; delete it with its button.
-  11. Zoom in, then type: the field and the text are at the zoomed size, and sharp.
-  12. Export the score and open it in another PDF app: each text is a FreeText annotation showing
-      as in Volti, whose comment is the text.
-  13. In the library editor, make a symbol in Academico ("Ped.", scale 0.6): it places like any
-      symbol.
-  14. "AV" typed in the field and placed: the kerning looks the same before and after Enter.
 - **Backgrounds and default colours** (plan 4), on the tablet with a score open:
   1. In the library, Volti menu, **Marking colours…**: set the marking colour to dark red. Open a
      score: every symbol and text without a colour of its own is dark red; ones recoloured with a
@@ -253,18 +155,3 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
      pink, the yellow one isn't.
   10. Export a score with backgrounds and open it in another PDF app: the boxes and tags show as in
       Volti, the music darkened through them, and go with their annotations when hidden or deleted.
-- **Text fonts** (plan 5), on the tablet with a score open:
-  1. A text placed before this plan looks as it did. Edit it: it is now in Academico 0.905,
-     starting where it did.
-  2. Tap **Text**: the second row shows "Academico" and "Academico Italic", each in its own font,
-     Academico pressed, then the backgrounds.
-  3. Tap "Academico Italic", then the music, and type "dolce": it is italic in the field and when
-     placed, on the same baseline (no jump on Enter). The next text is italic too.
-  4. While typing, tap "Academico": the field turns upright without closing, the keyboard stays,
-     and Enter places it upright.
-  5. Select an italic text and tap "Academico": it turns upright, its start where it was; undo
-     turns it back.
-  6. With a symbol selected and Text as the tool, tap a font: the symbol doesn't change.
-  7. In the library editor, a symbol made in Academico before this plan shows "Font no longer
-     bundled"; choose Academico and its characters can be changed again.
-  8. Export a score with italic text: it shows as in Volti in another PDF app.
