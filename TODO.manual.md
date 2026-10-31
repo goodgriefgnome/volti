@@ -7,34 +7,30 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   PDF not opened since PDFs stopped going through pdf-lib, restart Volti and wait for the setlists'
   pages to finish saving; then open that score from the library: it opens without the first-open
   lag.
-- **Reading PDFs without pdf-lib:**
-  1. Open a large unencrypted PDF that isn't saved yet: its first page shows noticeably sooner
-     than before.
-  2. Add an encrypted PDF with a user password: the password is asked for once; a wrong one asks
-     again, saying so. Close and open it again, and after a restart: not asked.
-  3. Open a PDF that is encrypted with only an owner password (it opens in Chrome without one): no
-     password is asked, and it shows.
-  4. A setlist with an encrypted PDF never opened: the setlists section says it needs its
-     password; opening the score asks for it, and then its pages are saved.
-  5. Export a score from each of 2 and 3, and from a PDF whose encryption pdf-decrypt doesn't
-     know (if one is at hand): the export works, or for the last says why it is pictures.
-- **Passwords and unusual PDFs:**
+- **Reading PDFs without pdf-lib:** open a large unencrypted PDF that isn't saved yet: its first
+  page shows noticeably sooner than before.
+- **Protected PDFs** (with a password, or encrypted without one):
   - No lock icon anywhere.
-  - A password-protected PDF asks for its password the first time it is opened, previewed in the
-    incoming screen, or added to a setlist (from a score's ⋯ menu or Add scores; Cancel leaves it
-    out), then never again. One that only stops printing doesn't ask.
+  - A PDF with a user password asks for it the first time it is opened, previewed in the incoming
+    screen, or added to a setlist (from a score's ⋯ menu or Add scores; Cancel leaves it out); a
+    wrong one asks again, saying so. Close and open it again, and after a restart: not asked.
+  - One encrypted with only an owner password (it opens in Chrome without one; it may only stop
+    printing): no password is asked, and it shows.
   - Ones from Acrobat (often AES-128, even when they only stop printing) and ones with a password
     open sharp.
+  - A setlist with an encrypted PDF never opened: the setlists section says it needs its password;
+    opening the score asks for it, and then its pages are saved.
+  - Exporting: password-protected and Acrobat ones export at "Original quality". One whose
+    encryption pdf-decrypt doesn't know (if one is at hand) exports with its pages drawn as sharp
+    as in the reader, and the dialog says it was rasterized.
 - **Exporting:**
   - With no folder linked, it goes to the share sheet. With a folder linked, it goes into Exports,
     and asks for write access when Export is tapped if it isn't allowed yet.
   - Open an export in another PDF app (Acrobat, Xodo, the browser): the pen (thicker where pressed
     harder) and highlighter (notes under it still black) look as in Volti, and the app lists them
     as annotations it can hide or delete.
-  - Plain PDFs, password-protected and Acrobat ones, and photos export at "Original quality". A
+  - Plain PDFs and photos export at "Original quality" (protected ones: see Protected PDFs). A
     turned JPEG says it was recompressed.
-  - A PDF with an encryption pdf-decrypt doesn't know exports with its pages drawn as sharp as in
-    the reader, and the dialog says it was rasterized.
 - **Starting with no folder linked** (a fresh install, or after unlinking):
   - Add two PDFs with Add PDFs. The incoming screen shows each file's pages (pinch and drag), its
     name and folder (and one folder for all), and New, Already in the library (left out, saying
@@ -155,27 +151,3 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
      pink, the yellow one isn't.
   10. Export a score with backgrounds and open it in another PDF app: the boxes and tags show as in
       Volti, the music darkened through them, and go with their annotations when hidden or deleted.
-- **Thumbnails draw again** (on the tablet):
-  - Add excerpt, from the library's menu and from the reader's: the score's frames show at once,
-    soft, then sharpen. The same when changing an excerpt's cuts and when choosing which part of a
-    score to read.
-  - Adding a file: the incoming screen's preview shows its pages.
-- **Zooming with the toolbar hidden** (on the tablet, a score open, the toolbar hidden):
-  - A pinch whose first finger goes down in the middle of the page shows the toolbar and zooms;
-    lifting both fingers leaves it zoomed, and one finger then pans.
-  - A pinch whose first finger goes down at a side turns the page, and doesn't zoom or show the
-    toolbar.
-  - A tap in the middle still shows the toolbar; a tap at a side still turns.
-  - With Edit cuts on and the toolbar hidden: the same pinch shows the toolbar and zooms.
-- **Asking for access in setlists** (on the tablet, folder linked; restart Volti before each, so
-  the folder is locked):
-  - A setlist whose ring shows all its pages saved: tapping it goes full screen without asking;
-    turning through all of it, into each score and back, never asks.
-  - A setlist not all saved: tapping it asks for access; allowing at once goes full screen too.
-    Allowing after a long wait: no full screen, until the next turn.
-  - Refusing that: saved pages still show; a turn to a page with nothing saved asks, and so does
-    **Allow access** on the "Needs access" page.
-  - In a saved setlist, **Edit cuts** and **Excerpts** ask for access; once allowed, they work and
-    nothing asks again.
-  - Split screen (a size the pages weren't saved at): pages show soft, and nothing asks.
-  - A single score from the library, folder locked: still asks as it opens.
