@@ -72,7 +72,8 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   too (Move up, Move down, Remove from setlist). Removing the entry or deleting the named excerpt
   being read goes on to the next one; with none left, back to the library.
 - While the toolbar shows, pinch with two fingers to zoom in and drag to move around; **Fit page**
-  zooms back out. Turning the page or hiding the toolbar also zooms out.
+  zooms back out. Turning the page or hiding the toolbar also zooms out. With the toolbar hidden, a
+  pinch that starts with a finger in the middle of the page shows the toolbar and zooms.
 - **Pen**, **Highlight** and **Erase** work with the stylus or one finger; two fingers still zoom
   and pan. A palm resting on the screen is ignored while the stylus writes. The stylus eraser end
   or button erases too.

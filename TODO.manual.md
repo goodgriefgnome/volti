@@ -160,3 +160,10 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     soft, then sharpen. The same when changing an excerpt's cuts and when choosing which part of a
     score to read.
   - Adding a file: the incoming screen's preview shows its pages.
+- **Zooming with the toolbar hidden** (on the tablet, a score open, the toolbar hidden):
+  - A pinch whose first finger goes down in the middle of the page shows the toolbar and zooms;
+    lifting both fingers leaves it zoomed, and one finger then pans.
+  - A pinch whose first finger goes down at a side turns the page, and doesn't zoom or show the
+    toolbar.
+  - A tap in the middle still shows the toolbar; a tap at a side still turns.
+  - With Edit cuts on and the toolbar hidden: the same pinch shows the toolbar and zooms.

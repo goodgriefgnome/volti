@@ -36,8 +36,8 @@ export interface InputHost extends ToolHost {
 
 /**
  * Pointers and keys on the score. A press turns the page as it goes down: at each side while the
- * toolbar is hidden (a tap in the middle shows it), and only in the band at each side while it
- * shows (_gestures.ts). Otherwise,
+ * toolbar is hidden (a tap in the middle shows it, and so does a pinch whose first finger goes down
+ * there), and only in the band at each side while it shows (_gestures.ts). Otherwise,
  * with the toolbar showing, two fingers pinch, one pans when zoomed in, a pen or finger uses the
  * selected tool (tools/), and a tap hides the toolbar; the pen writes in the bands too. A palm
  * resting while the pen writes is ignored. The cut editor's tabs get the pointer first.
@@ -134,12 +134,16 @@ export class Input {
       this.fingers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (this.pens.size || this.active?.type === 'pen' || now - this.lastPen < PALM_GUARD_MS) { this.ignored.add(e.pointerId); return; }
       if (this.fingers.size >= 2) {
-        // A second finger: this is a pinch, not writing, a tap or panning.
+        // A second finger: this is a pinch, not writing, a tap or panning. With the toolbar hidden,
+        // only when the first went down in the middle, where it didn't turn: the pinch shows the toolbar.
+        const fromMiddle = !!this.gesture && this.fingers.has(this.gesture.id);
         this.dropActive();
         host.editor.cancel();
         this.gesture = this.panning = null;
-        if (this.fingers.size === 2 && host.annotating()) this.startPinch();
-        else this.ignored.add(e.pointerId);
+        if (this.fingers.size === 2 && (host.annotating() || fromMiddle)) {
+          if (!host.annotating()) host.act('toggleChrome');
+          this.startPinch();
+        } else this.ignored.add(e.pointerId);
         return;
       }
     }

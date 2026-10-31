@@ -167,11 +167,6 @@ scores.
   for the same widths, which the cache now holds: it costs little, but it redraws the screen for
   nothing. To work out: whether to skip the observer's first report, or only show again when the
   size differs from the one last shown.
-- **Zooming with the toolbar hidden** [needs thought]: a pinch only zooms while the toolbar shows
-  (`reader/_input.ts`, `startPinch` behind `host.annotating()`), and hiding it resets the zoom
-  (`showChrome`, `reader/reader.ts`). With the toolbar hidden, a pinch whose first finger lands
-  outside the turning zones should zoom, and show the toolbar. To work out: what a first finger in
-  the middle does until the second lands (now it can only become a tap, which shows the toolbar).
 - **Opening a score just after starting the app is slow** [needs thought]: 4 to 7 seconds, for
   images and PDFs alike, so more than the PDF check in "The first open of a PDF still lags". To
   measure on the tablet: where the time goes between the tap and the first screen (the first
