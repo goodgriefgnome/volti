@@ -34,3 +34,21 @@ export const hashBytes = async (bytes: ArrayBuffer) => hex(await crypto.subtle.d
 
 /** The SHA-256 of `file`'s contents, in hex. */
 export const hashFile = async (file: Blob) => hashBytes(await file.arrayBuffer());
+
+/**
+ * Run `f` on every item with at most `atOnce` running, giving the results in the items' order. Once
+ * `signal` aborts it starts no more, and rejects with an AbortError when those running have ended.
+ */
+export async function inTurns<T, R>(items: readonly T[], atOnce: number, f: (item: T, i: number) => Promise<R>, signal?: AbortSignal): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length && !signal?.aborted) {
+      const i = next++;
+      results[i] = await f(items[i], i);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(atOnce, items.length) }, worker));
+  if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+  return results;
+}
