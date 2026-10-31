@@ -167,3 +167,15 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     toolbar.
   - A tap in the middle still shows the toolbar; a tap at a side still turns.
   - With Edit cuts on and the toolbar hidden: the same pinch shows the toolbar and zooms.
+- **Asking for access in setlists** (on the tablet, folder linked; restart Volti before each, so
+  the folder is locked):
+  - A setlist whose ring shows all its pages saved: tapping it goes full screen without asking;
+    turning through all of it, into each score and back, never asks.
+  - A setlist not all saved: tapping it asks for access; allowing at once goes full screen too.
+    Allowing after a long wait: no full screen, until the next turn.
+  - Refusing that: saved pages still show; a turn to a page with nothing saved asks, and so does
+    **Allow access** on the "Needs access" page.
+  - In a saved setlist, **Edit cuts** and **Excerpts** ask for access; once allowed, they work and
+    nothing asks again.
+  - Split screen (a size the pages weren't saved at): pages show soft, and nothing asks.
+  - A single score from the library, folder locked: still asks as it opens.

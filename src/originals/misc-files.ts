@@ -30,6 +30,7 @@ class MemoryFile implements Readable {
   get path() { return this.moved?.path ?? this.at; }
   async file() { return this.bytes; }
   read(ask?: AskPassword): Promise<Original> { return this.moved ? this.moved.read(ask) : _readOriginal(this, ask); }
+  async canReadNow() { return this.moved ? this.moved.canReadNow() : true; }
   remove() { return this.moved ? this.moved.remove() : this.drop(); }
 
   async move(path: string): Promise<string | null> {

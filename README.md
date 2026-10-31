@@ -14,8 +14,11 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
 - **Link scores folder** reads every PDF and image in that folder and its subfolders. Android does
   not let apps link the Download folder itself or the top of internal storage; use a folder inside
   them, such as `Download/Scores` or `Documents/Scores`. After a restart, the first score you open
-  asks for access again with one tap (**Allow access**, beside the name); a setlist whose pages
-  are saved plays without it, asking only for a page that isn't. Coming back to Volti after a
+  asks for access again with one tap (**Allow access**, beside the name), and so does opening a
+  setlist whose pages aren't all saved. One whose pages are all saved plays without it, asking only
+  when turning to a page with nothing saved, or for something on the toolbar that reads the PDFs
+  (**Edit cuts**, **Excerpts**). When allowing access takes long and the reader doesn't go full
+  screen, it does at the next turn. Coming back to Volti after a
   while (say, from the Files app) reads the folder again, so PDFs added meanwhile appear.
 - Without a linked folder (before one is linked, or where the browser can't link one), the
   library is a folder of Volti's own, inside the app, read the same way. Linking a folder moves

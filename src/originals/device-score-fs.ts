@@ -78,6 +78,12 @@ export async function unlockFolder(): Promise<boolean> {
   return (await dir.requestPermission({ mode: 'read' })) === 'granted';
 }
 
+/** Whether the root can be read without asking: always the app's own, a linked folder once access is allowed. */
+export async function _canRead(): Promise<boolean> {
+  const dir = await _linked();
+  return !dir || (await dir.queryPermission({ mode: 'read' })) === 'granted';
+}
+
 /**
  * Make sure the root can be read (`read`) or changed too (`readwrite`), asking for access to a
  * linked folder where it isn't allowed yet (the app's own needs none). Asking works only from a

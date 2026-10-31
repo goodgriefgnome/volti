@@ -5,7 +5,7 @@
 // listing the root's files, known by the hash of their contents, and tidying storage at start-up.
 
 import { kv } from '../storage/kv';
-import { _linked, _needAccess } from './device-score-fs';
+import { _canRead, _linked, _needAccess } from './device-score-fs';
 import { hashFile, walk } from './_filesystem-utils';
 import { _dropInboxBytes } from './inbox-fs';
 import { _internalFiles, _opfsRoot, _removeInternalFile } from './internal-score-fs';
@@ -66,6 +66,10 @@ class LibraryFile implements Readable {
 
   read(ask?: AskPassword): Promise<Original> {
     return _readOriginal(this, ask);
+  }
+
+  canReadNow(): Promise<boolean> {
+    return _canRead();
   }
 
   async move(path: string): Promise<string | null> {

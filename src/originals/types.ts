@@ -28,6 +28,8 @@ export interface SourceFile {
    * folder can't be read.
    */
   read(ask?: AskPassword): Promise<Original>;
+  /** Whether it can be read now without asking for access to the scores folder. */
+  canReadNow(): Promise<boolean>;
 }
 
 /** What can be read of an original: its page shapes, and its pages drawn. */

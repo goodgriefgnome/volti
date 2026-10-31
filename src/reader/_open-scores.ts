@@ -23,9 +23,10 @@ export class FileGone extends Error {
  * A score's pages, to read: drawn from its file where it can be read; where it can't (no file in
  * the library, no access to the scores folder yet, or no password given) but its pages are saved
  * and their shapes known, drawn by id, which can show only the pages saved. Only with `ask` is its
- * password asked for. Whoever gets the pages calls their `close`, if there is one, when done.
+ * password asked for, and only with `askAccess` (a tap that opens it) access to the scores folder.
+ * Whoever gets the pages calls their `close`, if there is one, when done.
  */
-export async function openPages(id: string, o: SourceFile | undefined, ask: boolean): Promise<{ draw: DrawPage; drawProgressive: DrawProgressive; aspects: Aspects; readable: boolean; close?: () => void }> {
+export async function openPages(id: string, o: SourceFile | undefined, ask: boolean, askAccess = false): Promise<{ draw: DrawPage; drawProgressive: DrawProgressive; aspects: Aspects; readable: boolean; close?: () => void }> {
   let failure: unknown = o ? undefined : new FileGone(`The file of ${id} is gone`);
   const from = async (pages: Pages, close?: () => void) => ({
     draw: (page: number, pxWidth: number, options?: DrawOptions) => pages.draw(page, pxWidth, options),
@@ -36,6 +37,7 @@ export async function openPages(id: string, o: SourceFile | undefined, ask: bool
   });
   if (o) {
     try {
+      if (!askAccess && !(await o.canReadNow())) throw new NoAccess(`No access to the scores folder for ${id}`);
       const original = await o.read(ask ? askPassword : undefined);
       try {
         return await from(original, () => original.close());

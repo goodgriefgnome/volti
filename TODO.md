@@ -176,16 +176,6 @@ scores.
   after, as turning does now. To work out: how it sits with the page cache and the offline pages
   (`page-cache/`), which first pages (a score's start, or where it was last read), and the room
   they take.
-- **A setlist with the folder locked asks for access at the wrong tap** [needs thought]: opening a
-  setlist asks for full screen even when the scores folder is locked (`read`,
-  `library/library.ts`), so the tap is used up and access isn't asked for then; it is asked for
-  when the next excerpt is turned to. It should be asked for as the setlist is opened, as for a
-  score, and not when turning. To work out: whether to ask only when the setlist's first entry
-  can't be shown from its saved pages.
-- **Full screen when it was missed** [needs thought]: when allowing access to a locked folder
-  takes long, the tap's activation runs out and the reader doesn't go full screen, as expected;
-  but turning a page doesn't go full screen either. A turn (a tap) should ask for it again while
-  the reader isn't full screen.
 - **A file put back appears in the library at once** [needs thought]: after **Put back**
   (`library/_removed.ts`) the file shows only after `lib.refresh()` has read the scores folder
   again; it should show at once, as a renamed file does.

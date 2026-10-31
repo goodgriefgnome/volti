@@ -8,6 +8,7 @@ import { ends } from '../scores/excerpts';
 import { PEN_COLORS } from '../markings/stroke';
 import { addAdhoc, addGroup, findSymbol, putSymbol, symbolsOf, type SymbolLibrary } from '../markings/library';
 import { type Marking } from '../markings/model';
+import { unlockFolder } from '../originals/device-score-fs';
 import { knownTitles } from '../originals/library-files';
 import { NoAccess, PasswordNotGiven, type SourceFile } from '../originals/types';
 import { canvasesOf } from '../page-cache/cache';
@@ -82,7 +83,7 @@ export async function openReader(what: ToRead, onClose: (fileChanges: FileChange
   const setlists = await loadSetlists();
   if (what.kind !== 'setlist') {
     const { original } = what;
-    const { draw, drawProgressive, aspects, readable, close } = await openPages(original.id, original, true);
+    const { draw, drawProgressive, aspects, readable, close } = await openPages(original.id, original, true, true);
     try {
       const { state } = await loadScore(original.id, aspects);
       const first: OpenScore = { id: original.id, original, aspects, state, draw, drawProgressive, readable, close };
@@ -260,7 +261,7 @@ class Reader {
       saver: this.saver,
       k: () => this.k,
       open: (k) => this.scores.get(this.items[k].scoreId),
-      goTo: (k, at) => void this.goTo(k, at),
+      goTo: (k, at) => void this.goTo(k, at, true),
       replay: () => {
         this.frames = this.framesFor(this.k);
         this.frame = 0;
@@ -349,8 +350,8 @@ class Reader {
     return cur ? pack(this.reading.playedCuts(k, cur.state.score.cuts), cur.aspects) : [];
   }
 
-  /** Go to item k: its first or last screen, or the screen holding a cut. */
-  private async goTo(k: number, at?: string | 'first' | 'last') {
+  /** Go to item k: its first or last screen, or the screen holding a cut; `turned` as show() says. */
+  private async goTo(k: number, at?: string | 'first' | 'last', turned = false) {
     const seq = ++this.goSeq;
     this.loading = true;
     this.selected = undefined;
@@ -364,7 +365,7 @@ class Reader {
     const f = at === 'last' ? this.lastScreen(this.frames) : at && at !== 'first' ? frameOf(this.frames, at) : 0;
     this.frame = Math.max(0, f);
     this.syncBar();
-    await this.show();
+    await this.show(turned);
     this.scores.keepNear(this.k);
   }
 
@@ -764,7 +765,11 @@ class Reader {
     return blankBox(this.items[this.k + 1]?.title);
   }
 
-  private async show() {
+  /**
+   * Show the screen. `turned`, from a tap that turned to it: a screen that can't be shown at all
+   * without access to the scores folder asks for it then. Otherwise only the toolbar asks.
+   */
+  private async show(turned = false) {
     const seq = ++this.seq; // a newer show() (turn, resize, edit) supersedes this one
     this.typing.finish(); // its slot is about to go
     this.ahead.abort();
@@ -776,7 +781,7 @@ class Reader {
     const it = this.items[this.k];
     if (!this.current?.draw) {
       // A score that can't be opened: say so, and carry on with the next one.
-      this.showUnread(it.title, it.needsAccess ? 'access' : 'missing', W, H);
+      this.showUnread(it.title, it.needsAccess ? 'access' : 'missing', W, H, turned);
       return;
     }
     this.frame = Math.max(0, Math.min(this.frame, this.frames.length - 1));
@@ -798,7 +803,7 @@ class Reader {
       for (const it of drawing) void it.return?.().catch(() => {});
       if (seq !== this.seq) return;
       // A page not saved as a picture: of a PDF that can't be read until access is allowed, or of a file that is gone.
-      if (e instanceof NoAccess || e instanceof NotSaved) { this.showUnread(it.title, it.fileGone ? 'unsaved' : 'access', W, H); return; }
+      if (e instanceof NoAccess || e instanceof NotSaved) { this.showUnread(it.title, it.fileGone ? 'unsaved' : 'access', W, H, turned); return; }
       this.toolbar.info.textContent = 'Could not draw this page';
       console.error(e);
       return;
@@ -808,6 +813,9 @@ class Reader {
       return;
     }
     if (this.askingAccess) { this.askingAccess = false; this.toast.hide(); }
+    // Full screen missed as the reader opened (access took long to allow): asked for again by a turn
+    // that shows its screen, not before, as asking for access needs the turn's tap more.
+    if (turned && !document.fullscreenElement) void document.documentElement.requestFullscreen?.().catch(() => {});
     this.pages = new Map([...widths.keys()].map((p, i) => [p, first[i].canvas]));
 
     // In a setlist each score starts on a fresh screen, so a score's last screen may have room left.
@@ -848,10 +856,10 @@ class Reader {
 
   /**
    * In place of the screen, a score that can't be shown: missing; (`access`) in the scores folder,
-   * which Volti may not read until access is allowed, offered from a tap; or (`unsaved`) a gone
-   * file whose saved pages don't include this screen's.
+   * which Volti may not read until access is allowed, offered from a tap (and asked for at once when
+   * `turned` to); or (`unsaved`) a gone file whose saved pages don't include this screen's.
    */
-  private showUnread(title: string, why: Unread, W: number, H: number) {
+  private showUnread(title: string, why: Unread, W: number, H: number, turned = false) {
     this.slots = [];
     this.shown = 1;
     const boxes = [blankBox(undefined, { title, why }), ...(framesOnScreen(A4, W, H) === 2 ? [this.blank()] : [])];
@@ -864,6 +872,7 @@ class Reader {
     if (why === 'access') {
       this.toast.say('Volti needs access to the scores folder to show this.', ['Allow access', () => void this.allowAccess()], true);
       this.askingAccess = true;
+      if (turned) void this.allowAccess();
     } else this.saveSpot(undefined);
   }
 
@@ -875,9 +884,9 @@ class Reader {
   }
 
   /**
-   * When the score read couldn't be read from its PDF for want of access to the scores folder,
-   * open it again from a tap, which its original asks for access from: then read the other scores
-   * from their PDFs too, and show the screen again. False, having said why, when it isn't allowed.
+   * When the score read couldn't be read from its PDF for want of access to the scores folder, ask
+   * for it, from a tap: then read the scores from their PDFs, and show the screen again. False,
+   * having said why, when it isn't allowed.
    */
   private async allowAccess(): Promise<boolean> {
     if (this.items[this.k]?.fileGone) {
@@ -886,6 +895,7 @@ class Reader {
     }
     if (await this.readable()) return true;
     const at = this.slots[0]?.frame.items[0]?.cut.id;
+    await unlockFolder().catch(() => false);
     this.scores.accessAllowed();
     await this.scores.ensure(this.k, true);
     if (!(await this.readable())) { this.say('Volti can’t read the scores folder without access.'); return false; }
@@ -969,10 +979,10 @@ class Reader {
     if (t.to === 'frame') {
       this.frame = t.frame;
       this.syncBar();
-      void this.show();
+      void this.show(true);
     } else if (t.to === 'item') {
       this.syncBar();
-      void this.goTo(t.k, t.at);
+      void this.goTo(t.k, t.at, true);
     } else if (t.to === 'score') {
       this.offerScore(t.dir);
     }
@@ -1002,7 +1012,7 @@ class Reader {
     this.toolbar.info.textContent = 'Opening…';
     let open: OpenScore;
     try {
-      const { draw, drawProgressive, aspects, readable, close } = await openPages(o.id, o, true);
+      const { draw, drawProgressive, aspects, readable, close } = await openPages(o.id, o, true, true);
       if (this.scores.closed) { close?.(); return; }
       try {
         const { state } = await loadScore(o.id, aspects);

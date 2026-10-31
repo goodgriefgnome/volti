@@ -88,6 +88,7 @@ class FileOriginal implements Original {
   get path() { return this.f.path; }
   move(path: string) { return this.f.move(path); }
   remove() { return this.f.remove(); }
+  canReadNow() { return this.f.canReadNow(); }
   /** How often it was got and not yet closed. */
   private got = 1;
   private use() { if (!this.got) throw new Error('Used after it was closed'); }
