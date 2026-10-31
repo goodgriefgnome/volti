@@ -172,10 +172,6 @@ scores.
   (`showChrome`, `reader/reader.ts`). With the toolbar hidden, a pinch whose first finger lands
   outside the turning zones should zoom, and show the toolbar. To work out: what a first finger in
   the middle does until the second lands (now it can only become a tap, which shows the toolbar).
-- **The Add excerpt screen shows blank scores** [needs thought]: its thumbnails
-  (`addExcerpt` in `dialogs/excerpts.ts`, through the excerpt picker's `ThumbStrip`) stay blank. To find out:
-  whether from the library's menu (`library/_scores-section.ts`), the reader's
-  (`reader/_toolbar-menus.ts`) or both, and for PDFs and images alike.
 - **Opening a score just after starting the app is slow** [needs thought]: 4 to 7 seconds, for
   images and PDFs alike, so more than the PDF check in "The first open of a PDF still lags". To
   measure on the tablet: where the time goes between the tap and the first screen (the first

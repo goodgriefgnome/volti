@@ -59,10 +59,11 @@ export class ThumbStrip {
 
     // Draw the frames one after another, so the strip shows at once: first from the stand-ins at
     // hand, then each as it should be. A frame that can't be drawn from stand-ins waits for the second pass.
+    // The strip is put on the page after it is made, so it is only checked for once a frame has drawn.
     void (async () => {
       for (const i of frames.keys()) {
-        if (!this.el.isConnected) return;
         await this.draw(i, widths[i], true);
+        if (!this.el.isConnected) return;
       }
       for (const i of frames.keys()) if (!(await this.draw(i, widths[i]))) return;
     })();

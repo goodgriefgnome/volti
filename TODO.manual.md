@@ -155,3 +155,8 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
      pink, the yellow one isn't.
   10. Export a score with backgrounds and open it in another PDF app: the boxes and tags show as in
       Volti, the music darkened through them, and go with their annotations when hidden or deleted.
+- **Thumbnails draw again** (on the tablet):
+  - Add excerpt, from the library's menu and from the reader's: the score's frames show at once,
+    soft, then sharpen. The same when changing an excerpt's cuts and when choosing which part of a
+    score to read.
+  - Adding a file: the incoming screen's preview shows its pages.
