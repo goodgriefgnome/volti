@@ -31,6 +31,81 @@ scores.
   - **Tests:** none change; `npm test` and `npm run build` pass.
   - **Manual check:** none; nothing the app does changes.
 
+- **Scanning the linked folder by names first, so opening a score doesn't wait behind it.**
+  Opening a score just after allowing access to the linked folder takes about 7 s on the tablet,
+  against about 1 s once the library has finished reading the folder. Each scan of the linked
+  folder (allowing access, coming back to Volti, Check folder) gets every file at once
+  (`_folderFiles`, `originals/library-files.ts`: `Promise.all` over `getFile()`), to compare each
+  file's size and modified time with its record (`idOf` in `listing`). On Android each `getFile()`
+  is a request to the storage framework, and the score being opened waits behind the whole burst.
+
+  After this a scan of the linked folder is two passes. **Pass 1** goes by names only: names in
+  the folder that no record has (new) are got and hashed, `NEW_FILES_AT_ONCE` (8) at a time; a
+  name the records have is trusted to be the file recorded, without getting it. The records are
+  then written and the library shown, as now: a new name with a missing name's contents is that
+  file moved, a missing name with no new name for it is gone. **Pass 2** then runs in the
+  background, every time pass 1 has: it gets the trusted files `KNOWN_FILES_AT_ONCE` (1) at a time,
+  and hashes one whose size or modified time differs from its record; each one that changed
+  updates the records and the library as it is found. A new scan stops a pass 2 still running.
+  "Reading new scores: n left" covers pass 1 only; pass 2 says nothing, and doesn't pause while
+  the reader opens or draws. Volti's own folder (the root while none is linked, and
+  `_listInternal`) is listed as now: only Volti changes its files.
+
+  Two commits.
+  1. **A pool for working through items a few at a time.**
+     - **`originals/_filesystem-utils.ts`:** add
+       `export async function inTurns<T, R>(items: readonly T[], atOnce: number, f: (item: T, i: number) => Promise<R>, signal?: AbortSignal): Promise<R[]>`:
+       runs `f` on every item with at most `atOnce` running, results in the items' order; once
+       `signal` aborts it starts no more, and rejects with an AbortError when those running end.
+     - **Tests** (`_filesystem-utils.test.ts`): results come in the items' order whatever order
+       `f` finishes in; never more than `atOnce` run at once (count with deferred promises); with
+       `atOnce` 1 each starts after the one before ends; an empty list gives `[]`; aborting starts
+       no more and rejects.
+  2. **The two passes.**
+     - **`originals/library-files.ts`:**
+       - `_folderFiles()` returns `{ path: string; handle: FileSystemFileHandle }[]`, getting no
+         file. `libraryFiles` gets the files of Volti's own folder itself (all at once, as now)
+         before calling `listing('internal', …)`.
+       - Add `const NEW_FILES_AT_ONCE = 8;` and `const KNOWN_FILES_AT_ONCE = 1;`, each with a
+         comment saying why (new files are few and wanted soon; known ones are checked behind
+         whatever else reads the folder, such as a score being opened).
+       - `listing('folder', …)` takes the handles. A path is known when `at` (the records of the
+         kind, by path) or `hidden.folder` has it: its `_Found` is the record's id, size and
+         modified time (or the hidden copy's), without getting the file. The others are new: got
+         and hashed through `inTurns(fresh, NEW_FILES_AT_ONCE, …)`, with `progress` as now.
+         Resolving, writing the records and dropping bytes stay as they are.
+       - Add `async function checkKnown(known: { path: string; handle: FileSystemFileHandle; found: _Found }[], signal: AbortSignal, changed: (originals: SourceFile[]) => void)`:
+         through `inTurns(known, KNOWN_FILES_AT_ONCE, …, signal)`, gets each file, and where its
+         size or modified time differs from `found`'s, hashes it and replaces that `_Found`. After
+         each replacement, resolves the listing again with every `_Found` (as `listing` does: a
+         fresh snapshot of the records, `_resolveListing`, `_updateRecords`, `_dropBytes`,
+         `hidden.folder`), then calls `changed` with the files, sorted by title. A file gone
+         meanwhile (`getFile` throws `NotFoundError`) is skipped; the next scan sees it missing.
+       - A module-level `let checking: AbortController | undefined`: each scan of the linked
+         folder aborts the one before and starts its own `checkKnown` once pass 1 has written its
+         records, without awaiting it.
+       - `libraryFiles(state, progress?, changed?)`: `changed` hears the library's files each
+         time pass 2 finds a changed one. Its comment says what each pass does.
+     - **`library/library.ts`, `readOriginals`:** pass `changed`, which sets `this.originals`,
+       then `loadSetlists()` and `scoresSection.render()`, as the end of `readOriginals` does.
+     - **Docs:** `STORAGE.md`'s listing rows and the README's "Link scores folder" say a file
+       changed in place is noticed a little after the library shows.
+     - **Tests:** `_resolveListing`'s tests (`_record-model.test.ts`) don't change: a trusted
+       `_Found` is what an unchanged file gave before. `npm test` and `npm run build` pass.
+     - **Manual checks** (in `TODO.manual.md`, on the tablet, folder linked):
+       - Restart, allow access, and open a score at once: it opens in about the time it takes
+         once the library has settled, not several seconds more.
+       - Add three PDFs to the folder in the Files app, and come back to Volti: "Reading new
+         scores" counts them down, and they appear.
+       - Rename a PDF in the Files app, and come back: it shows under its new name, with its cuts
+         and markings.
+       - Delete a PDF in the Files app, and come back: it is gone from the library (its setlist
+         entries say so).
+       - Replace a PDF in the Files app with a different file of the same name, and come back: a
+         moment after the library shows, the score changes to the new file's (its old cuts and
+         markings aren't on it).
+       - Unlink, then link the same folder: everything is back, and nothing is hashed again.
+
 ## Confirmed features which require more thought
 
 - **The cache giving room back when the origin runs short of quota** [needs thought]: pinned
@@ -167,10 +242,6 @@ scores.
   for the same widths, which the cache now holds: it costs little, but it redraws the screen for
   nothing. To work out: whether to skip the observer's first report, or only show again when the
   size differs from the one last shown.
-- **Opening a score just after starting the app is slow** [needs thought]: 4 to 7 seconds, for
-  images and PDFs alike, so more than the PDF check in "The first open of a PDF still lags". To
-  measure on the tablet: where the time goes between the tap and the first screen (the first
-  screen also waits for full screen, `Reader`'s constructor in `reader/reader.ts`).
 - **Opening scores faster still: a small first page kept for each score** [needs thought]: keep
   each score's first screen, at a low resolution, so opening one shows it at once and sharpens
   after, as turning does now. To work out: how it sits with the page cache and the offline pages
