@@ -5,7 +5,7 @@
 import type { Crop, Drawn, Priority } from '../page-cache/types';
 
 /** What a draw may ask besides the page and its width. */
-export interface DrawOptions { crop?: Crop; priority?: Priority; signal?: AbortSignal }
+export interface DrawOptions { crop?: Crop; priority?: Priority; signal?: AbortSignal; keep?: boolean }
 
 /** Bytes Volti can read as music: a PDF or an image. */
 export interface SourceFile {

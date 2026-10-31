@@ -791,7 +791,8 @@ class Reader {
     const widths = pageWidths(on, rects.map((r) => r.w));
     // Each page's first yield (a stand-in, or the exact page) shows the screen; the rest sharpen it.
     const progressive = this.drawProgressive;
-    const drawing = [...widths].map(([p, w]) => progressive(p + 1, Math.round(w * scale), { priority: 'now' })[Symbol.asyncIterator]());
+    // Kept: saved as soon as drawn, so this screen shows at once after a restart too.
+    const drawing = [...widths].map(([p, w]) => progressive(p + 1, Math.round(w * scale), { priority: 'now', keep: true })[Symbol.asyncIterator]());
     let first: Drawn[];
     try {
       first = (await Promise.all(drawing.map(async (it) => {

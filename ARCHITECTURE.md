@@ -23,7 +23,7 @@ The code uses these words, always in these senses.
 | **slot** | A frame on the reader's screen, with its canvases. | `FrameSlot` (`reader/_spread.ts`) |
 | **excerpt** | Which of a score's cuts are played, as the ids of the first and last; a missing end is the score's start or end, so no ends is the whole score. Excerpts follow edits to the cuts. A **named excerpt** ("Kyrie") is an excerpt with a name, kept on the score | `Excerpt`, `NamedExcerpt` (`scores/excerpts.ts`) |
 | **setlist**, **entry** | A setlist is a list of entries, read as one continuous score; each entry plays an excerpt of a score. | `Setlist`, `Entry` (`setlists/model.ts`) |
-| **page cache** | The one cache of drawn original pages for the app: pages held in memory under a budget, and saved in OPFS (the pages setlists play, kept for good; other pages worth saving, least recently used first). | `page-cache/` |
+| **page cache** | The one cache of drawn original pages for the app: pages held in memory under a budget, and saved in OPFS (the pages setlists play, kept for good; the pages the reader has shown, and others worth saving, least recently used first). | `page-cache/` |
 
 ## Layers
 

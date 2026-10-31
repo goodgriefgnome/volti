@@ -1,8 +1,9 @@
 // The one page cache for the app. A page asked for is found held in memory, else saved in OPFS,
 // else drawn from the source it is given (two draws at once, the screen's first). Pages leave
 // memory under a budget and are saved then if drawing them again would be slow enough to be worth
-// it; pages setlists play are pinned: kept saved, drawn in the background to get them saved. It
-// knows nothing about files: a PageSource draws.
+// it; pages asked to be kept (the reader's screen) are saved as soon as they are had; pages
+// setlists play are pinned: kept saved, drawn in the background to get them saved. It knows
+// nothing about files: a PageSource draws.
 
 import { bestExact, standIns } from './_match';
 import { diskBudget, worthSaving } from './_budget';
@@ -58,14 +59,14 @@ async function whole(req: DrawRequest): Promise<{ canvas: HTMLCanvasElement; pxW
   return { canvas: read, pxWidth: onDisk };
 }
 
-/** Draw a page (or a crop of it) from the source, at exactly the width asked; a whole page is held, and saved if pinned. */
+/** Draw a page (or a crop of it) from the source, at exactly the width asked; a whole page is held, and saved if pinned or kept. */
 async function render(req: DrawRequest): Promise<Drawn> {
   const { id, page, pxWidth, crop, source, priority, signal } = req;
   const key = keyOf(id, page, pxWidth);
   const canvas = await schedule(crop ? `${key}/${cropKey(crop)}` : key, priority, signal, (s) => source!.draw(page, pxWidth, crop, s));
   if (!crop) {
     hold(req, pxWidth, canvas, false);
-    if (pinned.has(key)) void save(id, page, pxWidth, canvas, true);
+    if (pinned.has(key) || req.keep) void save(id, page, pxWidth, canvas, pinned.has(key));
   }
   return { canvas, pxWidth, exact: true };
 }
@@ -75,6 +76,8 @@ export async function drawPage(req: DrawRequest): Promise<Drawn> {
   req.signal?.throwIfAborted();
   const have = await whole(req);
   if (have) {
+    // Held but not saved yet (drawn ahead of time, say): saved now it is kept; one saved is only marked used.
+    if (req.keep && !req.crop && req.source) void save(req.id, req.page, have.pxWidth, have.canvas, false);
     if (!req.crop) return { canvas: have.canvas, pxWidth: have.pxWidth, exact: true };
     return { canvas: cut(have.canvas, req.crop, req.pxWidth, have.pxWidth), pxWidth: have.pxWidth, exact: true };
   }

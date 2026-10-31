@@ -151,3 +151,9 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
      pink, the yellow one isn't.
   10. Export a score with backgrounds and open it in another PDF app: the boxes and tags show as in
       Volti, the music darkened through them, and go with their annotations when hidden or deleted.
+- **Opening a score just after starting** (on the tablet):
+  - Open a few scores (PDFs and photos), turn a few pages in each, then close Volti fully and start
+    it again. Opening each at once shows its screen right away, sharp; so does where each
+    was last read.
+  - A score never opened before still takes as long as before.
+  - Storage view: Page cache grows a little with each new screen shown.
