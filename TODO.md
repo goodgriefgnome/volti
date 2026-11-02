@@ -167,6 +167,9 @@ scores.
 
 ## Speculative future ideas
 
+- **Zoom out with a multi-finger gesture:** a gesture (a two-finger double tap, say) that zooms
+  back out to the whole page, in place of the toolbar's **Fit page**, which the toolbar redesign
+  drops. Without it, turning the page or hiding the toolbar zooms out.
 - **A format version in each stored key's name, so no code reads old formats:**
   - In `storage/keys.ts`, each key or prefix carries its format version in its name:
     `'score@2:' + id`, `'folder@2'`.
