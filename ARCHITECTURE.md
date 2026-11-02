@@ -78,6 +78,7 @@ Other rules, the first also tested:
   shapes and pages, the frames and slots, the zoom), each read afresh. The cut editor
   (`cuts/_host.ts`), the tools (`tools/_tool.ts`), pointer input (`_input.ts`) and the close-up
   (`_detail.ts`) each get the view plus the few things they may ask the reader to do.
+- The pages sit under the toolbar and are moved only by `drag` and `pinch` (`render/zoom.ts`), which keep or increase how much of the spread is in the view below the toolbar; a new screen is placed by `placeFresh`.
 - `_toolbar.ts` builds the toolbar; `_toolbar-menus.ts` holds what its menus and dialogs do.
 - `_open-scores.ts` reads each score's file and opens its pages when it is near the one read, `_saver.ts` saves
   scores and setlists together, `_history.ts` keeps undo.

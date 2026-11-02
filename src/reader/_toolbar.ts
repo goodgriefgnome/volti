@@ -19,18 +19,6 @@ export function backIcon(): SVGSVGElement {
   return svg;
 }
 
-/** The chevron on the toolbar that hides it. */
-export function hideIcon(): SVGSVGElement {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 24 24');
-  svg.setAttribute('aria-hidden', 'true');
-  svg.classList.add('back-icon');
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.setAttribute('d', 'M5 15l7-7 7 7');
-  svg.append(path);
-  return svg;
-}
-
 /** The solid triangle in a page-turn band, pointing the way the band turns. */
 export function turnIcon(dir: 'prev' | 'next'): SVGSVGElement {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -50,8 +38,6 @@ export const placesMarkings = (tool: ToolChoice) => tool === 'symbol' || tool ==
 
 export interface ToolbarActions extends SymbolRowActions {
   close(): void;
-  /** Hide the toolbar. */
-  hide(): void;
   /** In a setlist: the menu of its scores. */
   scores(): void;
   /** In a setlist: choosing the excerpt of this score; in a named excerpt: changing its cuts. */
@@ -71,7 +57,6 @@ export interface ToolbarActions extends SymbolRowActions {
   redo(): void;
   toggleEditing(): void;
   openArchive(): void;
-  fit(): void;
 }
 
 /** What the toolbar shows. */
@@ -90,7 +75,6 @@ export interface ToolbarView {
   penColor: string;
   editing: boolean;
   archived: number;
-  zoomed: boolean;
   canUndo: boolean;
   canRedo: boolean;
 }
@@ -142,17 +126,11 @@ export class Toolbar {
     const more = this.button('more', '⋯', act.more, 'more');
     more.setAttribute('aria-label', reading === 'setlist' ? 'More for this setlist' : 'More');
     more.setAttribute('aria-haspopup', 'menu');
-    const hide = this.button('hide', '', act.hide);
-    hide.append(hideIcon());
-    hide.setAttribute('aria-label', 'Hide the toolbar');
-    hide.title = 'Hide the toolbar';
     right.append(
       this.button('edit', 'Edit cuts', act.toggleEditing),
       this.button('archived', 'Archived', act.openArchive),
-      this.button('fit', 'Fit page', act.fit),
       more,
       this.info,
-      hide,
     );
     this.symbolRow = new SymbolRow(act);
     this.el.append(left, tools, right, this.symbolRow.el);
@@ -183,7 +161,6 @@ export class Toolbar {
     for (const k of [...TOOL_NAMES, 'symbols', 'edit', 'excerpt', 'excerpts']) if (this.buttons[k]) this.buttons[k].disabled = !v.open;
     this.buttons.archived.hidden = !v.editing || !v.archived;
     this.buttons.archived.textContent = `Archived (${v.archived})`;
-    this.buttons.fit.hidden = !v.zoomed;
     this.buttons.undo.disabled = !v.canUndo;
     this.buttons.redo.disabled = !v.canRedo;
   }

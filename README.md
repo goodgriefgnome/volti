@@ -75,11 +75,14 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   is read: for a score, a named excerpt or a setlist, and in a setlist, for the entry being read
   too (Move up, Move down, Remove from setlist). Removing the entry or deleting the named excerpt
   being read goes on to the next one; with none left, back to the library.
-- While the toolbar shows, pinch with two fingers to zoom in and drag to move around; **Fit page**
-  zooms back out. Turning the page or hiding the toolbar also zooms out. With the toolbar hidden, a
-  pinch that starts with a finger in the middle of the page shows the toolbar and zooms.
+- Showing the toolbar doesn't move the pages: it covers the top of them. Drag (one finger, with no
+  tool in use) or pinch (two fingers) to bring the top out from under it, or to zoom in or out;
+  the pages can't be moved so that less of them shows, and can't be made smaller than they fit
+  below the toolbar. Turning the page shows the new screen whole below the toolbar, centred.
+  Hiding the toolbar puts the pages back at full size. With the toolbar hidden, a pinch that
+  starts with a finger in the middle of the page shows the toolbar and zooms.
 - **Pen**, **Highlight** and **Erase** work with the stylus or one finger; two fingers still zoom
-  and pan. A palm resting on the screen is ignored while the stylus writes. The stylus eraser end
+  and drag. A palm resting on the screen is ignored while the stylus writes. The stylus eraser end
   or button erases too.
 - **Edit cuts** lets you change what is played and in what order, on the pages themselves. A
   score's pages are made of cuts: bands of the PDF's pages (its *original pages*), stacked in the

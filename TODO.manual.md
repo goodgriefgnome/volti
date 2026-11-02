@@ -164,3 +164,16 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     after the library shows, the score changes to the new file's (its old cuts and markings aren't
     on it).
   - Unlink, then link the same folder: everything is back, and nothing is hashed again.
+- **The toolbar redesign: the pages under the toolbar:**
+  - Open a score; tap the middle: the toolbar shows and the pages don't move.
+  - With no tool, drag down: the top of the page comes out from under the toolbar and stops when
+    its top meets the toolbar. Drag up: it goes back, and stops at the screen's bottom edge.
+  - Pinch out: the pages shrink until they fit below the toolbar, and no further. Pinch in, then
+    drag: nothing moves past the screen's edges.
+  - Turn the page with a side band: the next page shows whole below the toolbar, centred. Turn
+    back: the same.
+  - Tap the middle with no tool: the toolbar hides and the page is at full size again.
+  - In a setlist, turn past the end of a score: the next score's first page shows whole below the
+    toolbar.
+  - Rotate the tablet with the toolbar showing: the page shows whole below it.
+  - There is no **Fit page** and no hide button.

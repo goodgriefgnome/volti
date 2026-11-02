@@ -15,7 +15,7 @@ import { canvasesOf } from '../page-cache/cache';
 import { NotSaved, type Drawn } from '../page-cache/types';
 import { titleOf } from '../originals/path-utils';
 import { framesOnScreen } from '../render/layout';
-import { isZoomed, NO_ZOOM, type Zoom } from '../render/zoom';
+import { fitScale, isIdentity, NO_ZOOM, placeFresh, type View, type Zoom } from '../render/zoom';
 import { pageWidths, screenAt } from '../render/screen';
 import { type Hatches } from '../render/paint';
 import { replaceMarking, setInk, textSizeOf } from '../scores/edits';
@@ -147,6 +147,8 @@ class Reader {
   private pages = new Map<number, HTMLCanvasElement>();
 
   private zoom: Zoom = NO_ZOOM;
+  /** The smallest zoom: the spread fits below the toolbar at its tallest since it showed. */
+  private minScale = 1;
   private detail: Detail;
 
   private tool: ToolChoice = 'none';
@@ -233,7 +235,6 @@ class Reader {
     this.detail = new Detail(view);
     this.toolbar = new Toolbar(what.kind, {
       close: () => history.back(),
-      hide: () => this.showChrome(false),
       scores: () => this.menus.scores(),
       excerpt: () => void this.withAccess(() => this.menus.excerpt()),
       excerpts: () => this.menus.excerpts(),
@@ -253,7 +254,6 @@ class Reader {
       redo: () => this.redo(),
       toggleEditing: () => void this.withAccess(() => { this.editor.setEnabled(!this.editor.enabled); this.syncBar(); this.decorate(); }),
       openArchive: () => this.editor.openArchive(),
-      fit: () => this.setZoom(NO_ZOOM),
     });
     this.menus = new ReaderMenus({
       reading: this.reading,
@@ -312,6 +312,8 @@ class Reader {
       selected: () => this.selected,
       select: (s) => { this.selected = s; this.refreshSelection(); },
       setZoom: (z) => this.setZoom(z),
+      view: () => this.view(),
+      minScale: () => this.minScale,
       annotating: () => this.annotating,
       act: (g) => this.act(g),
       paintInk: (slot, extra) => this.paintInk(slot, this.state, extra),
@@ -365,7 +367,7 @@ class Reader {
     const f = at === 'last' ? this.lastScreen(this.frames) : at && at !== 'first' ? frameOf(this.frames, at) : 0;
     this.frame = Math.max(0, f);
     this.syncBar();
-    await this.show(turned);
+    await this.show({ turned });
     this.scores.keepNear(this.k);
   }
 
@@ -384,7 +386,7 @@ class Reader {
       // Still reading the same entry, only somewhere else in the setlist.
       this.k = k;
       this.syncBar();
-      void this.show();
+      void this.show({ place: 'keep' });
       this.scores.keepNear(k);
       return;
     }
@@ -709,7 +711,6 @@ class Reader {
       penColor: this.penColor,
       editing: this.editor.enabled,
       archived: cur?.state.score.archived.length ?? 0,
-      zoomed: isZoomed(this.zoom),
       canUndo: this.undos.canUndo,
       canRedo: this.undos.canRedo,
     });
@@ -718,6 +719,8 @@ class Reader {
     this.root.classList.toggle('writing', this.tool !== 'none');
     this.root.classList.toggle('editing', this.editor.enabled);
     this.root.style.setProperty('--bar-h', this.toolbar.el.offsetHeight + 'px');
+    // The toolbar growing lowers the smallest zoom; shrinking it leaves the smallest zoom be.
+    if (this.annotating) this.minScale = Math.min(this.minScale, fitScale(this.view()));
   }
 
   /** The toolbar showing means annotation mode: zooming and writing are available. */
@@ -725,7 +728,8 @@ class Reader {
 
   private showChrome(show: boolean) {
     this.root.classList.toggle('chrome-hidden', !show);
-    if (!show) this.setZoom(NO_ZOOM);
+    if (!show) { this.minScale = 1; this.setZoom(NO_ZOOM); }
+    else this.syncBar();
   }
 
   private say(text: string) {
@@ -768,8 +772,9 @@ class Reader {
   /**
    * Show the screen. `turned`, from a tap that turned to it: a screen that can't be shown at all
    * without access to the scores folder asks for it then. Otherwise only the toolbar asks.
+   * `place`: a new screen is placed fresh (see placeFresh); 'keep' leaves the spread where it is.
    */
-  private async show(turned = false) {
+  private async show({ turned = false, place = 'fresh' }: { turned?: boolean; place?: 'keep' | 'fresh' } = {}) {
     const seq = ++this.seq; // a newer show() (turn, resize, edit) supersedes this one
     this.typing.finish(); // its slot is about to go
     this.ahead.abort();
@@ -781,7 +786,7 @@ class Reader {
     const it = this.items[this.k];
     if (!this.current?.draw) {
       // A score that can't be opened: say so, and carry on with the next one.
-      this.showUnread(it.title, it.needsAccess ? 'access' : 'missing', W, H, turned);
+      this.showUnread(it.title, it.needsAccess ? 'access' : 'missing', W, H, turned, place);
       return;
     }
     this.frame = Math.max(0, Math.min(this.frame, this.frames.length - 1));
@@ -803,7 +808,7 @@ class Reader {
       for (const it of drawing) void it.return?.().catch(() => {});
       if (seq !== this.seq) return;
       // A page not saved as a picture: of a PDF that can't be read until access is allowed, or of a file that is gone.
-      if (e instanceof NoAccess || e instanceof NotSaved) { this.showUnread(it.title, it.fileGone ? 'unsaved' : 'access', W, H, turned); return; }
+      if (e instanceof NoAccess || e instanceof NotSaved) { this.showUnread(it.title, it.fileGone ? 'unsaved' : 'access', W, H, turned, place); return; }
       this.toolbar.info.textContent = 'Could not draw this page';
       console.error(e);
       return;
@@ -823,7 +828,7 @@ class Reader {
     this.slots = placeSlots(on, this.frame, W, H, scale, extra);
     for (const s of this.slots) this.paint(s, this.state);
     this.spreadEl.replaceChildren(...this.slots.map((s) => s.box), ...extra);
-    this.setZoom(NO_ZOOM);
+    if (place === 'fresh') this.placeFresh();
     this.decorate();
     this.refreshSelection();
     // The score's pages are its frames; in a setlist, the excerpt's own.
@@ -859,13 +864,13 @@ class Reader {
    * which Volti may not read until access is allowed, offered from a tap (and asked for at once when
    * `turned` to); or (`unsaved`) a gone file whose saved pages don't include this screen's.
    */
-  private showUnread(title: string, why: Unread, W: number, H: number, turned = false) {
+  private showUnread(title: string, why: Unread, W: number, H: number, turned = false, place: 'keep' | 'fresh' = 'fresh') {
     this.slots = [];
     this.shown = 1;
     const boxes = [blankBox(undefined, { title, why }), ...(framesOnScreen(A4, W, H) === 2 ? [this.blank()] : [])];
     placeBoxes(boxes, boxes.map(() => A4), W, H, dpr());
     this.spreadEl.replaceChildren(...boxes);
-    this.setZoom(NO_ZOOM);
+    if (place === 'fresh') this.placeFresh();
     this.toolbar.info.textContent = { access: 'Needs access', missing: 'Missing', unsaved: 'Not saved' }[why];
     this.showCard();
     // Offered until the screen shows something else, as the page can't be read without it.
@@ -979,7 +984,7 @@ class Reader {
     if (t.to === 'frame') {
       this.frame = t.frame;
       this.syncBar();
-      void this.show(true);
+      void this.show({ turned: true });
     } else if (t.to === 'item') {
       this.syncBar();
       void this.goTo(t.k, t.at, true);
@@ -1025,7 +1030,7 @@ class Reader {
       // Not opened (its password not given, say): stay where you were.
       this.loading = false;
       this.syncBar();
-      void this.show();
+      void this.show({ place: 'keep' });
       this.say(e instanceof PasswordNotGiven ? `“${titleOf(o.path)}” needs its password to open.` : `Could not open “${titleOf(o.path)}”. It may have been moved or renamed.`);
       if (!(e instanceof PasswordNotGiven)) console.error(e);
       return;
@@ -1076,8 +1081,9 @@ class Reader {
       this.refreshSelection();
       return;
     }
+    const sameScreen = target === this.frame;
     this.frame = Math.min(target, Math.max(0, this.frames.length - 1));
-    void this.show();
+    void this.show({ place: sameScreen ? 'keep' : 'fresh' });
   }
 
   /** The eraser took strokes away: show and save them gone, but leave the undo step until it lifts. */
@@ -1116,9 +1122,19 @@ class Reader {
 
   /* ---------- zoom ---------- */
 
+  /** The part of the stage below the toolbar, which the spread is moved within. */
+  private view(): View {
+    return { top: this.annotating ? this.toolbar.el.offsetHeight : 0, W: this.stage.clientWidth, H: this.stage.clientHeight };
+  }
+
+  /** A new screen: whole below the toolbar and centred while it shows, at full size otherwise. */
+  private placeFresh() {
+    this.setZoom(this.annotating ? placeFresh(this.view()) : NO_ZOOM);
+  }
+
   private setZoom(z: Zoom) {
     this.zoom = z;
-    this.spreadEl.style.transform = isZoomed(z) ? `translate(${z.x}px, ${z.y}px) scale(${z.s})` : '';
+    this.spreadEl.style.transform = !isIdentity(z) ? `translate(${z.x}px, ${z.y}px) scale(${z.s})` : '';
     this.syncBar();
     this.detail.update();
   }

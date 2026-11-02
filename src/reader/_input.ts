@@ -3,7 +3,7 @@
 // is in tools/.
 
 import type { Point } from '../markings/model';
-import { drag, isZoomed, pinch, type Pt, type Zoom } from '../render/zoom';
+import { drag, pinch, type Pt, type View, type Zoom } from '../render/zoom';
 import { closeOverlay, overlayOpen } from '../ui/overlay';
 import type { CutEditor } from './cuts/_editor';
 import { gestureForKey, isTap, turnFor, type Gesture } from './_gestures';
@@ -24,6 +24,10 @@ export interface InputHost extends ToolHost {
   editor: CutEditor;
   tool(): ToolChoice;
   setZoom(z: Zoom): void;
+  /** The part of the stage below the toolbar. */
+  view(): View;
+  /** The smallest zoom. */
+  minScale(): number;
   /** The toolbar showing means annotation mode: zooming and writing are available. */
   annotating(): boolean;
   /** Turn a page, or show or hide the toolbar. */
@@ -38,7 +42,7 @@ export interface InputHost extends ToolHost {
  * Pointers and keys on the score. A press turns the page as it goes down: at each side while the
  * toolbar is hidden (a tap in the middle shows it, and so does a pinch whose first finger goes down
  * there), and only in the band at each side while it shows (_gestures.ts). Otherwise,
- * with the toolbar showing, two fingers pinch, one pans when zoomed in, a pen or finger uses the
+ * with the toolbar showing, two fingers pinch, one drags the spread, a pen or finger uses the
  * selected tool (tools/), and a tap hides the toolbar; the pen writes in the bands too. A palm
  * resting while the pen writes is ignored. The cut editor's tabs get the pointer first.
  */
@@ -175,11 +179,7 @@ export class Input {
       this.active = { id: e.pointerId, type: e.pointerType, ...hit, use };
       return;
     }
-    if (isZoomed(host.zoom())) {
-      this.panning = { id: e.pointerId, start: host.zoom(), x0: e.clientX, y0: e.clientY, t: now };
-      return;
-    }
-    this.gesture = { id: e.pointerId, x: e.clientX, y: e.clientY, t: now };
+    this.panning = { id: e.pointerId, start: host.zoom(), x0: e.clientX, y0: e.clientY, t: now };
   };
 
   private onMove = (e: PointerEvent) => {
@@ -187,19 +187,18 @@ export class Input {
     if (e.pointerType === 'pen') this.lastPen = performance.now();
     if (e.pointerType === 'touch' && this.fingers.has(e.pointerId)) this.fingers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (host.editor.onMove(e)) return;
-    const W = host.stage.clientWidth, H = host.stage.clientHeight;
 
     const pz = this.pinching;
     if (pz && pz.ids.includes(e.pointerId)) {
       const a = this.fingers.get(pz.ids[0]), b = this.fingers.get(pz.ids[1]);
       if (!a || !b) return;
       const c = this.stagePoint((a.x + b.x) / 2, (a.y + b.y) / 2);
-      host.setZoom(pinch(pz.start, pz.c0, pz.d0, c, Math.hypot(a.x - b.x, a.y - b.y), { top: 0, W, H }, 1));
+      host.setZoom(pinch(pz.start, pz.c0, pz.d0, c, Math.hypot(a.x - b.x, a.y - b.y), host.view(), host.minScale()));
       return;
     }
     const pn = this.panning;
     if (pn && pn.id === e.pointerId) {
-      host.setZoom(drag(pn.start, e.clientX - pn.x0, e.clientY - pn.y0, { top: 0, W, H }));
+      host.setZoom(drag(pn.start, e.clientX - pn.x0, e.clientY - pn.y0, host.view()));
       return;
     }
 
