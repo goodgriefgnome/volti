@@ -9,6 +9,7 @@ import { titleOf } from '../originals/path-utils';
 import { scoreEntries } from '../scores/store';
 import { addEntries, duplicate, moveEntry, newSetlist, setEntryExcerpt, withSetlist, type Entry, type Setlist } from '../setlists/model';
 import { button, el, plural } from '../ui/dom';
+import { dragToReorder } from '../ui/drag-reorder';
 import { buttonRow, closeOverlay, showDialog, showMenu, whenOverlayCloses } from '../ui/overlay';
 import type { LibraryHost } from './_host';
 import { offlineText, type OfflineStatus } from './_offline-status';
@@ -138,7 +139,7 @@ export class SetlistsSection {
     const li = el('li', 'entry');
     const handle = button('⋮⋮', () => {}, 'handle');
     handle.setAttribute('aria-label', `Move ${title}`);
-    this.dragToReorder(handle, li, list, s, i);
+    dragToReorder(handle, li, list, i, (to) => void this.lib.update(moveEntry(s, i, to)));
     const open = button('', () => lib.play(s, e.id), 'open');
     open.append(el('span', 'item-title', title));
     if (score?.key) open.append(el('span', 'meta', score.key));
@@ -152,30 +153,6 @@ export class SetlistsSection {
     ]));
     li.append(handle, el('span', 'num', String(i + 1)), open, more);
     return li;
-  }
-
-  private dragToReorder(handle: HTMLElement, li: HTMLElement, list: HTMLElement, s: Setlist, i: number) {
-    handle.addEventListener('pointerdown', (ev) => {
-      ev.preventDefault();
-      handle.setPointerCapture(ev.pointerId);
-      li.classList.add('dragging');
-      let to = i;
-      const rows = [...list.children] as HTMLElement[];
-      const onMove = (m: PointerEvent) => {
-        to = rows.findIndex((r) => m.clientY < r.getBoundingClientRect().top + r.offsetHeight / 2);
-        if (to < 0) to = rows.length - 1; else if (to > i) to -= 1;
-        rows.forEach((r, k) => { r.style.boxShadow = k === to && k !== i ? `inset 0 ${to < i ? 3 : -3}px 0 var(--select)` : ''; });
-      };
-      const onUp = () => {
-        handle.removeEventListener('pointermove', onMove);
-        li.classList.remove('dragging');
-        rows.forEach((r) => { r.style.boxShadow = ''; });
-        if (to !== i) void this.lib.update(moveEntry(s, i, to));
-      };
-      handle.addEventListener('pointermove', onMove);
-      handle.addEventListener('pointerup', onUp, { once: true });
-      handle.addEventListener('pointercancel', onUp, { once: true });
-    });
   }
 
   private removeEntry(s: Setlist, e: Entry) {
