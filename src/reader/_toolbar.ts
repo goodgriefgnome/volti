@@ -55,8 +55,8 @@ export interface ToolbarActions extends SymbolRowActions {
   defaultColor(): void;
   undo(): void;
   redo(): void;
-  toggleEditing(): void;
-  openArchive(): void;
+  /** Show or hide the cut editor's tabs, room shading and space line. */
+  toggleCuts(): void;
 }
 
 /** What the toolbar shows. */
@@ -73,8 +73,8 @@ export interface ToolbarView {
   /** The second row's backgrounds; undefined hides them. */
   backgrounds?: BackgroundsView;
   penColor: string;
-  editing: boolean;
-  archived: number;
+  /** The cuts show. */
+  cuts: boolean;
   canUndo: boolean;
   canRedo: boolean;
 }
@@ -127,8 +127,7 @@ export class Toolbar {
     more.setAttribute('aria-label', reading === 'setlist' ? 'More for this setlist' : 'More');
     more.setAttribute('aria-haspopup', 'menu');
     right.append(
-      this.button('edit', 'Edit cuts', act.toggleEditing),
-      this.button('archived', 'Archived', act.openArchive),
+      this.button('cuts', 'Cuts', act.toggleCuts),
       more,
       this.info,
     );
@@ -150,7 +149,7 @@ export class Toolbar {
   sync(v: ToolbarView) {
     const pressed = (k: string, on: boolean) => this.buttons[k].setAttribute('aria-pressed', String(on));
     for (const t of TOOL_NAMES) pressed(t, v.tool === t);
-    pressed('edit', v.editing);
+    pressed('cuts', v.cuts);
     pressed('symbols', v.groupsShown);
     this.symbolRow.el.hidden = !(v.groupsShown || placesMarkings(v.tool));
     // The default colour, as it may have been changed since the toolbar was made.
@@ -158,9 +157,7 @@ export class Toolbar {
     this.buttons.colorDefault.hidden = !placesMarkings(v.tool);
     pressed('colorDefault', placesMarkings(v.tool) && v.marked && !v.markColor);
     for (const c of PEN_COLORS) pressed('color' + c, v.tool === 'pen' ? v.penColor === c : placesMarkings(v.tool) && v.markColor === c);
-    for (const k of [...TOOL_NAMES, 'symbols', 'edit', 'excerpt', 'excerpts']) if (this.buttons[k]) this.buttons[k].disabled = !v.open;
-    this.buttons.archived.hidden = !v.editing || !v.archived;
-    this.buttons.archived.textContent = `Archived (${v.archived})`;
+    for (const k of [...TOOL_NAMES, 'symbols', 'cuts', 'excerpt', 'excerpts']) if (this.buttons[k]) this.buttons[k].disabled = !v.open;
     this.buttons.undo.disabled = !v.canUndo;
     this.buttons.redo.disabled = !v.canRedo;
   }

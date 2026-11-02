@@ -17,7 +17,7 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   asks for access again with one tap (**Allow access**, beside the name), and so does opening a
   setlist whose pages aren't all saved. One whose pages are all saved plays without it, asking only
   when turning to a page with nothing saved, or for something on the toolbar that reads the PDFs
-  (**Edit cuts**, **Excerpts**). When allowing access takes long and the reader doesn't go full
+  (**Cuts**, **Excerpts**). When allowing access takes long and the reader doesn't go full
   screen, it does at the next turn. Coming back to Volti after a
   while (say, from the Files app) reads the folder again, so PDFs added meanwhile appear. A PDF
   changed in place is noticed a little after the library shows.
@@ -84,13 +84,14 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
 - **Pen**, **Highlight** and **Erase** work with the stylus or one finger; two fingers still zoom
   and drag. A palm resting on the screen is ignored while the stylus writes. The stylus eraser end
   or button erases too.
-- **Edit cuts** lets you change what is played and in what order, on the pages themselves. A
+- **Cuts** shows the tabs and shading with which you change what is played and in what order, on the
+  pages themselves (it doesn't move the pages; tap it again to hide them). A
   score's pages are made of cuts: bands of the PDF's pages (its *original pages*), stacked in the
   order they are played.
   - Drag the faint tab at the top left or bottom right of a cut to cut music away or bring it
     back. The grey tab at the top right of a page adds white space above the music.
   - Right-click or press and hold on the music for more: cut it in two there, insert original
-    pages (for a repeat), or remove a cut. A cut with markings on it is archived rather than deleted. Press
+    pages (for a repeat), or remove a cut. A cut with markings on it is archived rather than deleted; the **Insert** menu lists it, and has **Delete archived cuts…**. Press
     and hold on a tab to restore music you cut or join two cuts.
   - When the page before has room left, a faint shading shows how much of this page would fit
     there. Cut inside the shading to move the top of this page up onto it.

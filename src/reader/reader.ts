@@ -252,8 +252,7 @@ class Reader {
       background: (b) => this.setBackground(b),
       undo: () => this.undo(),
       redo: () => this.redo(),
-      toggleEditing: () => void this.withAccess(() => { this.editor.setEnabled(!this.editor.enabled); this.syncBar(); this.decorate(); }),
-      openArchive: () => this.editor.openArchive(),
+      toggleCuts: () => void this.withAccess(() => { this.editor.setEnabled(!this.editor.enabled); this.syncBar(); this.decorate(); }),
     });
     this.menus = new ReaderMenus({
       reading: this.reading,
@@ -709,8 +708,7 @@ class Reader {
       marked: !!this.selected,
       backgrounds: this.backgroundsView(),
       penColor: this.penColor,
-      editing: this.editor.enabled,
-      archived: cur?.state.score.archived.length ?? 0,
+      cuts: this.editor.enabled,
       canUndo: this.undos.canUndo,
       canRedo: this.undos.canRedo,
     });

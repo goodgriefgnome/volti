@@ -177,3 +177,9 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     toolbar.
   - Rotate the tablet with the toolbar showing: the page shows whole below it.
   - There is no **Fit page** and no hide button.
+- **The toolbar redesign: Cuts:**
+  - Tap **Cuts**: the tabs show and the pages don't move. Drag down to reach the top tabs; drag one:
+    the cut changes. Tap a tab: nothing happens. Press and hold the music with no tool: the cut menu.
+  - With Pen on and the cuts showing: drawing works; a press on a tab drags the tab.
+  - Remove a cut with markings, then press and hold: **Insert** lists it, and has **Delete archived
+    cuts…**. There is no **Archived** on the toolbar.

@@ -9,7 +9,6 @@ import { type Cut, type State } from '../../scores/model';
 import { closeOverlay, overlayOpen } from '../../ui/overlay';
 import { el } from '../../ui/dom';
 import type { FrameSlot } from '../_spread';
-import { openArchive } from './_archive';
 import { pageLabel, sayArchived, type Edge, type EditorHost } from './_host';
 import { openContext, tabMenu } from './_menus';
 
@@ -203,10 +202,5 @@ export class CutEditor {
   private endPress() {
     if (this.press) clearTimeout(this.press.timer);
     this.press = null;
-  }
-
-  /** Archived cuts, to delete for good. */
-  openArchive() {
-    openArchive(this.host);
   }
 }
