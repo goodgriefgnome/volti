@@ -2,7 +2,6 @@
 // call back into the reader; what they do is not here.
 
 import type { LibrarySymbol } from '../markings/library';
-import { markColors } from '../markings/placed';
 import { PEN_COLORS } from '../markings/stroke';
 import { el } from '../ui/dom';
 import { symbolPicture } from './_symbol-picture';
@@ -61,8 +60,6 @@ export interface ToolbarActions extends SymbolRowActions {
   /** The Symbols tool: the last symbol picked becomes the tool, or the tool is put away. */
   symbols(): void;
   penColor(c: string): void;
-  /** The Default swatch: the selected marking goes back to the default colour. */
-  defaultColor(): void;
   undo(): void;
   redo(): void;
   /** Show or hide the cut editor's tabs, room shading and space line. */
@@ -76,10 +73,6 @@ export interface ToolbarView {
   tool: ToolChoice;
   /** The symbol the Symbols button shows; undefined: a generic pp. */
   symbol?: LibrarySymbol;
-  /** The selected marking's own colour; undefined when it has none, or none is selected. */
-  markColor?: string;
-  /** A placed marking is selected. */
-  marked: boolean;
   /** The second row's backgrounds; undefined hides them. */
   backgrounds?: BackgroundsView;
   penColor: string;
@@ -118,11 +111,6 @@ export class Toolbar {
     this.buttons.symbols.setAttribute('aria-label', 'Symbols');
     this.buttons.symbols.title = 'Symbols';
     const swatches = el('div', 'group swatches');
-    const plain = this.button('colorDefault', '', act.defaultColor, 'swatch swatch-default');
-    plain.style.setProperty('--swatch', markColors().color);
-    plain.setAttribute('aria-label', 'Default colour');
-    plain.title = 'Default colour';
-    swatches.append(plain);
     for (const c of PEN_COLORS) {
       const b = this.button('color' + c, '', () => act.penColor(c), 'swatch');
       b.style.setProperty('--swatch', c);
@@ -175,11 +163,9 @@ export class Toolbar {
     pressed('symbols', v.tool === 'symbol');
     this.symbolRow.el.hidden = !placesMarkings(v.tool);
     this.symbolButton(v.symbol, v.tool === 'symbol');
-    // The default colour, as it may have been changed since the toolbar was made.
-    this.buttons.colorDefault.style.setProperty('--swatch', markColors().color);
-    this.buttons.colorDefault.hidden = !placesMarkings(v.tool);
-    pressed('colorDefault', placesMarkings(v.tool) && v.marked && !v.markColor);
-    for (const c of PEN_COLORS) pressed('color' + c, v.tool === 'pen' ? v.penColor === c : placesMarkings(v.tool) && v.markColor === c);
+    // The pen's colours show on the top row only while Pen is the tool.
+    this.el.classList.toggle('pen', v.tool === 'pen');
+    for (const c of PEN_COLORS) pressed('color' + c, v.tool === 'pen' && v.penColor === c);
     for (const k of [...TOOL_NAMES, 'symbols', 'cuts']) if (this.buttons[k]) this.buttons[k].disabled = !v.open;
     this.buttons.undo.disabled = !v.canUndo;
     this.buttons.redo.disabled = !v.canRedo;

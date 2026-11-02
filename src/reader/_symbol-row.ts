@@ -4,6 +4,7 @@
 import { cssFamily, type FontChoice } from '../fonts/fonts';
 import type { LibrarySymbol, SymbolLibrary } from '../markings/library';
 import { markColors, type Background } from '../markings/placed';
+import { PEN_COLORS } from '../markings/stroke';
 import { button, el } from '../ui/dom';
 import { closeOverlay, showMenu } from '../ui/overlay';
 import { symbolPicture as picture } from './_symbol-picture';
@@ -19,6 +20,8 @@ export interface SymbolRowActions {
   edit(): void;
   /** A font button was pressed. */
   font(id: string): void;
+  /** A colour button was pressed: a pen colour, or the default colour. */
+  color(c: string | 'default'): void;
   /** A background button was pressed. */
   background(b: BackgroundChoice): void;
   /** An ad-hoc symbol was chosen to go to a group, or to a new one. */
@@ -65,6 +68,9 @@ export function backgroundPicture(choice: BackgroundChoice): SVGSVGElement {
 /** What the background buttons show: which is pressed, and whether they can be pressed. */
 export interface BackgroundsView { pressed?: BackgroundChoice; enabled: boolean }
 
+/** What the colour buttons show: which is pressed (none selected: none), and whether they can be pressed. */
+export interface ColorsView { pressed?: string | 'default'; enabled: boolean }
+
 /** What the font buttons show: the text fonts, and which is pressed. */
 export interface FontsView { choices: FontChoice[]; pressed: string }
 
@@ -76,6 +82,7 @@ export class SymbolRow {
   private lib: SymbolLibrary | undefined;
   private fonts = el('div', 'symbol-fonts');
   private backgrounds = el('div', 'symbol-backgrounds');
+  private colors = el('div', 'symbol-colors');
 
   constructor(private act: SymbolRowActions) {
     this.el.hidden = true;
@@ -83,18 +90,20 @@ export class SymbolRow {
     this.fonts.setAttribute('aria-label', 'Font');
     this.backgrounds.setAttribute('role', 'group');
     this.backgrounds.setAttribute('aria-label', 'Background');
+    this.colors.setAttribute('role', 'group');
+    this.colors.setAttribute('aria-label', 'Colour');
   }
 
   /**
    * Show the groups' current symbols (an index into each; `adhocCurrent` into the ad-hoc group),
    * the `active` group's pressed (-1 for ad hoc), while `groups` says they show; the fonts, and
-   * the backgrounds, `undefined` to hide them.
+   * the colours, and the backgrounds, `undefined` to hide them.
    */
   show(
     lib: SymbolLibrary | undefined, current: readonly number[], adhocCurrent: number, active: number | undefined,
-    groups: boolean, fonts: FontsView | undefined, backgrounds: BackgroundsView | undefined,
+    groups: boolean, fonts: FontsView | undefined, colors: ColorsView | undefined, backgrounds: BackgroundsView | undefined,
   ) {
-    const key = `${lib ? lib.groups.map((_, i) => current[i] ?? 0).join() : ''}|${adhocCurrent}|${active}|${groups}|${fonts && `${fonts.pressed}${fonts.choices.map((c) => c.id)}`}|${backgrounds && `${backgrounds.pressed}${backgrounds.enabled}`}`;
+    const key = `${lib ? lib.groups.map((_, i) => current[i] ?? 0).join() : ''}|${adhocCurrent}|${active}|${groups}|${fonts && `${fonts.pressed}${fonts.choices.map((c) => c.id)}`}|${colors && `${colors.pressed}${colors.enabled}${markColors().color}`}|${backgrounds && `${backgrounds.pressed}${backgrounds.enabled}`}`;
     if (lib === this.lib && key === this.shown) return;
     this.lib = lib;
     this.shown = key;
@@ -106,7 +115,7 @@ export class SymbolRow {
       parts.push(button('+', () => this.act.add(), 'symbol-add'), button('Edit library…', () => this.act.edit()));
     }
     if (fonts) {
-      this.fonts.replaceChildren(...fonts.choices.map((c) => {
+      this.fonts.replaceChildren(el('span', 'symbol-label', 'Font'), ...fonts.choices.map((c) => {
         const b = el('button', 'symbol-font');
         b.type = 'button';
         b.textContent = c.name;
@@ -121,8 +130,30 @@ export class SymbolRow {
       }));
       parts.push(this.fonts);
     }
+    if (colors) {
+      const choice = (c: string | 'default', label: string, cls: string, text = '') => {
+        const b = el('button', cls, text);
+        b.type = 'button';
+        b.setAttribute('aria-label', label);
+        b.title = label;
+        b.setAttribute('aria-pressed', String(colors.pressed === c));
+        b.disabled = !colors.enabled;
+        b.addEventListener('click', () => this.act.color(c));
+        return b;
+      };
+      this.colors.replaceChildren(
+        el('span', 'symbol-label', 'Colour'),
+        choice('default', 'Default colour', 'symbol-color-default', 'Default'),
+        ...PEN_COLORS.map((c) => {
+          const b = choice(c, 'Colour', 'swatch');
+          b.style.setProperty('--swatch', c);
+          return b;
+        }),
+      );
+      parts.push(this.colors);
+    }
     if (backgrounds) {
-      this.backgrounds.replaceChildren(...BACKGROUNDS.map(([choice, label]) => {
+      this.backgrounds.replaceChildren(el('span', 'symbol-label', 'Background'), ...BACKGROUNDS.map(([choice, label]) => {
         const b = el('button', 'symbol-background');
         b.type = 'button';
         b.setAttribute('aria-label', label);

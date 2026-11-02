@@ -48,7 +48,7 @@ import { glyphPicker } from './_glyph-picker';
 import { editLibrary } from './_library-editor';
 import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
 import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_spread';
-import type { BackgroundChoice, BackgroundsView, FontsView } from './_symbol-row';
+import type { BackgroundChoice, BackgroundsView, ColorsView, FontsView } from './_symbol-row';
 import { backIcon, placesMarkings, Toolbar, turnIcon, type ToolChoice } from './_toolbar';
 import { ReaderMenus } from './_toolbar-menus';
 import { offerScore, turnFrom, type Offer } from './_turning';
@@ -242,8 +242,8 @@ class Reader {
       add: () => this.addSymbol(),
       edit: () => { if (this.symbolLib) editLibrary({ library: () => this.symbolLib!, change: (lib) => this.setLibrary(lib) }); },
       moveToGroup: (i, g) => this.moveToGroup(i, g),
-      penColor: (c) => this.swatch(c),
-      defaultColor: () => this.defaultColor(),
+      penColor: (c) => this.penColour(c),
+      color: (c) => this.markColor(c),
       font: (id) => this.setFont(id),
       background: (b) => this.setBackground(b),
       undo: () => this.undo(),
@@ -413,29 +413,26 @@ class Reader {
     this.tool = t;
   }
 
-  /** A swatch: with a symbol as the tool, the selected marking's colour (the tool stays); otherwise the pen's colour, and the pen. */
-  private swatch(c: string) {
-    if (placesMarkings(this.tool)) {
-      const sel = this.selected;
-      if (!sel) return;
-      const marked = { ...sel.mark, color: c };
-      this.commit(replaceMarking(this.state, sel.cut, sel.mark, marked), sel.cut);
-      this.selected = { cut: sel.cut, mark: marked };
-      this.refreshSelection();
-      return;
-    }
+  /** A pen colour on the top row, which shows only while Pen is the tool. */
+  private penColour(c: string) {
     this.penColor = c;
-    this.tool = 'pen';
     this.syncBar();
   }
 
-  /** The Default swatch: the selected marking goes back to the default colour. */
-  private defaultColor() {
+  /** A colour in the second row: the selected marking's, or, for 'default', the default colour. The tool stays. */
+  private markColor(c: string | 'default') {
     const sel = this.selected;
-    if (!sel || sel.mark.color === undefined) return;
-    const { color: _, ...marked } = sel.mark;
-    this.commit(replaceMarking(this.state, sel.cut, sel.mark, marked), sel.cut);
-    this.selected = { cut: sel.cut, mark: marked };
+    if (!sel) return;
+    if (c === 'default') {
+      if (sel.mark.color === undefined) return;
+      const { color: _, ...marked } = sel.mark;
+      this.commit(replaceMarking(this.state, sel.cut, sel.mark, marked), sel.cut);
+      this.selected = { cut: sel.cut, mark: marked };
+    } else {
+      const marked = { ...sel.mark, color: c };
+      this.commit(replaceMarking(this.state, sel.cut, sel.mark, marked), sel.cut);
+      this.selected = { cut: sel.cut, mark: marked };
+    }
     this.refreshSelection();
   }
 
@@ -471,6 +468,13 @@ class Reader {
     const sel = this.selected?.mark;
     const own = sel?.kind === 'text' && this.textFonts.some((c) => c.id === sel.font) ? sel.font : undefined;
     return { choices: this.textFonts, pressed: this.typing.font ?? own ?? this.textFont };
+  }
+
+  /** What the colour buttons show, while Text or Symbols is the tool: the selected marking's colour, and whether there is a marking to change. */
+  private colorsView(): ColorsView | undefined {
+    if (!placesMarkings(this.tool)) return undefined;
+    const sel = this.selected;
+    return { pressed: sel ? sel.mark.color ?? 'default' : undefined, enabled: !!sel };
   }
 
   /** What the background buttons show: the selected marking's shape, or with nothing selected the shape new text gets or the placing symbol's. */
@@ -719,8 +723,6 @@ class Reader {
       open: !!cur,
       tool: this.tool,
       symbol: this.buttonSymbol(),
-      markColor: this.selected?.mark.color,
-      marked: !!this.selected,
       backgrounds: this.backgroundsView(),
       penColor: this.penColor,
       cuts: this.editor.enabled,
@@ -728,7 +730,7 @@ class Reader {
       canRedo: this.undos.canRedo,
     });
     this.scope.hidden = this.reading.what.kind === 'score' || !this.editor.enabled;
-    this.toolbar.symbolRow.show(this.symbolLib, this.currents, this.adhocCurrent, this.tool === 'symbol' ? this.group : undefined, this.tool === 'symbol', this.fontsView(), this.backgroundsView());
+    this.toolbar.symbolRow.show(this.symbolLib, this.currents, this.adhocCurrent, this.tool === 'symbol' ? this.group : undefined, this.tool === 'symbol', this.fontsView(), this.colorsView(), this.backgroundsView());
     this.root.classList.toggle('writing', this.tool !== 'none');
     this.root.classList.toggle('editing', this.editor.enabled);
     this.root.style.setProperty('--bar-h', this.toolbar.el.offsetHeight + 'px');

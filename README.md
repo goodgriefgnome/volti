@@ -99,6 +99,12 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
 - **Symbols** in the toolbar shows the last symbol picked (at first, the first of the first group)
   and makes it the tool; tap it again to put the tool away. With it, the second row has a button
   for each group of symbols (press and hold to list its symbols), **+** and **Edit library…**.
+- The toolbar's second row depends on the tool: for **Symbols** the groups, **+**, **Edit library…**,
+  then **Colour** and **Background**; for **Text** the **Font**, then **Colour** and **Background**;
+  none for Pen, Highlight, Erase or no tool. **Colour** is **Default** and the three pen colours;
+  with Pen as the tool the pen colours are on the top row instead. Colour and Background change
+  the selected marking (they are greyed out while none is selected); Font and Background also set
+  new text.
 - **Cuts** shows the tabs and shading with which you change what is played and in what order, on the
   pages themselves (it doesn't move the pages; tap it again to hide them). A
   score's pages are made of cuts: bands of the PDF's pages (its *original pages*), stacked in the

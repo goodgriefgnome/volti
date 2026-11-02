@@ -209,3 +209,7 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     the button showed *pp* meanwhile.
   - Delete *pp* in **Edit library…**: the button shows its group's first symbol.
   - Close the reader and open it again: the button shows the first symbol of the first group.
+- **The toolbar redesign: colours:**
+  - Pen: three colours in the top row. Highlight and Erase: none.
+  - Text or Symbols with nothing selected: Colour and Background are greyed out. Select a marking:
+    they change it; **Default** gives it the default colour.

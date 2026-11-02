@@ -44,15 +44,20 @@
 .bar .symbol-group { width: 56px; padding: 4px; display: grid; place-items: center; }
 .menu .symbol-choice { display: inline-grid; place-items: center; width: 56px; min-height: 44px; padding: 4px; }
 .bar .swatches { display: none; gap: 4px; }
-.writing .bar .swatches { display: flex; }
+.bar.pen .swatches { display: flex; }
 .bar .swatch { width: 40px; padding: 0; position: relative; }
 .bar .swatch::after { content: ""; position: absolute; inset: 10px; border-radius: 50%; background: var(--swatch); box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85); }
 .bar .swatch[aria-pressed="true"] { background: rgba(255, 255, 255, 0.25); }
-.bar .swatch-default::before { content: ""; position: absolute; left: 8px; right: 8px; top: 50%; height: 2px; z-index: 1; background: #ff4d4d; transform: rotate(-45deg); }
 .bar .symbol-fonts { display: flex; gap: 4px; margin-left: 8px; }
 .bar .symbol-font { padding: 4px 10px; }
 .bar .symbol-font[aria-pressed="true"] { background: rgba(255, 255, 255, 0.25); }
 .bar .symbol-backgrounds { display: flex; gap: 4px; margin-left: 8px; }
+.bar .symbol-colors { display: flex; align-items: center; gap: 4px; margin-left: 8px; }
+.bar .symbol-fonts, .bar .symbol-colors, .bar .symbol-backgrounds { align-items: center; }
+.bar .symbol-label { font-size: 12px; opacity: 0.6; margin-right: 2px; }
+.bar .symbol-color-default { padding: 4px 10px; }
+.bar .symbol-color-default[aria-pressed="true"] { background: rgba(255, 255, 255, 0.25); }
+.bar .symbol-row button:disabled { opacity: 0.4; }
 .bar .symbol-background { width: 44px; padding: 4px; display: grid; place-items: center; }
 .bar .symbol-background[aria-pressed="true"] { background: rgba(255, 255, 255, 0.25); }
 
