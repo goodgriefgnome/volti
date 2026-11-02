@@ -99,9 +99,17 @@
 .typing { position: absolute; z-index: 4; margin: 0; padding: 0; border: 0; outline: none; background: transparent; line-height: normal; caret-color: currentColor; }
 
 /* The title menu: a row per entry or excerpt, the one read highlighted. */
+.menu .menu-head { display: flex; align-items: center; justify-content: space-between; }
+.menu .menu-head .label { flex: 1; min-width: 0; }
+.menu .menu-action { width: 44px; font-size: 22px; text-align: center; }
+.menu .title-list { display: grid; max-height: calc(var(--seen-height, 100vh) * 0.6); overflow: auto; }
 .menu .title-row { display: flex; align-items: center; border-radius: 8px; }
-.menu .title-row .go { flex: 1; min-width: 0; }
+.menu .title-row .go { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .menu .title-row.current { background: var(--accent-soft, var(--bg)); }
 .menu .title-row.current .go { font-weight: 600; }
+.menu .title-row .grip, .menu .title-row .swap, .menu .title-row .bin { width: 44px; padding: 0; display: grid; place-items: center; touch-action: none; }
+.menu .title-row.dragging { opacity: 0.6; }
+.menu .row-icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.menu .grip .row-icon { stroke-width: 3; }
 .bar .title-button { display: flex; align-items: center; gap: 4px; border-color: transparent; }
 .bar .chevron-icon { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }

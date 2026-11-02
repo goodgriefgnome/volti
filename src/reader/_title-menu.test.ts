@@ -39,6 +39,8 @@ describe('_titleRows', () => {
     expect(rows.map((x) => [x.label, x.current])).toEqual([['1. Mass', false], ['2. Mass · Kyrie', true]]);
     rows[0].go();
     expect(calls).toEqual(['goTo 0']);
+    // every entry can be moved, changed and removed
+    expect(rows.map((x) => [x.index, !!x.change, !!x.remove])).toEqual([[0, true, true], [1, true, true]]);
   });
 
   it('gives Whole score first, then the excerpts in library order', () => {
@@ -46,6 +48,13 @@ describe('_titleRows', () => {
     const r = new Reading([{ scoreId: 'p', title: 'Mass' }], { kind: 'score' }, []);
     const rows = _titleRows(host(r, 0, { 0: opened(s) }));
     expect(rows.map((x) => [x.label, x.current])).toEqual([['Whole score', true], ['Kyrie', false], ['Gloria', false]]);
+  });
+
+  it('gives Whole score no swap or bin, and each excerpt both', () => {
+    const { s } = mass();
+    const r = new Reading([{ scoreId: 'p', title: 'Mass' }], { kind: 'score' }, []);
+    const rows = _titleRows(host(r, 0, { 0: opened(s) }));
+    expect(rows.map((x) => [!!x.change, !!x.remove, x.index])).toEqual([[false, false, undefined], [true, true, undefined], [true, true, undefined]]);
   });
 
   it('has only Whole score before the score is open', () => {

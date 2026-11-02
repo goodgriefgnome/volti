@@ -142,5 +142,19 @@ describe('moveExcerpt', () => {
     expect(r.setlists[1].entries[0]).toEqual({ id: e2.id, scoreId: 'p', last: a.id });
     expect(r.setlists[2]).toBe(setlists[2]);
   });
+
+  it('renames and moves at once, or renames alone leaving the cuts', () => {
+    const { s, a, b } = mass();
+    const kyrie = namedExcerptOf(s.score, { last: b.id })!;
+    const e = { ...newEntry('p'), last: b.id };
+    const setlists: Setlist[] = [{ id: 'x', title: 'x', archived: false, entries: [e] }];
+    const both = moveExcerpt(s.score, setlists, kyrie, { last: a.id }, 'Christe');
+    expect(namedExcerptOf(both.score, { last: a.id })?.name).toBe('Christe');
+    expect(both.score.excerpts).toHaveLength(2);
+    expect(both.setlists[0].entries[0]).toEqual({ id: e.id, scoreId: 'p', last: a.id });
+    const alone = moveExcerpt(s.score, setlists, kyrie, kyrie, 'Christe');
+    expect(namedExcerptOf(alone.score, { last: b.id })?.name).toBe('Christe');
+    expect(alone.setlists[0].entries[0]).toEqual({ id: e.id, scoreId: 'p', last: b.id });
+  });
 });
 

@@ -30,7 +30,7 @@
   width: calc(100vw - 32px);
   max-height: calc(var(--seen-height, 100vh) - 24px); grid-auto-rows: max-content; align-content: start;
 }
-.keyboard .dialog .thumbs.excerpt, .keyboard .dialog .picklist, .keyboard .dialog .excerpt-list { max-height: none; }
+.keyboard .dialog .thumbs.excerpt, .keyboard .dialog .picklist { max-height: none; }
 /* The buttons stay in sight when the dialog is too tall and scrolls. */
 .dialog .buttons {
   display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap;

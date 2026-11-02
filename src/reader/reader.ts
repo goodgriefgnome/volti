@@ -236,8 +236,6 @@ class Reader {
     this.toolbar = new Toolbar(what.kind, {
       close: () => history.back(),
       titleMenu: () => this.menus.titleMenu(),
-      excerpt: () => void this.withAccess(() => this.menus.excerpt()),
-      excerpts: () => this.menus.excerpts(),
       more: () => void this.menus.more(),
       tool: (t) => this.setTool(t),
       symbols: () => void this.toggleGroups(),
@@ -271,6 +269,7 @@ class Reader {
       say: (t, action) => this.toast.say(t, action),
       library: this.library,
       relisted: (entryId, at) => this.relisted(entryId, at),
+      ensure: (k) => this.scores.ensure(k, true),
       readWhole: () => {
         this.reading.readWhole();
         this.frames = this.framesFor(this.k);
@@ -379,10 +378,11 @@ class Reader {
   /**
    * The setlist's entries changed: list them again, and read entry `entryId` where it is now, or,
    * when it's gone, the entry now at `at` (or the last); with none left, back to the library.
+   * Done when the entry is on its way to the screen.
    */
-  private relisted(entryId?: string, at = this.k) {
+  private relisted(entryId?: string, at = this.k): Promise<void> {
     const s = this.reading.setlist;
-    if (!s?.entries.length) { history.back(); return; }
+    if (!s?.entries.length) { history.back(); return Promise.resolve(); }
     const titles = Object.fromEntries(this.items.map((it) => [it.scoreId, it.title]));
     const was = this.items[this.k]?.entryId;
     this.reading.relist(setlistItems(s, new Map(this.library.map((o) => [o.id, o])), titles));
@@ -393,9 +393,9 @@ class Reader {
       this.syncBar();
       void this.show({ place: 'keep' });
       this.scores.keepNear(k);
-      return;
+      return Promise.resolve();
     }
-    void this.goTo(k >= 0 ? k : Math.min(at, this.items.length - 1), 'first');
+    return this.goTo(k >= 0 ? k : Math.min(at, this.items.length - 1), 'first');
   }
 
   /* ---------- toolbar ---------- */

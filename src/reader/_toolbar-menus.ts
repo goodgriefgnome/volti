@@ -1,28 +1,18 @@
-// The reader toolbar's menus and dialogs: the ⋯ menu of what is read (as its
-// ⋯ menu in the library), exporting, the score's named excerpts, and choosing the excerpt an entry
-// plays. What they change is the
+// The reader toolbar's menus and dialogs: the ⋯ menu of what is read (as its ⋯ menu in the
+// library) and exporting. The menu under the title is in _title-menu.ts. What they change is the
 // Reading's, and the reader shows and saves it.
 
-import { canvasesOf } from '../page-cache/cache';
-import { addExcerpt, changeExcerptCuts, deleteExcerpt, renameExcerpt, type ExcerptHost } from '../dialogs/excerpts';
 import { askSetlistName, chooseSetlist } from '../dialogs/setlists';
-import { givePassword } from '../dialogs/passwords';
 import { moveToFolder, renameFile, type FileChange, type ScoreFileHost } from '../dialogs/score-files';
-import { openAddScores } from '../dialogs/add-scores';
-import { openExcerptPicker } from '../dialogs/excerpt-picker';
 import { openExportPdf } from '../dialogs/export-pdf';
-import { openScore } from '../dialogs/open-score';
-import { type ExcerptSource } from '../dialogs/thumb-strip';
-import { type Excerpt, ends, namedExcerptOf, sortedExcerpts, excerptLabel, excerptRange } from '../scores/excerpts';
+import { type Excerpt, namedExcerptOf } from '../scores/excerpts';
 import type { ExportPart } from '../export/pdf';
 import { folderState } from '../originals/device-score-fs';
-import { NoAccess, PasswordNotGiven, type SourceFile } from '../originals/types';
-import { subfolders, titleOf } from '../originals/path-utils';
-import { loadSavedScore, saveScore } from '../scores/store';
-import { type NamedExcerpt, type Score } from '../scores/model';
-import { addEntries, defaultSetlist, duplicate, moveEntry, withSetlist, type Entry, type Setlist } from '../setlists/model';
+import { NoAccess, type SourceFile } from '../originals/types';
+import { subfolders } from '../originals/path-utils';
+import { defaultSetlist, duplicate, withSetlist, type Setlist } from '../setlists/model';
 import { deleteSetlist, loadLastAddedTo, saveLastAddedTo } from '../setlists/store';
-import { button, dpr, el, plural } from '../ui/dom';
+import { button, el } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog, showMenu, type MenuItem } from '../ui/overlay';
 import type { OpenScore } from './_open-scores';
 import type { Reading } from './_reading';
@@ -56,7 +46,9 @@ export interface MenusHost {
    * The setlist's entries changed: list them again, and read entry `entryId` (where it is now),
    * or, when it's gone, the entry now at `at` (or the last); with none left, back to the library.
    */
-  relisted(entryId?: string, at?: number): void;
+  relisted(entryId?: string, at?: number): Promise<void>;
+  /** Item k's score, opened if it isn't (asking for a password if need be); null when it can't be. */
+  ensure(k: number): Promise<OpenScore | null>;
   /** In a named excerpt's reader: read `excerpt` of the score instead. */
   playExcerpt(excerpt: Excerpt): void;
   /** Leave the reader for the library. */
@@ -90,9 +82,7 @@ export class ReaderMenus {
       const x = cur && namedExcerptOf(cur.state.score, reading.what.excerpt);
       showMenu(anchor, x?.name ?? it.title, [
         ...add,
-        cur && x && { label: 'Rename…', run: () => renameExcerpt(cur.state.score, x, this.excerptHost(cur)) },
         { label: 'Export PDF…', run: () => void this.exportPdf() },
-        cur && x && { label: 'Delete…', run: () => this.deleteExcerpt(cur, x) },
       ]);
       return;
     }
@@ -150,30 +140,15 @@ export class ReaderMenus {
     this.h.leave();
   }
 
-  /** Delete the named excerpt being read, then read the next of the score's (or the one before); with none left, back to the library. */
-  private deleteExcerpt(cur: OpenScore, x: NamedExcerpt) {
-    const host = this.excerptHost(cur), at = sortedExcerpts(cur.state.score).findIndex((n) => n.name === x.name);
-    deleteExcerpt(cur.state.score, x, {
-      ...host,
-      save: (score, setlists) => {
-        host.save(score, setlists);
-        const left = sortedExcerpts(score), next = left[at] ?? left[at - 1];
-        if (next) this.h.playExcerpt(ends(next)); else this.h.leave();
-      },
-    });
-  }
-
-  /** The setlist's menu, then the entry being read's. */
+  /** The setlist's menu. */
   private setlistMenu(anchor: HTMLElement) {
-    const { reading } = this.h, s = reading.setlist, k = this.h.k(), e = reading.entry(k);
+    const { reading } = this.h, s = reading.setlist;
     if (!s) return;
-    const i = e ? s.entries.indexOf(e) : -1;
     const change = (next: Setlist) => {
       reading.setlists = withSetlist(reading.setlists, next);
       this.h.saver.soon();
     };
     showMenu(anchor, s.title, [
-      { label: 'Add scores…', run: () => void this.addScores() },
       { label: 'Rename…', run: () => askSetlistName('Rename setlist', s.title, 'Rename', (title) => change({ ...reading.setlist!, title })) },
       { label: 'Duplicate', run: () => {
         const c = duplicate(s);
@@ -186,29 +161,7 @@ export class ReaderMenus {
         ? { label: 'Unarchive', run: () => { change({ ...reading.setlist!, archived: false }); this.h.say(`Unarchived “${s.title}”.`); } }
         : { label: 'Archive', run: () => { change({ ...reading.setlist!, archived: true }); this.h.say(`Archived “${s.title}”.`); } },
       s.archived && { label: 'Delete…', run: () => this.confirmDelete(s) },
-      e && `Entry ${i + 1}: ${reading.items[k].title}`,
-      e && i > 0 && { label: 'Move up', run: () => { change(moveEntry(s, i, i - 1)); this.h.relisted(e.id); } },
-      e && i < s.entries.length - 1 && { label: 'Move down', run: () => { change(moveEntry(s, i, i + 1)); this.h.relisted(e.id); } },
-      e && { label: 'Remove from setlist', run: () => this.removeEntry(s, e, i) },
     ]);
-  }
-
-  /** Take the entry being read out of the setlist, and read the next (or the one before), with Undo. */
-  private removeEntry(s: Setlist, e: Entry, at: number) {
-    const { reading } = this.h, title = reading.items[this.h.k()].title;
-    reading.setlists = withSetlist(reading.setlists, { ...s, entries: s.entries.filter((x) => x !== e) });
-    this.h.saver.soon();
-    this.h.relisted(undefined, at);
-    if (!reading.setlist?.entries.length) return;
-    this.h.say(`Removed “${title}” from “${s.title}”.`, ['Undo', () => {
-      const now = reading.setlist;
-      if (!now) return;
-      const entries = [...now.entries];
-      entries.splice(Math.min(at, entries.length), 0, e);
-      reading.setlists = withSetlist(reading.setlists, { ...now, entries });
-      this.h.saver.soon();
-      this.h.relisted(e.id);
-    }]);
   }
 
   /** Only an archived setlist can be deleted; deleting the one read goes back to the library. */
@@ -224,38 +177,6 @@ export class ReaderMenus {
         this.h.leave();
       }, 'danger')),
     );
-  }
-
-  /** Add scores to the end of the setlist read, as from the library. */
-  private async addScores() {
-    const { reading } = this.h, originals = this.h.library;
-    // The scores as saved: a preview opens them from there.
-    await this.h.saver.flush();
-    const saved = await Promise.all(originals.map((o) => loadSavedScore(o.id)));
-    const s = reading.setlist;
-    if (!s) return;
-    openAddScores({
-      setlist: s,
-      originals,
-      saved: new Map(saved.filter((x): x is Score => !!x).map((x) => [x.id, x])),
-      givePassword: (o) => givePassword(o).catch((e) => { console.error(e); this.h.say(`Could not open “${titleOf(o.path)}”.`); return false; }),
-      open: (o) => openScore(o).catch((e) => {
-        console.error(e);
-        this.h.say(e instanceof PasswordNotGiven ? `“${titleOf(o.path)}” needs its password to open.` : `Could not open “${titleOf(o.path)}”.`);
-        return null;
-      }),
-      add: (entries, scores) => {
-        const now = reading.setlist;
-        if (!now) return;
-        // The scores excerpts were chosen from too, so the excerpts and the cuts they name agree.
-        for (const x of scores) void saveScore(x.state);
-        reading.setlists = withSetlist(reading.setlists, addEntries(now, entries));
-        void saveLastAddedTo(now.id);
-        this.h.saver.soon();
-        this.h.relisted(reading.items[this.h.k()]?.entryId);
-        this.h.say(`Added ${plural(entries.length, 'score')} to “${now.title}”.`);
-      },
-    });
   }
 
   /** Export what the reader pages through: the score, the excerpt, or the whole setlist. */
@@ -280,93 +201,6 @@ export class ReaderMenus {
       missing,
       toFolder: (await folderState()).kind !== 'none',
       saved: (name) => this.h.say(`Saved “${name}.pdf” in Exports, in the scores folder.`),
-    });
-  }
-
-  /** An open score's pages, for the excerpt picker. */
-  private source(cur: OpenScore): ExcerptSource {
-    return { state: cur.state, aspects: cur.aspects, pages: (p, w) => canvasesOf(cur.drawProgressive!(p + 1, Math.round(w * dpr()))) };
-  }
-
-  /** Changing the open score's named excerpts from the reader, saved with the score. */
-  private excerptHost(cur: OpenScore): ExcerptHost {
-    return {
-      setlists: this.h.reading.setlists,
-      aspects: cur.aspects,
-      save: (score, setlists) => {
-        cur.state = { ...cur.state, score };
-        if (setlists) this.h.reading.setlists = setlists;
-        this.h.saver.soon(cur);
-        this.h.retitle();
-      },
-      say: (t) => this.h.say(t),
-    };
-  }
-
-  /** In a score's own reader: its named excerpts, to go to one, add one or change them. */
-  excerpts() {
-    const cur = this.current;
-    if (!cur?.draw) return;
-    this.h.dismiss();
-    const score = cur.state.score, title = this.h.reading.items[0].title, names = sortedExcerpts(score);
-    const d = showDialog(`Excerpts of “${title}”`);
-    const list = el('ul', 'excerpt-list');
-    for (const x of names) {
-      const li = el('li');
-      const go = button('', () => {
-        closeOverlay();
-        this.h.goTo(this.h.k(), score.cuts[excerptRange(score.cuts, x).i0]?.id);
-      }, 'open');
-      go.append(el('span', 'item-title', x.name));
-      const pages = excerptLabel(score.cuts, x, cur.aspects);
-      if (pages) go.append(el('span', 'meta', pages));
-      go.setAttribute('aria-label', `Go to ${x.name}`);
-      const more = button('⋯', () => showMenu(more, x.name, [
-        { label: 'Rename…', run: () => renameExcerpt(cur.state.score, x, this.excerptHost(cur)) },
-        { label: 'Change cuts…', run: () => changeExcerptCuts(this.source(cur), x, this.excerptHost(cur)) },
-        { label: 'Delete…', run: () => deleteExcerpt(cur.state.score, x, this.excerptHost(cur)) },
-      ]), 'quiet more');
-      more.setAttribute('aria-label', `More for ${x.name}`);
-      more.setAttribute('aria-haspopup', 'menu');
-      li.append(go, more);
-      list.append(li);
-    }
-    if (!names.length) list.append(el('li', 'empty', 'No excerpts yet. Add one to name part of the score, such as the Kyrie.'));
-    d.append(list, buttonRow(
-      button('Add excerpt…', () => addExcerpt(this.source(cur), title, this.excerptHost(cur))),
-      button('Close', closeOverlay, 'primary'),
-    ));
-  }
-
-  /** In a setlist: choose which of the score's cuts this entry plays. In an excerpt: change the excerpt's cuts. */
-  excerpt() {
-    const cur = this.current, { reading } = this.h, k = this.h.k();
-    if (!cur?.draw) return;
-    this.h.dismiss();
-    const pages = this.source(cur);
-    const play = (excerpt: Excerpt) => {
-      reading.play(k, excerpt);
-      // The score too: one opened for the first time isn't saved yet, and the excerpt names its cuts.
-      this.h.saver.soon(cur);
-      this.h.replay();
-    };
-    if (reading.what.kind === 'excerpt') {
-      // Give the named excerpt being read other cuts; every setlist entry that plays it moves with
-      // it. An excerpt that lost its name to an edit (it came to be the whole score) just plays other cuts.
-      const excerpt = reading.what.excerpt, name = namedExcerptOf(cur.state.score, excerpt);
-      if (name) changeExcerptCuts(pages, name, this.excerptHost(cur), play);
-      else openExcerptPicker({ ...pages, question: `Which part of “${reading.items[0].title}” to read?`, verb: 'It plays', excerpt, done: play });
-      return;
-    }
-    const entry = reading.entry(k);
-    if (!entry) return;
-    openExcerptPicker({
-      ...pages,
-      question: `Which part of “${reading.items[k].title}” does entry ${k + 1} play?`,
-      verb: 'This entry plays',
-      named: true,
-      excerpt: entry,
-      done: play,
     });
   }
 }

@@ -188,3 +188,16 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - In a score: **Whole score** highlighted, then its excerpts. Tap one: it reads that excerpt; tap
     the title again: that excerpt is highlighted; **Whole score** goes back to the whole score.
   - There is no **Scores** button.
+- **The toolbar redesign: the title menu's controls:**
+  - Drag an entry by its grip: it moves; the menu stays open with the new order.
+  - Swap on another entry: the excerpt picker for it; choose cuts; the menu comes back with its
+    excerpt's name.
+  - Bin on the current entry: asked first; **Remove** goes on to the next entry, and the menu
+    comes back with that entry highlighted; **Undo** in the toast puts it back.
+  - **+**: Add scores; the added ones are at the end, and the menu comes back.
+  - Swap on an excerpt: the picker with its name; change the name and the cuts: both change, and a
+    setlist that played it plays the new cuts.
+  - Bin on the excerpt being read: asked first; then the next excerpt is read.
+  - **+** in a score: Add excerpt.
+  - The ⋯ menu has no Add scores, Move up, Move down, Remove from setlist, Rename (of an excerpt)
+    or Delete (of an excerpt). There is no **Excerpt** or **Excerpts** button.

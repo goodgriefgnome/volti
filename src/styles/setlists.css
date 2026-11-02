@@ -61,8 +61,3 @@
 /* A score's named excerpts, indented under it, each with its Preview. */
 .pick-sub { flex-basis: 100%; display: flex; align-items: center; gap: 4px; padding-left: 28px; }
 /* The reader's list of a score's named excerpts: tap one to go to it, ⋯ for the rest. */
-.excerpt-list { list-style: none; margin: 0; padding: 0; display: grid; max-height: calc(var(--seen-height, 100vh) * 0.6); overflow: auto; border-block: 1px solid var(--line); }
-.excerpt-list li { display: flex; align-items: center; gap: 4px; border-bottom: 1px solid var(--line); }
-.excerpt-list li:last-child { border-bottom: 0; }
-.excerpt-list .open { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 10px; border: 0; background: transparent; text-align: left; min-height: 48px; }
-.excerpt-list .empty { color: var(--muted); padding: 12px 0; }

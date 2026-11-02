@@ -45,14 +45,20 @@ function tapToClose(cls: string): HTMLElement {
 
 /**
  * A menu below `at`, kept on the screen; or, when `at` is a point, at that point, kept inside
- * `bounds`. Falsy items are left out.
+ * `bounds`. Falsy items are left out. `action` shows at the right of the title.
  */
-export function showMenu(at: Element | { x: number; y: number }, title: string, items: (MenuItem | string | HTMLElement | false | null | undefined)[], bounds?: DOMRect) {
+export function showMenu(at: Element | { x: number; y: number }, title: string, items: (MenuItem | string | HTMLElement | false | null | undefined)[], bounds?: DOMRect, action?: HTMLElement) {
   closeOverlay();
   const catcher = tapToClose('catcher');
   const menu = el('div', 'menu');
   menu.setAttribute('role', 'menu');
-  menu.append(el('div', 'label', title));
+  const heading = el('div', 'label', title);
+  if (action) {
+    // A button at the right of the title, such as + to add to the list below.
+    const head = el('div', 'menu-head');
+    head.append(heading, action);
+    menu.append(head);
+  } else menu.append(heading);
   for (const it of items) {
     if (!it) continue;
     // A string heads the items after it; an element shows as it is.
@@ -78,7 +84,7 @@ export function showMenu(at: Element | { x: number; y: number }, title: string, 
     top = Math.min(Math.max(at.y + 4, b.top + 4), b.bottom - menu.offsetHeight - 4);
   }
   Object.assign(menu.style, { left: left + 'px', top: top + 'px' });
-  menu.querySelector('button')?.focus();
+  [...menu.querySelectorAll('button')].find((b) => !b.closest('.menu-head'))?.focus();
 }
 
 /** The visible part of the page shorter than this share of it, unzoomed: the keyboard is open. */

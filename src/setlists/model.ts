@@ -92,9 +92,10 @@ export function duplicate(s: Setlist): Setlist {
 
 /**
  * Give a named excerpt other cuts: the name moves to `to`, and so does every entry, in every
- * setlist, that played the old excerpt. Check `nameProblem` first.
+ * setlist, that played the old excerpt. `rename` gives it a new name at the same time. Check
+ * `nameProblem` first.
  */
-export function moveExcerpt(score: Score, setlists: readonly Setlist[], name: NamedExcerpt, to: Excerpt): { score: Score; setlists: Setlist[] } {
+export function moveExcerpt(score: Score, setlists: readonly Setlist[], name: NamedExcerpt, to: Excerpt, rename?: string): { score: Score; setlists: Setlist[] } {
   const cuts = score.cuts;
   const out = setlists.map((s) => {
     let changed = false;
@@ -105,5 +106,5 @@ export function moveExcerpt(score: Score, setlists: readonly Setlist[], name: Na
     });
     return changed ? { ...s, entries } : s;
   });
-  return { score: setName(score, to, name.name, name), setlists: out };
+  return { score: setName(score, to, rename ?? name.name, name), setlists: out };
 }

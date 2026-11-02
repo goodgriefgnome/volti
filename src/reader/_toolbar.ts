@@ -52,10 +52,6 @@ export interface ToolbarActions extends SymbolRowActions {
   close(): void;
   /** The menu under the title: what can be read next to what is read. */
   titleMenu(): void;
-  /** In a setlist: choosing the excerpt of this score; in a named excerpt: changing its cuts. */
-  excerpt(): void;
-  /** In a score's own reader: the list of its named excerpts. */
-  excerpts(): void;
   /** The menu of what is read, as its ⋯ menu in the library. */
   more(): void;
   /** Tapping the active tool again puts it away. */
@@ -134,8 +130,6 @@ export class Toolbar {
     );
 
     const right = el('div', 'group');
-    if (reading === 'score') right.append(this.button('excerpts', 'Excerpts', act.excerpts));
-    else right.append(this.button('excerpt', 'Excerpt', act.excerpt));
     const more = this.button('more', '⋯', act.more, 'more');
     more.setAttribute('aria-label', reading === 'setlist' ? 'More for this setlist' : 'More');
     more.setAttribute('aria-haspopup', 'menu');
@@ -170,7 +164,7 @@ export class Toolbar {
     this.buttons.colorDefault.hidden = !placesMarkings(v.tool);
     pressed('colorDefault', placesMarkings(v.tool) && v.marked && !v.markColor);
     for (const c of PEN_COLORS) pressed('color' + c, v.tool === 'pen' ? v.penColor === c : placesMarkings(v.tool) && v.markColor === c);
-    for (const k of [...TOOL_NAMES, 'symbols', 'cuts', 'excerpt', 'excerpts']) if (this.buttons[k]) this.buttons[k].disabled = !v.open;
+    for (const k of [...TOOL_NAMES, 'symbols', 'cuts']) if (this.buttons[k]) this.buttons[k].disabled = !v.open;
     this.buttons.undo.disabled = !v.canUndo;
     this.buttons.redo.disabled = !v.canRedo;
   }

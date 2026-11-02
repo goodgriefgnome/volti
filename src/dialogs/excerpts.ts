@@ -77,6 +77,32 @@ export function changeExcerptCuts(src: ExcerptSource, x: NamedExcerpt, h: Excerp
   });
 }
 
+/**
+ * Change a named excerpt's name and cuts together. Every entry that plays it moves with it.
+ * `moved` hears where it went, when its cuts changed.
+ */
+export function changeExcerpt(src: ExcerptSource, x: NamedExcerpt, h: ExcerptHost, moved?: (to: Excerpt) => void) {
+  const score = src.state.score, now = score.excerpts?.find((n) => n.name === x.name) ?? x;
+  const using = _setlistsPlaying(h.setlists, score, now);
+  openExcerptPicker({
+    ...src,
+    question: `Change “${now.name}”`,
+    verb: 'It plays',
+    excerpt: now,
+    name: now.name,
+    problem: (excerpt, name) => nameProblem(score, excerpt, name, now),
+    okLabel: using.length ? `Change in ${plural(using.length, 'setlist')}` : 'Done',
+    done: (excerpt, name) => {
+      const sameCuts = sameExcerpt(score.cuts, excerpt, now);
+      if (sameCuts && name === now.name) return;
+      const r = moveExcerpt(score, h.setlists, now, excerpt, name);
+      h.save(r.score, r.setlists);
+      if (!sameCuts) moved?.(excerpt);
+      if (using.length) h.say(`Changed “${now.name}” in ${plural(using.length, 'setlist')}.`);
+    },
+  });
+}
+
 /** Take the name off an excerpt. Setlists that play it keep playing the same music. */
 export function deleteExcerpt(score: Score, x: NamedExcerpt, h: ExcerptHost) {
   const using = _setlistsPlaying(h.setlists, score, x);

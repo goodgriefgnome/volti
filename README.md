@@ -17,7 +17,7 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   asks for access again with one tap (**Allow access**, beside the name), and so does opening a
   setlist whose pages aren't all saved. One whose pages are all saved plays without it, asking only
   when turning to a page with nothing saved, or for something on the toolbar that reads the PDFs
-  (**Cuts**, **Excerpts**). When allowing access takes long and the reader doesn't go full
+  (**Cuts**, or changing an excerpt). When allowing access takes long and the reader doesn't go full
   screen, it does at the next turn. Coming back to Volti after a
   while (say, from the Files app) reads the folder again, so PDFs added meanwhile appear. A PDF
   changed in place is noticed a little after the library shows.
@@ -72,12 +72,21 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
 - In a score (not a setlist), turning on past its end says which score comes next in the library;
   turning on again opens it. The same back, from a score's start, opens the one before at its end.
 - The **⋯** at the right of the reader's toolbar has what the library's **⋯** menu has for what
-  is read: for a score, a named excerpt or a setlist, and in a setlist, for the entry being read
-  too (Move up, Move down, Remove from setlist). Removing the entry or deleting the named excerpt
-  being read goes on to the next one; with none left, back to the library.
+  is read: for a score, a named excerpt or a setlist. (Adding scores to a setlist and moving,
+  changing and removing its entries are in the title menu, below, as are adding, changing and
+  deleting a score's named excerpts.)
 - The title in the reader's toolbar opens a menu of what can be read next to what is read, the
   current one highlighted: in a setlist, its entries; in a score or a named excerpt, **Whole
-  score** and the score's named excerpts. Tapping a row reads it.
+  score** and the score's named excerpts. Tapping a row reads it. The menu has more:
+  - In a setlist, **+** adds scores at the end; each entry has a grip to drag it to another place,
+    a swap icon to change the excerpt it plays (any entry, not only the one read) and a bin to remove
+    it, after asking. Removing the entry being read goes on to the next one; with none left, back to
+    the library.
+  - In a score, **+** adds a named excerpt; each excerpt has a swap icon, to change its name and
+    cuts together (every setlist that plays it follows), and a bin to delete it, after asking.
+    Deleting the excerpt being read goes on to the next one, or the one before; with none left, back to
+    the library.
+  - The menu stays open after the buttons, and opens again when a dialog from it closes.
 - Showing the toolbar doesn't move the pages: it covers the top of them. Drag (one finger, with no
   tool in use) or pinch (two fingers) to bring the top out from under it, or to zoom in or out;
   the pages can't be moved so that less of them shows, and can't be made smaller than they fit
@@ -109,8 +118,8 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
     beside a setlist shows its scores, to reorder or remove; its **⋯** button has the rest.
   - A setlist can play part of a score, and can come back to the same score (the Kyrie, another
     piece, then the Gloria). **Add scores** lists each score's named excerpts under it, to add them as they are, and
-    **Preview** there adds other parts of a score; **Excerpt** in the
-    reader's toolbar, or **Change excerpt…** on an entry in the library, changes the part an entry
+    **Preview** there adds other parts of a score; the swap icon beside an entry in the
+    reader's title menu, or **Change excerpt…** on an entry in the library, changes the part an entry
     plays. Either way, tap the first and last cut to play. An excerpt is named by the score's
     pages it plays, with a letter for a cut that shares its page: **Page 2b – 4** starts at page 2's
     second cut. Pinch the thumbnails there to
@@ -118,9 +127,7 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   - **Named excerpts**: **Add excerpt…** in a score's **⋯** menu names part of it ("Kyrie"). The
     arrow beside the score lists them; each one's **⋯** renames it, changes its cuts or deletes it.
     Tapping one reads only its cuts, as a setlist entry playing it does, always from its start;
-    there **Excerpt** changes its cuts and **Add to setlist** adds it.
-  - **Excerpts** in a score's toolbar lists its named excerpts too: tap one to go to it, or add,
-    rename, change or delete them there.
+    there the title menu's swap icon changes its name and cuts and **Add to setlist** adds it.
     A setlist entry that plays the same cuts plays the named excerpt and shows its name, so
     changing its cuts changes every setlist that plays it. Deleting one only takes the name away.
     Searching the library finds excerpts by name too, shown with their score's name.
