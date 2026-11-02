@@ -99,7 +99,7 @@ beside `stroke.ts` and `placed.ts`; add a tool to make it (below). Cut edits, th
 work for it, through `markings/model.ts`.
 
 **A new tool**: a file in `reader/tools/` exporting a `Tool` (its toolbar label, and what a pointer
-does from going down to lifting), and a line in `TOOLS` in `reader/tools/_tools.ts`. Its button
+does from going down to lifting), and a line in `TOOLS` in `reader/tools/_tools.ts`, and its icon in `TOOL_ICONS` in `reader/_toolbar.ts`. Its button
 appears in the toolbar. A tool that places markings whole is `placingTool(label, tapEmpty)`
 (`_placing.ts`), given only what a tap on empty music does (`_symbol.ts`, `_text.ts`). A tool changes the score by calling `host.commit` with a new state.
 

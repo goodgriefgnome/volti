@@ -20,6 +20,31 @@ export function backIcon(): SVGSVGElement {
   return svg;
 }
 
+/** A tool's or button's icon, drawn in the button's colour from the path `d` in a 24 x 24 box. */
+export function icon(d: string): SVGSVGElement {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.classList.add('tool-icon');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', d);
+  svg.append(path);
+  return svg;
+}
+
+/** Each tool's icon: a new tool needs one here. */
+export const TOOL_ICONS: Record<ToolName, string> = {
+  pen: 'M4 20l4-1 11-11-3-3L5 16z',
+  highlighter: 'M5 20h7M7 16l9-9 3 3-9 9H7z',
+  eraser: 'M8 20h12M5 15l8-8 5 5-6 6H9z',
+  text: 'M5 6h14M12 6v13',
+};
+
+const SCISSORS = 'M6 3a3 3 0 1 0 .01 0M6 15a3 3 0 1 0 .01 0M8.5 7.5L20 19M8.5 16.5L20 5';
+const UNDO = 'M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3';
+const REDO = 'M15 14l5-5-5-5M20 9H10a6 6 0 0 0 0 12h3';
+const DOTS = 'M5 12h.01M12 12h.01M19 12h.01';
+
 /** The chevron after the title, which opens the title menu. */
 export function chevronIcon(): SVGSVGElement {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -96,7 +121,7 @@ export class Toolbar {
 
   /** `reading` is what the reader reads, which decides the buttons on the right. */
   constructor(reading: 'score' | 'excerpt' | 'setlist', act: ToolbarActions) {
-    const left = el('div', 'group');
+    const left = el('div', 'group left');
     const back = this.button('close', '', act.close);
     back.append(backIcon());
     back.setAttribute('aria-label', 'Library');
@@ -104,12 +129,18 @@ export class Toolbar {
     this.titleButton = this.button('title', '', act.titleMenu, 'title-button');
     this.titleButton.setAttribute('aria-haspopup', 'menu');
     this.titleButton.append(this.title, chevronIcon());
-    left.append(back, this.titleButton);
+    left.append(back, this.titleButton, this.info);
 
-    const tools = el('div', 'group');
-    tools.append(...TOOL_NAMES.map((t) => this.button(t, TOOLS[t].label, () => act.tool(t))), this.button('symbols', '', act.symbols, 'symbols-tool'));
-    this.buttons.symbols.setAttribute('aria-label', 'Symbols');
-    this.buttons.symbols.title = 'Symbols';
+    // Drawing tools, then the pen's colours (while Pen is the tool), the tools that place markings,
+    // Cuts, and Undo and Redo, in groups between thin rules.
+    const iconButton = (key: string, d: string, label: string, onClick: () => void, cls = '') => {
+      const b = this.button(key, '', onClick, cls);
+      b.append(icon(d));
+      b.setAttribute('aria-label', label);
+      b.title = label;
+      return b;
+    };
+    const toolButton = (t: ToolName) => iconButton(t, TOOL_ICONS[t], TOOLS[t].label, () => act.tool(t));
     const swatches = el('div', 'group swatches');
     for (const c of PEN_COLORS) {
       const b = this.button('color' + c, '', () => act.penColor(c), 'swatch');
@@ -117,23 +148,26 @@ export class Toolbar {
       b.setAttribute('aria-label', 'Pen colour');
       swatches.append(b);
     }
+    const symbols = this.button('symbols', '', act.symbols, 'symbols-tool');
+    symbols.setAttribute('aria-label', 'Symbols');
+    symbols.title = 'Symbols';
+    const cuts = this.button('cuts', '', act.toggleCuts, 'cuts-button');
+    cuts.append(icon(SCISSORS), el('span', 'label', 'Cuts'));
+    const rule = () => { const r = el('span', 'rule'); r.setAttribute('aria-hidden', 'true'); return r; };
+    const tools = el('div', 'group tools');
     tools.append(
-      swatches,
-      this.button('undo', 'Undo', act.undo),
-      this.button('redo', 'Redo', act.redo),
+      ...TOOL_NAMES.filter((t) => !placesMarkings(t)).map(toolButton), swatches, rule(),
+      ...TOOL_NAMES.filter(placesMarkings).map(toolButton), symbols, rule(),
+      cuts, rule(),
+      iconButton('undo', UNDO, 'Undo', act.undo), iconButton('redo', REDO, 'Redo', act.redo),
     );
 
-    const right = el('div', 'group');
-    const more = this.button('more', '⋯', act.more, 'more');
-    more.setAttribute('aria-label', reading === 'setlist' ? 'More for this setlist' : 'More');
+    const more = iconButton('more', DOTS, reading === 'setlist' ? 'More for this setlist' : 'More', act.more, 'more');
     more.setAttribute('aria-haspopup', 'menu');
-    right.append(
-      this.button('cuts', 'Cuts', act.toggleCuts),
-      more,
-      this.info,
-    );
+    const main = el('div', 'bar-main');
+    main.append(left, tools, more);
     this.symbolRow = new SymbolRow(act);
-    this.el.append(left, tools, right, this.symbolRow.el);
+    this.el.append(main, this.symbolRow.el);
   }
 
   private button(key: string, label: string, onClick: () => void, cls = ''): HTMLButtonElement {

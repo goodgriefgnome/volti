@@ -10,11 +10,17 @@
 .spread { position: absolute; inset: 0; transform-origin: 0 0; }
 
 .bar {
-  position: absolute; top: 0; left: 0; right: 0; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between;
+  position: absolute; top: 0; left: 0; right: 0; display: grid;
   background: var(--bar); color: var(--bar-fg);
   padding: max(8px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) 8px max(12px, env(safe-area-inset-left, 0px));
   transition: transform 160ms ease, opacity 160ms ease;
 }
+/* The one row: [back][title][page info] — tools — [⋯], with room on both sides of the tools. The title shortens before anything wraps. */
+.bar-main { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.bar-main > .left { flex: 0 1 auto; min-width: 0; flex-wrap: nowrap; }
+.bar-main > .tools { margin-inline: auto; flex: none; flex-wrap: nowrap; }
+.bar .rule { width: 1px; height: 24px; background: rgba(255, 255, 255, 0.22); margin-inline: 4px; }
+@media (max-width: 700px) { .bar-main { flex-wrap: wrap; } .bar-main > .tools { margin-inline: 0; flex: 0 1 auto; flex-wrap: wrap; } }
 .chrome-hidden .bar { transform: translateY(-100%); opacity: 0; pointer-events: none; }
 /* The back arrow: on the toolbar's Library button, and on its own at the top left while the toolbar is hidden. */
 .back-icon { width: 22px; height: 22px; display: block; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
@@ -34,12 +40,14 @@
 .turn-band.left { left: 0; }
 .turn-band.right { right: 0; }
 .chrome-hidden .turn-band { display: none; }
-.bar .group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
-.bar button { min-height: 40px; padding: 6px 12px; background: transparent; color: inherit; border-color: rgba(255, 255, 255, 0.22); }
-.bar button[aria-pressed="true"] { background: var(--bar-fg); color: #14161b; border-color: var(--bar-fg); }
-.bar .title { font: italic 1.05rem var(--font-brand); max-width: 32ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bar .page-info { font-size: 14px; font-variant-numeric: tabular-nums; opacity: 0.85; }
-.bar .symbol-row { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.bar .group { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; min-width: 0; }
+.bar button { min-height: 44px; min-width: 44px; padding: 6px 10px; background: transparent; color: inherit; border: 0; border-radius: 10px; }
+.bar button[aria-pressed="true"] { background: var(--bar-fg); color: #14161b; }
+.bar .tool-icon { width: 22px; height: 22px; display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.bar .cuts-button { display: flex; align-items: center; gap: 6px; }
+.bar .title { font: italic 1.05rem var(--font-brand); max-width: 32ch; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar .page-info { font-size: 14px; font-variant-numeric: tabular-nums; opacity: 0.85; white-space: nowrap; }
+.bar .symbol-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px calc(-1 * max(12px, env(safe-area-inset-right, 0px))) -8px calc(-1 * max(12px, env(safe-area-inset-left, 0px))); padding: 8px max(12px, env(safe-area-inset-right, 0px)) 8px max(12px, env(safe-area-inset-left, 0px)); background: rgba(255, 255, 255, 0.05); border-top: 1px solid rgba(255, 255, 255, 0.12); }
 .bar .symbol-row[hidden] { display: none; }
 .bar .symbol-group { width: 56px; padding: 4px; display: grid; place-items: center; }
 .menu .symbol-choice { display: inline-grid; place-items: center; width: 56px; min-height: 44px; padding: 4px; }
@@ -116,7 +124,7 @@
 .menu .title-row.dragging { opacity: 0.6; }
 .menu .row-icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .menu .grip .row-icon { stroke-width: 3; }
-.bar .title-button { display: flex; align-items: center; gap: 4px; border-color: transparent; }
+.bar .title-button { display: flex; align-items: center; gap: 4px; min-width: 0; }
 .bar .chevron-icon { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 /* The Symbols button before it has a symbol to show. */
 .bar .symbols-tool .pp { font: italic 700 1.1rem var(--font-brand, serif); }

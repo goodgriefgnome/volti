@@ -75,6 +75,8 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   is read: for a score, a named excerpt or a setlist. (Adding scores to a setlist and moving,
   changing and removing its entries are in the title menu, below, as are adding, changing and
   deleting a score's named excerpts.)
+- The reader's toolbar is one row: the back arrow, the title, the page info, the tools as icons
+  (**Pen**, **Highlight**, **Erase**, **Text**, **Symbols**), **Cuts**, **Undo**, **Redo** and **⋯**.
 - The title in the reader's toolbar opens a menu of what can be read next to what is read, the
   current one highlighted: in a setlist, its entries; in a score or a named excerpt, **Whole
   score** and the score's named excerpts. Tapping a row reads it. The menu has more:

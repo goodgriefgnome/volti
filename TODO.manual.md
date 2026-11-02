@@ -213,3 +213,7 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - Pen: three colours in the top row. Highlight and Erase: none.
   - Text or Symbols with nothing selected: Colour and Background are greyed out. Select a marking:
     they change it; **Default** gives it the default colour.
+- **The toolbar redesign: the look:** the toolbar matches the mocks in landscape (one row: back,
+  title with its chevron, page info, then the tools as icons between thin rules, **Cuts** with its
+  label, Undo and Redo, and ⋯); in portrait the title shortens before anything wraps. The second
+  row, for Text and Symbols, is a little lighter, with a hairline above.
