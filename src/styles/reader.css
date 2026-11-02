@@ -117,7 +117,11 @@
 .menu .menu-action { width: 44px; font-size: 22px; text-align: center; }
 .menu .title-list { display: grid; max-height: calc(var(--seen-height, 100vh) * 0.6); overflow: auto; }
 .menu .title-row { display: flex; align-items: center; border-radius: 8px; }
-.menu .title-row .go { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The title menu is as wide as its longest title needs, up to 90% of the page. A title longer than that scrolls sideways; the icons beside it stay in view. */
+.menu:has(.title-list) { max-width: 90vw; }
+.menu .title-row .go { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+.menu .title-row .go::-webkit-scrollbar { display: none; }
+.menu .title-row .grip, .menu .title-row .swap, .menu .title-row .bin { flex: none; }
 .menu .title-row.current { background: var(--accent-soft, var(--bg)); }
 .menu .title-row.current .go { font-weight: 600; }
 .menu .title-row .grip, .menu .title-row .swap, .menu .title-row .bin { width: 44px; padding: 0; display: grid; place-items: center; touch-action: none; }
