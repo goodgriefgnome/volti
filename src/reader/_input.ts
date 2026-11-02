@@ -3,7 +3,7 @@
 // is in tools/.
 
 import type { Point } from '../markings/model';
-import { isZoomed, pan, pinch, type Pt, type Zoom } from '../render/zoom';
+import { drag, isZoomed, pinch, type Pt, type Zoom } from '../render/zoom';
 import { closeOverlay, overlayOpen } from '../ui/overlay';
 import type { CutEditor } from './cuts/_editor';
 import { gestureForKey, isTap, turnFor, type Gesture } from './_gestures';
@@ -194,12 +194,12 @@ export class Input {
       const a = this.fingers.get(pz.ids[0]), b = this.fingers.get(pz.ids[1]);
       if (!a || !b) return;
       const c = this.stagePoint((a.x + b.x) / 2, (a.y + b.y) / 2);
-      host.setZoom(pinch(pz.start, pz.c0, pz.d0, c, Math.hypot(a.x - b.x, a.y - b.y), W, H));
+      host.setZoom(pinch(pz.start, pz.c0, pz.d0, c, Math.hypot(a.x - b.x, a.y - b.y), { top: 0, W, H }, 1));
       return;
     }
     const pn = this.panning;
     if (pn && pn.id === e.pointerId) {
-      host.setZoom(pan(pn.start, e.clientX - pn.x0, e.clientY - pn.y0, W, H));
+      host.setZoom(drag(pn.start, e.clientX - pn.x0, e.clientY - pn.y0, { top: 0, W, H }));
       return;
     }
 
