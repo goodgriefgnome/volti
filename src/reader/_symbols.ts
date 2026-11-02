@@ -1,11 +1,26 @@
 // The symbol library as the reader gets it, made from the starter the first time it is needed.
 
 import { BRAVURA, shapeWith } from '../fonts/fonts';
-import { symbolFrom, type LibrarySymbol, type SymbolLibrary } from '../markings/library';
+import { symbolFrom, symbolsOf, type LibrarySymbol, type SymbolLibrary } from '../markings/library';
 import { loadLibrary, saveGlyphs, saveLibrary } from '../markings/store';
 
 /** The starter library: fingerings 1 to 5, and pp to ff, all Bravura at scale 1. */
 const STARTER = [['', '', '', '', ''], ['', '', '', '', '', '']];
+
+/**
+ * The symbol the Symbols button shows and picks: the current symbol of `group` (-1 for the
+ * ad-hoc group); when that group is gone or empty, the first symbol of the first group with
+ * symbols; null when the library has none.
+ */
+export function lastSymbol(lib: SymbolLibrary, group: number, currents: readonly number[], adhocCurrent: number): { group: number; index: number } | null {
+  const own = symbolsOf(lib, group);
+  if (own.length) {
+    const at = group < 0 ? adhocCurrent : currents[group] ?? 0;
+    return { group, index: at < own.length ? at : 0 };
+  }
+  const first = [...lib.groups.keys(), -1].find((g) => symbolsOf(lib, g).length);
+  return first === undefined ? null : { group: first, index: 0 };
+}
 
 /** The library, if one has been made. */
 export const savedLibrary = (): Promise<SymbolLibrary | undefined> => loadLibrary();

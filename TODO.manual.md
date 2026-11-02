@@ -201,3 +201,11 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - **+** in a score: Add excerpt.
   - The ⋯ menu has no Add scores, Move up, Move down, Remove from setlist, Rename (of an excerpt)
     or Delete (of an excerpt). There is no **Excerpt** or **Excerpts** button.
+- **The toolbar redesign: Symbols as a tool:**
+  - Open a score: the Symbols button shows the first symbol of the first group. Tap it: it is the
+    tool, its group pressed in the second row. Tap it again: the tool is put away and the second
+    row goes.
+  - Pick *pp* in its group, put the tool away, tap Text, then Symbols: *pp* is the tool again, and
+    the button showed *pp* meanwhile.
+  - Delete *pp* in **Edit library…**: the button shows its group's first symbol.
+  - Close the reader and open it again: the button shows the first symbol of the first group.

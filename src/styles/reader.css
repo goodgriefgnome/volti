@@ -113,3 +113,6 @@
 .menu .grip .row-icon { stroke-width: 3; }
 .bar .title-button { display: flex; align-items: center; gap: 4px; border-color: transparent; }
 .bar .chevron-icon { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+/* The Symbols button before it has a symbol to show. */
+.bar .symbols-tool .pp { font: italic 700 1.1rem var(--font-brand, serif); }
+.bar .symbols-tool canvas { display: block; }

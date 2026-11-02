@@ -1,9 +1,11 @@
 // The reader's toolbar: building its buttons and showing the reader's state on them. The buttons
 // call back into the reader; what they do is not here.
 
+import type { LibrarySymbol } from '../markings/library';
 import { markColors } from '../markings/placed';
 import { PEN_COLORS } from '../markings/stroke';
 import { el } from '../ui/dom';
+import { symbolPicture } from './_symbol-picture';
 import { SymbolRow, type BackgroundsView, type SymbolRowActions } from './_symbol-row';
 import { TOOL_NAMES, TOOLS, type ToolName } from './tools/_tools';
 
@@ -56,7 +58,7 @@ export interface ToolbarActions extends SymbolRowActions {
   more(): void;
   /** Tapping the active tool again puts it away. */
   tool(t: ToolName): void;
-  /** Show or hide the symbol groups. */
+  /** The Symbols tool: the last symbol picked becomes the tool, or the tool is put away. */
   symbols(): void;
   penColor(c: string): void;
   /** The Default swatch: the selected marking goes back to the default colour. */
@@ -72,8 +74,8 @@ export interface ToolbarView {
   /** The score is open; a score that can't be opened can't be written on or edited. */
   open: boolean;
   tool: ToolChoice;
-  /** The symbol groups are shown. */
-  groupsShown: boolean;
+  /** The symbol the Symbols button shows; undefined: a generic pp. */
+  symbol?: LibrarySymbol;
   /** The selected marking's own colour; undefined when it has none, or none is selected. */
   markColor?: string;
   /** A placed marking is selected. */
@@ -96,6 +98,8 @@ export class Toolbar {
   /** The second row, under the rest: the symbol groups. */
   readonly symbolRow: SymbolRow;
   private buttons: Record<string, HTMLButtonElement> = {};
+  /** What the Symbols button shows now, to draw it again only when it changes. */
+  private symbolShown = '';
 
   /** `reading` is what the reader reads, which decides the buttons on the right. */
   constructor(reading: 'score' | 'excerpt' | 'setlist', act: ToolbarActions) {
@@ -110,7 +114,9 @@ export class Toolbar {
     left.append(back, this.titleButton);
 
     const tools = el('div', 'group');
-    tools.append(...TOOL_NAMES.map((t) => this.button(t, TOOLS[t].label, () => act.tool(t))), this.button('symbols', 'Symbols', act.symbols));
+    tools.append(...TOOL_NAMES.map((t) => this.button(t, TOOLS[t].label, () => act.tool(t))), this.button('symbols', '', act.symbols, 'symbols-tool'));
+    this.buttons.symbols.setAttribute('aria-label', 'Symbols');
+    this.buttons.symbols.title = 'Symbols';
     const swatches = el('div', 'group swatches');
     const plain = this.button('colorDefault', '', act.defaultColor, 'swatch swatch-default');
     plain.style.setProperty('--swatch', markColors().color);
@@ -153,12 +159,22 @@ export class Toolbar {
   /** A toolbar button, for a menu to open below it. */
   anchor(key: 'title' | 'more'): HTMLElement { return this.buttons[key]; }
 
+  /** The Symbols button's picture: the symbol, drawn in the button's colour, or a generic pp. */
+  private symbolButton(sym: LibrarySymbol | undefined, pressed: boolean) {
+    const b = this.buttons.symbols, key = `${sym?.font}|${sym?.text}|${sym?.scale}|${pressed}`;
+    if (key === this.symbolShown) return;
+    this.symbolShown = key;
+    if (!sym) { b.replaceChildren(el('span', 'pp', 'pp')); return; }
+    b.replaceChildren(symbolPicture(sym, getComputedStyle(b).color, 28));
+  }
+
   sync(v: ToolbarView) {
     const pressed = (k: string, on: boolean) => this.buttons[k].setAttribute('aria-pressed', String(on));
     for (const t of TOOL_NAMES) pressed(t, v.tool === t);
     pressed('cuts', v.cuts);
-    pressed('symbols', v.groupsShown);
-    this.symbolRow.el.hidden = !(v.groupsShown || placesMarkings(v.tool));
+    pressed('symbols', v.tool === 'symbol');
+    this.symbolRow.el.hidden = !placesMarkings(v.tool);
+    this.symbolButton(v.symbol, v.tool === 'symbol');
     // The default colour, as it may have been changed since the toolbar was made.
     this.buttons.colorDefault.style.setProperty('--swatch', markColors().color);
     this.buttons.colorDefault.hidden = !placesMarkings(v.tool);

@@ -96,6 +96,9 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
 - **Pen**, **Highlight** and **Erase** work with the stylus or one finger; two fingers still zoom
   and drag. A palm resting on the screen is ignored while the stylus writes. The stylus eraser end
   or button erases too.
+- **Symbols** in the toolbar shows the last symbol picked (at first, the first of the first group)
+  and makes it the tool; tap it again to put the tool away. With it, the second row has a button
+  for each group of symbols (press and hold to list its symbols), **+** and **Edit library…**.
 - **Cuts** shows the tabs and shading with which you change what is played and in what order, on the
   pages themselves (it doesn't move the pages; tap it again to hide them). A
   score's pages are made of cuts: bands of the PDF's pages (its *original pages*), stacked in the
