@@ -75,6 +75,9 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   is read: for a score, a named excerpt or a setlist, and in a setlist, for the entry being read
   too (Move up, Move down, Remove from setlist). Removing the entry or deleting the named excerpt
   being read goes on to the next one; with none left, back to the library.
+- The title in the reader's toolbar opens a menu of what can be read next to what is read, the
+  current one highlighted: in a setlist, its entries; in a score or a named excerpt, **Whole
+  score** and the score's named excerpts. Tapping a row reads it.
 - Showing the toolbar doesn't move the pages: it covers the top of them. Drag (one finger, with no
   tool in use) or pinch (two fingers) to bring the top out from under it, or to zoom in or out;
   the pages can't be moved so that less of them shows, and can't be made smaller than they fit

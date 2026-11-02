@@ -235,7 +235,7 @@ class Reader {
     this.detail = new Detail(view);
     this.toolbar = new Toolbar(what.kind, {
       close: () => history.back(),
-      scores: () => this.menus.scores(),
+      titleMenu: () => this.menus.titleMenu(),
       excerpt: () => void this.withAccess(() => this.menus.excerpt()),
       excerpts: () => this.menus.excerpts(),
       more: () => void this.menus.more(),
@@ -271,6 +271,12 @@ class Reader {
       say: (t, action) => this.toast.say(t, action),
       library: this.library,
       relisted: (entryId, at) => this.relisted(entryId, at),
+      readWhole: () => {
+        this.reading.readWhole();
+        this.frames = this.framesFor(this.k);
+        this.frame = 0;
+        void this.show();
+      },
       playExcerpt: (excerpt) => {
         this.reading.play(this.k, excerpt);
         this.frames = this.framesFor(this.k);

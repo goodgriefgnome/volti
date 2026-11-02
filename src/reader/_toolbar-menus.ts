@@ -1,4 +1,4 @@
-// The reader toolbar's menus and dialogs: the setlist's scores, the ⋯ menu of what is read (as its
+// The reader toolbar's menus and dialogs: the ⋯ menu of what is read (as its
 // ⋯ menu in the library), exporting, the score's named excerpts, and choosing the excerpt an entry
 // plays. What they change is the
 // Reading's, and the reader shows and saves it.
@@ -28,6 +28,7 @@ import type { OpenScore } from './_open-scores';
 import type { Reading } from './_reading';
 import type { Saver } from './_saver';
 import type { Toolbar } from './_toolbar';
+import { showTitleMenu } from './_title-menu';
 
 /** What the menus need from the reader. */
 export interface MenusHost {
@@ -42,6 +43,8 @@ export interface MenusHost {
   open(k: number): OpenScore | undefined;
   /** Go to item k: its first screen, or the screen holding a cut. */
   goTo(k: number, at?: string): void;
+  /** In a score's own reader: read the whole score, after an excerpt of it. */
+  readWhole(): void;
   /** What the current item plays has changed: show it from its start. */
   replay(): void;
   /** The current score's names changed: show its title again. */
@@ -69,22 +72,8 @@ export class ReaderMenus {
 
   private get current() { return this.h.open(this.h.k()); }
 
-  /** In a setlist: its scores, to go to one. */
-  scores() {
-    const { reading } = this.h;
-    showMenu(this.h.toolbar.anchor('scores'), reading.setlist?.title ?? 'Scores', reading.items.map((it, k) => ({
-      label: `${k + 1}. ${it.title}${this.itemSuffix(k)}`,
-      checked: k === this.h.k(),
-      run: () => this.h.goTo(k),
-    })));
-  }
-
-  /** " · Kyrie" or " · Pages 2–3" for an entry that plays an excerpt of a score that is open; otherwise nothing. */
-  private itemSuffix(k: number): string {
-    const cur = this.h.open(k);
-    const label = cur && this.h.reading.excerptName(k, cur.state.score, cur.aspects);
-    return label ? ` · ${label}` : '';
-  }
+  /** The menu under the title, to go to another entry or excerpt. */
+  titleMenu() { showTitleMenu(this.h); }
 
   /**
    * The menu of what is read, with the items of its ⋯ menu in the library: the score's, the named

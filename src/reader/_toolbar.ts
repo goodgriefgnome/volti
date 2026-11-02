@@ -19,6 +19,18 @@ export function backIcon(): SVGSVGElement {
   return svg;
 }
 
+/** The chevron after the title, which opens the title menu. */
+export function chevronIcon(): SVGSVGElement {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.classList.add('chevron-icon');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M7 10l5 5 5-5');
+  svg.append(path);
+  return svg;
+}
+
 /** The solid triangle in a page-turn band, pointing the way the band turns. */
 export function turnIcon(dir: 'prev' | 'next'): SVGSVGElement {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -38,8 +50,8 @@ export const placesMarkings = (tool: ToolChoice) => tool === 'symbol' || tool ==
 
 export interface ToolbarActions extends SymbolRowActions {
   close(): void;
-  /** In a setlist: the menu of its scores. */
-  scores(): void;
+  /** The menu under the title: what can be read next to what is read. */
+  titleMenu(): void;
   /** In a setlist: choosing the excerpt of this score; in a named excerpt: changing its cuts. */
   excerpt(): void;
   /** In a score's own reader: the list of its named excerpts. */
@@ -82,6 +94,8 @@ export interface ToolbarView {
 export class Toolbar {
   readonly el = el('div', 'bar');
   readonly title = el('span', 'title');
+  /** The title as a button, with a chevron, to open the title menu. */
+  readonly titleButton: HTMLButtonElement;
   readonly info = el('span', 'page-info');
   /** The second row, under the rest: the symbol groups. */
   readonly symbolRow: SymbolRow;
@@ -94,7 +108,10 @@ export class Toolbar {
     back.append(backIcon());
     back.setAttribute('aria-label', 'Library');
     back.title = 'Library';
-    left.append(back, this.title);
+    this.titleButton = this.button('title', '', act.titleMenu, 'title-button');
+    this.titleButton.setAttribute('aria-haspopup', 'menu');
+    this.titleButton.append(this.title, chevronIcon());
+    left.append(back, this.titleButton);
 
     const tools = el('div', 'group');
     tools.append(...TOOL_NAMES.map((t) => this.button(t, TOOLS[t].label, () => act.tool(t))), this.button('symbols', 'Symbols', act.symbols));
@@ -117,10 +134,6 @@ export class Toolbar {
     );
 
     const right = el('div', 'group');
-    if (reading === 'setlist') {
-      right.append(this.button('scores', 'Scores', act.scores));
-      this.buttons.scores.setAttribute('aria-haspopup', 'menu');
-    }
     if (reading === 'score') right.append(this.button('excerpts', 'Excerpts', act.excerpts));
     else right.append(this.button('excerpt', 'Excerpt', act.excerpt));
     const more = this.button('more', '⋯', act.more, 'more');
@@ -144,7 +157,7 @@ export class Toolbar {
   }
 
   /** A toolbar button, for a menu to open below it. */
-  anchor(key: 'scores' | 'more'): HTMLElement { return this.buttons[key]; }
+  anchor(key: 'title' | 'more'): HTMLElement { return this.buttons[key]; }
 
   sync(v: ToolbarView) {
     const pressed = (k: string, on: boolean) => this.buttons[k].setAttribute('aria-pressed', String(on));

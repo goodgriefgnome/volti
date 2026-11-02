@@ -72,6 +72,16 @@ describe('Reading', () => {
     expect(r.setlists).toEqual([set]);
   });
 
+  it('reads the whole score again after an excerpt', () => {
+    const { b } = mass();
+    const r = new Reading([item], { kind: 'score' }, []);
+    r.play(0, { last: b.id });
+    expect(r.what.kind).toBe('excerpt');
+    r.readWhole();
+    expect(r.what.kind).toBe('score');
+    expect(r.excerpt(0)).toBeUndefined();
+  });
+
   it('plays another excerpt: the entry, in a setlist; the excerpt read, otherwise', () => {
     const { b } = mass();
     const e = newEntry('p'), set: Setlist = { ...newSetlist('Spring'), entries: [e] };

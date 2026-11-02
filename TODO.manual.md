@@ -183,3 +183,8 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - With Pen on and the cuts showing: drawing works; a press on a tab drags the tab.
   - Remove a cut with markings, then press and hold: **Insert** lists it, and has **Delete archived
     cuts…**. There is no **Archived** on the toolbar.
+- **The toolbar redesign: the title menu, for getting around:**
+  - In a setlist, tap the title: its entries, the current one highlighted. Tap another: it opens.
+  - In a score: **Whole score** highlighted, then its excerpts. Tap one: it reads that excerpt; tap
+    the title again: that excerpt is highlighted; **Whole score** goes back to the whole score.
+  - There is no **Scores** button.

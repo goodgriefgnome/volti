@@ -80,6 +80,11 @@ export class Reading {
     else this.what = { kind: 'excerpt', excerpt: ends(excerpt) };
   }
 
+  /** In a score's own reader: read the whole score, after an excerpt of it. */
+  readWhole() {
+    if (this.what.kind !== 'setlist') this.what = { kind: 'score' };
+  }
+
   /** Add what is read (a score, or the excerpt read) to the end of `setlist`, which may be new. */
   addTo(setlist: Setlist) {
     this.setlists = withSetlist(this.setlists, addEntries(setlist, [{ scoreId: this.items[0].scoreId, excerpt: this.excerpt(0) }]));
