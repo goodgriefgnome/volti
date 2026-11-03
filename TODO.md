@@ -68,8 +68,8 @@ scores.
     on a scanned page that blocks frames while the finger moves. The loupe already shows the
     on-screen music scaled up until a region is ready (`show`, the `else` branch), so: ask for
     a region only once the finger has held still for 150 ms (`show` starts a timer, each `show`
-    restarts it, `end` clears it), and at priority `ahead`, not `now`. A region already being
-    drawn is aborted when the finger moves on past its edge, as now.
+    restarts it, `end` clears it), and at priority `ahead`, not `now`. When the finger moves
+    again, abort a region still being drawn (`asking`), so it doesn't hold up the frames.
   - Check on the tablet, on a scanned score and a vector one: the loupe is there as soon as the
     finger touches a symbol or empty music with Symbols, it follows the finger smoothly, and the
     music in it turns sharp shortly after the finger stops.
