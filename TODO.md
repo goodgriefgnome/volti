@@ -13,6 +13,21 @@ scores.
 
 ## Work for the immediate future
 
+- **The version in the library's ⋯ menu**: nothing shows which version is running. As the service
+  worker serves the bundle it cached until an update takes over (`src/updates.ts`), a commit
+  stamped into the bundle at build time is the one running, not the newest on GitHub.
+  - In `vite.config.ts`, work out the version as the build starts: the short hash and the date of
+    the commit checked out (`git log -1 --format="%h · %cs"`, with `execSync` from
+    `node:child_process`), and ` (dev)` after it when `git status --porcelain` lists changes; if
+    `git` fails, `unknown`. Hand it to the code with `define: { __VERSION__: JSON.stringify(v) }`,
+    and declare it in `src/types/version.d.ts` (`declare const __VERSION__: string;`, with a
+    comment saying where it is set). The deploy workflow's checkout has the commit, so it works
+    there as it is.
+  - In `FolderBanner.render` (`src/library/_folder-banner.ts`), add a last line to the ⋯ menu,
+    after the storage view, as plain text like "Scores folder: …": `Version 6e3ef34 · 2026-11-03`.
+    Mention it in the module's opening comment.
+  - Check on the tablet: after an update takes over, the menu shows the commit just pushed.
+
 ## Confirmed features which require more thought
 
 - **The cache giving room back when the origin runs short of quota** [needs thought]: pinned
