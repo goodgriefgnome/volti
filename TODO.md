@@ -13,7 +13,7 @@ scores.
 
 ## Work for the immediate future
 
-- **If the loupe is still slow on a page with much ink**, after the fix below was tried on the
+- **If the loupe is still slow on a page with much ink**, after the fix for it was tried on the
   tablet (see **The loupe stays smooth** in `TODO.manual.md`): draw only the markings near the
   loupe in `Loupe.drawInk` (those whose extent meets the loupe's area), not the whole frame's.
 
