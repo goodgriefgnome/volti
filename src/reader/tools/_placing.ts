@@ -9,7 +9,7 @@ import { replaceMarking, setSymbolSize, textResized } from '../../scores/edits';
 import type { State } from '../../scores/model';
 import { centreOnFrame, extentOnFrame, movedTo, placedAt, resizedFrom, type Selected } from '../../scores/placing';
 import { isTap } from '../_gestures';
-import { loupeTarget } from '../_loupe';
+import { loupeTarget, type SharpInk } from '../_loupe';
 import { slotUnder, type FrameSlot } from '../_spread';
 import type { Tool, ToolHost } from './_tool';
 
@@ -118,12 +118,12 @@ export function placingTool(
       // The loupe, while a marking is dragged: begun with the first ink box it is shown for.
       let lens = false;
       /** Show the loupe on an ink box (frame widths on slot `s`), with the finger at `client`. */
-      const magnify = (s: FrameSlot, ext: readonly number[] | undefined, client: { x: number; y: number }) => {
+      const magnify = (s: FrameSlot, ext: readonly number[] | undefined, client: { x: number; y: number }, ink: SharpInk) => {
         if (!ext) return;
         const r = s.box.getBoundingClientRect(); // includes the zoom
-        const ink = { x0: r.left + ext[0] * r.width, y0: r.top + ext[1] * r.width, x1: r.left + ext[2] * r.width, y1: r.top + ext[3] * r.width };
-        if (!lens) { host.loupe().begin(ink.y1 - ink.y0); lens = true; }
-        host.loupe().show(host.slots(), loupeTarget(ink), client);
+        const box = { x0: r.left + ext[0] * r.width, y0: r.top + ext[1] * r.width, x1: r.left + ext[2] * r.width, y1: r.top + ext[3] * r.width };
+        if (!lens) { host.loupe().begin(box.y1 - box.y0); lens = true; }
+        host.loupe().show(host.slots(), loupeTarget(box), client, ink);
       };
       const unmagnify = () => { if (lens) host.loupe().end(); lens = false; };
 
@@ -138,7 +138,7 @@ export function placingTool(
           over = now;
         }
         const e = markExtent(mark);
-        magnify(now.slot, e && [now.at[0] + e[0] * mark.size, now.at[1] + e[1] * mark.size, now.at[0] + e[2] * mark.size, now.at[1] + e[3] * mark.size], client);
+        magnify(now.slot, e && [now.at[0] + e[0] * mark.size, now.at[1] + e[1] * mark.size, now.at[0] + e[2] * mark.size, now.at[1] + e[3] * mark.size], client, { ink: host.state().ink, extra: { slot: now.slot, mark } });
       };
 
       /** Forget the drag: show the ink as it is, and the box again. */
@@ -161,7 +161,7 @@ export function placingTool(
             const r = dragged(grab);
             host.paintState(slot, r.state);
             const item = itemOf(r.selected.cut);
-            magnify(slot, item && extentOnFrame(item, r.selected.mark, aspects[item.cut.page]), client);
+            magnify(slot, item && extentOnFrame(item, r.selected.mark, aspects[item.cut.page]), client, { ink: r.state.ink });
           }
         },
         end(cancelled) {

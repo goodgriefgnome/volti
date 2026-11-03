@@ -175,7 +175,7 @@ class Reader {
   private selected: Selected | undefined;
   private selection = new SelectionBox(() => this.deleteSelected());
   private typing = new TypingField(this.stage);
-  private loupe = new Loupe(this.root);
+  private loupe: Loupe;
   private undos = new History<Undo>();
   private saver: Saver;
   private editor: CutEditor;
@@ -234,6 +234,7 @@ class Reader {
       changed: () => this.syncBar(),
     });
     this.detail = new Detail(view);
+    this.loupe = new Loupe(this.root, view);
     this.toolbar = new Toolbar(what.kind, {
       close: () => history.back(),
       titleMenu: () => this.menus.titleMenu(),

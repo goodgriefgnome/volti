@@ -7,6 +7,8 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - Placing, moving and resizing a symbol: a round loupe above the finger, the symbol about 48 px
     tall in it, centred on the symbol; near the toolbar it moves beside the finger.
   - Zoomed far in, the loupe shows the symbol at its size on screen, not smaller.
+  - (Stage 9) The music in the loupe is sharp after a moment, and stays so as the finger moves
+    on, also across to the facing page; the ink in it (the symbol being dragged) is sharp at once.
 - **Placing by dragging** (marking tools, stage 7):
   - Press on empty music with Symbols: the symbol shows under the finger; drag it onto the facing
     page and let go: placed there. Drag it off the pages (onto the grey stage) and let go: nothing.
