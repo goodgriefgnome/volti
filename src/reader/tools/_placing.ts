@@ -223,7 +223,7 @@ export function placingTool(
           }
           frame ||= requestAnimationFrame(draw);
         },
-        holds: () => !!grab || !!over,
+        holds: () => !!grab,
         end(cancelled) {
           cancelFrame();
           if (cancelled) { drop(); return; }

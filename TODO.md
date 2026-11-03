@@ -13,22 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **A pinch while placing a symbol zooms, and places nothing**: a finger on empty music with a
-  placing tool shows the ghost at once, and while it shows the pointer `holds`
-  (`reader/tools/_placing.ts`: `!!grab || !!over`), so `reader/_input.ts` (`onDown`, where a
-  second finger comes down) ignores the second finger and no pinch starts: zooming means leaving
-  the tool. Make `holds` true only while a placed marking is moved or resized (`() => !!grab`).
-  A second finger while placing then takes the pinch's path as it is: `dropActive()` calls the
-  pointer's `drop()`, which hides the loupe and the ghost and places nothing, and the pinch
-  starts. A marking being moved or resized still ignores the second finger, so a pinch whose
-  first finger lands on a marking or the selected one's box doesn't zoom. Change the comments on
-  `holds` (`reader/tools/_tool.ts`) and in `onDown` to match. With a pen nothing changes: while it
-  is down, fingers are taken for a palm.
-  - Check on the tablet: with Symbols chosen, put a finger on empty music (the ghost and loupe
-    show), then a second: the ghost and loupe go, the pinch zooms, nothing is placed, and Symbols
-    is still chosen. Press a placed marking and drag it, then add a second finger: it keeps
-    moving, and nothing zooms.
-
 ## Confirmed features which require more thought
 
 - **The cache giving room back when the origin runs short of quota** [needs thought]: pinned

@@ -54,7 +54,7 @@ export interface ToolPointer {
   moved?(): void;
   /** The pointer lifted, or the system cancelled it (`cancelled`: it decided this was a palm). */
   end(cancelled: boolean): void;
-  /** Whether it is dragging or showing a marking, which a second finger must not turn into a pinch. */
+  /** Whether it is moving or resizing a placed marking, which a second finger must not turn into a pinch. */
   holds?(): boolean;
   /** Forget it: a palm, or a finger that turned out to start a pinch. */
   drop(): void;

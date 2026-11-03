@@ -93,10 +93,10 @@ describe('placingTool: the press', () => {
     tool.start(host, slot, [0.1, y, 0.5]);
     expect(calls).toEqual([]);
   });
-  it('holds a second finger off while a marking is pressed or a ghost shows, not on a selected press on empty music', () => {
+  it('holds a second finger off while a marking is pressed, not while a ghost shows or on a selected press on empty music', () => {
     expect(setup().tool.start(setup().host, slot, [0.5, y, 0.5]).holds?.()).toBe(true);
     const g = setup();
-    expect(g.tool.start(g.host, slot, [0.1, y, 0.5]).holds?.()).toBe(true);
+    expect(g.tool.start(g.host, slot, [0.1, y, 0.5]).holds?.()).toBe(false);
     const s = setup(m);
     expect(s.tool.start(s.host, slot, [0.1, y, 0.5]).holds?.()).toBe(false);
   });

@@ -364,4 +364,8 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   the box's line is as dark and as thick where it crosses a handle as anywhere else, and runs
   through each disc's middle; the handles are at most 8 px in radius, and resize only from the
   disc that shows.
+- **A pinch while placing a symbol zooms, and places nothing:** with Symbols chosen, put a finger
+  on empty music (the ghost and loupe show), then a second: the ghost and loupe go, the pinch
+  zooms, nothing is placed, and Symbols is still chosen. Press a placed marking and drag it, then
+  add a second finger: it keeps moving, and nothing zooms.
 
