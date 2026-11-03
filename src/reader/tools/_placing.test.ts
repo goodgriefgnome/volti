@@ -4,7 +4,7 @@ import { addGlyph } from '../../markings/glyphs';
 import { pack } from '../../scores/frames';
 import { A4, aspects, cut, state } from '../../scores/testing';
 import type { FrameSlot } from '../_spread';
-import { _tapAction, placingTool, pressesMarking } from './_placing';
+import { _lifted, _tapAction, placingTool, pressesMarking } from './_placing';
 import type { ToolHost } from './_tool';
 
 const mark = (text: string): PlacedMark => ({ kind: 'symbol', text, font: 'f', glyphs: [], at: [0.5, 0.5], size: 0.05 });
@@ -18,6 +18,15 @@ describe('_tapAction', () => {
   });
   it('selects a marking when nothing is selected', () => expect(_tapAction(undefined, a)).toBe('select'));
   it('places on empty music when nothing is selected', () => expect(_tapAction(undefined, undefined)).toBe('place'));
+});
+
+describe('_lifted', () => {
+  it('only taps when the tap moved nothing', () => expect(_lifted(false, true)).toBe('tap'));
+  it('keeps where a tap moved the marking, then taps', () => expect(_lifted(true, true)).toBe('move-then-tap'));
+  it('moves, however small, when it was not a tap', () => {
+    expect(_lifted(true, false)).toBe('move');
+    expect(_lifted(false, false)).toBe('move');
+  });
 });
 
 describe('pressesMarking', () => {
@@ -75,5 +84,12 @@ describe('placingTool: the press', () => {
     const { calls, host, tool } = setup(m);
     tool.start(host, slot, [0.1, y, 0.5]);
     expect(calls).toEqual([]);
+  });
+  it('holds a second finger off while a marking is pressed or a ghost shows, not on a selected press on empty music', () => {
+    expect(setup().tool.start(setup().host, slot, [0.5, y, 0.5]).holds?.()).toBe(true);
+    const g = setup();
+    expect(g.tool.start(g.host, slot, [0.1, y, 0.5]).holds?.()).toBe(true);
+    const s = setup(m);
+    expect(s.tool.start(s.host, slot, [0.1, y, 0.5]).holds?.()).toBe(false);
   });
 });

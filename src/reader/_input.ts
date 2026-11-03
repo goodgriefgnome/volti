@@ -141,6 +141,8 @@ export class Input {
       if (this.fingers.size >= 2) {
         // A second finger: this is a pinch, not writing, a tap or panning. With the toolbar hidden,
         // only when the first went down in the middle, where it didn't turn: the pinch shows the toolbar.
+        // A marking being dragged or placed stays as it is: the second finger is ignored.
+        if (this.active?.use.holds?.()) { this.ignored.add(e.pointerId); return; }
         const fromMiddle = !!this.gesture && this.fingers.has(this.gesture.id);
         this.dropActive();
         host.editor.cancel();

@@ -338,3 +338,9 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   title with its chevron, page info, then the tools as icons between thin rules, **Cuts** with its
   label, Undo and Redo, and ⋯); in portrait the title shortens before anything wraps. The second
   row, for Text and Symbols, is a little lighter, with a hairline above.
+- **Dragging a marking starts at once:**
+  - Press a placed symbol and move: it follows the finger from the first pixel, not after a gap.
+  - A quick tap on the selected symbol cycles it; a quick nudge within 12 px keeps the nudge, then
+    cycles (two undo steps). A slow small nudge (over 400 ms) only moves it.
+  - A quick tap on empty music with Symbols places where the ghost was when the finger lifted.
+  - A second finger during a drag, or while the ghost shows, doesn't zoom; with a pen stroke it still does.

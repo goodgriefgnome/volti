@@ -61,7 +61,17 @@ export function pressesMarking(host: ToolHost, slot: FrameSlot, press: Point): b
   return p[0] >= e[0] - reach && p[0] <= e[2] + reach && p[1] >= e[1] - reach && p[1] <= e[3] + reach;
 }
 
-/** What a pointer that has gone down is doing, once it moves far enough not to be a tap. */
+/**
+ * What lifting after a press on a marking does: `moved` is whether the finger ended anywhere but
+ * where it went down, `tap` whether the press qualifies as a tap (quick, and within the tap
+ * distance). A tap keeps what moving it did and then acts; a slower press is only a move, however
+ * small; a tap that moved nothing is only the tap.
+ */
+export function _lifted(moved: boolean, tap: boolean): 'tap' | 'move-then-tap' | 'move' {
+  return !tap ? 'move' : moved ? 'move-then-tap' : 'tap';
+}
+
+/** What a pointer that has gone down is doing: with a grab, it moves or resizes a marking from the press. */
 type Grab =
   | { kind: 'move'; from: Selected; centre: readonly [number, number] }
   | { kind: 'resize'; from: Selected; corner: 0 | 1 | 2 | 3; ext: [number, number, number, number]; centre: readonly [number, number] };
@@ -107,7 +117,8 @@ export function placingTool(
       if (!grab && sel) host.select(undefined);
 
       let last: Point = p0;
-      let dragging = false;
+      // A press on a marking moves or resizes it from the first pixel.
+      const dragging = !!grab;
       // A press on empty music that has moved on: the slot and point showing the ghost.
       let placing = false;
       let over: { slot: FrameSlot; at: [number, number] } | undefined;
@@ -120,12 +131,19 @@ export function placingTool(
         return movedTo(host.state(), slot.frame, g.from, r.at, aspects, r.size);
       };
 
-      const tap = () => {
+      /** What a tap does; `target` is the marking it was on as it is now, if the press moved it. */
+      const tap = (target?: Selected) => {
+        const on = target ?? (hit && { cut: hit.cut.id, mark: hit.mark });
         switch (_tapAction(sel?.mark, hit?.mark)) {
           case 'deselect': host.select(undefined); break;
-          case 'select': host.select({ cut: hit!.cut.id, mark: hit!.mark }); break;
-          case 'again': if (hit!.mark.kind === 'text') host.editText(sel!); else cycle(host, hit!.cut.id, hit!.mark); break;
-          case 'place': place(host, slot, at0); break;
+          case 'select': host.select(on!); break;
+          case 'again': if (on!.mark.kind === 'text') host.editText(on!); else cycle(host, on!.cut, on!.mark); break;
+          case 'place': {
+            // Where the ghost was when the finger lifted, so what was shown is what is placed.
+            const under = slotUnder(host.slots(), slot, [last[0], last[1]]);
+            if (under) place(host, under.slot, under.at);
+            break;
+          }
         }
       };
 
@@ -180,7 +198,7 @@ export function placingTool(
       };
       const cancelFrame = () => { cancelAnimationFrame(frame); frame = 0; };
 
-      // The loupe is there from the press, on a placed marking or (with nothing selected) on empty music; the placing or moving itself starts only past the tap distance.
+      // The loupe is there from the press, on a placed marking or (with nothing selected) on empty music; a marking moves from the first pixel, a ghost is placed only past the tap distance.
       {
         const b = slot.box.getBoundingClientRect(); // includes the zoom
         client = { x: b.left + p0[0] * b.width, y: b.top + p0[1] * b.width };
@@ -194,15 +212,13 @@ export function placingTool(
         move(p, c) {
           last = p;
           client = c;
-          if (!grab) {
-            if (!placing && moved()) placing = true;
-            if (!placing) return;
-          } else {
-            if (!dragging && moved()) dragging = true;
-            if (!dragging) return;
+          if (!grab && !placing) {
+            if (!moved()) return;
+            placing = true;
           }
           frame ||= requestAnimationFrame(draw);
         },
+        holds: () => !!grab || !!over,
         end(cancelled) {
           cancelFrame();
           if (cancelled) { drop(); return; }
@@ -213,13 +229,17 @@ export function placingTool(
             if (under) place(host, under.slot, under.at);
             return;
           }
-          if (!dragging) {
+          const ms = performance.now() - t0;
+          const tapped = isTap({ x0: p0[0] * px, y0: p0[1] * px, x1: last[0] * px, y1: last[1] * px, ms });
+          if (!grab) {
             // Hide what the press showed.
             drop();
-            if (isTap({ x0: p0[0] * px, y0: p0[1] * px, x1: last[0] * px, y1: last[1] * px, ms: performance.now() - t0 })) tap();
+            if (tapped) tap();
             return;
           }
-          const g = grab!, r = dragged(g);
+          const g = grab, how = _lifted(last[0] !== p0[0] || last[1] !== p0[1], tapped);
+          if (how === 'tap') { drop(); tap(); return; }
+          const r = dragged(g);
           unmagnify();
           let state: State = r.state;
           if (g.kind === 'resize') {
@@ -230,6 +250,7 @@ export function placingTool(
           }
           host.commit(state, r.selected.cut);
           host.select(r.selected);
+          if (how === 'move-then-tap') tap(r.selected);
         },
         drop() { cancelFrame(); drop(); },
       };
