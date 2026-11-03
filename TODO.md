@@ -41,9 +41,11 @@ scores.
 - **With a marking selected, a tap on another marking selects that one**: today it only
   deselects (`_tapAction` in `reader/tools/_placing.ts`: with something selected, any hit but the
   selected marking gives `'deselect'`). Make a hit on another marking give `'select'`; a tap on
-  empty music still only deselects. Change the test in `reader/tools/_placing.test.ts`, and the
-  spec's line under "Selecting" (`docs/marking-tools-spec.md`: "a tap on another marking doesn't
-  select that one").
+  empty music still only deselects. Change the test in `reader/tools/_placing.test.ts`. What
+  selecting is then, with Text or Symbols as the tool: placing doesn't select; with a marking
+  selected, a tap on empty music only deselects, a tap on another marking selects that one, and a
+  tap on the selected one goes again (a symbol to the next in its group, text to editing); with
+  nothing selected, a tap on a marking selects it.
 - **With no tool, a tap on a placed marking selects it**: today it hides the toolbar. With no tool
   a press goes to panning (`reader/_input.ts`, `onDown`, the last line), and a selection is
   dropped whenever the tool doesn't place markings (`reader/reader.ts`, `refreshSelection` and
@@ -58,12 +60,12 @@ scores.
   - With a marking selected, a tap on empty music only deselects, and doesn't hide the toolbar
     (the panning branch of `onUp`).
   - Pen, Highlight and Erase are unchanged: a tap with them still draws or erases.
-  - Update the spec's "Selecting" section to say it holds with no tool too.
+  - The rules are then the same with no tool as with Text or Symbols, except that a tap on empty
+    music with nothing selected hides the toolbar instead of placing.
 - **Picking a symbol in the Symbols panel keeps the panel open**: `reader/_symbol-panel.ts`, the
   `up` handler (`if (!dragged) { closeOverlay(); host.pick(from); … }`), closes it. Drop the
   `closeOverlay()` and draw the library again (`drawLibrary()`) so the new tool's symbol is lit.
-  A tap outside still closes it. The spec says the panel closes (`docs/marking-tools-spec.md`,
-  "Tapping a symbol makes it the tool and closes the panel"): change it to stay open.
+  A tap outside still closes it. Tapping a symbol makes it the tool; the panel stays open.
 - **Groups reordered in the Symbols panel by a grip**: no group box has one yet
   (`reader/_symbol-panel.ts`, `makeBox`). Give each group's box (not Recent's) a grip at its left
   edge. Dragging the grip up or down moves the group, with a line where it would go, as
@@ -77,8 +79,7 @@ scores.
   - Test: `moveGroup` already has tests in `markings/library.test.ts`. If the reader's following
     is pulled out as a pure function (say `_symbols.ts`, `reorderedCurrents(currents, group, from,
     to)`), test it there.
-  - Add it to the spec's "The Symbols panel's library" section, and drop "Groups can't be
-    reordered here".
+  - Groups are now reordered here as well as in **Edit library…**.
 - **A long press on a tool's button makes it the tool**: today a long press on Pen, Highlight,
   Text or Symbols only opens its panel (`reader/reader.ts`: `strokeColors`, `textPanel`,
   `symbolPanel`; the long presses are the `onLongPress` calls in `reader/_toolbar.ts`). In each,
@@ -89,9 +90,8 @@ scores.
     `lastSymbol`, then `chooseSymbol`).
   When it is already the tool, leave it: the long press must not put it away. Changing tool ends a
   selection (`useTool`), so a marking selected under another tool is deselected and the panel
-  shows the settings for new markings (a symbol selected under Text, say). Change the spec's "Long
-  presses on the tools" (`docs/marking-tools-spec.md`: "Choosing a setting doesn't change the
-  tool") to say that a long press also makes that tool the tool.
+  shows the settings for new markings (a symbol selected under Text, say). Choosing a setting in the
+  panel still doesn't change the tool; only the long press that opened it does.
 - **The reader's menus and panels on the bar's off-white, and the symbols in a group told apart**:
   every menu is a `.menu` (`styles/overlay.css:2–5`) on `var(--surface)`, which is pure white in
   the light theme the reader uses (`styles/base.css:4`). A pressed button there is white too
@@ -113,7 +113,7 @@ scores.
 
 - **Highlights hide the music under them on screen** [needs a decision]: the highlighter is drawn at
   full strength with `multiply: true` (`highlight` in `markings/stroke.ts`, marking tools stage 2),
-  and the spec says the music under it stays black. In the PDF export that holds (a Multiply
+  meant to keep the music under it black, as with a highlighter on paper. In the PDF export that holds (a Multiply
   blend), but on screen each frame's ink is its own transparent canvas (`slot.ink`,
   `render/paint.ts` `drawFrameInk`) stacked over the music canvas, and `multiply` against a
   transparent canvas gives the plain colour: the highlight comes out opaque and hides the notes
@@ -125,7 +125,7 @@ scores.
   - A separate highlight layer, multiplied over the music, under the pen and the other markings:
     correct on screen, but touches `drawFrameInk`, live drawing, the zoomed close-up
     (`reader/_detail.ts`) and the loupe.
-  - Keep a see-through highlight (the old 35%) and change the spec.
+  - Keep a see-through highlight (the old 35%) and let the music under it show paler.
   Until decided, new highlights on screen cover the notes.
 - **The cache giving room back when the origin runs short of quota** [needs thought]: pinned
   pages are never evicted, and the others only to stay within 30% of the quota (`diskBudget`,
@@ -197,7 +197,7 @@ scores.
   plans are gone, so what was decided is here). The user adds a font file (TTF, OTF, WOFF or
   WOFF2) from a **Fonts** section of the library editor, with import and remove; imported fonts
   are listed by name, and offered beside the bundled ones wherever a font is picked (a library
-  symbol's font, the Text tool's fonts in the second row).
+  symbol's font, the Font dropdown in the Text tool's long-press panel).
   - A font's id is the first 8 hex digits of the SHA-256 of its file, as for the bundled fonts
     (`fonts/fonts.ts`); the whole hash is never kept. Importing a file whose id is already a
     font's adds nothing.
