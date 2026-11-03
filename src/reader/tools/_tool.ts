@@ -36,8 +36,11 @@ export interface ToolHost extends ReaderView {
   newText(slot: FrameSlot, at: [number, number]): void;
   /** Edit the selected text marking. */
   editText(sel: Selected): void;
-  /** Take an edit: undo, save, reflow, and show the frame holding `focus`. */
-  commit(s: State, focus?: string): void;
+  /**
+   * Take an edit: undo, save, reflow, and show the frame holding `focus`. `selected` is the
+   * selected marking as it is in `s`, when the edit replaced it, so the selection doesn't end.
+   */
+  commit(s: State, focus?: string, selected?: Selected): void;
   /** The eraser took markings away from the frame in `slot`: show and save it, without an undo step yet. */
   erased(s: State, slot: FrameSlot): void;
   /** The eraser lifted: one undo step, back to `before`, for its whole sweep. */

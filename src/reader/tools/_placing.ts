@@ -43,7 +43,7 @@ function cycle(host: ToolHost, cut: string, mark: PlacedMark) {
   // It keeps its own colour and background, not the next symbol's.
   const { background: _, ...fresh } = placed(next, mark.at, size);
   const replacement = compactMarking({ ...fresh, ...(mark.color ? { color: mark.color } : {}), ...(mark.background ? { background: { ...mark.background } } : {}) }) as PlacedMark;
-  host.commit(setSymbolSize(replaceMarking(host.state(), cut, mark, replacement), size / next.scale), cut);
+  host.commit(setSymbolSize(replaceMarking(host.state(), cut, mark, replacement), size / next.scale), cut, { cut, mark: replacement });
   host.select({ cut, mark: replacement });
   host.cycled(next);
 }
@@ -254,7 +254,7 @@ export function placingTool(
               ? textResized(state, size)
               : setSymbolSize(state, size / scaleOf(host.library(), g.from.mark.font, g.from.mark.text));
           }
-          host.commit(state, r.selected.cut);
+          host.commit(state, r.selected.cut, r.selected);
           host.select(r.selected);
           if (how === 'move-then-tap') tap(r.selected);
         },

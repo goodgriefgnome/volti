@@ -379,3 +379,8 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - While a marking is selected, choosing another tool ends the selection and keeps that tool;
     tapping Symbols (lent) puts it away.
 
+  - With Symbols as the tool, tap a text marking (Text is lent); long-press Text and change its
+    colour, then its background: the marking changes, Text stays chosen and the marking selected,
+    with the panel open. The same for a symbol selected with Text as the tool, from the Symbols
+    panel. Move, resize and (for a symbol) cycle the selected marking, and edit a text marking's
+    words: the lent tool stays chosen throughout.

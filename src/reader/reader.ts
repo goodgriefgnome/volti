@@ -324,7 +324,7 @@ class Reader {
       annotating: () => this.annotating,
       act: (g) => this.act(g),
       paintInk: (slot, extra) => this.paintInk(slot, this.state, extra),
-      commit: (s, focus) => this.commit(s, focus),
+      commit: (s, focus, selected) => this.commit(s, focus, selected),
       erased: (s, slot) => this.erased(s, slot),
       eraseEnded: (before, slot) => this.eraseEnded(before, slot),
       loupe: () => this.loupe,
@@ -478,9 +478,7 @@ class Reader {
     if (sel && sel.mark.color !== ownColor(c)) {
       const { color: _, ...rest } = sel.mark, own = ownColor(c);
       const marked: PlacedMark = own ? { ...rest, color: own } : rest;
-      this.commit(replaceMarking(this.state, sel.cut, sel.mark, marked), sel.cut);
-      this.selected = { cut: sel.cut, mark: marked };
-      this.refreshSelection();
+      this.commit(replaceMarking(this.state, sel.cut, sel.mark, marked), sel.cut, { cut: sel.cut, mark: marked });
     }
     this.setSettings((s) => (tool === 'text' ? { ...s, text: { ...s.text, color: c } } : { ...s, symbol: { color: c } }));
   }
@@ -499,9 +497,7 @@ class Reader {
       if (JSON.stringify(next) !== JSON.stringify(sel.mark.background)) {
         const { background: _, ...rest } = sel.mark;
         const marked: PlacedMark = next ? { ...rest, background: next } : rest;
-        this.commit(replaceMarking(this.state, sel.cut, sel.mark, marked), sel.cut);
-        this.selected = { cut: sel.cut, mark: marked };
-        this.refreshSelection();
+        this.commit(replaceMarking(this.state, sel.cut, sel.mark, marked), sel.cut, { cut: sel.cut, mark: marked });
       }
     }
     if (tool === 'text') {
@@ -716,7 +712,7 @@ class Reader {
     const next = shaped && textMark(font, text, shaped.glyphs, start, mark.size);
     if (!next) { this.commit(replaceMarking(state, sel.cut, mark), sel.cut); return; }
     const moved = movedTo(state, slot.frame, sel, next.at, this.aspects, next.size, { text, font, glyphs: next.glyphs });
-    this.commit(moved.state, moved.selected.cut);
+    this.commit(moved.state, moved.selected.cut, moved.selected);
     this.select(moved.selected);
   }
 
@@ -1218,9 +1214,12 @@ class Reader {
   /**
    * Take a new state from an edit: remember the old one for undo, save, reflow, and show the
    * frame holding `focus` (or stay where you are, if that cut is gone). Undo shows it too.
+   * `selected` is the selected marking as it is in `s`, when the edit replaced it: it stays
+   * selected, and a tool it lent stays lent.
    */
-  private commit(s: State, focus?: string) {
+  private commit(s: State, focus?: string, selected?: Selected) {
     const cur = this.current!;
+    if (selected) this.selected = selected;
     this.undos.record({ open: cur, state: cur.state, reading: this.reading.snapshot(), k: this.k, focus });
     // Every setlist's excerpts of the score, and its named excerpts, follow the edit.
     this.setState(this.reading.edited(this.k, cur.id, cur.state.score.cuts, s), focus);
