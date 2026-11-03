@@ -10,6 +10,10 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     music is sharp where the drag starts, and past about 64 px of dragging turns softer rather
     than slowing the drag. At lower zoom it still turns sharp wherever it goes.
   - Lift: the marking is placed where the last move was.
+- **Selecting another marking** (with Text or Symbols as the tool):
+  - Select a symbol, then tap another marking: that one is selected, not deselected.
+  - With one selected, tap empty music: only deselected, nothing placed.
+  - Tap the selected one: a symbol goes to the next in its group, text opens for editing.
 - **The loupe** (marking tools, stage 8):
   - Placing, moving and resizing a symbol: a round loupe above the finger, the symbol about 48 px
     tall in it, centred on the symbol; near the toolbar it moves beside the finger.

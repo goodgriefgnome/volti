@@ -43,7 +43,7 @@ function cycle(host: ToolHost, cut: string, mark: PlacedMark) {
 
 /** What a tap does, from what is selected and what was hit. */
 export function _tapAction(selected: PlacedMark | undefined, hit: PlacedMark | undefined): 'deselect' | 'select' | 'again' | 'place' {
-  if (selected) return hit === selected ? 'again' : 'deselect';
+  if (selected) return !hit ? 'deselect' : hit === selected ? 'again' : 'select';
   return hit ? 'select' : 'place';
 }
 

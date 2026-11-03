@@ -16,14 +16,6 @@ scores.
 - **If the loupe is still slow on a page with much ink**, after the fix below was tried on the
   tablet (see **The loupe stays smooth** in `TODO.manual.md`): draw only the markings near the
   loupe in `Loupe.drawInk` (those whose extent meets the loupe's area), not the whole frame's.
-- **With a marking selected, a tap on another marking selects that one**: today it only
-  deselects (`_tapAction` in `reader/tools/_placing.ts`: with something selected, any hit but the
-  selected marking gives `'deselect'`). Make a hit on another marking give `'select'`; a tap on
-  empty music still only deselects. Change the test in `reader/tools/_placing.test.ts`. What
-  selecting is then, with Text or Symbols as the tool: placing doesn't select; with a marking
-  selected, a tap on empty music only deselects, a tap on another marking selects that one, and a
-  tap on the selected one goes again (a symbol to the next in its group, text to editing); with
-  nothing selected, a tap on a marking selects it.
 - **With no tool, a tap on a placed marking selects it**: today it hides the toolbar. With no tool
   a press goes to panning (`reader/_input.ts`, `onDown`, the last line), and a selection is
   dropped whenever the tool doesn't place markings (`reader/reader.ts`, `refreshSelection` and
