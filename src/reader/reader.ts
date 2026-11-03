@@ -120,6 +120,8 @@ export async function openReader(what: ToRead, onClose: (fileChanges: FileChange
  */
 class Reader {
   // Opens ready to play, with the toolbar hidden: a tap in the middle brings it up.
+  /** The app's theme before the reader made it light; put back when the reader closes. */
+  private themeBefore = document.documentElement.dataset.theme;
   private root = el('div', 'reader chrome-hidden');
   private stage = el('div', 'stage');
   private spreadEl = el('div', 'spread');
@@ -302,6 +304,7 @@ class Reader {
     this.root.append(this.stage, ...bands, back, this.toolbar.el, this.scope, this.toast.el);
     document.body.append(this.root);
     document.body.classList.add('reading');
+    document.documentElement.dataset.theme = 'light';
 
     this.input = new Input({
       ...view,
@@ -1187,6 +1190,8 @@ class Reader {
     this.scores.destroy();
     this.root.remove();
     document.body.classList.remove('reading');
+    if (this.themeBefore === undefined) delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = this.themeBefore;
     this.onClose(this.fileChanges);
   }
 }

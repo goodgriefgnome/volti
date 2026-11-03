@@ -3,6 +3,15 @@
 Things to try on the tablet, grouped so each group can be done in one go. Some groups need
 DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the records.
 
+- **The light reader** (marking tools, stage 1):
+  - With the app in dark mode, open a score: the reader is light, and so are ⋯ and the title
+    menu. Close it: the library is dark again.
+  - The toolbar is off-white; a pressed tool is white with a thin ring.
+  - The title and the page info are on two lines, starting at the same edge.
+  - At about 600 px wide (a small tablet in portrait, or a narrow browser window), the tools are
+    on a centred second row and Cuts is only its icon. At 700 px and wider, one row.
+  - The side bands, their triangles, the hidden-toolbar back arrow and the cut tabs are all
+    visible on the light stage.
 - **A PDF that opens without a password is marked checked by any read:** with a setlist holding a
   PDF not opened since PDFs stopped going through pdf-lib, restart Volti and wait for the setlists'
   pages to finish saving; then open that score from the library: it opens without the first-open

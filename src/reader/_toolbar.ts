@@ -129,7 +129,9 @@ export class Toolbar {
     this.titleButton = this.button('title', '', act.titleMenu, 'title-button');
     this.titleButton.setAttribute('aria-haspopup', 'menu');
     this.titleButton.append(this.title, chevronIcon());
-    left.append(back, this.titleButton, this.info);
+    const titleBlock = el('div', 'title-block');
+    titleBlock.append(this.titleButton, this.info);
+    left.append(back, titleBlock);
 
     // Drawing tools, then the pen's colours (while Pen is the tool), the tools that place markings,
     // Cuts, and Undo and Redo, in groups between thin rules.
