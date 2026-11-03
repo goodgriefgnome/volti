@@ -16,25 +16,44 @@ scores.
 - **If the loupe is still slow on a page with much ink**, after the fix for it was tried on the
   tablet (see **The loupe stays smooth** in `TODO.manual.md`): draw only the markings near the
   loupe in `Loupe.drawInk` (those whose extent meets the loupe's area), not the whole frame's.
+- **Highlights and backgrounds multiplied over the music on screen**: today they hide it. The
+  highlighter (`highlight` in `markings/stroke.ts`) and placed backgrounds (`markings/placed.ts`,
+  `drawPlaced`'s first `shape`) are drawn with `multiply: true`, which on a canvas multiplies with
+  what is already on that canvas (`canvasDrawing`, `markings/draw.ts`). Each frame's ink is drawn
+  on its own transparent canvas (`slot.ink`, over `slot.canvas`; `reader/_spread.ts`), and
+  multiplying with transparent gives the plain colour, so they cover the notes. The PDF export is
+  right (a Multiply blend with the page). Fix: a second ink canvas per frame, under the first, for
+  what multiplies, blended over the music by CSS.
+  - `markings/draw.ts`: add
+    `export function splitDrawing(over: Drawing, under: Drawing): Drawing`, which sends each
+    `path` and `shape` whose look has `multiply` to `under` and the rest to `over`. Test it in
+    `markings/draw.test.ts` with two recording `Drawing`s.
+  - `render/paint.ts`: `drawFrameInk(ctx, frame, ink, aspects, W, ox, oy, extra, under?)` takes an
+    optional second context; given one, it clears both and draws through
+    `splitDrawing(canvasDrawing(ctx), canvasDrawing(under))` (`cutTarget` and `frameTarget` take a
+    `Drawing`, or are given one). Without it, as now (one canvas), for callers that draw onto
+    music themselves.
+  - `reader/_spread.ts`: `FrameSlot` gets `under: HTMLCanvasElement` (class `ink under`), put
+    between `canvas` and `ink`; `paintSlotInk` passes it. The close-up's `detail` gets `under` too
+    (`reader/_detail.ts`, made and placed beside its `ink`). CSS (`styles/reader.css`):
+    `.page canvas.under { mix-blend-mode: multiply; }`.
+  - The pen's live segments (`reader/tools/_pen.ts`, `drawLive`) go on `ink` as now; the live
+    highlighter repaints through `paintInk`, so it lands on `under` by itself.
+  - The loupe (`reader/_loupe.ts`): draw each slot's `under` (and the close-up's) with
+    `ctx.globalCompositeOperation = 'multiply'` after the music and before `ink`. In `drawInk`,
+    draw the sharp ink into two canvases the same way, the lower one multiplied onto the music.
+  - The thumbnails in `dialogs/thumb-strip.ts` (a music canvas and an ink canvas, lines 110–115)
+    have the same fault: give them an `under` canvas the same way (its CSS where `.thumb canvas`
+    is styled).
+  - Pens, symbols and text, and the white edge round placed glyphs (`placed.ts`, the `#ffffff`
+    stroke), stay on `ink`, drawn normally: a red line over black notes stays red, as in the
+    export.
+  - Check on the tablet: a highlight over notes leaves them black, in the reader, zoomed in, in
+    the loupe and in the thumbnails; a box behind text shows the staff lines through it; a red
+    pen line over a note is red; the export looks the same as the screen.
 
 ## Confirmed features which require more thought
 
-- **Highlights hide the music under them on screen** [needs a decision]: the highlighter is drawn at
-  full strength with `multiply: true` (`highlight` in `markings/stroke.ts`, marking tools stage 2),
-  meant to keep the music under it black, as with a highlighter on paper. In the PDF export that holds (a Multiply
-  blend), but on screen each frame's ink is its own transparent canvas (`slot.ink`,
-  `render/paint.ts` `drawFrameInk`) stacked over the music canvas, and `multiply` against a
-  transparent canvas gives the plain colour: the highlight comes out opaque and hides the notes
-  (checked in Chromium: a black pixel under a `#fff09a` multiplied rectangle on a separate canvas
-  reads `#fff09a`). Placed backgrounds (`multiply: true` too) already cover the music this way.
-  Options:
-  - `mix-blend-mode: multiply` on the ink canvases: one line of CSS, highlights work, but a red pen
-    or a coloured symbol over black notes shows black where they overlap, unlike the export.
-  - A separate highlight layer, multiplied over the music, under the pen and the other markings:
-    correct on screen, but touches `drawFrameInk`, live drawing, the zoomed close-up
-    (`reader/_detail.ts`) and the loupe.
-  - Keep a see-through highlight (the old 35%) and let the music under it show paler.
-  Until decided, new highlights on screen cover the notes.
 - **The cache giving room back when the origin runs short of quota** [needs thought]: pinned
   pages are never evicted, and the others only to stay within 30% of the quota (`diskBudget`,
   `page-cache/_budget.ts`); nothing shrinks the cache when the origin as a whole (scores added,
