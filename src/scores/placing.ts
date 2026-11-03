@@ -25,11 +25,44 @@ export function centreOnFrame(item: Placed, m: PlacedMark, aspect: number): [num
   return [m.at[0], item.top + (m.at[1] - item.cut.y0) * aspect];
 }
 
+/** The least a selected marking's box measures on screen, each way, in CSS pixels. */
+export const MIN_BOX_PX = 24;
+
 /**
- * The placed marking shown on the frame whose extent, grown by `margin`, holds p (frame
- * coordinates): the one drawn last first.
+ * The box shown round a selected marking: its extent grown, where smaller than `minFrame` (frame
+ * widths) either way, to that, keeping its centre.
+ */
+export function selectionBox(ext: Box, minFrame: number): Box {
+  const [x0, y0, x1, y1] = ext;
+  const gx = Math.max(0, minFrame - (x1 - x0)) / 2, gy = Math.max(0, minFrame - (y1 - y0)) / 2;
+  return [x0 - gx, y0 - gy, x1 + gx, y1 + gy];
+}
+
+/** The radius of a corner handle, in CSS pixels, for a box whose shorter side measures `shortSidePx`. */
+export function handleRadius(shortSidePx: number): number {
+  return Math.min(shortSidePx / 4, 16);
+}
+
+/**
+ * What a press at p is on, given the selected marking's box and the handle radius `r` (the same
+ * units as the box): a handle (outside the box, within `r` of a corner; the nearest corner when
+ * two discs meet), the box itself (its edge included), or neither.
+ */
+export function pressOnSelection(box: Box, r: number, p: readonly [number, number]): { kind: 'handle'; corner: 0 | 1 | 2 | 3 } | { kind: 'box' } | undefined {
+  const [x0, y0, x1, y1] = box;
+  if (p[0] >= x0 && p[0] <= x1 && p[1] >= y0 && p[1] <= y1) return { kind: 'box' };
+  const corners: [number, number][] = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
+  const dist = corners.map(([x, y]) => Math.hypot(x - p[0], y - p[1]));
+  const corner = dist.indexOf(Math.min(...dist)) as 0 | 1 | 2 | 3;
+  return dist[corner] <= r ? { kind: 'handle', corner } : undefined;
+}
+
+/**
+ * Among the placed markings shown on the frame whose extent, grown by `margin`, holds p (frame
+ * coordinates), the one whose centre is closest; the one drawn last where two are as close.
  */
 export function placedAt(frame: Frame, ink: ScoreInk, aspects: Aspects, p: readonly [number, number], margin: number): { cut: Cut; mark: PlacedMark } | undefined {
+  let best: { cut: Cut; mark: PlacedMark } | undefined, nearest = Infinity;
   for (const item of [...frame.items].reverse()) {
     const aspect = aspects[item.cut.page];
     const list = ink[item.cut.id] ?? [];
@@ -37,10 +70,12 @@ export function placedAt(frame: Frame, ink: ScoreInk, aspects: Aspects, p: reado
       const m = list[i];
       if (!('kind' in m) || !visible(m, item.cut, aspect)) continue;
       const e = extentOnFrame(item, m, aspect);
-      if (e && p[0] >= e[0] - margin && p[0] <= e[2] + margin && p[1] >= e[1] - margin && p[1] <= e[3] + margin) return { cut: item.cut, mark: m };
+      if (!e || p[0] < e[0] - margin || p[0] > e[2] + margin || p[1] < e[1] - margin || p[1] > e[3] + margin) continue;
+      const d = Math.hypot((e[0] + e[2]) / 2 - p[0], (e[1] + e[3]) / 2 - p[1]);
+      if (d < nearest) { nearest = d; best = { cut: item.cut, mark: m }; }
     }
   }
-  return undefined;
+  return best;
 }
 
 /** The smallest a resize makes a marking, as a share of its size. */

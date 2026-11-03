@@ -43,10 +43,12 @@ describe('pressesMarking', () => {
     expect(pressesMarking(host(), slot, [0.5, y, 0.5])).toBe(true);
     expect(pressesMarking(host(), slot, [0.1, y, 0.5])).toBe(false);
   });
-  it('is true near the selected marking\'s box beyond a marking\'s tap margin, as for a handle', () => {
-    // 0.05 + 12 px / 1000 px = 0.062 from the middle is the tap margin; 0.07 is beyond it, within a handle's reach.
-    expect(pressesMarking(host(), slot, [0.57, y, 0.5])).toBe(false);
-    expect(pressesMarking(host(true), slot, [0.57, y, 0.5])).toBe(true);
+  it('is true on a handle of the selected marking\'s box, beyond a marking\'s tap margin', () => {
+    // The box is 0.1 wide (100 px): handles of 16 px at its corners. The corner (0.55, y - 0.05); 0.565 is 15 px off it, beyond the 12 px tap margin.
+    expect(pressesMarking(host(), slot, [0.565, y - 0.05, 0.5])).toBe(false);
+    expect(pressesMarking(host(true), slot, [0.565, y - 0.05, 0.5])).toBe(true);
+    // 0.57 is 20 px off the corner (more than 16 px), and 20 px from the box's side.
+    expect(pressesMarking(host(true), slot, [0.57, y, 0.5])).toBe(false);
   });
 });
 

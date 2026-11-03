@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { addGlyph } from '../markings/glyphs';
 import type { PlacedMark } from '../markings/placed';
 import { pack } from './frames';
-import { extentOnFrame, movedTo, placedAt, resizedFrom } from './placing';
+import { extentOnFrame, handleRadius, movedTo, placedAt, pressOnSelection, resizedFrom, selectionBox } from './placing';
 import { A4, aspects, cut, state } from './testing';
 
 beforeAll(() => {
@@ -56,6 +56,67 @@ describe('placedAt', () => {
   });
 });
 
+describe('placedAt: the closest centre', () => {
+  const c = cut(0);
+  const [frame] = pack([c], aspects);
+  const first = mark(0.5, 0.5), second = mark(0.52, 0.5);
+  const y = A4 * 0.5;
+  it('picks the one drawn first when the press is nearer its centre', () => {
+    expect(placedAt(frame, { [c.id]: [first, second] }, aspects, [0.505, y], 0)?.mark).toBe(first);
+    expect(placedAt(frame, { [c.id]: [first, second] }, aspects, [0.515, y], 0)?.mark).toBe(second);
+  });
+  it('picks the one drawn last where they are as close', () => {
+    expect(placedAt(frame, { [c.id]: [first, second] }, aspects, [0.51, y], 0)?.mark).toBe(second);
+  });
+});
+
+describe('selectionBox', () => {
+  it('grows a small extent to the least, keeping its centre', () => {
+    const b = selectionBox([0.5, 0.2, 0.52, 0.21], 0.024);
+    expect(b[2] - b[0]).toBeCloseTo(0.024);
+    expect(b[3] - b[1]).toBeCloseTo(0.024);
+    expect((b[0] + b[2]) / 2).toBeCloseTo(0.51);
+    expect((b[1] + b[3]) / 2).toBeCloseTo(0.205);
+  });
+  it('grows only the side that is short, and leaves a big extent alone', () => {
+    const b = selectionBox([0.1, 0.2, 0.3, 0.205], 0.024);
+    expect(b[0]).toBe(0.1);
+    expect(b[2]).toBe(0.3);
+    expect(b[3] - b[1]).toBeCloseTo(0.024);
+  });
+});
+
+describe('handleRadius', () => {
+  it('is a quarter of the shorter side, at most 16 px', () => {
+    expect(handleRadius(24)).toBe(6);
+    expect(handleRadius(64)).toBe(16);
+    expect(handleRadius(400)).toBe(16);
+  });
+});
+
+describe('pressOnSelection', () => {
+  const box: [number, number, number, number] = [0.4, 0.4, 0.6, 0.5];
+  it('is the box on and inside it, its edge included', () => {
+    expect(pressOnSelection(box, 0.02, [0.5, 0.45])).toEqual({ kind: 'box' });
+    expect(pressOnSelection(box, 0.02, [0.4, 0.4])).toEqual({ kind: 'box' });
+  });
+  it('is a handle outside the box and within the radius of a corner', () => {
+    expect(pressOnSelection(box, 0.02, [0.39, 0.39])).toEqual({ kind: 'handle', corner: 0 });
+    expect(pressOnSelection(box, 0.02, [0.61, 0.39])).toEqual({ kind: 'handle', corner: 1 });
+    expect(pressOnSelection(box, 0.02, [0.61, 0.51])).toEqual({ kind: 'handle', corner: 2 });
+    expect(pressOnSelection(box, 0.02, [0.39, 0.51])).toEqual({ kind: 'handle', corner: 3 });
+  });
+  it('is neither outside the discs', () => {
+    expect(pressOnSelection(box, 0.02, [0.5, 0.38])).toBeUndefined();
+    expect(pressOnSelection(box, 0.02, [0.37, 0.37])).toBeUndefined();
+  });
+  it('takes the nearest corner where two discs meet', () => {
+    const small: [number, number, number, number] = [0.5, 0.5, 0.52, 0.52];
+    expect(pressOnSelection(small, 0.02, [0.505, 0.495])).toEqual({ kind: 'handle', corner: 0 });
+    expect(pressOnSelection(small, 0.02, [0.515, 0.495])).toEqual({ kind: 'handle', corner: 1 });
+  });
+});
+
 describe('resizedFrom', () => {
   const ext: [number, number, number, number] = [0.4, 0.2, 0.6, 0.3];
   const at: [number, number] = [0.5, 0.25];
@@ -79,7 +140,11 @@ describe('resizedFrom', () => {
   it('is never under 1/4 of its size', () => {
     expect(resizedFrom(ext, 2, [0.1, 0.1], at, 0.05).size).toBeCloseTo(0.0125);
   });
-});
+  it('scales a symbol by how much its box does: a 24 px box dragged out to 36 px', () => {
+    const box: [number, number, number, number] = [0.488, 0.188, 0.512, 0.212];
+    const r = resizedFrom(box, 2, [0.488 + 0.036, 0.188 + 0.036], [0.5, 0.2], 0.01);
+    expect(r.size).toBeCloseTo(0.015);
+  });});
 
 describe('movedTo', () => {
   const a = cut(0, 0, 0.5), b = cut(0, 0.5, 1);

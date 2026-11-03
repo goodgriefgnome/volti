@@ -344,3 +344,14 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     cycles (two undo steps). A slow small nudge (over 400 ms) only moves it.
   - A quick tap on empty music with Symbols places where the ghost was when the finger lifted.
   - A second finger during a drag, or while the ghost shows, doesn't zoom; with a pen stroke it still does.
+- **The selected marking's box and handles:**
+  - Select a fingering among three 9 px apart: its box is 24 px square with a 1 px blue line, and a
+    three-quarter white handle (blue ring) at each corner. A tap inside the box cycles it, even
+    where a neighbour lies under the box.
+  - A tap on empty music outside the box deselects; then a tap on a neighbour selects it. With
+    nothing selected, a tap between two overlapping markings picks the one whose centre is nearer.
+  - Drag a handle: it resizes from that corner (a dot's 24 px box dragged to 36 px makes it 1.5×);
+    a tap on a handle does nothing. The delete button sits 10 px above the box and wins over a
+    handle where they overlap.
+  - Zoomed in on a large symbol, the handles grow up to 16 px and the line stays 1 px; zooming
+    in and out on a small one keeps the box at least 24 px on screen.

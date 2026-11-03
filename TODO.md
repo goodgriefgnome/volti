@@ -13,46 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **The selected marking's box and handles, and which marking a press is on**: today the box is
-  the ink's extent with a 1.5 px outline (`.selection`, `styles/reader.css`; `reader/_selection.ts`),
-  the corners resize from a press within 24 px outside them or 3 px inside the edge, with nothing
-  drawn (`HANDLE_REACH_PX`, `HANDLE_INSET_PX` in `reader/tools/_placing.ts`), and a tap picks the
-  last-drawn marking whose extent grown by 12 px holds it (`placedAt`, `scores/placing.ts`). Make it:
-  - **The box**: the ink's extent grown, where smaller, to at least 24 × 24 CSS px on screen,
-    keeping its centre; drawn with a 1 px `#1f6fe0` line. All sizes here are on screen, so convert
-    with the frame's on-screen width (`slot.w * zoom.s`, as `px` in `_placing.ts`), and keep the
-    line and handles the same on-screen size at any zoom (the box is inside the zoomed spread:
-    divide CSS sizes by `zoom.s`).
-  - **The handles**: at each corner a white disc with a 1.5 px `#1f6fe0` ring, its radius a quarter
-    of the box's shorter side on screen, at most 16 px, with the part inside the box cut away (a
-    three-quarter disc; `clip-path`). Drawn by `SelectionBox` beside the box.
-  - **The delete button** stays centred 10 px above the box's top edge, and wins over a handle where
-    they overlap.
-  - **A press with a marking selected**, in this order:
-    - on the delete button: deletes, as now;
-    - on a handle's disc (outside the box, within the radius of a corner; the nearest corner when
-      two discs meet): a drag resizes from that corner; a tap does nothing;
-    - on or inside the box: a drag moves the selected marking; a tap acts on it (`'again'`: the
-      next symbol in its group, or editing text), even where another marking is under the box;
-    - elsewhere: as with nothing selected below, except that a tap on empty music only deselects
-      and a drag there places (as now).
-  - **A press with nothing selected** (or outside the selected box and its handles): among the
-    markings whose extent, grown by 12 px, holds the press, the one whose centre is closest. Change
-    `placedAt` to do that (it is used by `_placing.ts` for the hit and by `pressesMarking`), and
-    test it in `scores/placing.test.ts`: two overlapping markings, a press nearer the centre of the
-    one drawn first picks that one.
-  - **Resizing** works from the drawn box: `resizedFrom` is given the box's corners (not the ink's),
-    and the marking's size scales by how much the box does. A dot's box, 24 px, dragged out to 36
-    px makes the dot 1.5× its size.
-  - Pure functions in `scores/placing.ts`, with tests: `selectionBox(ext, minFrame)` (the grown box,
-    in frame units), `handleRadius(shortSidePx)` (`Math.min(shortSidePx / 4, 16)`), and
-    `pressOnSelection(box, r, p): { kind: 'handle'; corner: 0 | 1 | 2 | 3 } | { kind: 'box' } | undefined`.
-    `pressesMarking` and `start` in `_placing.ts` use them in place of the reach and inset.
-  - Check on the tablet: select a fingering among three 9 px apart: its box is 24 px, with three-
-    quarter handles at its corners; a tap inside the box cycles it, even on a neighbour; a tap on
-    empty music outside the box deselects, and then a tap on a neighbour selects it. Zoomed in on a
-    large symbol, the handles grow up to 16 px; the line stays 1 px.
-
 ## Confirmed features which require more thought
 
 - **The cache giving room back when the origin runs short of quota** [needs thought]: pinned

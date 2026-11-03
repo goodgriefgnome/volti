@@ -312,7 +312,7 @@ class Reader {
       symbolColor: () => ownColor(this.settings.symbol.color),
       placing: () => this.symbolLib && symbolsOf(this.symbolLib, this.group)[this.currentOf(this.group)],
       library: () => this.symbolLib,
-      paintState: (slot, s) => { this.selection.show(undefined); this.paintInk(slot, s); },
+      paintState: (slot, s) => { this.selection.hide(); this.paintInk(slot, s); },
       selected: () => this.selected,
       select: (s) => { this.selected = s; this.refreshSelection(); },
       cycled: (sym) => this.cycledTo(sym),
@@ -364,7 +364,7 @@ class Reader {
     const seq = ++this.goSeq;
     this.loading = true;
     this.selected = undefined;
-    this.selection.show(undefined);
+    this.selection.hide();
     if (k !== this.k) { this.editor.dismiss(); this.toolbar.info.textContent = 'Opening…'; }
     await this.scores.ensure(k, true);
     if (seq !== this.goSeq || this.scores.closed) return;
@@ -413,7 +413,7 @@ class Reader {
   private useTool(t: ToolChoice) {
     if (t !== this.tool) {
       this.typing.finish();
-      if (this.selected) { this.selected = undefined; this.selection.show(undefined); }
+      if (this.selected) { this.selected = undefined; this.selection.hide(); }
     }
     this.tool = t;
   }
@@ -669,7 +669,7 @@ class Reader {
       try {
         const font = (await fontChoices()).some((c) => c.id === mark.font) ? mark.font : ACADEMICO;
         // Without the marking while its field is open.
-        this.selection.show(undefined);
+        this.selection.hide();
         this.paintInk(slot, replaceMarking(this.state, sel.cut, sel.mark));
         await this.typing.show({
           slot, font, size, color: mark.color ?? markColors().color, start, text: mark.text,
@@ -716,7 +716,7 @@ class Reader {
     const now = this.selected;
     const slot = now && this.slots.find((sl) => sl.frame.items.some((i) => i.cut.id === now.cut));
     const item = slot && slot.frame.items.find((i) => i.cut.id === now!.cut);
-    this.selection.show(slot || undefined, item && now ? extentOnFrame(item, now.mark, this.aspects[item.cut.page]) : undefined);
+    this.selection.show(slot || undefined, item && now ? extentOnFrame(item, now.mark, this.aspects[item.cut.page]) : undefined, this.zoom.s);
     if (cur) this.syncBar();
   }
 
@@ -843,7 +843,7 @@ class Reader {
   private syncBar() {
     const cur = this.current;
     if (this.tool === 'text') this.prepareGhost();
-    if (this.selected && !(placesMarkings(this.tool) || this.tool === 'none')) { this.selected = undefined; this.selection.show(undefined); }
+    if (this.selected && !(placesMarkings(this.tool) || this.tool === 'none')) { this.selected = undefined; this.selection.hide(); }
     this.toolbar.sync({
       open: !!cur,
       tool: this.tool,
@@ -1121,7 +1121,7 @@ class Reader {
     const place = { k: this.k, items: this.items.length, frame: this.frame, shown: this.shown, frames: this.frames.length };
     const t = turnFrom(place, dir, this.reading.what.kind);
     if (t.to !== 'score') this.offered = null;
-    if (t.to !== 'score') { this.selected = undefined; this.selection.show(undefined); }
+    if (t.to !== 'score') { this.selected = undefined; this.selection.hide(); }
     if (t.to === 'frame') {
       this.frame = t.frame;
       this.syncBar();
@@ -1276,6 +1276,7 @@ class Reader {
   private setZoom(z: Zoom) {
     this.zoom = z;
     this.spreadEl.style.transform = !isIdentity(z) ? `translate(${z.x}px, ${z.y}px) scale(${z.s})` : '';
+    this.selection.zoomed(z.s);
     this.syncBar();
     this.detail.update();
   }
