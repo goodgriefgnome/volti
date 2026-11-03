@@ -694,10 +694,10 @@ class Reader {
     if (sel) this.commit(replaceMarking(this.state, sel.cut, sel.mark), sel.cut);
   }
 
-  /** Show the selected marking's box, or none: a selection ends when its marking is gone from the state, or the tool isn't a symbol. */
+  /** Show the selected marking's box, or none: a selection ends when its marking is gone from the state, or the tool isn't one that places markings (or none). */
   private refreshSelection() {
     const sel = this.selected, cur = this.current;
-    if (sel && (!cur || !placesMarkings(this.tool) || !cur.state.ink[sel.cut]?.includes(sel.mark))) this.selected = undefined;
+    if (sel && (!cur || !(placesMarkings(this.tool) || this.tool === 'none') || !cur.state.ink[sel.cut]?.includes(sel.mark))) this.selected = undefined;
     const now = this.selected;
     const slot = now && this.slots.find((sl) => sl.frame.items.some((i) => i.cut.id === now.cut));
     const item = slot && slot.frame.items.find((i) => i.cut.id === now!.cut);
@@ -818,7 +818,7 @@ class Reader {
   private syncBar() {
     const cur = this.current;
     if (this.tool === 'text') this.prepareGhost();
-    if (this.selected && !placesMarkings(this.tool)) { this.selected = undefined; this.selection.show(undefined); }
+    if (this.selected && !(placesMarkings(this.tool) || this.tool === 'none')) { this.selected = undefined; this.selection.show(undefined); }
     this.toolbar.sync({
       open: !!cur,
       tool: this.tool,

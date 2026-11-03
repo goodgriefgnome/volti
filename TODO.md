@@ -16,22 +16,6 @@ scores.
 - **If the loupe is still slow on a page with much ink**, after the fix below was tried on the
   tablet (see **The loupe stays smooth** in `TODO.manual.md`): draw only the markings near the
   loupe in `Loupe.drawInk` (those whose extent meets the loupe's area), not the whole frame's.
-- **With no tool, a tap on a placed marking selects it**: today it hides the toolbar. With no tool
-  a press goes to panning (`reader/_input.ts`, `onDown`, the last line), and a selection is
-  dropped whenever the tool doesn't place markings (`reader/reader.ts`, `refreshSelection` and
-  `syncBar`: `!placesMarkings(this.tool)`). Fix:
-  - Let a selection stand with no tool as well: allow `'none'` beside `placesMarkings` in those
-    two checks. `useTool` still ends it when the tool changes.
-  - In `Input.onDown`, with no tool and the toolbar showing, outside the page-turn bands: a press
-    on a placed marking (`placedAt` from `scores/placing.ts`, with the tap margin `_placing.ts`
-    uses), or on the selected marking's box, goes to the placing pointer. Export a way from
-    `_placing.ts` to start one that never places: a tap selects, deselects or goes again as
-    `_tapAction` says, and a drag moves or resizes. A press elsewhere pans as now.
-  - With a marking selected, a tap on empty music only deselects, and doesn't hide the toolbar
-    (the panning branch of `onUp`).
-  - Pen, Highlight and Erase are unchanged: a tap with them still draws or erases.
-  - The rules are then the same with no tool as with Text or Symbols, except that a tap on empty
-    music with nothing selected hides the toolbar instead of placing.
 - **Picking a symbol in the Symbols panel keeps the panel open**: `reader/_symbol-panel.ts`, the
   `up` handler (`if (!dragged) { closeOverlay(); host.pick(from); … }`), closes it. Drop the
   `closeOverlay()` and draw the library again (`drawLibrary()`) so the new tool's symbol is lit.

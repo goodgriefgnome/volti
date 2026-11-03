@@ -9,6 +9,7 @@ import type { CutEditor } from './cuts/_editor';
 import { gestureForKey, isTap, turnFor, type Gesture } from './_gestures';
 import type { FrameSlot } from './_spread';
 import { placesMarkings, type ToolChoice } from './_toolbar';
+import { pressesMarking, selectingTool } from './tools/_placing';
 import { symbolTool } from './tools/_symbol';
 import { TOOLS } from './tools/_tools';
 import type { ToolHost, ToolPointer } from './tools/_tool';
@@ -179,6 +180,15 @@ export class Input {
       this.active = { id: e.pointerId, type: e.pointerType, ...hit, use };
       return;
     }
+    // With no tool, a press on a placed marking or the selected one's box selects and moves it, as with Text or Symbols; elsewhere it pans.
+    const onMarking = this.slotAt(e.clientX, e.clientY);
+    if (onMarking) {
+      const p = this.point(e, onMarking.rect);
+      if (pressesMarking(host, onMarking.slot, p)) {
+        this.active = { id: e.pointerId, type: e.pointerType, ...onMarking, use: selectingTool.start(host, onMarking.slot, p) };
+        return;
+      }
+    }
     this.panning = { id: e.pointerId, start: host.zoom(), x0: e.clientX, y0: e.clientY, t: now };
   };
 
@@ -228,7 +238,8 @@ export class Input {
     const pn = this.panning;
     if (pn?.id === e.pointerId) {
       this.panning = null;
-      if (tapped(pn.x0, pn.y0, pn.t)) host.act('toggleChrome');
+      // A tap on empty music with a marking selected only deselects.
+      if (tapped(pn.x0, pn.y0, pn.t)) { if (host.selected()) host.select(undefined); else host.act('toggleChrome'); }
       return;
     }
     const g = this.gesture;

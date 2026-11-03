@@ -47,6 +47,20 @@ export function _tapAction(selected: PlacedMark | undefined, hit: PlacedMark | u
   return hit ? 'select' : 'place';
 }
 
+/**
+ * Whether a press at `p` on `slot` is on a placed marking, or on the selected marking's box or
+ * one of its handles: what, with no tool, goes to `selectingTool` instead of panning.
+ */
+export function pressesMarking(host: ToolHost, slot: FrameSlot, press: Point): boolean {
+  const p: [number, number] = [press[0], press[1]], px = slot.w * host.zoom().s, aspects = host.aspects();
+  if (placedAt(slot.frame, host.state().ink, aspects, p, TAP_MARGIN_PX / px)) return true;
+  const sel = host.selected(), item = sel && slot.frame.items.find((i) => i.cut.id === sel.cut);
+  const e = sel && item && extentOnFrame(item, sel.mark, aspects[item.cut.page]);
+  if (!e) return false;
+  const reach = HANDLE_REACH_PX / px;
+  return p[0] >= e[0] - reach && p[0] <= e[2] + reach && p[1] >= e[1] - reach && p[1] <= e[3] + reach;
+}
+
 /** What a pointer that has gone down is doing, once it moves far enough not to be a tap. */
 type Grab =
   | { kind: 'move'; from: Selected; centre: readonly [number, number] }
@@ -209,3 +223,6 @@ export function placingTool(
     },
   };
 }
+
+/** With no tool, a press on a marking: a tap selects, deselects or goes again, a drag moves or resizes; it never places. */
+export const selectingTool: Tool = placingTool('Select', () => {}, () => undefined);

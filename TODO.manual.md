@@ -10,6 +10,15 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     music is sharp where the drag starts, and past about 64 px of dragging turns softer rather
     than slowing the drag. At lower zoom it still turns sharp wherever it goes.
   - Lift: the marking is placed where the last move was.
+- **Selecting with no tool** (toolbar showing, no tool lit):
+  - Tap a placed symbol or text: it is selected. Tap it again: a symbol goes to the next in its
+    group, text opens for editing. Tap another marking: that one is selected.
+  - Drag a marking, or the selected one's corner: it moves or resizes, with the loupe.
+  - With one selected, tap empty music: only deselected, the toolbar stays. Tap again: the toolbar
+    hides.
+  - Press on empty music and drag: the spread pans, and the selection stays.
+  - Choose a tool (and back to none): the selection ends. Pen, Highlight and Erase still draw or
+    erase on a tap.
 - **Selecting another marking** (with Text or Symbols as the tool):
   - Select a symbol, then tap another marking: that one is selected, not deselected.
   - With one selected, tap empty music: only deselected, nothing placed.
