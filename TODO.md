@@ -15,6 +15,22 @@ scores.
 
 ## Confirmed features which require more thought
 
+- **Highlights hide the music under them on screen** [needs a decision]: the highlighter is drawn at
+  full strength with `multiply: true` (`highlight` in `markings/stroke.ts`, marking tools stage 2),
+  and the spec says the music under it stays black. In the PDF export that holds (a Multiply
+  blend), but on screen each frame's ink is its own transparent canvas (`slot.ink`,
+  `render/paint.ts` `drawFrameInk`) stacked over the music canvas, and `multiply` against a
+  transparent canvas gives the plain colour: the highlight comes out opaque and hides the notes
+  (checked in Chromium: a black pixel under a `#fff09a` multiplied rectangle on a separate canvas
+  reads `#fff09a`). Placed backgrounds (`multiply: true` too) already cover the music this way.
+  Options:
+  - `mix-blend-mode: multiply` on the ink canvases: one line of CSS, highlights work, but a red pen
+    or a coloured symbol over black notes shows black where they overlap, unlike the export.
+  - A separate highlight layer, multiplied over the music, under the pen and the other markings:
+    correct on screen, but touches `drawFrameInk`, live drawing, the zoomed close-up
+    (`reader/_detail.ts`) and the loupe.
+  - Keep a see-through highlight (the old 35%) and change the spec.
+  Until decided, new highlights on screen cover the notes.
 - **The cache giving room back when the origin runs short of quota** [needs thought]: pinned
   pages are never evicted, and the others only to stay within 30% of the quota (`diskBudget`,
   `page-cache/_budget.ts`); nothing shrinks the cache when the origin as a whole (scores added,
