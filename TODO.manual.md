@@ -35,6 +35,9 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   half the loupe's height), with the marking on it at its size relative to the staff. Zoomed in, a
   marking shows no bigger relative to the staff than before, and the loupe is never smaller than
   the screen.
+- **The loupe centres on the middle of the marking:** drag a long word and *cresc.*: the loupe
+  shows the marking's middle (where the finger holds it), not its left end. New text ("Ag") still
+  starts at the finger.
 - **Menus on the bar's off-white** (in the reader, light theme):
   - The Symbols panel, the Text panel, Pen's colours, the title menu and ⋯ all have the same
     off-white background as the bar. Hovering or focusing a button there is a faint grey.
@@ -73,7 +76,7 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - With one selected, tap empty music: only deselected, nothing placed.
   - Tap the selected one: a symbol goes to the next in its group, text opens for editing.
 - **The loupe** (marking tools, stage 8):
-  - Placing, moving and resizing a symbol: a round loupe above the finger, the symbol about 48 px
+  - Placing, moving and resizing a symbol: a round loupe above the finger, the staff about 64 px
     tall in it, centred on the symbol; near the toolbar it moves beside the finger.
   - Zoomed far in, the loupe shows the symbol at its size on screen, not smaller.
   - (Stage 9) The music in the loupe is sharp after a moment, and stays so as the finger moves

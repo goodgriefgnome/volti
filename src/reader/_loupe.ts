@@ -17,10 +17,9 @@ export const LOUPE_GAP_PX = 56;
 /** How much to magnify: the staff (`staffPx` tall on screen) shown LOUPE_STAFF_PX tall, but never smaller than on screen. */
 export const magnification = (staffPx: number) => Math.max(1, LOUPE_STAFF_PX / staffPx);
 
-/** The point of an ink box (screen px) the loupe centres on: h/2 in from its top, left and bottom; across, its middle when it is narrower than tall. */
+/** The point of an ink box (screen px) the loupe centres on: its middle. */
 export function loupeTarget(ink: { x0: number; y0: number; x1: number; y1: number }): { x: number; y: number } {
-  const h = ink.y1 - ink.y0;
-  return { x: ink.x1 - ink.x0 < h ? (ink.x0 + ink.x1) / 2 : ink.x0 + h / 2, y: ink.y0 + h / 2 };
+  return { x: (ink.x0 + ink.x1) / 2, y: (ink.y0 + ink.y1) / 2 };
 }
 
 /** Where the loupe's centre goes for a finger at `f`: above it, or beside it when that would be under `barBottom`; kept on the screen `W` wide. */

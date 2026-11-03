@@ -9,10 +9,8 @@ describe('magnification', () => {
 });
 
 describe('loupeTarget', () => {
-  it('is half the ink height in from the left, at the middle', () => {
-    expect(loupeTarget({ x0: 100, y0: 200, x1: 140, y1: 216 })).toEqual({ x: 108, y: 208 });
-  });
-  it('is the middle across for ink narrower than tall', () => {
+  it('is the middle of the ink box both ways', () => {
+    expect(loupeTarget({ x0: 100, y0: 200, x1: 140, y1: 216 })).toEqual({ x: 120, y: 208 });
     expect(loupeTarget({ x0: 100, y0: 200, x1: 110, y1: 216 })).toEqual({ x: 105, y: 208 });
   });
 });

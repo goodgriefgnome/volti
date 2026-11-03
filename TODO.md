@@ -16,14 +16,6 @@ scores.
 - **If the loupe is still slow on a page with much ink**, after the fix for it was tried on the
   tablet (see **The loupe stays smooth** in `TODO.manual.md`): draw only the markings near the
   loupe in `Loupe.drawInk` (those whose extent meets the loupe's area), not the whole frame's.
-- **The loupe centres on the middle of the marking**: today it centres h/2 in from the left of the
-  ink (`loupeTarget` in `reader/_loupe.ts`), so on a long marking (a long word, *cresc.*) it shows
-  the left end, while the finger holds the marking by its middle (a symbol is placed centred on the
-  finger, and a drag keeps the finger's place on it). Make `loupeTarget` the middle of the ink box
-  both ways: `{ x: (x0 + x1) / 2, y: (y0 + y1) / 2 }`. Change its tests in `reader/_loupe.test.ts`
-  (a box 40 × 16 at (100, 200) gives (120, 208)). New text is the exception to "held by its
-  middle": "Ag" starts at the finger (`newText` in `reader/reader.ts`), but it is short, so its
-  middle is close by; leave it.
 
 ## Confirmed features which require more thought
 
