@@ -148,23 +148,38 @@ export function placingTool(
         if (dragging) { host.paintInk(slot); host.select(host.selected()); }
       };
 
+      // Pointer events come faster than frames: `move` records the latest, and what it shows is drawn once per animation frame.
+      let client = { x: 0, y: 0 };
+      let frame = 0;
+      const draw = () => {
+        frame = 0;
+        if (!grab) {
+          if (placing) showGhost(client);
+          return;
+        }
+        if (!dragging) return;
+        const r = dragged(grab);
+        host.paintState(slot, r.state);
+        const item = itemOf(r.selected.cut);
+        magnify(slot, item && extentOnFrame(item, r.selected.mark, aspects[item.cut.page]), client, { ink: r.state.ink });
+      };
+      const cancelFrame = () => { cancelAnimationFrame(frame); frame = 0; };
+
       return {
-        move(p, client) {
+        move(p, c) {
           last = p;
+          client = c;
           if (!grab) {
             if (!placing && moved()) placing = true;
-            if (placing) showGhost(client);
-            return;
+            if (!placing) return;
+          } else {
+            if (!dragging && moved()) dragging = true;
+            if (!dragging) return;
           }
-          if (!dragging && moved()) dragging = true;
-          if (dragging) {
-            const r = dragged(grab);
-            host.paintState(slot, r.state);
-            const item = itemOf(r.selected.cut);
-            magnify(slot, item && extentOnFrame(item, r.selected.mark, aspects[item.cut.page]), client, { ink: r.state.ink });
-          }
+          frame ||= requestAnimationFrame(draw);
         },
         end(cancelled) {
+          cancelFrame();
           if (cancelled) { drop(); return; }
           if (placing) {
             // Lifting over a slot places there; anywhere else places nothing.
@@ -189,7 +204,7 @@ export function placingTool(
           host.commit(state, r.selected.cut);
           host.select(r.selected);
         },
-        drop,
+        drop() { cancelFrame(); drop(); },
       };
     },
   };

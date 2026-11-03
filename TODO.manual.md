@@ -3,6 +3,13 @@
 Things to try on the tablet, grouped so each group can be done in one go. Some groups need
 DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the records.
 
+- **The loupe stays smooth** (dragging a marking):
+  - Drag a small fingering on a zoomed-out spread, and on a page with many pen strokes: the
+    ghost, the marking and the loupe follow smoothly.
+  - Zoom in far (about 7× or more on a 2-pixel-ratio screen, 4.5× on a 3) and drag: the loupe's
+    music is sharp where the drag starts, and past about 64 px of dragging turns softer rather
+    than slowing the drag. At lower zoom it still turns sharp wherever it goes.
+  - Lift: the marking is placed where the last move was.
 - **The loupe** (marking tools, stage 8):
   - Placing, moving and resizing a symbol: a round loupe above the finger, the symbol about 48 px
     tall in it, centred on the symbol; near the toolbar it moves beside the finger.

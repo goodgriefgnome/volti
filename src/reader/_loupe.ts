@@ -40,6 +40,19 @@ const SHARP_REACH_PX = 256;
 /** A new region is asked for when the loupe's area comes this near (CSS px) the edge of the one drawn. */
 const SHARP_EDGE_PX = 64;
 
+/**
+ * How far across (CSS px) a sharp region is drawn at magnification `m` and `d` device pixels per
+ * CSS pixel: SHARP_REACH_PX each way beyond the `shown` the loupe covers, but at most SHARP_MAX_PX.
+ */
+export const sharpSide = (shown: number, m: number, d: number) => Math.min(shown + 2 * SHARP_REACH_PX, SHARP_MAX_PX / (m * d));
+
+/**
+ * Whether the region for a loupe at magnification `m` is as big as SHARP_MAX_PX allows, in that
+ * it can't keep the loupe SHARP_EDGE_PX from its edge: above about `16 / d - 1` magnification.
+ * Asking again would only shift an equally small region, over and over as the finger moves.
+ */
+export const sharpIsFull = (m: number, d: number) => (sharpSide(LOUPE_PX / m, m, d) - LOUPE_PX / m) / 2 <= SHARP_EDGE_PX;
+
 /** Music drawn sharp for a slot: the region of its frame (x in frame widths, y in frame widths from its top) and its pixels. */
 interface Sharp { canvas: HTMLCanvasElement; x0: number; y0: number; x1: number; y1: number }
 
@@ -101,7 +114,8 @@ export class Loupe {
       const edge = SHARP_EDGE_PX / w;
       const covered = sharp && area.x0 >= sharp.x0 + (sharp.x0 > 0 ? edge : 0) && area.y0 >= sharp.y0 + (sharp.y0 > 0 ? edge : 0)
         && area.x1 <= sharp.x1 - (sharp.x1 < 1 ? edge : 0) && area.y1 <= sharp.y1 - (sharp.y1 < b.height / w ? edge : 0);
-      if (!covered) this.ask(slot, target, b);
+      // Where the region is as big as it can be, a new one only shifts it, and is drawn again and again as the finger moves: keep it, and show the softer copy past its edge.
+      if (!covered && !(sharp && sharpIsFull(m, d))) this.ask(slot, target, b);
       ctx.setTransform(m * d, 0, 0, m * d, (r - target.x * m) * d, (r - target.y * m) * d);
       if (sharp && area.x0 >= sharp.x0 && area.y0 >= sharp.y0 && area.x1 <= sharp.x1 && area.y1 <= sharp.y1) {
         ctx.drawImage(sharp.canvas, b.left + sharp.x0 * w, b.top + sharp.y0 * w, (sharp.x1 - sharp.x0) * w, (sharp.y1 - sharp.y0) * w);
@@ -138,7 +152,7 @@ export class Loupe {
     this.asking.set(slot, control);
     const d = dpr(), m = this.m, w = b.width, W = Math.round(w * m * d);
     // Around what the loupe shows, as far as 256 px each way, in a canvas of at most SHARP_MAX_PX.
-    const shown = LOUPE_PX / m, side = Math.min(shown + 2 * SHARP_REACH_PX, SHARP_MAX_PX / (m * d)), reach = (side - shown) / 2 + shown / 2;
+    const shown = LOUPE_PX / m, side = sharpSide(shown, m, d), reach = (side - shown) / 2 + shown / 2;
     const x0 = Math.max(0, (target.x - reach - b.left) / w), y0 = Math.max(0, (target.y - reach - b.top) / w);
     const x1 = Math.min(1, (target.x + reach - b.left) / w), y1 = Math.min(b.height / w, (target.y + reach - b.top) / w);
     const region = { x: Math.floor(x0 * W), y: Math.floor(y0 * W), w: 0, h: 0 };

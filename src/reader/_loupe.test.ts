@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LOUPE_GAP_PX, LOUPE_PX, loupeCentre, loupeTarget, magnification } from './_loupe';
+import { LOUPE_GAP_PX, LOUPE_PX, loupeCentre, loupeTarget, magnification, sharpIsFull, sharpSide } from './_loupe';
 
 describe('magnification', () => {
   it('shows the ink 48 px tall, but never smaller than on screen', () => {
@@ -34,5 +34,27 @@ describe('loupeCentre', () => {
   it('stays on the screen', () => {
     expect(loupeCentre({ x: 5, y: 600 }, 80, 1000).x).toBe(LOUPE_PX / 2);
     expect(loupeCentre({ x: 995, y: 600 }, 80, 1000).x).toBe(1000 - LOUPE_PX / 2);
+  });
+});
+
+describe('sharpSide', () => {
+  it('reaches 256 px beyond what the loupe shows, while that fits in 2048 device pixels', () => {
+    expect(sharpSide(LOUPE_PX, 1, 1)).toBeCloseTo(LOUPE_PX + 512);
+  });
+  it('is at most 2048 device pixels across', () => {
+    expect(sharpSide(LOUPE_PX / 8, 8, 3) * 8 * 3).toBeCloseTo(2048);
+  });
+});
+
+describe('sharpIsFull', () => {
+  it('is false while the region can keep the loupe 64 px from its edge', () => {
+    expect(sharpIsFull(3, 2)).toBe(false);
+    expect(sharpIsFull(4, 3)).toBe(false);
+  });
+  it('is true above about 16 / dpr - 1 magnification: 7x at 2 device pixels per CSS pixel, 4.3x at 3', () => {
+    expect(sharpIsFull(6.9, 2)).toBe(false);
+    expect(sharpIsFull(7.1, 2)).toBe(true);
+    expect(sharpIsFull(4.2, 3)).toBe(false);
+    expect(sharpIsFull(4.4, 3)).toBe(true);
   });
 });
