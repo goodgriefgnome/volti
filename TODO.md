@@ -79,6 +79,22 @@ scores.
     to)`), test it there.
   - Add it to the spec's "The Symbols panel's library" section, and drop "Groups can't be
     reordered here".
+- **The reader's menus and panels on the bar's off-white, and the symbols in a group told apart**:
+  every menu is a `.menu` (`styles/overlay.css:2–5`) on `var(--surface)`, which is pure white in
+  the light theme the reader uses (`styles/base.css:4`). A pressed button there is white too
+  (`--bar-pressed`; `styles/reader.css:133` for swatches and shapes, `:151` for symbols), so only
+  its thin ring shows. In a group, the symbols have no border (`.menu button { border: 0 }`,
+  `overlay.css:8`; `.symbol-panel .symbol-choice`, `reader.css:150`) and only a 4 px gap, so where
+  one ends and the next begins can't be seen. Fix, in `styles/reader.css`:
+  - `body.reading .menu { background: var(--bar); }`, so every menu and panel opened in the reader
+    (the title menu, ⋯, the cut menus, the tools' panels) is the bar's off-white, the same for all.
+    Hover and focus (`overlay.css:9`, `var(--bg)`, nearly the same colour) become
+    `rgba(0, 0, 0, 0.05)` there. A pressed button stays white with its ring, and now stands out.
+  - `.symbol-panel .symbol-choice`: a 1 px `var(--bar-line)` border and 8 px corners, so each
+    symbol is its own tile inside the group's box.
+  - Dialogs (`.dialog`) keep `var(--surface)`: only menus change.
+  - Check: the Symbols panel, the Text panel, Pen's colours, the title menu and ⋯ all have the
+    same background, and each symbol in a group is a separate tile.
 
 ## Confirmed features which require more thought
 
