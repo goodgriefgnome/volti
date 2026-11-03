@@ -129,3 +129,31 @@ export function addAdhoc(lib: SymbolLibrary, sym: LibrarySymbol): SymbolLibrary 
   const rest = lib.adhoc.filter((s) => !same(sym)(s));
   return { ...lib, adhoc: [sym, ...rest].slice(0, ADHOC) };
 }
+
+/** Where a symbol is: a group's index (-1 for adhoc) and its place there. */
+export interface SymbolAt { group: number; index: number }
+
+/**
+ * Move the symbol at `from` to `to`: into a group at a place, into adhoc at a place, or 'new' (a
+ * new last group). The place is where the symbol ends up (as `moveGroup` counts), so within one
+ * list a later place is counted without the symbol. A group left empty is removed; adhoc keeps at
+ * most 8, its last going. Nothing is moved when `from` or the group `to` isn't there.
+ */
+export function moveSymbol(lib: SymbolLibrary, from: SymbolAt, to: SymbolAt | 'new'): SymbolLibrary {
+  const sym = symbolsOf(lib, from.group)[from.index];
+  if (!sym || (to !== 'new' && to.group >= lib.groups.length)) return lib;
+  // The groups' lists, then the adhoc list last.
+  const lists = [...lib.groups.map((g) => [...g.symbols]), [...lib.adhoc]];
+  const last = lists.length - 1, listOf = (group: number) => (group < 0 ? last : group);
+  lists[listOf(from.group)].splice(from.index, 1);
+  if (to === 'new') lists.splice(last, 0, [sym]);
+  else {
+    const list = lists[listOf(to.group)];
+    list.splice(Math.max(0, Math.min(to.index, list.length)), 0, sym);
+  }
+  const adhoc = lists.pop()!;
+  // Over the limit, the last one goes (not the one just put there).
+  while (adhoc.length > ADHOC) adhoc.splice(adhoc.findLastIndex((s) => s !== sym), 1);
+  const groups = lists.filter((l, i) => l.length || i !== from.group);
+  return { groups: groups.map((symbols) => ({ symbols })), adhoc };
+}

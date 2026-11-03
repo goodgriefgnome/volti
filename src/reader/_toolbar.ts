@@ -7,7 +7,6 @@ import { markColors, type Background } from '../markings/placed';
 import { el } from '../ui/dom';
 import { onLongPress } from '../ui/long-press';
 import { symbolPicture } from './_symbol-picture';
-import { SymbolRow, type SymbolRowActions } from './_symbol-row';
 import { backgroundPicture } from './_swatches';
 import { TOOL_NAMES, TOOLS, type ToolName } from './tools/_tools';
 
@@ -77,7 +76,7 @@ export type ToolChoice = 'none' | ToolName | 'symbol';
 /** The tools that place markings whole: a symbol, or text. */
 export const placesMarkings = (tool: ToolChoice) => tool === 'symbol' || tool === 'text';
 
-export interface ToolbarActions extends SymbolRowActions {
+export interface ToolbarActions {
   close(): void;
   /** The menu under the title: what can be read next to what is read. */
   titleMenu(): void;
@@ -125,8 +124,6 @@ export class Toolbar {
   /** The title as a button, with a chevron, to open the title menu. */
   readonly titleButton: HTMLButtonElement;
   readonly info = el('span', 'page-info');
-  /** The second row, under the rest: the symbol groups. */
-  readonly symbolRow: SymbolRow;
   private buttons: Record<string, HTMLButtonElement> = {};
   /** What the Symbols button shows now, to draw it again only when it changes. */
   private symbolShown = '';
@@ -188,8 +185,7 @@ export class Toolbar {
     more.setAttribute('aria-haspopup', 'menu');
     const main = el('div', 'bar-main');
     main.append(left, tools, more);
-    this.symbolRow = new SymbolRow(act);
-    this.el.append(main, this.symbolRow.el);
+    this.el.append(main);
   }
 
   private button(key: string, label: string, onClick: () => void, cls = ''): HTMLButtonElement {
@@ -238,7 +234,6 @@ export class Toolbar {
     for (const t of TOOL_NAMES) pressed(t, v.tool === t);
     pressed('cuts', v.cuts);
     pressed('symbols', v.tool === 'symbol');
-    this.symbolRow.el.hidden = v.tool !== 'symbol';
     this.symbolButton(v.symbol, v.symbolLook);
     this.textButton(v.textLook);
     this.buttons.pen.querySelector<HTMLElement>('.ink')!.style.background = v.penInk;

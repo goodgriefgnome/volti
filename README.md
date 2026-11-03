@@ -105,15 +105,19 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   and drag. A palm resting on the screen is ignored while the stylus writes. The stylus eraser end
   or button erases too.
 - **Symbols** in the toolbar shows the last symbol picked (at first, the first of the first group)
-  and makes it the tool; tap it again to put the tool away. With it, the second row has a button
-  for each group of symbols (press and hold to list its symbols), **+** and **Edit library…**.
+  and makes it the tool; tap it again to put the tool away. A long press on it opens the library
+  on the left, one box per group and **Recent** (the symbols placed through **+** and not in a
+  group) under its heading, then **+** and **Edit library…**. Tapping a symbol makes it the tool and
+  closes the panel; dragging one drops it at any place in any group or in Recent (a dashed box
+  at the end makes a new group of it; a group emptied goes; Recent keeps 8). Groups are reordered
+  in **Edit library…**.
 - A long press on **Text** opens its **Font**, **Colour**, **Background** and, once a shape is chosen,
   **Background colour**; on **Symbols**, **Colour**, **Background** and **Background colour**.
   **Colour** is **Default** and the three pen colours. A choice changes the selected marking (of
   that tool) and what new ones get (for Symbols' background: the library symbol, which the next
   one placed is a copy of). The **Text** button shows a **T** in its font, colour and background;
   **Symbols** shows its symbol in its colour and background; with a marking selected, each shows
-  the selected marking's. Only **Symbols** has a second row: the groups, **+**, **Edit library…**.
+  the selected marking's.  There is no second row.
 - **Cuts** shows the tabs and shading with which you change what is played and in what order, on the
   pages themselves (it doesn't move the pages; tap it again to hide them). A
   score's pages are made of cuts: bands of the PDF's pages (its *original pages*), stacked in the

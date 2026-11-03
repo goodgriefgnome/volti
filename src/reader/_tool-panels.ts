@@ -39,7 +39,7 @@ const part = (label: string, content: HTMLElement) => {
  * Colour, Background and Background colour (once there is a shape), as the Text and Symbols panels
  * have them; `v` is kept here and changed by each choice, so the rows redraw in place.
  */
-function lookParts(v: SymbolSettingsView, act: LookActions, redraw: () => void): HTMLElement[] {
+export function lookParts(v: SymbolSettingsView, act: LookActions, redraw: () => void): HTMLElement[] {
   const fill = v.backgroundColor === 'default' ? markColors().background : v.backgroundColor;
   const parts = [
     part('Colour', swatchRow(PEN_COLORS, markColors().color, v.color, (c) => { v.color = c; act.color(c); redraw(); })),
@@ -68,12 +68,4 @@ export function showTextPanel(at: HTMLElement, v: TextPanel, act: LookActions & 
   };
   draw();
   showMenu(at, 'Text', [panel]);
-}
-
-/** Symbols' colour and background, under its button; the library comes beside them in stage 5. */
-export function showSymbolPanel(at: HTMLElement, v: SymbolSettingsView, act: LookActions): void {
-  const panel = el('div', 'tool-panel');
-  const draw = () => panel.replaceChildren(...lookParts(v, act, draw));
-  draw();
-  showMenu(at, 'Symbols', [panel]);
 }

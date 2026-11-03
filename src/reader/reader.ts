@@ -5,7 +5,7 @@
 
 import type { FileChange } from '../dialogs/score-files';
 import { ends } from '../scores/excerpts';
-import { addAdhoc, addGroup, findSymbol, putSymbol, replaceSymbol, symbolsOf, type LibrarySymbol, type SymbolLibrary } from '../markings/library';
+import { addAdhoc, findSymbol, moveSymbol, replaceSymbol, symbolsOf, type LibrarySymbol, type SymbolAt, type SymbolLibrary } from '../markings/library';
 import { type Marking } from '../markings/model';
 import { unlockFolder } from '../originals/device-score-fs';
 import { knownTitles } from '../originals/library-files';
@@ -48,7 +48,8 @@ import { glyphPicker } from './_glyph-picker';
 import { editLibrary } from './_library-editor';
 import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
 import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_spread';
-import { showStrokeColors, showSymbolPanel, showTextPanel, type SymbolSettingsView, type TextPanel } from './_tool-panels';
+import { showSymbolPanel } from './_symbol-panel';
+import { showStrokeColors, showTextPanel, type SymbolSettingsView, type TextPanel } from './_tool-panels';
 import { backIcon, placesMarkings, Toolbar, turnIcon, type Look, type ToolChoice } from './_toolbar';
 import { ReaderMenus } from './_toolbar-menus';
 import { offerScore, turnFrom, type Offer } from './_turning';
@@ -236,14 +237,9 @@ class Reader {
       more: () => void this.menus.more(),
       tool: (t) => this.setTool(t),
       symbols: () => void this.symbols(),
-      pick: (g) => this.pickGroup(g),
-      choose: (g, i) => this.chooseSymbol(g, i),
-      add: () => this.addSymbol(),
-      edit: () => { if (this.symbolLib) editLibrary({ library: () => this.symbolLib!, change: (lib) => this.setLibrary(lib) }); },
-      moveToGroup: (i, g) => this.moveToGroup(i, g),
       colors: (tool) => this.strokeColors(tool),
       textPanel: () => this.textPanel(),
-      symbolPanel: () => this.symbolPanel(),
+      symbolPanel: () => void this.symbolPanel(),
       undo: () => this.undo(),
       redo: () => this.redo(),
       toggleCuts: () => void this.withAccess(() => { this.editor.setEnabled(!this.editor.enabled); this.syncBar(); this.decorate(); }),
@@ -507,25 +503,41 @@ class Reader {
     });
   }
 
-  /** The Symbols button's long press: its settings, or the selected symbol's. */
-  private symbolPanel() {
+  /** The library, made the first time; undefined, having said so, when that fails. */
+  private async ensureLibrary(): Promise<SymbolLibrary | undefined> {
+    if (!this.symbolLib) {
+      try { this.symbolLib = await symbolLibrary(); } catch (e) { console.error(e); this.say('Could not load the symbols.'); }
+    }
+    return this.symbolLib;
+  }
+
+  /** The Symbols button's long press: the library and the symbols' settings, or the selected symbol's. */
+  private async symbolPanel() {
+    if (!await this.ensureLibrary()) return;
     const sel = this.selectedOf('symbol')?.mark, was = sel ? sel.background : this.buttonSymbol()?.background;
     const v: SymbolSettingsView = {
       color: sel ? sel.color ?? 'default' : this.settings.symbol.color,
       background: was?.shape ?? 'none',
       backgroundColor: was?.color ?? 'default',
     };
-    showSymbolPanel(this.toolbar.anchor('symbols'), v, {
+    showSymbolPanel(this.toolbar.anchor('symbols'), {
+      library: () => this.symbolLib!,
+      tool: () => { const lib = this.symbolLib, s = this.buttonSymbol(); return lib && s && this.tool === 'symbol' ? findSymbol(lib, s.font, s.text) : undefined; },
+      pick: (at) => this.chooseSymbol(at.group, at.index),
+      move: (from, to) => this.moveSymbolTo(from, to),
+      add: () => this.addSymbol(),
+      edit: () => { if (this.symbolLib) editLibrary({ library: () => this.symbolLib!, change: (lib) => this.setLibrary(lib) }); },
+    }, v, {
       color: (c) => this.panelColor('symbol', c),
       background: (b) => this.panelBackground('symbol', { shape: b }),
       backgroundColor: (c) => this.panelBackground('symbol', { color: c }),
     });
   }
 
-  /** A font button: the font of new text, of the text being typed, and of the selected text marking. */
+  /** A font from the Text panel: the font of new text, of the text being typed, and of the selected text marking. */
   private setFont(id: string) {
     this.setSettings((s) => ({ ...s, text: { ...s.text, font: id } }));
-    // The field takes the font once it has loaded, and the font buttons show the field's.
+    // The field takes the font once it has loaded, and the panel shows the field's.
     if (this.typing.open) void this.typing.setFont(id).then(() => this.syncBar(), (e) => { console.error(e); this.say('Could not change the font.'); });
     else if (this.selected?.mark.kind === 'text' && this.selected.mark.font !== id) {
       const sel = this.selected;
@@ -663,10 +675,8 @@ class Reader {
    */
   private async symbols() {
     if (this.tool === 'symbol') { this.useTool('none'); this.syncBar(); return; }
-    if (!this.symbolLib) {
-      try { this.symbolLib = await symbolLibrary(); } catch (e) { console.error(e); this.say('Could not load the symbols.'); return; }
-    }
-    const at = lastSymbol(this.symbolLib, this.group, this.currents, this.adhocCurrent);
+    if (!await this.ensureLibrary()) return;
+    const at = lastSymbol(this.symbolLib!, this.group, this.currents, this.adhocCurrent);
     if (at) this.chooseSymbol(at.group, at.index);
     else this.syncBar();
   }
@@ -680,16 +690,7 @@ class Reader {
     else this.currents[group] = index;
   }
 
-  /** A group's button: its current symbol becomes the tool, or the next one is current when it already is. */
-  private pickGroup(i: number) {
-    const symbols = this.symbolLib && symbolsOf(this.symbolLib, i);
-    if (!symbols?.length) return;
-    if (this.tool === 'symbol' && this.group === i) this.setCurrent(i, (this.currentOf(i) + 1) % symbols.length);
-    else { this.useTool('symbol'); this.group = i; }
-    this.syncBar();
-  }
-
-  /** A symbol chosen from a group's long-press menu: current, and the tool. */
+  /** A symbol picked in the Symbols panel, or placed through +: current, and the tool. */
   private chooseSymbol(i: number, j: number) {
     this.setCurrent(i, j);
     this.useTool('symbol');
@@ -744,19 +745,23 @@ class Reader {
     });
   }
 
-  /** An ad-hoc symbol moved into a group (a new one at the end for 'new'); the tool follows it if it was the tool. */
-  private moveToGroup(index: number, group: number | 'new') {
+  /**
+   * A symbol dragged in the Symbols panel. The tool's symbol stays the tool wherever it goes, and
+   * each group's current symbol stays current in whichever group it is in now.
+   */
+  private moveSymbolTo(from: SymbolAt, to: SymbolAt | 'new') {
     const lib = this.symbolLib;
-    const sym = lib?.adhoc[index];
-    if (!lib || !sym) return;
-    const wasTool = this.tool === 'symbol' && this.group === -1 && this.adhocCurrent === index;
-    const to = group === 'new' ? lib.groups.length : group;
-    const next = putSymbol(group === 'new' ? addGroup(lib) : lib, sym, to);
+    if (!lib) return;
+    const key = (s: LibrarySymbol) => `${s.font}|${s.text}`;
+    const tool = this.buttonSymbol();
+    const currentKeys = new Set([...lib.groups.keys(), -1].flatMap((g) => { const s = symbolsOf(lib, g)[this.currentOf(g)]; return s ? [key(s)] : []; }));
+    const next = moveSymbol(lib, from, to);
+    const currentIn = (g: number) => Math.max(0, symbolsOf(next, g).findIndex((s) => currentKeys.has(key(s))));
+    this.currents = next.groups.map((_, g) => currentIn(g));
+    this.adhocCurrent = currentIn(-1);
+    const at = tool && findSymbol(next, tool.font, tool.text);
+    if (at) this.group = at.group;
     this.setLibrary(next);
-    if (wasTool) {
-      const at = findSymbol(next, sym.font, sym.text);
-      if (at) this.chooseSymbol(at.group, at.index);
-    }
   }
 
   /** The symbol the Symbols button shows: the last one picked; none before the library has symbols. */
@@ -781,7 +786,6 @@ class Reader {
       canRedo: this.undos.canRedo,
     });
     this.scope.hidden = this.reading.what.kind === 'score' || !this.editor.enabled;
-    this.toolbar.symbolRow.show(this.symbolLib, this.currents, this.adhocCurrent, this.tool === 'symbol' ? this.group : undefined, this.tool === 'symbol');
     this.root.classList.toggle('writing', this.tool !== 'none');
     this.root.classList.toggle('editing', this.editor.enabled);
     this.root.style.setProperty('--bar-h', this.toolbar.el.offsetHeight + 'px');

@@ -59,11 +59,6 @@
 .bar .title-block { display: flex; flex-direction: column; min-width: 0; }
 .bar .title-block .title-button { min-height: 24px; padding: 0 6px; }
 .bar .title-block .page-info { padding: 0 6px; font-size: 13px; line-height: 17px; }
-.bar .symbol-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px calc(-1 * max(12px, env(safe-area-inset-right, 0px))) -8px calc(-1 * max(12px, env(safe-area-inset-left, 0px))); padding: 8px max(12px, env(safe-area-inset-right, 0px)) 8px max(12px, env(safe-area-inset-left, 0px)); background: rgba(0, 0, 0, 0.03); border-top: 1px solid var(--bar-line); }
-.bar .symbol-row[hidden] { display: none; }
-.bar .symbol-group { width: 56px; padding: 4px; display: grid; place-items: center; }
-.menu .symbol-choice { display: inline-grid; place-items: center; width: 56px; min-height: 44px; padding: 4px; }
-.bar .symbol-row button:disabled { opacity: 0.4; }
 
 /* The selected marking: its box, a delete button above; the corners take a drag without showing handles (reader/_selection.ts). */
 .selection { position: absolute; z-index: 3; pointer-events: none; outline: 1.5px solid #1f6fe0; }
@@ -82,9 +77,6 @@
 .glyph-picker-body .glyph-cell { width: 56px; height: 56px; min-height: 0; padding: 4px; display: grid; place-items: center; }
 .glyph-picker-body .glyph-cell svg { width: 100%; height: 100%; fill: currentColor; }
 .glyph-picker-body .glyph-caption { min-height: 1.5em; }
-.menu .symbol-choice-row { display: flex; align-items: center; }
-.menu .symbol-choice-row button:last-child { flex: 1; }
-.menu .group-choice { width: auto; min-width: 56px; }
 
 /* The library editor: group rows wrapping their pictures; the symbol view's fields one per line. */
 .dialog.library-editor { width: min(720px, calc(100vw - 32px)); }
@@ -148,3 +140,18 @@
 .tool-panel { display: grid; gap: 8px; }
 .tool-panel .panel-part { display: grid; gap: 2px; }
 .tool-panel .font-select { font: inherit; min-height: 44px; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
+/* The Symbols panel: the library (boxes of symbols; scrolls) beside the settings. */
+.menu:has(.symbol-panel) { max-width: calc(100vw - 32px); }
+.symbol-panel { display: flex; gap: 12px; align-items: flex-start; }
+.symbol-panel .symbol-library { display: grid; gap: 8px; width: min(440px, calc(100vw - 300px)); min-width: 200px; max-height: inherit; overflow-y: auto; overscroll-behavior: contain; align-content: start; }
+.symbol-panel .symbol-settings { flex: none; display: grid; gap: 8px; }
+.symbol-panel { max-height: 100%; }
+.symbol-panel .group-box { display: flex; flex-wrap: wrap; gap: 4px; min-height: 52px; padding: 4px; border: 1px solid var(--bar-line); border-radius: 10px; touch-action: none; }
+.symbol-panel .symbol-choice { width: 52px; min-height: 52px; padding: 4px; touch-action: none; }
+.symbol-panel .symbol-choice[aria-pressed="true"] { background: var(--bar-pressed); box-shadow: 0 0 0 1px var(--bar-pressed-ring), 0 1px 3px rgba(0, 0, 0, 0.12); }
+.symbol-panel .symbol-choice.dragging { opacity: 0.35; }
+.symbol-panel .new-group { display: grid; place-items: center; min-height: 52px; border: 1.5px dashed #8d93a0; border-radius: 10px; color: var(--muted); font-size: 13px; }
+.symbol-panel .new-group.over { border-color: var(--select); color: var(--select); }
+.symbol-panel .symbol-actions { display: flex; gap: 6px; }
+.symbol-panel .drag-ghost { position: fixed; z-index: 30; pointer-events: none; opacity: 0.85; }
+.symbol-panel .drop-line { position: fixed; z-index: 30; width: 3px; border-radius: 2px; background: var(--select); pointer-events: none; }

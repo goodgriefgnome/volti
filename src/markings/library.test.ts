@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { addGlyph } from './glyphs';
-import { addAdhoc, addGroup, findSymbol, moveGroup, nextSymbol, putSymbol, removeGroup, removeSymbol, replaceSymbol, scaleOf, symbolFrom, symbolsOf, type LibrarySymbol, type SymbolLibrary } from './library';
+import { addAdhoc, addGroup, findSymbol, moveGroup, moveSymbol, nextSymbol, putSymbol, removeGroup, removeSymbol, replaceSymbol, scaleOf, symbolFrom, symbolsOf, type LibrarySymbol, type SymbolLibrary } from './library';
 
 beforeAll(() => {
   addGlyph('l:1', 'M 0 0 L 1 0 L 1 -1 L 0 -1 Z');
@@ -114,5 +114,46 @@ describe('changing the library', () => {
     putSymbol(lib, sym('a'), 1, 0); removeGroup(lib, 0); moveGroup(lib, 0, 1); addGroup(lib);
     replaceSymbol(lib, { font: 'l', text: 'b' }, sym('d')); removeSymbol(lib, 'l', 'a'); addAdhoc(lib, sym('z'));
     expect(JSON.stringify(lib)).toBe(copy);
+  });
+});
+
+describe('moveSymbol', () => {
+  const texts = (l: SymbolLibrary) => l.groups.map((g) => g.symbols.map((x) => x.text).join(''));
+  const adhoc = (l: SymbolLibrary) => l.adhoc.map((x) => x.text).join('');
+  it('moves within a group, forwards and backwards', () => {
+    expect(texts(moveSymbol(lib, { group: 0, index: 0 }, { group: 0, index: 2 }))).toEqual(['bca', 'd']);
+    expect(texts(moveSymbol(lib, { group: 0, index: 2 }, { group: 0, index: 0 }))).toEqual(['cab', 'd']);
+  });
+  it('moves to another group at its start, middle and end', () => {
+    const two: SymbolLibrary = { groups: [{ symbols: [sym('a')] }, { symbols: [sym('x'), sym('y'), sym('z')] }], adhoc: [] };
+    expect(texts(moveSymbol(lib, { group: 0, index: 1 }, { group: 1, index: 0 }))).toEqual(['ac', 'bd']);
+    expect(texts(moveSymbol({ ...two, groups: [{ symbols: [sym('a'), sym('q')] }, two.groups[1]] }, { group: 0, index: 1 }, { group: 1, index: 1 }))).toEqual(['a', 'xqyz']);
+    expect(texts(moveSymbol({ ...two, groups: [{ symbols: [sym('a'), sym('q')] }, two.groups[1]] }, { group: 0, index: 1 }, { group: 1, index: 3 }))).toEqual(['a', 'xyzq']);
+  });
+  it('removes a group whose last symbol went, and the groups after it move up', () => {
+    const three: SymbolLibrary = { groups: [{ symbols: [sym('a')] }, { symbols: [sym('b')] }, { symbols: [sym('c')] }], adhoc: [] };
+    expect(texts(moveSymbol(three, { group: 0, index: 0 }, { group: 2, index: 1 }))).toEqual(['b', 'ca']);
+    expect(texts(moveSymbol(three, { group: 2, index: 0 }, { group: 0, index: 0 }))).toEqual(['ca', 'b']);
+  });
+  it('puts a symbol among the ad hoc ones where dropped, and the last of 8 goes', () => {
+    const full: SymbolLibrary = { groups: lib.groups, adhoc: 'ghijklmn'.split('').map((t) => sym(t)) };
+    const out = moveSymbol(full, { group: 0, index: 0 }, { group: -1, index: 2 });
+    expect(adhoc(out)).toBe('ghaijklm');
+    expect(texts(out)).toEqual(['bc', 'd']);
+    expect(adhoc(moveSymbol(full, { group: 0, index: 0 }, { group: -1, index: 8 }))).toBe('ghijklma');
+  });
+  it('moves a symbol out of ad hoc into a group', () => {
+    const out = moveSymbol(lib, { group: -1, index: 0 }, { group: 1, index: 1 });
+    expect(texts(out)).toEqual(['abc', 'de']);
+    expect(adhoc(out)).toBe('f');
+  });
+  it("moves a symbol to a new last group", () => {
+    const out = moveSymbol(lib, { group: 0, index: 1 }, 'new');
+    expect(texts(out)).toEqual(['ac', 'd', 'b']);
+    expect(adhoc(moveSymbol(lib, { group: -1, index: 0 }, 'new'))).toBe('f');
+  });
+  it('leaves the library as it was when there is no such symbol', () => {
+    expect(moveSymbol(lib, { group: 0, index: 9 }, { group: 1, index: 0 })).toBe(lib);
+    expect(moveSymbol(lib, { group: 5, index: 0 }, { group: 1, index: 0 })).toBe(lib);
   });
 });

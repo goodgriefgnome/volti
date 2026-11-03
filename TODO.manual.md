@@ -3,6 +3,17 @@
 Things to try on the tablet, grouped so each group can be done in one go. Some groups need
 DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the records.
 
+- **The Symbols panel** (marking tools, stage 5):
+  - Long-press Symbols: the groups in boxes, Recent under its heading, only the tool's symbol lit.
+    Tap one: it is the tool and the panel closes.
+  - Drag a symbol within its group: it goes where dropped. Drag one to another group, to Recent,
+    and to the dashed box (only there while dragging): a new last group.
+  - Drag the last symbol out of a group: the group is gone. Drag a ninth into Recent: the oldest
+    goes.
+  - Drag the tool's symbol elsewhere: it is still the tool.
+  - Add groups in Edit library until the panel is taller than the screen: the library side
+    scrolls, the settings stay.
+  - There is no second row for any tool.
 - **Text and Symbols settings** (marking tools, stage 4):
   - Long-press Text: Font, Colour, Background. Pick a box: Background colour appears. The T on the
     button shows the font, colour and box.
