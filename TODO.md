@@ -164,6 +164,10 @@ scores.
 - **Typing text keeps the zoom** [needs thought]: when the keyboard goes away the zoom resets. The
   suspicion: `close` (`reader/_typing.ts`) turns `overlaysContent` off, the stage resizes, and
   `show()` sets `NO_ZOOM` (`reader/reader.ts`).
+- **The selected marking's delete button keeps its size on screen** [deferred]: it is 28 px in CSS
+  (`.selection-delete`, `styles/reader.css`) inside the zoomed spread, so it grows with the zoom
+  (84 px at 3×), while the box's line and handles keep their size (`SelectionBox.zoomed`,
+  `reader/_selection.ts`). It should be scaled by `1 / s` there too, as they are.
 
 ## Speculative future ideas
 
