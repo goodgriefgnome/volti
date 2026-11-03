@@ -56,8 +56,8 @@ scores.
   - It shows only once a press has moved past the tap distance (12 px, `TAP_MAX_MOVE_PX` in
     `reader/_gestures.ts`): `move` in `reader/tools/_placing.ts` sets `placing` or `dragging` only
     then, and the ghost and loupe are drawn only after that. Show them from the press instead:
-    in `start`, after `grab` and `hit` are known, schedule the first `draw` (one animation frame)
-    when the press is on a placed marking (its loupe, as for a move, without moving it yet), or
+    in `start`, after `grab` and `hit` are known, call `draw` at once (not on the next animation frame,
+    and with no hold first), when the press is on a placed marking (its loupe, as for a move, without moving it yet), or
     on empty music with nothing selected (the ghost and its loupe at the press). With a marking
     selected, a press on empty music still waits for a move, since a tap there only deselects.
     The placing and moving themselves still start only past the tap distance; `end` and `drop`
@@ -73,6 +73,22 @@ scores.
   - Check on the tablet, on a scanned score and a vector one: the loupe is there as soon as the
     finger touches a symbol or empty music with Symbols, it follows the finger smoothly, and the
     music in it turns sharp shortly after the finger stops.
+- **A chosen button in the reader's menus and panels stands out**: today chosen and not look the
+  same. Every button is white (`button` in `styles/base.css`: `background: var(--surface)`), and
+  `.menu button` (`styles/overlay.css`) only drops its border, so on the off-white menus
+  (`body.reading .menu`, `styles/reader.css`) each swatch, shape and symbol is a white tile, and a
+  chosen one is white too, with only a pale ring (`--bar-pressed-ring`, `#c3c9d2`) to tell it
+  apart. Fix, in `styles/reader.css`:
+  - `body.reading .menu button { background: transparent; }`: a button not chosen shows the menu's
+    off-white. The symbols keep their thin tile border (`.symbol-panel .symbol-choice`) so each
+    is still its own tile.
+  - A chosen one (`[aria-pressed="true"]`: `.swatch`, `.shape`, `.symbol-choice`) is white with a
+    2 px ring in the selection blue (`var(--select)`, `#1f6fe0`) instead of the pale ring: no dark
+    fill, so colours read true. One rule for all three, replacing the two at `reader.css` (swatch
+    and shape, symbol choice).
+  - The font dropdown (`.tool-panel .font-select`) stays white with its border, as a field.
+  - Check: in Pen's colours, the Text panel and the Symbols panel, the chosen colour, shape and
+    symbol are plain to see at a glance, and nothing else looks chosen.
 
 ## Confirmed features which require more thought
 
