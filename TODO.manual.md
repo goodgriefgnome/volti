@@ -368,4 +368,14 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   on empty music (the ghost and loupe show), then a second: the ghost and loupe go, the pinch
   zooms, nothing is placed, and Symbols is still chosen. Press a placed marking and drag it, then
   add a second finger: it keeps moving, and nothing zooms.
+- **Selecting a marking lends its tool, and a press outside the selection only deselects:**
+  - With no tool, tap a placed symbol: Symbols shows as chosen, picturing it; long-press Symbols,
+    change its colour and background: the symbol changes. Tap empty music: it deselects, and no
+    tool is chosen again; one-finger drags pan.
+  - With Text as the tool, tap a placed symbol, then a text marking, then empty music: Symbols,
+    then Text, then Text again.
+  - With Symbols as the tool and a symbol selected, press empty music and drag: the box goes, and
+    nothing is placed.
+  - While a marking is selected, choosing another tool ends the selection and keeps that tool;
+    tapping Symbols (lent) puts it away.
 

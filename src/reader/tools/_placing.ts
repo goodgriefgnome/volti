@@ -117,8 +117,9 @@ export function placingTool(
           grab = { kind: 'move', from: { cut: hit.cut.id, mark: hit.mark }, centre: centreOnFrame(item, hit.mark, aspects[item.cut.page]) };
         }
       }
-      // A press on empty music deselects at once; `sel` still says what a tap on it does.
-      if (!grab && sel) host.select(undefined);
+      // A press on empty music with a marking selected only deselects, at once: it shows, moves and places nothing, tap or drag.
+      const inert = !grab && !!sel;
+      if (inert) host.select(undefined);
 
       let last: Point = p0;
       // A press on a marking moves or resizes it from the first pixel.
@@ -218,7 +219,7 @@ export function placingTool(
           last = p;
           client = c;
           if (!grab && !placing) {
-            if (!moved()) return;
+            if (inert || !moved()) return;
             placing = true;
           }
           frame ||= requestAnimationFrame(draw);

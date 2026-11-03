@@ -74,7 +74,8 @@ describe('placingTool: the press', () => {
       loupe: () => ({ begin: () => void calls.push('begin'), show: () => void calls.push('show'), end: () => void calls.push('end') }),
     } as unknown as ToolHost;
     const ghost = () => ({ ...m, at: [0.2, 0.2] as [number, number] });
-    return { calls, host, tool: placingTool('t', () => {}, ghost) };
+    const placed: number[] = [];
+    return { calls, placed, host, tool: placingTool('t', () => void placed.push(1), ghost) };
   };
   it('shows the loupe on a placed marking at once, and hides it when lifting', () => {
     const { calls, host, tool } = setup();
@@ -92,6 +93,21 @@ describe('placingTool: the press', () => {
     const { calls, host, tool } = setup(m);
     tool.start(host, slot, [0.1, y, 0.5]);
     expect(calls).toEqual([]);
+  });
+  it('only deselects on empty music with a marking selected: a drag shows and places nothing', () => {
+    const { calls, placed, host, tool } = setup(m);
+    const use = tool.start(host, slot, [0.1, y, 0.5]);
+    use.move([0.3, y, 0.5], { x: 300, y: 0 });
+    use.end(false);
+    expect(calls).toEqual([]);
+    expect(placed).toEqual([]);
+  });
+  it('places where the finger lifted after a drag on empty music with nothing selected', () => {
+    const { placed, host, tool } = setup();
+    const use = tool.start(host, slot, [0.1, y, 0.5]);
+    use.move([0.3, y, 0.5], { x: 300, y: 0 });
+    use.end(false);
+    expect(placed).toEqual([1]);
   });
   it('holds a second finger off while a marking is pressed, not while a ghost shows or on a selected press on empty music', () => {
     expect(setup().tool.start(setup().host, slot, [0.5, y, 0.5]).holds?.()).toBe(true);

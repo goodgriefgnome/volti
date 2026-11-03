@@ -157,6 +157,8 @@ class Reader {
   private detail: Detail;
 
   private tool: ToolChoice = 'none';
+  /** While selecting a marking has lent the tool for its kind: the tool to give back when the selection ends. */
+  private lentFrom?: ToolChoice;
   /** Each tool's settings for new markings; kept across restarts. */
   private settings: ToolSettings = DEFAULT_TOOL_SETTINGS;
   /** The symbol library, once it has been made. */
@@ -314,7 +316,7 @@ class Reader {
       library: () => this.symbolLib,
       paintState: (slot, s) => { this.selection.hide(); this.paintInk(slot, s); },
       selected: () => this.selected,
-      select: (s) => { this.selected = s; this.refreshSelection(); },
+      select: (s) => this.select(s),
       cycled: (sym) => this.cycledTo(sym),
       setZoom: (z) => this.setZoom(z),
       view: () => this.view(),
@@ -363,8 +365,7 @@ class Reader {
   private async goTo(k: number, at?: string | 'first' | 'last', turned = false) {
     const seq = ++this.goSeq;
     this.loading = true;
-    this.selected = undefined;
-    this.selection.hide();
+    this.deselect();
     if (k !== this.k) { this.editor.dismiss(); this.toolbar.info.textContent = 'Opening…'; }
     await this.scores.ensure(k, true);
     if (seq !== this.goSeq || this.scores.closed) return;
@@ -409,13 +410,29 @@ class Reader {
     this.syncBar();
   }
 
-  /** Change the tool; the selection ends with it, between Text and a symbol too. */
+  /** Change the tool; the selection ends with it, between Text and a symbol too, and nothing is given back. */
   private useTool(t: ToolChoice) {
     if (t !== this.tool) {
       this.typing.finish();
-      if (this.selected) { this.selected = undefined; this.selection.hide(); }
+      this.lentFrom = undefined;
+      this.deselect(false);
     }
     this.tool = t;
+  }
+
+  /** End the selection and hide its box; the tool its marking lent, if any, goes back to what it was. The caller shows the toolbar. */
+  private deselect(giveBack = true) {
+    if (giveBack && this.lentFrom !== undefined) { this.tool = this.lentFrom; this.lentFrom = undefined; }
+    this.selected = undefined;
+    this.selection.hide();
+  }
+
+  /** Selecting a marking makes the tool for its kind the tool, keeping the selection; the first tool lent from is the one to give back. */
+  private lend(kind: 'text' | 'symbol') {
+    if (this.tool === kind) return;
+    this.typing.finish();
+    this.lentFrom ??= this.tool;
+    this.tool = kind;
   }
 
   /** A long press on a tool's button makes it the tool, if it isn't; when it is, the press leaves it be. */
@@ -451,7 +468,7 @@ class Reader {
       const t = this.settings.text, background = backgroundOf(t.background, t.backgroundColor);
       return { font: t.font ?? ACADEMICO, color: ownColor(t.color) ?? markColors().color, ...(background ? { background } : {}) };
     }
-    const background = this.buttonSymbol()?.background;
+    const background = this.pickedSymbol()?.background;
     return { color: ownColor(this.settings.symbol.color) ?? markColors().color, ...(background ? { background } : {}) };
   }
 
@@ -493,7 +510,7 @@ class Reader {
     }
     const lib = this.symbolLib;
     const at = lib && sel && findSymbol(lib, sel.mark.font, sel.mark.text);
-    const sym = sel ? lib && at && symbolsOf(lib, at.group)[at.index] : this.buttonSymbol();
+    const sym = sel ? lib && at && symbolsOf(lib, at.group)[at.index] : this.pickedSymbol();
     if (lib && sym) {
       const { background: _, ...rest } = sym, was = sel ? next : resolve(sym.background);
       this.setLibrary(replaceSymbol(lib, sym, was ? { ...rest, background: was } : rest));
@@ -535,7 +552,7 @@ class Reader {
       const at = lastSymbol(this.symbolLib!, this.group, this.currents, this.adhocCurrent);
       if (at) this.chooseSymbol(at.group, at.index);
     }
-    const sel = this.selectedOf('symbol')?.mark, was = sel ? sel.background : this.buttonSymbol()?.background;
+    const sel = this.selectedOf('symbol')?.mark, was = sel ? sel.background : this.pickedSymbol()?.background;
     const v: SymbolSettingsView = {
       color: sel ? sel.color ?? 'default' : this.settings.symbol.color,
       background: was?.shape ?? 'none',
@@ -543,7 +560,7 @@ class Reader {
     };
     showSymbolPanel(this.toolbar.anchor('symbols'), {
       library: () => this.symbolLib!,
-      tool: () => { const lib = this.symbolLib, s = this.buttonSymbol(); return lib && s && this.tool === 'symbol' ? findSymbol(lib, s.font, s.text) : undefined; },
+      tool: () => { const lib = this.symbolLib, s = this.pickedSymbol(); return lib && s && this.tool === 'symbol' ? findSymbol(lib, s.font, s.text) : undefined; },
       pick: (at) => this.chooseSymbol(at.group, at.index),
       move: (from, to) => this.moveSymbolTo(from, to),
       moveGroup: (from, to) => this.moveGroupTo(from, to),
@@ -571,7 +588,7 @@ class Reader {
   /* ---------- typing ---------- */
 
   private select(s: Selected | undefined) {
-    this.selected = s;
+    if (s) { this.selected = s; this.lend(s.mark.kind); } else this.deselect();
     this.refreshSelection();
   }
 
@@ -712,7 +729,7 @@ class Reader {
   /** Show the selected marking's box, or none: a selection ends when its marking is gone from the state, or the tool isn't one that places markings (or none). */
   private refreshSelection() {
     const sel = this.selected, cur = this.current;
-    if (sel && (!cur || !(placesMarkings(this.tool) || this.tool === 'none') || !cur.state.ink[sel.cut]?.includes(sel.mark))) this.selected = undefined;
+    if (sel && (!cur || !(placesMarkings(this.tool) || this.tool === 'none') || !cur.state.ink[sel.cut]?.includes(sel.mark))) this.deselect();
     const now = this.selected;
     const slot = now && this.slots.find((sl) => sl.frame.items.some((i) => i.cut.id === now.cut));
     const item = slot && slot.frame.items.find((i) => i.cut.id === now!.cut);
@@ -741,9 +758,9 @@ class Reader {
     else this.currents[group] = index;
   }
 
-  /** A selected symbol was cycled to `sym`: with Symbols as the tool, it is the tool's symbol now. */
+  /** A selected symbol was cycled to `sym`: with Symbols as the tool (not lent by the selection), it is the tool's symbol now. */
   private cycledTo(sym: LibrarySymbol) {
-    const at = this.tool === 'symbol' && this.symbolLib && findSymbol(this.symbolLib, sym.font, sym.text);
+    const at = this.tool === 'symbol' && this.lentFrom === undefined && this.symbolLib && findSymbol(this.symbolLib, sym.font, sym.text);
     if (!at) return;
     this.group = at.group;
     this.setCurrent(at.group, at.index);
@@ -813,7 +830,7 @@ class Reader {
     const lib = this.symbolLib;
     if (!lib) return;
     const key = (s: LibrarySymbol) => `${s.font}|${s.text}`;
-    const tool = this.buttonSymbol();
+    const tool = this.pickedSymbol();
     const currentKeys = new Set([...lib.groups.keys(), -1].flatMap((g) => { const s = symbolsOf(lib, g)[this.currentOf(g)]; return s ? [key(s)] : []; }));
     const next = moveSymbol(lib, from, to);
     const currentIn = (g: number) => Math.max(0, symbolsOf(next, g).findIndex((s) => currentKeys.has(key(s))));
@@ -834,8 +851,16 @@ class Reader {
     this.setLibrary(moveGroup(lib, from, to));
   }
 
-  /** The symbol the Symbols button shows: the last one picked; none before the library has symbols. */
+  /** The symbol the Symbols button pictures: the selected symbol's, else the last one picked. */
   private buttonSymbol(): LibrarySymbol | undefined {
+    const m = this.selectedOf('symbol')?.mark;
+    if (!m) return this.pickedSymbol();
+    const lib = this.symbolLib, at = lib && findSymbol(lib, m.font, m.text);
+    return lib && at ? symbolsOf(lib, at.group)[at.index] : { font: m.font, text: m.text, scale: 1, glyphs: m.glyphs.map((g) => [...g]) };
+  }
+
+  /** The last symbol picked; none before the library has symbols. */
+  private pickedSymbol(): LibrarySymbol | undefined {
     const lib = this.symbolLib, at = lib && lastSymbol(lib, this.group, this.currents, this.adhocCurrent);
     return lib && at ? symbolsOf(lib, at.group)[at.index] : undefined;
   }
@@ -843,7 +868,7 @@ class Reader {
   private syncBar() {
     const cur = this.current;
     if (this.tool === 'text') this.prepareGhost();
-    if (this.selected && !(placesMarkings(this.tool) || this.tool === 'none')) { this.selected = undefined; this.selection.hide(); }
+    if (this.selected && !(placesMarkings(this.tool) || this.tool === 'none')) this.deselect();
     this.toolbar.sync({
       open: !!cur,
       tool: this.tool,
@@ -1121,7 +1146,7 @@ class Reader {
     const place = { k: this.k, items: this.items.length, frame: this.frame, shown: this.shown, frames: this.frames.length };
     const t = turnFrom(place, dir, this.reading.what.kind);
     if (t.to !== 'score') this.offered = null;
-    if (t.to !== 'score') { this.selected = undefined; this.selection.hide(); }
+    if (t.to !== 'score') this.deselect();
     if (t.to === 'frame') {
       this.frame = t.frame;
       this.syncBar();

@@ -13,50 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **Selecting a marking lends its tool, and a press outside the selection only deselects**: today
-  a symbol selected with no tool (or with Text) can't be changed from the Symbols panel. A long
-  press on Symbols makes it the tool first (`symbolPanel` in `reader/reader.ts`, `chooseSymbol`),
-  and `useTool` ends the selection whenever the tool changes, so the panel opens on the tool's
-  settings. Text's long press does the same to a selected text marking (`chooseOnLongPress`).
-  - **Lending:** selecting a symbol while Symbols isn't the tool makes Symbols the tool, keeping
-    the selection; selecting a text marking does the same with Text. From no tool, and from the
-    other placing tool (Text lends Symbols, Symbols lends Text). Keep the tool to give back in a
-    field, say `lentFrom?: ToolChoice`: set it on the first lend only, so going from a selected
-    symbol to a selected text marking lends Text and still gives back the tool first had. Lend in
-    the host's `select` (where `selected` is set, as a tool's tap selects), setting the tool
-    without `useTool`, which would end the selection; then `syncBar`.
-  - **Giving back:** when the selection ends (a tap away deselects, the marking is deleted or
-    gone, the page turns, another score opens), the lent tool goes and `lentFrom` comes back.
-    Today the selection is ended in several places that set `this.selected = undefined` directly
-    (`goTo`, `useTool`, `refreshSelection`, `syncBar`, `turn`, and `select(undefined)` in
-    `newText`): send them all through one `deselect()` that hides the box and gives the tool back.
-  - **Choosing a tool:** choosing any tool by its button ends the selection, as `useTool` does
-    now, lent or not; the chosen tool stays, and `lentFrom` is forgotten (nothing comes back).
-    Tapping Symbols while it is lent puts it away, as a tap on the chosen tool does: no tool, and
-    the selection ends. Only lending itself changes the tool without ending the selection.
-  - **The Symbols button** pictures the selected symbol while one is selected (its symbol, not
-    only its look, as `lookOf` gives now): `buttonSymbol` returns the library symbol the selected
-    marking is a copy of (`findSymbol`), else one made from the marking's font, text and glyphs.
-    Its long press then opens the panel on the selection, as `symbolPanel` already does when
-    Symbols is the tool.
-  - **A press outside the selection** (not on its box, a handle, or another placed marking), with
-    either placing tool, lent or not: it deselects as it goes down, as now (`placingTool` in
-    `reader/tools/_placing.ts`, `if (!grab && sel) host.select(undefined)`), and does nothing
-    else: no ghost or loupe, and nothing placed or typed, whether it is a tap or a drag. Today a
-    drag past the tap distance starts placing (`placing = true` in `move`), and lifting places.
-    The drag doesn't pan either: the tool given back takes the next press. A press on another
-    marking is as now: a tap selects it, a drag moves it.
-  - Tests: what `_tapAction` gives for a press on empty music with a selection stays 'deselect';
-    add a test that `placingTool`'s pointer, started with a selection on empty music and moved
-    past the tap distance, places nothing when it ends, if the test helpers allow it; otherwise
-    leave it to the checks below.
-  - Check on the tablet: with no tool, tap a placed symbol: Symbols shows as chosen, picturing
-    it; long-press Symbols, change its colour and background: the symbol changes. Tap empty
-    music: it deselects, and no tool is chosen again; one-finger drags pan. With Text as the
-    tool, tap a placed symbol, then a text marking, then empty music: Symbols, then Text, then
-    Text again. With Symbols as the tool and a symbol selected, press empty music and drag:
-    the box goes, and nothing is placed.
-
 ## Confirmed features which require more thought
 
 - **The cache giving room back when the origin runs short of quota** [needs thought]: pinned
