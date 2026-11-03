@@ -44,11 +44,17 @@ describe('pressesMarking', () => {
     expect(pressesMarking(host(), slot, [0.1, y, 0.5])).toBe(false);
   });
   it('is true on a handle of the selected marking\'s box, beyond a marking\'s tap margin', () => {
-    // The box is 0.1 wide (100 px): handles of 16 px at its corners. The corner (0.55, y - 0.05); 0.565 is 15 px off it, beyond the 12 px tap margin.
-    expect(pressesMarking(host(), slot, [0.565, y - 0.05, 0.5])).toBe(false);
-    expect(pressesMarking(host(true), slot, [0.565, y - 0.05, 0.5])).toBe(true);
-    // 0.57 is 20 px off the corner (more than 16 px), and 20 px from the box's side.
-    expect(pressesMarking(host(true), slot, [0.57, y, 0.5])).toBe(false);
+    // A 10 px marking: its box is 24 px (corner at 12 px from the centre), handles of 6 px. A press 5.5 px
+    // right of the top right corner is 12.5 px from the ink, beyond the 12 px tap margin.
+    const small: PlacedMark = { ...m, size: 0.01 };
+    const h = (selected?: boolean) => ({
+      zoom: () => ({ s: 1 }), aspects: () => aspects, state: () => state([c], { [c.id]: [small] }),
+      selected: () => (selected ? { cut: c.id, mark: small } : undefined),
+    }) as unknown as ToolHost;
+    expect(pressesMarking(h(), slot, [0.5175, y - 0.012, 0.5])).toBe(false);
+    expect(pressesMarking(h(true), slot, [0.5175, y - 0.012, 0.5])).toBe(true);
+    // 8 px off the corner is beyond the disc.
+    expect(pressesMarking(h(true), slot, [0.52, y - 0.012, 0.5])).toBe(false);
   });
 });
 

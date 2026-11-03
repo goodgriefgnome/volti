@@ -360,3 +360,8 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
 - **The Symbols panel's symbols sit in the middle of their buttons:** a staccato dot and a
   fermata sit in the middle of their buttons (52 px square), and the chosen one's ring is even
   round it.
+- **The selected marking's handles smaller, and its box's line over them:** zoomed in and out,
+  the box's line is as dark and as thick where it crosses a handle as anywhere else, and runs
+  through each disc's middle; the handles are at most 8 px in radius, and resize only from the
+  disc that shows.
+

@@ -87,10 +87,10 @@ describe('selectionBox', () => {
 });
 
 describe('handleRadius', () => {
-  it('is a quarter of the shorter side, at most 16 px', () => {
+  it('is a quarter of the shorter side, at most 8 px', () => {
     expect(handleRadius(24)).toBe(6);
-    expect(handleRadius(64)).toBe(16);
-    expect(handleRadius(400)).toBe(16);
+    expect(handleRadius(64)).toBe(8);
+    expect(handleRadius(400)).toBe(8);
   });
 });
 

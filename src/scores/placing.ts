@@ -40,7 +40,7 @@ export function selectionBox(ext: Box, minFrame: number): Box {
 
 /** The radius of a corner handle, in CSS pixels, for a box whose shorter side measures `shortSidePx`. */
 export function handleRadius(shortSidePx: number): number {
-  return Math.min(shortSidePx / 4, 16);
+  return Math.min(shortSidePx / 4, 8);
 }
 
 /**

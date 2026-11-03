@@ -1,4 +1,4 @@
-// The selected marking's box over its frame: an outline, a handle at each corner and a delete button above. DOM elements in the frame's box, so they zoom with it; on screen only, never exported.
+// The selected marking's box over its frame: a line, a handle at each corner and a delete button above. DOM elements in the frame's box, so they zoom with it; on screen only, never exported.
 
 import { el } from '../ui/dom';
 import { handleRadius, MIN_BOX_PX, selectionBox } from '../scores/placing';
@@ -19,6 +19,7 @@ const CUTS = [
 export class SelectionBox {
   private box = el('div', 'selection');
   private handles = CUTS.map((cut) => { const h = el('div', 'selection-handle'); h.style.clipPath = cut; return h; });
+  private line = el('div', 'selection-line');
   private remove = el('button', 'selection-delete', '×');
   private shown: { slot: FrameSlot; ext: Ext } | undefined;
 
@@ -26,8 +27,8 @@ export class SelectionBox {
     this.remove.type = 'button';
     this.remove.setAttribute('aria-label', 'Delete');
     this.remove.addEventListener('click', onDelete);
-    // The button last, so it wins over a handle where they overlap.
-    this.box.append(...this.handles, this.remove);
+    // The line over the handles, and the button last, so it wins over both where they overlap.
+    this.box.append(...this.handles, this.line, this.remove);
     this.box.hidden = true;
   }
 
@@ -53,7 +54,10 @@ export class SelectionBox {
     if (!this.shown) return;
     const { slot, ext } = this.shown, a = slot.frame.aspect, px = slot.w * s; // CSS pixels in a frame width
     const [x0, y0, x1, y1] = selectionBox(ext, MIN_BOX_PX / px);
-    Object.assign(this.box.style, { left: x0 * 100 + '%', top: (y0 / a) * 100 + '%', width: (x1 - x0) * 100 + '%', height: ((y1 - y0) / a) * 100 + '%', outlineWidth: 1 / s + 'px' });
+    Object.assign(this.box.style, { left: x0 * 100 + '%', top: (y0 / a) * 100 + '%', width: (x1 - x0) * 100 + '%', height: ((y1 - y0) / a) * 100 + '%' });
+    // The line's border is centred on the box's edge.
+    const w = 1 / s;
+    Object.assign(this.line.style, { inset: -w / 2 + 'px', borderWidth: w + 'px' });
     const r = handleRadius(Math.min(x1 - x0, y1 - y0) * px) / s; // in the zoomed spread's pixels
     this.handles.forEach((h, i) => Object.assign(h.style, {
       left: i === 1 || i === 2 ? '100%' : '0', top: i >= 2 ? '100%' : '0',

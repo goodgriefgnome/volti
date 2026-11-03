@@ -63,7 +63,9 @@
 .bar .title-block .page-info { padding: 0 6px; font-size: 13px; line-height: 17px; }
 
 /* The selected marking: its box, a handle at each corner and a delete button above; sizes that must keep their size on screen are set by reader/_selection.ts. */
-.selection { position: absolute; z-index: 3; pointer-events: none; outline: 1px solid #1f6fe0; }
+.selection { position: absolute; z-index: 3; pointer-events: none; }
+/* The box's line, over the handles: its border is centred on the box's edge (inset set by reader/_selection.ts). */
+.selection-line { position: absolute; box-sizing: border-box; border: 1px solid #1f6fe0; pointer-events: none; }
 .selection-handle { position: absolute; box-sizing: border-box; border-radius: 50%; border: 1.5px solid #1f6fe0; background: #ffffff; pointer-events: none; }
 .selection[hidden] { display: none; }
 .selection-delete { position: absolute; left: 50%; bottom: calc(100% + 10px); width: 28px; height: 28px; min-height: 0; margin-left: -14px; padding: 0; pointer-events: auto; border-radius: 50%; border: 0; background: #1f6fe0; color: #ffffff; font: 600 18px/28px sans-serif; text-align: center; }
