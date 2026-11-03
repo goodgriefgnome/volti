@@ -30,10 +30,10 @@ scores.
     Today the selection is ended in several places that set `this.selected = undefined` directly
     (`goTo`, `useTool`, `refreshSelection`, `syncBar`, `turn`, and `select(undefined)` in
     `newText`): send them all through one `deselect()` that hides the box and gives the tool back.
-  - **Choosing a tool:** a tool chosen by its button while one is lent becomes the tool, and
-    `lentFrom` is forgotten. `useTool` keeps the selection when going between Symbols, Text and no
-    tool (all of which select), and ends it only for a tool that can't select (pen, highlight,
-    eraser); change its comment, which says the selection ends between Text and a symbol.
+  - **Choosing a tool:** choosing any tool by its button ends the selection, as `useTool` does
+    now, lent or not; the chosen tool stays, and `lentFrom` is forgotten (nothing comes back).
+    Tapping Symbols while it is lent puts it away, as a tap on the chosen tool does: no tool, and
+    the selection ends. Only lending itself changes the tool without ending the selection.
   - **The Symbols button** pictures the selected symbol while one is selected (its symbol, not
     only its look, as `lookOf` gives now): `buttonSymbol` returns the library symbol the selected
     marking is a copy of (`findSymbol`), else one made from the marking's font, text and glyphs.
