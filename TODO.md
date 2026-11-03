@@ -38,6 +38,47 @@ scores.
     `drawInk` (those whose extent meets the loupe's area), not the whole frame's.
   - Check on the tablet with a small fingering on a zoomed-out spread, and on a page with many
     pen strokes: dragging stays smooth, and the loupe's music still turns sharp.
+- **With a marking selected, a tap on another marking selects that one**: today it only
+  deselects (`_tapAction` in `reader/tools/_placing.ts`: with something selected, any hit but the
+  selected marking gives `'deselect'`). Make a hit on another marking give `'select'`; a tap on
+  empty music still only deselects. Change the test in `reader/tools/_placing.test.ts`, and the
+  spec's line under "Selecting" (`docs/marking-tools-spec.md`: "a tap on another marking doesn't
+  select that one").
+- **With no tool, a tap on a placed marking selects it**: today it hides the toolbar. With no tool
+  a press goes to panning (`reader/_input.ts`, `onDown`, the last line), and a selection is
+  dropped whenever the tool doesn't place markings (`reader/reader.ts`, `refreshSelection` and
+  `syncBar`: `!placesMarkings(this.tool)`). Fix:
+  - Let a selection stand with no tool as well: allow `'none'` beside `placesMarkings` in those
+    two checks. `useTool` still ends it when the tool changes.
+  - In `Input.onDown`, with no tool and the toolbar showing, outside the page-turn bands: a press
+    on a placed marking (`placedAt` from `scores/placing.ts`, with the tap margin `_placing.ts`
+    uses), or on the selected marking's box, goes to the placing pointer. Export a way from
+    `_placing.ts` to start one that never places: a tap selects, deselects or goes again as
+    `_tapAction` says, and a drag moves or resizes. A press elsewhere pans as now.
+  - With a marking selected, a tap on empty music only deselects, and doesn't hide the toolbar
+    (the panning branch of `onUp`).
+  - Pen, Highlight and Erase are unchanged: a tap with them still draws or erases.
+  - Update the spec's "Selecting" section to say it holds with no tool too.
+- **Picking a symbol in the Symbols panel keeps the panel open**: `reader/_symbol-panel.ts`, the
+  `up` handler (`if (!dragged) { closeOverlay(); host.pick(from); … }`), closes it. Drop the
+  `closeOverlay()` and draw the library again (`drawLibrary()`) so the new tool's symbol is lit.
+  A tap outside still closes it. The spec says the panel closes (`docs/marking-tools-spec.md`,
+  "Tapping a symbol makes it the tool and closes the panel"): change it to stay open.
+- **Groups reordered in the Symbols panel by a grip**: no group box has one yet
+  (`reader/_symbol-panel.ts`, `makeBox`). Give each group's box (not Recent's) a grip at its left
+  edge. Dragging the grip up or down moves the group, with a line where it would go, as
+  `dragToReorder` (`ui/drag-reorder.ts`) does for the title menu; on lifting,
+  `moveGroup(lib, from, to)` (`markings/library.ts`) through a new `SymbolPanelHost.moveGroup`.
+  - The reader keeps each group's current symbol by index (`currents`) and the tool's group by
+    index (`group`), and `setLibrary` only clamps them (`reader/reader.ts`, `setLibrary`), so a
+    reorder would hand each group another's current symbol. Move `currents[from]` to `to` the
+    same way, and follow `group` when it was the moved group or between `from` and `to`.
+  - A press on a symbol still picks or drags the symbol; only the grip moves the group.
+  - Test: `moveGroup` already has tests in `markings/library.test.ts`. If the reader's following
+    is pulled out as a pure function (say `_symbols.ts`, `reorderedCurrents(currents, group, from,
+    to)`), test it there.
+  - Add it to the spec's "The Symbols panel's library" section, and drop "Groups can't be
+    reordered here".
 
 ## Confirmed features which require more thought
 
