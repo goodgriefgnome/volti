@@ -10,6 +10,12 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     music is sharp where the drag starts, and past about 64 px of dragging turns softer rather
     than slowing the drag. At lower zoom it still turns sharp wherever it goes.
   - Lift: the marking is placed where the last move was.
+- **Menus on the bar's off-white** (in the reader, light theme):
+  - The Symbols panel, the Text panel, Pen's colours, the title menu and ⋯ all have the same
+    off-white background as the bar. Hovering or focusing a button there is a faint grey.
+  - A pressed swatch, shape or symbol is white with its ring and stands out.
+  - In the Symbols panel, each symbol in a group is a separate tile with a thin border.
+  - A dialog (Edit library…, the glyph picker) is still white.
 - **A long press makes the tool the tool:**
   - With no tool, long-press Pen, Highlight, Text, then Symbols in turn: each becomes the tool
     (lit; for Symbols, the last symbol picked) and its panel opens.
