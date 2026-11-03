@@ -108,11 +108,12 @@ export class ThumbStrip {
     const scale = dpr(), W = Math.round(w * scale);
     const byPage = new Map(pages.map((p, k) => [p, canvases[k]]));
     const music = Object.assign(el('canvas'), { width: W, height: Math.round(w * f.aspect * scale) });
+    const under = Object.assign(el('canvas', 'under'), { width: W, height: music.height });
     const ink = Object.assign(el('canvas'), { width: W, height: music.height });
     drawFrame(music.getContext('2d', { alpha: false })!, f, W, (p) => byPage.get(p), aspects);
-    drawFrameInk(ink.getContext('2d')!, f, state.ink, aspects, W);
+    drawFrameInk(ink.getContext('2d')!, f, state.ink, aspects, W, 0, 0, undefined, under.getContext('2d')!);
     this.boxes[i].querySelectorAll('canvas').forEach((c) => c.remove());
-    this.boxes[i].prepend(music, ink);
+    this.boxes[i].prepend(music, under, ink);
     if (!standIn) this.drawnAt[i] = w;
     return true;
   }

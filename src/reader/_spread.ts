@@ -15,9 +15,11 @@ export interface FrameSlot {
   box: HTMLElement;
   x: number; y: number; w: number; h: number;
   canvas: HTMLCanvasElement;
+  /** What multiplies (highlights, backgrounds), blended over `canvas` by CSS. */
+  under: HTMLCanvasElement;
   ink: HTMLCanvasElement;
   /** A sharp close-up of the visible part while zoomed in: drawn as if the frame were W device pixels wide, from (x, y). */
-  detail?: { canvas: HTMLCanvasElement; ink: HTMLCanvasElement; W: number; x: number; y: number };
+  detail?: { canvas: HTMLCanvasElement; under: HTMLCanvasElement; ink: HTMLCanvasElement; W: number; x: number; y: number };
   /** The editing tabs and shading over the frame. */
   ui?: HTMLElement;
 }
@@ -44,9 +46,10 @@ export function placeSlots(frames: Frame[], first: number, W: number, H: number,
       box: boxes[i],
       x: r.x, y: r.y, w: r.w, h: r.h,
       canvas: Object.assign(el('canvas'), { width: r.fw, height: r.fh }),
+      under: Object.assign(el('canvas', 'ink under'), { width: r.fw, height: r.fh }),
       ink: Object.assign(el('canvas', 'ink'), { width: r.fw, height: r.fh }),
     };
-    slot.box.append(slot.canvas, slot.ink);
+    slot.box.append(slot.canvas, slot.under, slot.ink);
     return slot;
   });
 }
@@ -60,9 +63,9 @@ export function paintSlot(slot: FrameSlot, pages: Map<number, HTMLCanvasElement>
 
 /** Draw a frame's ink, and its close-up's; `extra` is a marking still being made. */
 export function paintSlotInk(slot: FrameSlot, aspects: Aspects, ink: ScoreInk, extra?: Marking) {
-  drawFrameInk(slot.ink.getContext('2d')!, slot.frame, ink, aspects, slot.ink.width, 0, 0, extra);
+  drawFrameInk(slot.ink.getContext('2d')!, slot.frame, ink, aspects, slot.ink.width, 0, 0, extra, slot.under.getContext('2d')!);
   const d = slot.detail;
-  if (d) drawFrameInk(d.ink.getContext('2d')!, slot.frame, ink, aspects, d.W, d.x, d.y, extra);
+  if (d) drawFrameInk(d.ink.getContext('2d')!, slot.frame, ink, aspects, d.W, d.x, d.y, extra, d.under.getContext('2d')!);
 }
 
 /**

@@ -37,6 +37,7 @@ export class Detail {
     this.restart();
     for (const s of this.host.slots()) {
       s.detail?.canvas.remove();
+      s.detail?.under.remove();
       s.detail?.ink.remove();
       s.detail = undefined;
     }
@@ -78,14 +79,17 @@ export class Detail {
       }
       if (seq !== this.seq) return;
       const ink = Object.assign(el('canvas', 'ink detail'), { width: region.w, height: region.h });
-      for (const c of [canvas, ink]) {
+      const under = Object.assign(el('canvas', 'ink under detail'), { width: region.w, height: region.h });
+      for (const c of [canvas, under, ink]) {
         Object.assign(c.style, { left: x / k + 'px', top: y / k + 'px', width: region.w / k + 'px', height: region.h / k + 'px' });
       }
       slot.detail?.canvas.remove();
+      slot.detail?.under.remove();
       slot.detail?.ink.remove();
-      slot.detail = { canvas, ink, W: fw, x, y };
-      drawFrameInk(ink.getContext('2d')!, slot.frame, this.host.state().ink, aspects, fw, x, y);
+      slot.detail = { canvas, under, ink, W: fw, x, y };
+      drawFrameInk(ink.getContext('2d')!, slot.frame, this.host.state().ink, aspects, fw, x, y, undefined, under.getContext('2d')!);
       slot.box.insertBefore(canvas, slot.ui ?? null);
+      slot.box.insertBefore(under, slot.ui ?? null);
       slot.box.insertBefore(ink, slot.ui ?? null);
     }
   }

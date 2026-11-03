@@ -6,6 +6,8 @@
 .page canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 /* The sharp close-up drawn while zoomed in; the reader sets its position and size. */
 .page canvas.detail { right: auto; bottom: auto; }
+/* What multiplies (highlights, backgrounds) is blended over the music beneath it. */
+.page canvas.under { mix-blend-mode: multiply; }
 /* Zooming scales the whole spread from the stage's top-left corner. */
 .spread { position: absolute; inset: 0; transform-origin: 0 0; }
 

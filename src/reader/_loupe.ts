@@ -65,6 +65,7 @@ export class Loupe {
   private sharp = new Map<FrameSlot, Sharp>();
   private asking = new Map<FrameSlot, AbortController>();
   private inkCanvas: HTMLCanvasElement | undefined;
+  private underCanvas: HTMLCanvasElement | undefined;
   private last: [readonly FrameSlot[], { x: number; y: number }, { x: number; y: number }, SharpInk | undefined] | undefined;
 
   constructor(private root: HTMLElement, private view: Pick<ReaderView, 'draw' | 'aspects'>) {}
@@ -102,6 +103,13 @@ export class Loupe {
       const b = from.getBoundingClientRect();
       ctx.drawImage(from, b.left, b.top, b.width, b.height);
     };
+    // What multiplies goes over the music multiplied, as the page's CSS does.
+    const putUnder = (from: HTMLCanvasElement) => {
+      ctx.save();
+      ctx.globalCompositeOperation = 'multiply';
+      put(from);
+      ctx.restore();
+    };
     for (const slot of slots) {
       const b = slot.box.getBoundingClientRect(), w = b.width;
       // The loupe's area on this slot's frame, clipped to it; nothing of it is on a slot it misses.
@@ -120,13 +128,14 @@ export class Loupe {
       if (sharp && area.x0 >= sharp.x0 && area.y0 >= sharp.y0 && area.x1 <= sharp.x1 && area.y1 <= sharp.y1) {
         ctx.drawImage(sharp.canvas, b.left + sharp.x0 * w, b.top + sharp.y0 * w, (sharp.x1 - sharp.x0) * w, (sharp.y1 - sharp.y0) * w);
         if (ink) this.drawInk(ctx, slot, b, target, ink);
-        else put(slot.ink);
+        else { putUnder(slot.under); put(slot.ink); }
       } else {
         // As they are stacked on the screen: music, ink, then the close-up's music and ink.
         put(slot.canvas);
+        putUnder(slot.under);
         put(slot.ink);
         const detail = slot.detail;
-        if (detail?.canvas.isConnected) { put(detail.canvas); put(detail.ink); }
+        if (detail?.canvas.isConnected) { put(detail.canvas); putUnder(detail.under); put(detail.ink); }
       }
     }
   }
@@ -135,11 +144,15 @@ export class Loupe {
   private drawInk(ctx: CanvasRenderingContext2D, slot: FrameSlot, b: DOMRect, target: { x: number; y: number }, ink: SharpInk) {
     const d = dpr(), m = this.m, r = LOUPE_PX / 2, side = Math.round(LOUPE_PX * d);
     const own = this.inkCanvas ??= Object.assign(el('canvas'), { width: side, height: side });
+    const lower = this.underCanvas ??= Object.assign(el('canvas'), { width: side, height: side });
     const W = b.width * m * d;
     const ox = (target.x - b.left) * m * d - r * d, oy = (target.y - b.top) * m * d - r * d;
-    drawFrameInk(own.getContext('2d')!, slot.frame, ink.ink, this.view.aspects(), W, ox, oy, ink.extra?.slot === slot ? ink.extra.mark : undefined);
+    drawFrameInk(own.getContext('2d')!, slot.frame, ink.ink, this.view.aspects(), W, ox, oy, ink.extra?.slot === slot ? ink.extra.mark : undefined, lower.getContext('2d')!);
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.drawImage(lower, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
     ctx.drawImage(own, 0, 0);
     ctx.restore();
   }

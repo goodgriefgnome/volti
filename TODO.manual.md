@@ -10,6 +10,13 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     music is sharp where the drag starts, and past about 64 px of dragging turns softer rather
     than slowing the drag. At lower zoom it still turns sharp wherever it goes.
   - Lift: the marking is placed where the last move was.
+- **Highlights and backgrounds multiply over the music:**
+  - A highlight over notes leaves them black: in the reader, zoomed in (after the sharp close-up
+    comes), in the loupe while dragging a marking, and in the Excerpt picker's thumbnails.
+  - A box behind text shows the staff lines through it.
+  - A red pen line over a note is red, not darkened; the white edge round a placed glyph stays white.
+  - Draw a highlight live: the notes stay black under it as it is drawn.
+  - The exported PDF looks the same as the screen.
 - **Menus on the bar's off-white** (in the reader, light theme):
   - The Symbols panel, the Text panel, Pen's colours, the title menu and ⋯ all have the same
     off-white background as the bar. Hovering or focusing a button there is a faint grey.

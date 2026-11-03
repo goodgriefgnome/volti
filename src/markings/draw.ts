@@ -70,6 +70,14 @@ export function canvasDrawing(ctx: CanvasRenderingContext2D): Drawing {
   };
 }
 
+/** A drawing that sends what multiplies (a highlight, a background) to `under`, and the rest to `over`. */
+export function splitDrawing(over: Drawing, under: Drawing): Drawing {
+  return {
+    path: (points, width, look) => (look.multiply ? under : over).path(points, width, look),
+    shape: (cmds, paint) => ('fill' in paint ? paint.fill : paint.stroke).multiply ? under.shape(cmds, paint) : over.shape(cmds, paint),
+  };
+}
+
 /** `color` (#rrggbb) mixed `t` of the way towards `to`. */
 export function mix(color: string, to: string, t: number): string {
   const channel = (c: string, i: number) => parseInt(c.slice(1 + 2 * i, 3 + 2 * i), 16);
