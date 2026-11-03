@@ -3,6 +3,7 @@
 
 import type { SymbolLibrary, LibrarySymbol } from '../../markings/library';
 import type { Marking, Point } from '../../markings/model';
+import type { PlacedMark } from '../../markings/placed';
 import type { State } from '../../scores/model';
 import type { Selected } from '../../scores/placing';
 import type { FrameSlot } from '../_spread';
@@ -26,6 +27,8 @@ export interface ToolHost extends ReaderView {
   paintInk(slot: FrameSlot, extra?: Marking): void;
   /** Draw a frame's ink as it would be in `s`, without taking the edit: a marking being dragged. The selection's box is hidden until the next `select`. */
   paintState(slot: FrameSlot, s: State): void;
+  /** The word "Ag" as new text would be placed, centred as typing starts at `at`, in a tint that reads as a marker; undefined until it is shaped. */
+  textGhost(at: [number, number]): PlacedMark | undefined;
   /** Start typing a new text marking with the middle of its capitals at `at` on the slot's frame. */
   newText(slot: FrameSlot, at: [number, number]): void;
   /** Edit the selected text marking. */

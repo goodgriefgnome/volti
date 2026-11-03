@@ -3,6 +3,12 @@
 Things to try on the tablet, grouped so each group can be done in one go. Some groups need
 DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the records.
 
+- **Placing by dragging** (marking tools, stage 7):
+  - Press on empty music with Symbols: the symbol shows under the finger; drag it onto the facing
+    page and let go: placed there. Drag it off the pages (onto the grey stage) and let go: nothing.
+  - With Text: "Ag" follows the finger in a bluish tint; let go: the typing field opens there,
+    empty.
+  - With a marking selected, press and drag on empty music: it is deselected and the ghost follows.
 - **Selecting** (marking tools, stage 6):
   - Place a symbol: it isn't selected. Tap it: selected. Tap it again: the next in its group, and
     the next placed is that one too.

@@ -64,3 +64,13 @@ export function paintSlotInk(slot: FrameSlot, aspects: Aspects, ink: ScoreInk, e
   const d = slot.detail;
   if (d) drawFrameInk(d.ink.getContext('2d')!, slot.frame, ink, aspects, d.W, d.x, d.y, extra);
 }
+
+/**
+ * The slot under point `p` of slot `from`'s frame (x as a fraction of its width, y in frame
+ * widths), and the point on that slot's frame; undefined when it is on no slot.
+ */
+export function slotUnder(slots: readonly FrameSlot[], from: FrameSlot, p: readonly [number, number]): { slot: FrameSlot; at: [number, number] } | undefined {
+  const sx = from.x + p[0] * from.w, sy = from.y + p[1] * from.w;
+  const slot = slots.find((s) => sx >= s.x && sx <= s.x + s.w && sy >= s.y && sy <= s.y + s.h);
+  return slot && { slot, at: [(sx - slot.x) / slot.w, (sy - slot.y) / slot.w] };
+}

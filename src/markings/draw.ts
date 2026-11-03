@@ -69,3 +69,10 @@ export function canvasDrawing(ctx: CanvasRenderingContext2D): Drawing {
     },
   };
 }
+
+/** `color` (#rrggbb) mixed `t` of the way towards `to`. */
+export function mix(color: string, to: string, t: number): string {
+  const channel = (c: string, i: number) => parseInt(c.slice(1 + 2 * i, 3 + 2 * i), 16);
+  const hex = (i: number) => Math.round(channel(color, i) + (channel(to, i) - channel(color, i)) * t).toString(16).padStart(2, '0');
+  return `#${hex(0)}${hex(1)}${hex(2)}`;
+}

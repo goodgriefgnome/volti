@@ -9,7 +9,7 @@ import { replaceMarking, setSymbolSize, textResized } from '../../scores/edits';
 import type { State } from '../../scores/model';
 import { centreOnFrame, extentOnFrame, movedTo, placedAt, resizedFrom, type Selected } from '../../scores/placing';
 import { isTap } from '../_gestures';
-import type { FrameSlot } from '../_spread';
+import { slotUnder, type FrameSlot } from '../_spread';
 import type { Tool, ToolHost } from './_tool';
 
 /** How far from a marking's ink a tap still counts as on it, in CSS pixels. */
@@ -51,8 +51,16 @@ type Grab =
   | { kind: 'move'; from: Selected; centre: readonly [number, number] }
   | { kind: 'resize'; from: Selected; corner: 0 | 1 | 2 | 3; ext: [number, number, number, number]; centre: readonly [number, number] };
 
-/** A tool for placed markings; `tapEmpty` is what a tap on music with no placed marking does. */
-export function placingTool(label: string, tapEmpty: (host: ToolHost, slot: FrameSlot, at: [number, number]) => void): Tool {
+/**
+ * A tool for placed markings. `place` is what a tap on empty music does, and what lifting after
+ * pressing on empty music and dragging does, on the slot the finger is over. `ghost` is what the
+ * press shows under the finger meanwhile: a marking centred at `at`; undefined: nothing to place yet.
+ */
+export function placingTool(
+  label: string,
+  place: (host: ToolHost, slot: FrameSlot, at: [number, number]) => void,
+  ghost: (host: ToolHost, at: [number, number]) => PlacedMark | undefined,
+): Tool {
   return {
     label,
     start(host, slot, p0) {
@@ -80,9 +88,14 @@ export function placingTool(label: string, tapEmpty: (host: ToolHost, slot: Fram
         const item = itemOf(hit.cut.id)!;
         grab = { kind: 'move', from: { cut: hit.cut.id, mark: hit.mark }, centre: centreOnFrame(item, hit.mark, aspects[item.cut.page]) };
       }
+      // A press on empty music deselects at once; `sel` still says what a tap on it does.
+      if (!grab && sel) host.select(undefined);
 
       let last: Point = p0;
       let dragging = false;
+      // A press on empty music that has moved on: the slot and point showing the ghost.
+      let placing = false;
+      let over: { slot: FrameSlot; at: [number, number] } | undefined;
       const moved = () => !isTap({ x0: p0[0] * px, y0: p0[1] * px, x1: last[0] * px, y1: last[1] * px, ms: 0 });
 
       /** The state the drag so far makes, the marking as it is in it, and the size it implies for a symbol. */
@@ -93,29 +106,51 @@ export function placingTool(label: string, tapEmpty: (host: ToolHost, slot: Fram
       };
 
       const tap = () => {
-        const sel = host.selected();
         switch (_tapAction(sel?.mark, hit?.mark)) {
           case 'deselect': host.select(undefined); break;
           case 'select': host.select({ cut: hit!.cut.id, mark: hit!.mark }); break;
           case 'again': if (hit!.mark.kind === 'text') host.editText(sel!); else cycle(host, hit!.cut.id, hit!.mark); break;
-          case 'place': tapEmpty(host, slot, at0); break;
+          case 'place': place(host, slot, at0); break;
         }
+      };
+
+      /** Show the ghost under the finger, on the slot there, repainting only what changed. */
+      const showGhost = () => {
+        const now = slotUnder(host.slots(), slot, [last[0], last[1]]);
+        const mark = now && ghost(host, now.at);
+        if (over && (!now || !mark || over.slot !== now.slot)) { host.paintInk(over.slot); over = undefined; }
+        if (!now || !mark) return;
+        if (over && over.at[0] === now.at[0] && over.at[1] === now.at[1]) return;
+        host.paintInk(now.slot, mark);
+        over = now;
       };
 
       /** Forget the drag: show the ink as it is, and the box again. */
       const drop = () => {
+        if (over) { host.paintInk(over.slot); over = undefined; }
         if (dragging) { host.paintInk(slot); host.select(host.selected()); }
       };
 
       return {
         move(p) {
           last = p;
-          if (!grab) return;
+          if (!grab) {
+            if (!placing && moved()) placing = true;
+            if (placing) showGhost();
+            return;
+          }
           if (!dragging && moved()) dragging = true;
           if (dragging) host.paintState(slot, dragged(grab).state);
         },
         end(cancelled) {
           if (cancelled) { drop(); return; }
+          if (placing) {
+            // Lifting over a slot places there; anywhere else places nothing.
+            const under = slotUnder(host.slots(), slot, [last[0], last[1]]);
+            drop();
+            if (under) place(host, under.slot, under.at);
+            return;
+          }
           if (!dragging) {
             if (isTap({ x0: p0[0] * px, y0: p0[1] * px, x1: last[0] * px, y1: last[1] * px, ms: performance.now() - t0 })) tap();
             return;

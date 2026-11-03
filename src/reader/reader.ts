@@ -30,6 +30,7 @@ import { type Setlist } from '../setlists/model';
 import { closeOverlay, showDialog } from '../ui/overlay';
 import { ACADEMICO, BRAVURA, fontChoices, fontMetrics, shapeWith, type FontChoice } from '../fonts/fonts';
 import { loadToolSettings, saveGlyphs, saveLibrary, saveToolSettings } from '../markings/store';
+import { mix } from '../markings/draw';
 import { backgroundOf, type BackgroundChoice, type ColorChoice, DEFAULT_TOOL_SETTINGS, ownColor, strokeColor, type ToolSettings } from '../markings/tool-settings';
 import { dpr, el } from '../ui/dom';
 import { Toast } from '../ui/toast';
@@ -321,6 +322,7 @@ class Reader {
       commit: (s, focus) => this.commit(s, focus),
       erased: (s, slot) => this.erased(s, slot),
       eraseEnded: (before, slot) => this.eraseEnded(before, slot),
+      textGhost: (at) => this.textGhost(at),
       newText: (slot, at) => this.newText(slot, at),
       editText: (sel) => this.editText(sel),
       typing: () => this.typing.open,
@@ -567,6 +569,36 @@ class Reader {
     }
   }
 
+  /** "Ag" shaped in a font, for the ghost; the font it was asked for, to ask once. */
+  private ghostText: { font: string; glyphs: { gid: number; x: number; y: number }[]; capHeight: number } | undefined;
+  private ghostFont: string | undefined;
+
+  /** Shape "Ag" in the text font, once, so the ghost can show; it shows when this is done. */
+  private prepareGhost() {
+    const font = this.settings.text.font ?? ACADEMICO;
+    if (this.ghostFont === font) return;
+    this.ghostFont = font;
+    this.ghostText = undefined;
+    void (async () => {
+      try {
+        const [shaped, { capHeight }] = await Promise.all([shapeWith(font, 'Ag'), fontMetrics(font)]);
+        await saveGlyphs(font, shaped.paths);
+        if (this.ghostFont === font) this.ghostText = { font, glyphs: shaped.glyphs, capHeight };
+      } catch (e) { console.error(e); }
+    })();
+  }
+
+  /** What a press with Text shows under the finger: "Ag" where typing would start, in the text's size, font and background, its colour tinted towards the selection blue. */
+  private textGhost(at: [number, number]): PlacedMark | undefined {
+    const g = this.ghostText, t = this.settings.text;
+    if (!g || g.font !== (t.font ?? ACADEMICO)) return undefined;
+    const size = textSizeOf(this.state.score);
+    const made = textMark(g.font, 'Ag', g.glyphs, [at[0], at[1] + (g.capHeight / 2) * size], size);
+    if (!made) return undefined;
+    const background = backgroundOf(t.background, t.backgroundColor);
+    return { ...made, color: mix(ownColor(t.color) ?? markColors().color, '#1f6fe0', 0.25), ...(background ? { background } : {}) };
+  }
+
   /** A tap with Text as the tool: start typing a new text marking with the middle of its capitals at `at`. */
   private newText(slot: FrameSlot, at: [number, number]) {
     this.select(undefined);
@@ -781,6 +813,7 @@ class Reader {
 
   private syncBar() {
     const cur = this.current;
+    if (this.tool === 'text') this.prepareGhost();
     if (this.selected && !placesMarkings(this.tool)) { this.selected = undefined; this.selection.show(undefined); }
     this.toolbar.sync({
       open: !!cur,

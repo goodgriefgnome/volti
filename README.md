@@ -116,6 +116,11 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   next in its group (which becomes the tool's symbol) or edits text. With a marking selected, a tap
   anywhere on the music only deselects it. Dragging a placed marking moves it; dragging a corner of
   the selected one resizes it.
+- With **Text** or **Symbols** as the tool, pressing on empty music shows what will be placed under
+  the finger: the symbol (in its colour and background) or, for Text, the word **Ag** in the text's
+  font, size and background, tinted blue. It follows the finger onto any page on the screen;
+  letting go places it there (Text opens the typing field there), and letting go anywhere but on a
+  page places nothing. A tap places it where tapped.
 - A long press on **Text** opens its **Font**, **Colour**, **Background** and, once a shape is chosen,
   **Background colour**; on **Symbols**, **Colour**, **Background** and **Background colour**.
   **Colour** is **Default** and the three pen colours. A choice changes the selected marking (of
