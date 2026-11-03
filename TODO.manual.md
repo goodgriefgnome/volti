@@ -17,6 +17,13 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - A red pen line over a note is red, not darkened; the white edge round a placed glyph stays white.
   - Draw a highlight live: the notes stay black under it as it is drawn.
   - The exported PDF looks the same as the screen.
+- **The loupe shows at the press, and doesn't stall** (on a scanned score and a vector one):
+  - With Symbols, press on a placed symbol, and on empty music with nothing selected: the loupe is
+    there as soon as the finger touches (the ghost in it, for empty music), before any move.
+  - With a marking selected, press on empty music: no loupe until the finger moves.
+  - Lift after a tap: the loupe goes. Drag: it follows the finger smoothly, with no stalls.
+  - Stop the finger: the music in the loupe turns sharp shortly after (about 150 ms, and the
+    drawing). Move again: it follows at once, softer, and sharpens again when you stop.
 - **Menus on the bar's off-white** (in the reader, light theme):
   - The Symbols panel, the Text panel, Pen's colours, the title menu and ⋯ all have the same
     off-white background as the bar. Hovering or focusing a button there is a faint grey.

@@ -37,6 +37,8 @@ export function loupeCentre(f: { x: number; y: number }, barBottom: number, W: n
 const SHARP_MAX_PX = 2048;
 /** Sharp music is drawn this far (CSS px) beyond what the loupe shows, each way. */
 const SHARP_REACH_PX = 256;
+/** Sharp music is asked for once the finger has held still this long (ms), so drawing it never holds up a frame while the finger moves. */
+export const SHARP_HOLD_MS = 150;
 /** A new region is asked for when the loupe's area comes this near (CSS px) the edge of the one drawn. */
 const SHARP_EDGE_PX = 64;
 
@@ -64,6 +66,9 @@ export class Loupe {
   private m = 1;
   private sharp = new Map<FrameSlot, Sharp>();
   private asking = new Map<FrameSlot, AbortController>();
+  private hold: ReturnType<typeof setTimeout> | undefined;
+  /** The slots (and their boxes) the last frame shown has no sharp region for, to ask for once the finger holds still. */
+  private lacking: [FrameSlot, DOMRect][] = [];
   private inkCanvas: HTMLCanvasElement | undefined;
   private underCanvas: HTMLCanvasElement | undefined;
   private last: [readonly FrameSlot[], { x: number; y: number }, { x: number; y: number }, SharpInk | undefined] | undefined;
@@ -84,12 +89,27 @@ export class Loupe {
 
   /**
    * Show the area around screen point `target` with the finger at `finger`; draws from the slots'
-   * canvases, and from sharper music and (given `ink`) ink once those have been drawn.
+   * canvases, and from sharper music and (given `ink`) ink once those have been drawn; sharp
+   * music is asked for only after the finger has held still for SHARP_HOLD_MS.
    */
   show(slots: readonly FrameSlot[], target: { x: number; y: number }, finger: { x: number; y: number }, ink?: SharpInk): void {
+    // The finger moved: stop drawing a region, and ask for the next one only when it holds still.
+    this.abortAsking();
+    clearTimeout(this.hold);
+    this.render(slots, target, finger, ink);
+    if (this.lacking.length) {
+      this.hold = setTimeout(() => {
+        for (const [slot, b] of this.lacking) this.ask(slot, target, b);
+        this.lacking = [];
+      }, SHARP_HOLD_MS);
+    }
+  }
+
+  private render(slots: readonly FrameSlot[], target: { x: number; y: number }, finger: { x: number; y: number }, ink?: SharpInk): void {
     const canvas = this.canvas, ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
     this.last = [slots, target, finger, ink];
+    this.lacking = [];
     const r = LOUPE_PX / 2, d = dpr(), m = this.m, half = r / m;
     const bar = this.root.querySelector('.bar')?.getBoundingClientRect().bottom ?? 0;
     const c = loupeCentre(finger, bar, innerWidth);
@@ -123,7 +143,7 @@ export class Loupe {
       const covered = sharp && area.x0 >= sharp.x0 + (sharp.x0 > 0 ? edge : 0) && area.y0 >= sharp.y0 + (sharp.y0 > 0 ? edge : 0)
         && area.x1 <= sharp.x1 - (sharp.x1 < 1 ? edge : 0) && area.y1 <= sharp.y1 - (sharp.y1 < b.height / w ? edge : 0);
       // Where the region is as big as it can be, a new one only shifts it, and is drawn again and again as the finger moves: keep it, and show the softer copy past its edge.
-      if (!covered && !(sharp && sharpIsFull(m, d))) this.ask(slot, target, b);
+      if (!covered && !(sharp && sharpIsFull(m, d))) this.lacking.push([slot, b]);
       ctx.setTransform(m * d, 0, 0, m * d, (r - target.x * m) * d, (r - target.y * m) * d);
       if (sharp && area.x0 >= sharp.x0 && area.y0 >= sharp.y0 && area.x1 <= sharp.x1 && area.y1 <= sharp.y1) {
         ctx.drawImage(sharp.canvas, b.left + sharp.x0 * w, b.top + sharp.y0 * w, (sharp.x1 - sharp.x0) * w, (sharp.y1 - sharp.y0) * w);
@@ -159,7 +179,7 @@ export class Loupe {
 
   /** Draw music for a region around `target` on the slot at `b`, sharp at the loupe's magnification; the loupe shows it when it is done. */
   private ask(slot: FrameSlot, target: { x: number; y: number }, b: DOMRect) {
-    // One at a time: when it is done, the loupe asks again if the finger has moved on.
+    // One at a time; a finger that moves on aborts it (`show`), and the next is asked for when it holds still again.
     if (this.asking.has(slot)) return;
     const control = new AbortController();
     this.asking.set(slot, control);
@@ -179,7 +199,7 @@ export class Loupe {
       ctx.fillRect(0, 0, region.w, region.h);
       try {
         for (const band of regionBands(slot.frame, W, this.view.aspects(), region)) {
-          const part = await this.view.draw()(band.p.cut.page + 1, W, { crop: { x: region.x, y: band.pageY, w: region.w, h: band.h }, priority: 'now', signal: control.signal });
+          const part = await this.view.draw()(band.p.cut.page + 1, W, { crop: { x: region.x, y: band.pageY, w: region.w, h: band.h }, priority: 'ahead', signal: control.signal });
           if (control.signal.aborted) return;
           ctx.drawImage(part.canvas, 0, band.destY, region.w, band.h);
         }
@@ -190,14 +210,21 @@ export class Loupe {
       if (control.signal.aborted) return;
       this.asking.delete(slot);
       this.sharp.set(slot, { canvas, x0: region.x / W, y0: region.y / W, x1: (region.x + region.w) / W, y1: (region.y + region.h) / W });
-      if (this.last) this.show(...this.last);
+      if (this.last) this.render(...this.last);
     })();
+  }
+
+  /** Abort the regions being drawn. */
+  private abortAsking() {
+    for (const c of this.asking.values()) c.abort();
+    this.asking.clear();
   }
 
   /** Drop the sharp music, and stop drawing it. */
   private forget() {
-    for (const c of this.asking.values()) c.abort();
-    this.asking.clear();
+    clearTimeout(this.hold);
+    this.lacking = [];
+    this.abortAsking();
     this.sharp.clear();
     this.last = undefined;
   }

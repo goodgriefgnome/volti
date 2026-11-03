@@ -16,28 +16,6 @@ scores.
 - **If the loupe is still slow on a page with much ink**, after the fix for it was tried on the
   tablet (see **The loupe stays smooth** in `TODO.manual.md`): draw only the markings near the
   loupe in `Loupe.drawInk` (those whose extent meets the loupe's area), not the whole frame's.
-- **The loupe shows at the press, and doesn't stall while the finger moves**: not reproduced on
-  the tablet; found by reading the code.
-  - It shows only once a press has moved past the tap distance (12 px, `TAP_MAX_MOVE_PX` in
-    `reader/_gestures.ts`): `move` in `reader/tools/_placing.ts` sets `placing` or `dragging` only
-    then, and the ghost and loupe are drawn only after that. Show them from the press instead:
-    in `start`, after `grab` and `hit` are known, call `draw` at once (not on the next animation frame,
-    and with no hold first), when the press is on a placed marking (its loupe, as for a move, without moving it yet), or
-    on empty music with nothing selected (the ghost and its loupe at the press). With a marking
-    selected, a press on empty music still waits for a move, since a tap there only deselects.
-    The placing and moving themselves still start only past the tap distance; `end` and `drop`
-    hide the loupe as now, so a tap shows it only while the finger is down.
-  - The sharp music stalls the screen. The loupe asks for a sharp region on its first frame, at
-    priority `now` (`reader/_loupe.ts`, `ask`), and PDF pages are drawn on the main thread
-    (`page.render` in `originals/_pdf-source.ts`), oversampled, at the loupe's magnified width:
-    on a scanned page that blocks frames while the finger moves. The loupe already shows the
-    on-screen music scaled up until a region is ready (`show`, the `else` branch), so: ask for
-    a region only once the finger has held still for 150 ms (`show` starts a timer, each `show`
-    restarts it, `end` clears it), and at priority `ahead`, not `now`. When the finger moves
-    again, abort a region still being drawn (`asking`), so it doesn't hold up the frames.
-  - Check on the tablet, on a scanned score and a vector one: the loupe is there as soon as the
-    finger touches a symbol or empty music with Symbols, it follows the finger smoothly, and the
-    music in it turns sharp shortly after the finger stops.
 - **A chosen button in the reader's toolbar, menus and panels stands out**: today chosen and not look the
   same. Every button is white (`button` in `styles/base.css`: `background: var(--surface)`), and
   `.menu button` (`styles/overlay.css`) only drops its border, so on the off-white menus

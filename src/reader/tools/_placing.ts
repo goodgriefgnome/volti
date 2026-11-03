@@ -179,6 +179,16 @@ export function placingTool(
       };
       const cancelFrame = () => { cancelAnimationFrame(frame); frame = 0; };
 
+      // The loupe is there from the press, on a placed marking or (with nothing selected) on empty music; the placing or moving itself starts only past the tap distance.
+      {
+        const b = slot.box.getBoundingClientRect(); // includes the zoom
+        client = { x: b.left + p0[0] * b.width, y: b.top + p0[1] * b.width };
+        if (grab) {
+          const item = itemOf(grab.from.cut);
+          magnify(slot, item && extentOnFrame(item, grab.from.mark, aspects[item.cut.page]), client, { ink: host.state().ink });
+        } else if (!sel) showGhost(client);
+      }
+
       return {
         move(p, c) {
           last = p;
@@ -203,6 +213,8 @@ export function placingTool(
             return;
           }
           if (!dragging) {
+            // Hide what the press showed.
+            drop();
             if (isTap({ x0: p0[0] * px, y0: p0[1] * px, x1: last[0] * px, y1: last[1] * px, ms: performance.now() - t0 })) tap();
             return;
           }
