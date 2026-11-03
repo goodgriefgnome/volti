@@ -39,6 +39,20 @@ scores.
     side, and the buttons 52 px tall.
   - Check on the tablet: in the Symbols panel, a staccato dot and a fermata sit in the middle of
     their buttons, and the chosen one's ring is even round it.
+- **The selected marking's handles smaller, and its box's line over them**:
+  - Handles: `handleRadius` (`src/scores/placing.ts`) caps the radius at 8 px, not 16: a quarter
+    of the box's shorter side, at most 8 px. Presses keep using the same radius, so a handle
+    resizes only from the disc that shows (a pen is used). Its test in `placing.test.ts`: 24 px
+    gives 6, 64 and 400 px give 8.
+  - The line: today it is the CSS `outline` of `.selection` (`src/styles/reader.css`), 1 px just
+    outside the box's edge, and the handles, its children, paint over it, so it fades or goes
+    where it meets them. Take the outline off `.selection`, and draw the line as an element of
+    its own in `SelectionBox` (`src/reader/_selection.ts`), say `.selection-line`: absolutely
+    placed, its 1 px border centred on the box's edge (inset by minus half the border's width),
+    the width set by `zoomed` as `1 / s` px as now; appended after the handles and before the
+    delete button, so it paints over the handles and the button still paints over both.
+  - Check on the tablet: zoomed in and out, the box's line is as dark and as thick where it
+    crosses a handle as anywhere else, and runs through each disc's middle.
 
 ## Confirmed features which require more thought
 
