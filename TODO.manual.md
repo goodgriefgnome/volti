@@ -357,3 +357,6 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     in and out on a small one keeps the box at least 24 px on screen.
 - **The version in the library's ⋯ menu:** after an update takes over, the menu's last line reads
   `Version <hash> · <date>` of the commit just pushed.
+- **The Symbols panel's symbols sit in the middle of their buttons:** a staccato dot and a
+  fermata sit in the middle of their buttons (52 px square), and the chosen one's ring is even
+  round it.

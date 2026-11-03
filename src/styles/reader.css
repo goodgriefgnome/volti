@@ -159,7 +159,7 @@ body.reading .menu button:not([aria-pressed="true"]):hover, body.reading .menu b
 .symbol-panel .group-grip { flex: none; align-self: stretch; width: 28px; display: grid; place-items: center; color: var(--muted); touch-action: none; }
 .symbol-panel .group-grip .row-icon { stroke-width: 3; }
 .symbol-panel .group-box.dragging { opacity: 0.6; }
-.symbol-panel .symbol-choice { width: 52px; min-height: 52px; padding: 4px; border: 1px solid var(--bar-line); border-radius: 8px; touch-action: none; }
+.symbol-panel .symbol-choice { display: inline-grid; place-items: center; width: 52px; min-height: 52px; padding: 0; border: 1px solid var(--bar-line); border-radius: 8px; touch-action: none; }
 .symbol-panel .symbol-choice.dragging { opacity: 0.35; }
 .symbol-panel .new-group { display: grid; place-items: center; min-height: 52px; border: 1.5px dashed #8d93a0; border-radius: 10px; color: var(--muted); font-size: 13px; }
 .symbol-panel .new-group.over { border-color: var(--select); color: var(--select); }

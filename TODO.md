@@ -13,18 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **The Symbols panel's symbols sit in the middle of their buttons**: today each sits about 3 px
-  above the middle and 1 px right of it. The button (`.symbol-panel .symbol-choice`,
-  `src/styles/reader.css`) lays its canvas out as a letter on a line of text, so the line's room
-  for descenders (about 6.5 px, from the body's `16px/1.5`) adds space below it, making the button
-  60.5 px tall instead of 52; and the 44 px canvas (`SYMBOL_PX` in `reader/_symbol-panel.ts`) is
-  wider than the 42 px inside the button's padding and border. The pictures themselves are centred
-  (`reader/_symbol-picture.ts`).
-  - Give the rule `display: inline-grid; place-items: center` and `padding: 0`, as the library
-    editor's buttons have (`.library-editor .symbol-choice`): the canvas is then 3 px from each
-    side, and the buttons 52 px tall.
-  - Check on the tablet: in the Symbols panel, a staccato dot and a fermata sit in the middle of
-    their buttons, and the chosen one's ring is even round it.
 - **The selected marking's handles smaller, and its box's line over them**:
   - Handles: `handleRadius` (`src/scores/placing.ts`) caps the radius at 8 px, not 16: a quarter
     of the box's shorter side, at most 8 px. Presses keep using the same radius, so a handle
