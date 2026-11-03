@@ -79,6 +79,15 @@ scores.
     to)`), test it there.
   - Add it to the spec's "The Symbols panel's library" section, and drop "Groups can't be
     reordered here".
+- **A long press on Symbols makes Symbols the tool**: today it only opens the panel
+  (`reader/reader.ts`, `symbolPanel`; the long press is `onLongPress(symbols, act.symbolPanel)` in
+  `reader/_toolbar.ts`). In `symbolPanel`, after `ensureLibrary`, when Symbols isn't the tool, make
+  the last symbol picked the tool as a tap on the button does (`symbols()`: `lastSymbol`, then
+  `chooseSymbol`), then build the panel's view. When Symbols is already the tool, leave it (the
+  long press must not put it away). Changing tool ends a selection (`useTool`), so a symbol
+  selected under Text is deselected and the panel shows the settings for new symbols. Change the
+  spec's "Long presses on the tools" (`docs/marking-tools-spec.md`: "Choosing a setting doesn't
+  change the tool") to say that a long press on Symbols also makes it the tool.
 - **The reader's menus and panels on the bar's off-white, and the symbols in a group told apart**:
   every menu is a `.menu` (`styles/overlay.css:2–5`) on `var(--surface)`, which is pure white in
   the light theme the reader uses (`styles/base.css:4`). A pressed button there is white too
