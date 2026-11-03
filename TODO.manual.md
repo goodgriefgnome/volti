@@ -24,10 +24,15 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - Lift after a tap: the loupe goes. Drag: it follows the finger smoothly, with no stalls.
   - Stop the finger: the music in the loupe turns sharp shortly after (about 150 ms, and the
     drawing). Move again: it follows at once, softer, and sharpens again when you stop.
+- **A chosen button stands out** (in the reader, light theme):
+  - In Pen's colours, the Text panel and the Symbols panel, the chosen colour, shape and symbol
+    are white with a 2 px blue ring, plain to see at a glance; the others show the menu's
+    off-white, and nothing else looks chosen. The Font dropdown stays a white field.
+  - On the toolbar, the tool in use and Cuts (when on) have the same blue ring, and their icons
+    keep their colour.
 - **Menus on the bar's off-white** (in the reader, light theme):
   - The Symbols panel, the Text panel, Pen's colours, the title menu and ⋯ all have the same
     off-white background as the bar. Hovering or focusing a button there is a faint grey.
-  - A pressed swatch, shape or symbol is white with its ring and stands out.
   - In the Symbols panel, each symbol in a group is a separate tile with a thin border.
   - A dialog (Edit library…, the glyph picker) is still white.
 - **A long press makes the tool the tool:**

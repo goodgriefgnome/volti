@@ -16,26 +16,6 @@ scores.
 - **If the loupe is still slow on a page with much ink**, after the fix for it was tried on the
   tablet (see **The loupe stays smooth** in `TODO.manual.md`): draw only the markings near the
   loupe in `Loupe.drawInk` (those whose extent meets the loupe's area), not the whole frame's.
-- **A chosen button in the reader's toolbar, menus and panels stands out**: today chosen and not look the
-  same. Every button is white (`button` in `styles/base.css`: `background: var(--surface)`), and
-  `.menu button` (`styles/overlay.css`) only drops its border, so on the off-white menus
-  (`body.reading .menu`, `styles/reader.css`) each swatch, shape and symbol is a white tile, and a
-  chosen one is white too, with only a pale ring (`--bar-pressed-ring`, `#c3c9d2`) to tell it
-  apart. Fix, in `styles/reader.css`:
-  - `body.reading .menu button { background: transparent; }`: a button not chosen shows the menu's
-    off-white. The symbols keep their thin tile border (`.symbol-panel .symbol-choice`) so each
-    is still its own tile.
-  - A chosen one (`[aria-pressed="true"]`: `.swatch`, `.shape`, `.symbol-choice`) is white with a
-    2 px ring in the selection blue (`var(--select)`, `#1f6fe0`) instead of the pale ring: no dark
-    fill, so colours read true. One rule for all three, replacing the two at `reader.css` (swatch
-    and shape, symbol choice).
-  - The font dropdown (`.tool-panel .font-select`) stays white with its border, as a field.
-  - The toolbar's pressed buttons match: `.bar button[aria-pressed="true"]` (`styles/reader.css`)
-    gets the same white with the 2 px `var(--select)` ring, in place of its pale ring and shadow.
-    Its icon keeps its own colour.
-  - Check: in Pen's colours, the Text panel and the Symbols panel, the chosen colour, shape and
-    symbol are plain to see at a glance, and nothing else looks chosen; on the toolbar, the tool
-    in use and Cuts (when on) have the same blue ring.
 - **The loupe's magnification from the score's symbol size, not the marking's ink**: today it is
   `magnification(inkPx)` = 48 ÷ the dragged marking's ink height on screen (`reader/_loupe.ts`,
   `LOUPE_INK_PX`; `begin(box.y1 - box.y0)` in `reader/tools/_placing.ts`, `magnify`), so a dot or

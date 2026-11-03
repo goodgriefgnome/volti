@@ -52,7 +52,7 @@
 /* A group never wraps; the bar wraps whole groups (above). */
 .bar .group { display: flex; gap: 4px; align-items: center; min-width: 0; }
 .bar button { min-height: 44px; min-width: 44px; padding: 6px 10px; background: transparent; color: inherit; border: 0; border-radius: 10px; }
-.bar button[aria-pressed="true"] { background: var(--bar-pressed); color: inherit; box-shadow: 0 0 0 1px var(--bar-pressed-ring), 0 1px 3px rgba(0, 0, 0, 0.12); }
+.bar button[aria-pressed="true"] { background: var(--bar-pressed); color: inherit; box-shadow: 0 0 0 2px var(--select); }
 .bar .tool-icon { width: 22px; height: 22px; display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .bar .cuts-button { display: flex; align-items: center; gap: 6px; }
 .bar .title { font: italic 1.05rem var(--font-brand); line-height: 22px; max-width: 32ch; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -127,15 +127,17 @@
 /* Pen's and Highlight's colour, a short bar under the icon. */
 .bar button:has(> .ink) { display: grid; justify-items: center; align-content: center; gap: 2px; }
 .bar .ink { width: 20px; height: 4px; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18); }
-/* Every menu and panel opened in the reader is the bar's off-white; a pressed button stays white, with its ring. Dialogs keep their own. */
+/* Every menu and panel opened in the reader is the bar's off-white, and a button not chosen shows it; a chosen one is white with a blue ring (below). Dialogs keep their own. */
 body.reading .menu { background: var(--bar); }
+body.reading .menu button { background: transparent; }
 body.reading .menu button:not([aria-pressed="true"]):hover, body.reading .menu button:not([aria-pressed="true"]):focus-visible { background: rgba(0, 0, 0, 0.05); }
 /* The tools' long-press panels: rows of colour swatches and background shapes. */
 .swatch-row, .shape-row { display: flex; gap: 6px; align-items: center; padding: 4px 0; }
 .swatch-row .swatch { width: 44px; min-height: 44px; padding: 0; position: relative; }
 .swatch-row .swatch::after { content: ""; position: absolute; inset: 11px; border-radius: 50%; background: var(--swatch); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25); }
 .swatch-row .swatch.default::before { content: ""; position: absolute; inset: 8px; border-radius: 50%; border: 1.5px dashed #8d93a0; }
-.swatch-row .swatch[aria-pressed="true"], .shape-row .shape[aria-pressed="true"] { background: var(--bar-pressed); border-color: var(--bar-pressed-ring); box-shadow: 0 0 0 1px var(--bar-pressed-ring), 0 1px 3px rgba(0, 0, 0, 0.12); }
+/* The chosen colour, shape or symbol: white, with a ring in the selection blue; no dark fill, so colours read true. */
+.swatch-row .swatch[aria-pressed="true"], .shape-row .shape[aria-pressed="true"], .symbol-panel .symbol-choice[aria-pressed="true"] { background: var(--bar-pressed); box-shadow: 0 0 0 2px var(--select); }
 .shape-row .shape { min-width: 44px; padding: 4px; display: grid; place-items: center; }
 
 /* The Text button's T, on its background; the Symbols button's picture is a canvas. */
@@ -157,7 +159,6 @@ body.reading .menu button:not([aria-pressed="true"]):hover, body.reading .menu b
 .symbol-panel .group-grip .row-icon { stroke-width: 3; }
 .symbol-panel .group-box.dragging { opacity: 0.6; }
 .symbol-panel .symbol-choice { width: 52px; min-height: 52px; padding: 4px; border: 1px solid var(--bar-line); border-radius: 8px; touch-action: none; }
-.symbol-panel .symbol-choice[aria-pressed="true"] { background: var(--bar-pressed); box-shadow: 0 0 0 1px var(--bar-pressed-ring), 0 1px 3px rgba(0, 0, 0, 0.12); }
 .symbol-panel .symbol-choice.dragging { opacity: 0.35; }
 .symbol-panel .new-group { display: grid; place-items: center; min-height: 52px; border: 1.5px dashed #8d93a0; border-radius: 10px; color: var(--muted); font-size: 13px; }
 .symbol-panel .new-group.over { border-color: var(--select); color: var(--select); }
