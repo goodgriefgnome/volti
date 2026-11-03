@@ -16,6 +16,32 @@ scores.
 - **If the loupe is still slow on a page with much ink**, after the fix for it was tried on the
   tablet (see **The loupe stays smooth** in `TODO.manual.md`): draw only the markings near the
   loupe in `Loupe.drawInk` (those whose extent meets the loupe's area), not the whole frame's.
+- **Dragging a marking starts at once**: today a press on a placed marking (or a corner of the
+  selected one's box) moves or resizes nothing until the finger has gone past the tap distance
+  (`moved()` in `reader/tools/_placing.ts`, `move`: `dragging` is set only then; `isTap` and its
+  12 px / 400 ms in `reader/_gestures.ts`), while the loupe already shows from the press. Make it:
+  - With a `grab` (move or resize), `dragging` is true from the press: every `move` redraws the
+    marking where the finger has taken it, from the first pixel.
+  - On lifting, if the press qualifies as a tap (`isTap` with its distance and duration), keep
+    where it was moved to (no snapping back) and then do the tap's action as now (`tap()`:
+    select, or for the selected marking cycle a symbol or edit text) on the marking as it now is.
+    That is two undo steps when it moved at all (the move, then the cycle); when it didn't move,
+    commit nothing for the move. Otherwise commit the move as now, however small: a press held
+    longer than 400 ms and lifted with the finger a pixel or two off is a move. An adjustment is
+    assumed to take longer than 400 ms; a quick nudge within 12 px counts as a tap.
+  - Placing on empty music: when lifting qualifies as a tap, place where the ghost was when the
+    finger lifted (`slotUnder` at `last`, as a drag does), not at the press point (`place(host,
+    slot, at0)` in `tap()`), so what was shown is what is placed.
+  - No pinch while a marking is being dragged or placed: add `holds?(): boolean` to `ToolPointer`
+    (`reader/tools/_tool.ts`), true for a placing pointer with a `grab` or showing a ghost. In
+    `reader/_input.ts`, `onDown`, where a second finger starts a pinch (`fingers.size >= 2`): when
+    `this.active?.use.holds?.()`, add the new finger to `ignored` and return, leaving the drag as
+    it is. Pens and the eraser are unchanged (a second finger still drops their stroke and pinches).
+  - Tests: pull the lifting rule out as a pure function in `_placing.ts`, say
+    `_lifted(moved: boolean, tap: boolean): 'tap' | 'move-then-tap' | 'move'`, and test its cases
+    in `reader/tools/_placing.test.ts`.
+  - Check on the tablet: a symbol follows the finger at once; a quick tap on the selected one
+    cycles it; a slow small nudge moves it; a second finger during a drag doesn't zoom.
 
 ## Confirmed features which require more thought
 
