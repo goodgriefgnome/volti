@@ -418,8 +418,16 @@ class Reader {
     this.tool = t;
   }
 
+  /** A long press on a tool's button makes it the tool, if it isn't; when it is, the press leaves it be. */
+  private chooseOnLongPress(tool: ToolName) {
+    if (this.tool === tool) return;
+    this.useTool(tool);
+    this.syncBar();
+  }
+
   /** A long press on Pen or Highlight: its colours, under its button. */
   private strokeColors(tool: 'pen' | 'highlighter') {
+    this.chooseOnLongPress(tool);
     showStrokeColors(this.toolbar.anchor(tool), tool, this.settings[tool].color, (c) => this.setSettings((s) => ({ ...s, [tool]: { color: c } })));
   }
 
@@ -492,8 +500,9 @@ class Reader {
     } else this.syncBar();
   }
 
-  /** The Text button's long press: its settings, or the selected text marking's. */
+  /** The Text button's long press: it becomes the tool, and its settings show, or the selected text marking's. */
   private textPanel() {
+    this.chooseOnLongPress('text');
     const sel = this.selectedOf('text')?.mark, t = this.settings.text;
     const v: TextPanel = {
       fonts: this.textFonts,
@@ -518,9 +527,14 @@ class Reader {
     return this.symbolLib;
   }
 
-  /** The Symbols button's long press: the library and the symbols' settings, or the selected symbol's. */
+  /** The Symbols button's long press: the last symbol picked becomes the tool, and the library and the symbols' settings show, or the selected symbol's. */
   private async symbolPanel() {
     if (!await this.ensureLibrary()) return;
+    // Not the tool yet: the last symbol picked becomes it, as a tap on the button does.
+    if (this.tool !== 'symbol') {
+      const at = lastSymbol(this.symbolLib!, this.group, this.currents, this.adhocCurrent);
+      if (at) this.chooseSymbol(at.group, at.index);
+    }
     const sel = this.selectedOf('symbol')?.mark, was = sel ? sel.background : this.buttonSymbol()?.background;
     const v: SymbolSettingsView = {
       color: sel ? sel.color ?? 'default' : this.settings.symbol.color,

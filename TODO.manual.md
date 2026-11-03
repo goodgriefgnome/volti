@@ -10,6 +10,14 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     music is sharp where the drag starts, and past about 64 px of dragging turns softer rather
     than slowing the drag. At lower zoom it still turns sharp wherever it goes.
   - Lift: the marking is placed where the last move was.
+- **A long press makes the tool the tool:**
+  - With no tool, long-press Pen, Highlight, Text, then Symbols in turn: each becomes the tool
+    (lit; for Symbols, the last symbol picked) and its panel opens.
+  - Long-press the button of the tool already in use: its panel opens, and it stays the tool (it
+    is not put away).
+  - Select a symbol under Symbols, long-press Text: it is the tool, the symbol is deselected, and
+    the panel shows the settings for new text. Choosing a setting in a panel doesn't change the
+    tool.
 - **Reordering groups in the Symbols panel** (a grip at each group's left edge, not on Recent):
   - Drag a group by its grip up or down: a line shows where it would go; let go: it is there.
     A press on a symbol still picks or drags the symbol, not the group.

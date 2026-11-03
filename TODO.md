@@ -16,18 +16,6 @@ scores.
 - **If the loupe is still slow on a page with much ink**, after the fix below was tried on the
   tablet (see **The loupe stays smooth** in `TODO.manual.md`): draw only the markings near the
   loupe in `Loupe.drawInk` (those whose extent meets the loupe's area), not the whole frame's.
-- **A long press on a tool's button makes it the tool**: today a long press on Pen, Highlight,
-  Text or Symbols only opens its panel (`reader/reader.ts`: `strokeColors`, `textPanel`,
-  `symbolPanel`; the long presses are the `onLongPress` calls in `reader/_toolbar.ts`). In each,
-  before building the panel's view, when that tool isn't the tool, make it the tool:
-  - Pen and Highlight: `useTool(tool)` and `syncBar()`.
-  - Text: `useTool('text')` and `syncBar()`.
-  - Symbols: after `ensureLibrary`, the last symbol picked, as a tap on the button does (`symbols()`:
-    `lastSymbol`, then `chooseSymbol`).
-  When it is already the tool, leave it: the long press must not put it away. Changing tool ends a
-  selection (`useTool`), so a marking selected under another tool is deselected and the panel
-  shows the settings for new markings (a symbol selected under Text, say). Choosing a setting in the
-  panel still doesn't change the tool; only the long press that opened it does.
 - **The reader's menus and panels on the bar's off-white, and the symbols in a group told apart**:
   every menu is a `.menu` (`styles/overlay.css:2–5`) on `var(--surface)`, which is pure white in
   the light theme the reader uses (`styles/base.css:4`). A pressed button there is white too
