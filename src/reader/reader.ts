@@ -311,6 +311,7 @@ class Reader {
       paintState: (slot, s) => { this.selection.show(undefined); this.paintInk(slot, s); },
       selected: () => this.selected,
       select: (s) => { this.selected = s; this.refreshSelection(); },
+      cycled: (sym) => this.cycledTo(sym),
       setZoom: (z) => this.setZoom(z),
       view: () => this.view(),
       minScale: () => this.minScale,
@@ -596,7 +597,6 @@ class Reader {
     if (!claimed) return;
     const { cut, marking } = claimed, state = this.state;
     this.commit(setInk(state, cut.id, [...(state.ink[cut.id] ?? []), marking]), cut.id);
-    this.select({ cut: cut.id, mark: marking as PlacedMark });
   }
 
   /** The slot showing the cut of a selected text marking, and the start of its baseline in that frame. */
@@ -688,6 +688,15 @@ class Reader {
   private setCurrent(group: number, index: number) {
     if (group < 0) this.adhocCurrent = index;
     else this.currents[group] = index;
+  }
+
+  /** A selected symbol was cycled to `sym`: with Symbols as the tool, it is the tool's symbol now. */
+  private cycledTo(sym: LibrarySymbol) {
+    const at = this.tool === 'symbol' && this.symbolLib && findSymbol(this.symbolLib, sym.font, sym.text);
+    if (!at) return;
+    this.group = at.group;
+    this.setCurrent(at.group, at.index);
+    this.syncBar();
   }
 
   /** A symbol picked in the Symbols panel, or placed through +: current, and the tool. */

@@ -37,6 +37,13 @@ function cycle(host: ToolHost, cut: string, mark: PlacedMark) {
   const replacement = compactMarking({ ...fresh, ...(mark.color ? { color: mark.color } : {}), ...(mark.background ? { background: { ...mark.background } } : {}) }) as PlacedMark;
   host.commit(setSymbolSize(replaceMarking(host.state(), cut, mark, replacement), size / next.scale), cut);
   host.select({ cut, mark: replacement });
+  host.cycled(next);
+}
+
+/** What a tap does, from what is selected and what was hit. */
+export function _tapAction(selected: PlacedMark | undefined, hit: PlacedMark | undefined): 'deselect' | 'select' | 'again' | 'place' {
+  if (selected) return hit === selected ? 'again' : 'deselect';
+  return hit ? 'select' : 'place';
 }
 
 /** What a pointer that has gone down is doing, once it moves far enough not to be a tap. */
@@ -86,14 +93,13 @@ export function placingTool(label: string, tapEmpty: (host: ToolHost, slot: Fram
       };
 
       const tap = () => {
-        if (hit) {
-          const sel = host.selected();
-          if (sel?.mark !== hit.mark) host.select({ cut: hit.cut.id, mark: hit.mark });
-          else if (hit.mark.kind === 'text') host.editText(sel);
-          else cycle(host, hit.cut.id, hit.mark);
-          return;
+        const sel = host.selected();
+        switch (_tapAction(sel?.mark, hit?.mark)) {
+          case 'deselect': host.select(undefined); break;
+          case 'select': host.select({ cut: hit!.cut.id, mark: hit!.mark }); break;
+          case 'again': if (hit!.mark.kind === 'text') host.editText(sel!); else cycle(host, hit!.cut.id, hit!.mark); break;
+          case 'place': tapEmpty(host, slot, at0); break;
         }
-        tapEmpty(host, slot, at0);
       };
 
       /** Forget the drag: show the ink as it is, and the box again. */

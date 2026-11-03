@@ -1,7 +1,6 @@
-// The symbol tool: a tap on empty music places the current symbol there; the rest is _placing.ts.
+// The symbol tool: a tap on empty music places the current symbol there (unselected); the rest is _placing.ts.
 
 import { compactMarking } from '../../markings/model';
-import type { PlacedMark } from '../../markings/placed';
 import { setInk } from '../../scores/edits';
 import { symbolSizeOf } from '../../scores/model';
 import { claimMarking } from '../../scores/ownership';
@@ -16,5 +15,4 @@ export const symbolTool = placingTool('Symbol', (host, slot, at) => {
   if (!claimed) return;
   const { cut, marking } = claimed;
   host.commit(setInk(state, cut.id, [...(state.ink[cut.id] ?? []), marking]), cut.id);
-  host.select({ cut: cut.id, mark: marking as PlacedMark });
 });

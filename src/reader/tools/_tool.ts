@@ -20,6 +20,8 @@ export interface ToolHost extends ReaderView {
   /** The placed marking showing its box, if any. */
   selected(): Selected | undefined;
   select(s: Selected | undefined): void;
+  /** A selected symbol was changed to the next of its group: with Symbols as the tool, that symbol is the tool's now. */
+  cycled(sym: LibrarySymbol): void;
   /** Draw a frame's ink again; `extra` is a marking still being made. */
   paintInk(slot: FrameSlot, extra?: Marking): void;
   /** Draw a frame's ink as it would be in `s`, without taking the edit: a marking being dragged. The selection's box is hidden until the next `select`. */

@@ -3,6 +3,11 @@
 Things to try on the tablet, grouped so each group can be done in one go. Some groups need
 DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the records.
 
+- **Selecting** (marking tools, stage 6):
+  - Place a symbol: it isn't selected. Tap it: selected. Tap it again: the next in its group, and
+    the next placed is that one too.
+  - With a symbol selected, tap empty music: it is deselected and nothing is placed. Tap another
+    marking: only deselected.
 - **The Symbols panel** (marking tools, stage 5):
   - Long-press Symbols: the groups in boxes, Recent under its heading, only the tool's symbol lit.
     Tap one: it is the tool and the panel closes.

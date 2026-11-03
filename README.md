@@ -111,6 +111,11 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   closes the panel; dragging one drops it at any place in any group or in Recent (a dashed box
   at the end makes a new group of it; a group emptied goes; Recent keeps 8). Groups are reordered
   in **Edit library…**.
+- With **Text** or **Symbols** as the tool, a tap on empty music places a marking (it isn't
+  selected). A tap on a placed marking selects it; a tap on the selected one changes a symbol to the
+  next in its group (which becomes the tool's symbol) or edits text. With a marking selected, a tap
+  anywhere on the music only deselects it. Dragging a placed marking moves it; dragging a corner of
+  the selected one resizes it.
 - A long press on **Text** opens its **Font**, **Colour**, **Background** and, once a shape is chosen,
   **Background colour**; on **Symbols**, **Colour**, **Background** and **Background colour**.
   **Colour** is **Default** and the three pen colours. A choice changes the selected marking (of
