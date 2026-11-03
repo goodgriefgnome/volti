@@ -111,6 +111,14 @@ scores.
   - Check on the tablet: placing a staccato dot, a fingering, *pp* and text on a whole spread, the
     loupe shows the staff at the same size each time (about half the loupe's height), with the
     marking on it at its size relative to the staff.
+- **The loupe centres on the middle of the marking**: today it centres h/2 in from the left of the
+  ink (`loupeTarget` in `reader/_loupe.ts`), so on a long marking (a long word, *cresc.*) it shows
+  the left end, while the finger holds the marking by its middle (a symbol is placed centred on the
+  finger, and a drag keeps the finger's place on it). Make `loupeTarget` the middle of the ink box
+  both ways: `{ x: (x0 + x1) / 2, y: (y0 + y1) / 2 }`. Change its tests in `reader/_loupe.test.ts`
+  (a box 40 × 16 at (100, 200) gives (120, 208)). New text is the exception to "held by its
+  middle": "Ag" starts at the finger (`newText` in `reader/reader.ts`), but it is short, so its
+  middle is close by; leave it.
 
 ## Confirmed features which require more thought
 
