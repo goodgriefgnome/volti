@@ -78,6 +78,9 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
 - The reader is always light, whatever the app's theme (its menus and dialogs too, while it is
   open). Its toolbar is one row: the back arrow, the title with the page info under it, the tools as icons
   (**Pen**, **Highlight**, **Erase**, **Text**, **Symbols**), **Cuts**, **Undo**, **Redo** and **⋯**.
+- Each tool's settings (Pen's and Highlight's colour, Text's font, colour and background, Symbols' colour)
+  are kept across restarts. Highlights are drawn at full strength, multiplied, so the notes under
+  them stay black.
 - The title in the reader's toolbar opens a menu of what can be read next to what is read, the
   current one highlighted: in a setlist, its entries; in a score or a named excerpt, **Whole
   score** and the score's named excerpts. Tapping a row reads it. The menu has more:

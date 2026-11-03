@@ -30,6 +30,9 @@ export const keys = {
   /** The default colours of placed markings and their backgrounds, { color?, background? } (markings/store.ts). */
   markColors: 'placed-mark-colors',
 
+  /** Each tool's settings for new markings, a ToolSettings (markings/store.ts). */
+  toolSettings: 'tool-settings',
+
   /* Setlists (setlists/store.ts). Cuts and markings are only ever stored in the score. */
   /** Setlist ids, newest first. */
   setlists: 'setlists',

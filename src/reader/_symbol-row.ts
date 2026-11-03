@@ -4,6 +4,7 @@
 import { cssFamily, type FontChoice } from '../fonts/fonts';
 import type { LibrarySymbol, SymbolLibrary } from '../markings/library';
 import { markColors, type Background } from '../markings/placed';
+import type { BackgroundChoice } from '../markings/tool-settings';
 import { PEN_COLORS } from '../markings/stroke';
 import { button, el } from '../ui/dom';
 import { closeOverlay, showMenu } from '../ui/overlay';
@@ -27,9 +28,6 @@ export interface SymbolRowActions {
   /** An ad-hoc symbol was chosen to go to a group, or to a new one. */
   moveToGroup(index: number, group: number | 'new'): void;
 }
-
-/** A marking's background: none, or the shape of one. */
-export type BackgroundChoice = 'none' | Background['shape'];
 
 export const BACKGROUNDS: [choice: BackgroundChoice, label: string][] = [
   ['none', 'No background'], ['box', 'Box'], ['tag-left', 'Tag pointing left'], ['tag-right', 'Tag pointing right'],

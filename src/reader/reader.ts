@@ -5,7 +5,6 @@
 
 import type { FileChange } from '../dialogs/score-files';
 import { ends } from '../scores/excerpts';
-import { PEN_COLORS } from '../markings/stroke';
 import { addAdhoc, addGroup, findSymbol, putSymbol, symbolsOf, type LibrarySymbol, type SymbolLibrary } from '../markings/library';
 import { type Marking } from '../markings/model';
 import { unlockFolder } from '../originals/device-score-fs';
@@ -30,7 +29,8 @@ import { loadSetlists } from '../setlists/store';
 import { type Setlist } from '../setlists/model';
 import { closeOverlay, showDialog } from '../ui/overlay';
 import { ACADEMICO, BRAVURA, fontChoices, fontMetrics, shapeWith, type FontChoice } from '../fonts/fonts';
-import { saveGlyphs, saveLibrary } from '../markings/store';
+import { loadToolSettings, saveGlyphs, saveLibrary, saveToolSettings } from '../markings/store';
+import { backgroundOf, type BackgroundChoice, DEFAULT_TOOL_SETTINGS, ownColor, strokeColor, type ToolSettings } from '../markings/tool-settings';
 import { dpr, el } from '../ui/dom';
 import { Toast } from '../ui/toast';
 import { CutEditor } from './cuts/_editor';
@@ -48,7 +48,7 @@ import { glyphPicker } from './_glyph-picker';
 import { editLibrary } from './_library-editor';
 import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
 import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_spread';
-import type { BackgroundChoice, BackgroundsView, ColorsView, FontsView } from './_symbol-row';
+import type { BackgroundsView, ColorsView, FontsView } from './_symbol-row';
 import { backIcon, placesMarkings, Toolbar, turnIcon, type ToolChoice } from './_toolbar';
 import { ReaderMenus } from './_toolbar-menus';
 import { offerScore, turnFrom, type Offer } from './_turning';
@@ -154,7 +154,8 @@ class Reader {
   private detail: Detail;
 
   private tool: ToolChoice = 'none';
-  private penColor: string = PEN_COLORS[0];
+  /** Each tool's settings for new markings; kept across restarts. */
+  private settings: ToolSettings = DEFAULT_TOOL_SETTINGS;
   /** The symbol library, once it has been made. */
   private symbolLib: SymbolLibrary | undefined;
   /** The group whose current symbol is the tool, while a symbol is; -1 for the ad-hoc group. */
@@ -165,10 +166,6 @@ class Reader {
   private adhocCurrent = 0;
   /** The font last used in the glyph picker, while the app runs. */
   private pickerFont = BRAVURA;
-  /** The background shape new text gets, while the app runs. */
-  private textBackground: BackgroundChoice = 'none';
-  /** The font of new text, kept while the app runs. */
-  private textFont = ACADEMICO;
   /** The fonts text can be typed in, once known. */
   private textFonts: FontChoice[] = [];
   /** The placed marking showing its box, while a symbol is the tool. */
@@ -287,6 +284,7 @@ class Reader {
       filesChanged: (change) => { this.fileChanges.push(change); },
     });
     this.syncBar();
+    void loadToolSettings().then((s) => { this.settings = s; this.syncBar(); }, () => {});
     void fontChoices().then((all) => { this.textFonts = all.filter((c) => c.text); this.syncBar(); }, () => {});
     void savedLibrary().then((lib) => { if (lib && !this.symbolLib) { this.symbolLib = lib; this.syncBar(); } }, () => {});
     this.stage.append(this.spreadEl);
@@ -310,7 +308,9 @@ class Reader {
       ...view,
       editor: this.editor,
       tool: () => this.tool,
-      penColor: () => this.penColor,
+      penColor: () => strokeColor('pen', this.settings.pen.color, markColors()),
+      highlightColor: () => strokeColor('highlighter', this.settings.highlighter.color, markColors()),
+      symbolColor: () => ownColor(this.settings.symbol.color),
       placing: () => this.symbolLib && symbolsOf(this.symbolLib, this.group)[this.currentOf(this.group)],
       library: () => this.symbolLib,
       paintState: (slot, s) => { this.selection.show(undefined); this.paintInk(slot, s); },
@@ -418,7 +418,13 @@ class Reader {
 
   /** A pen colour on the top row, which shows only while Pen is the tool. */
   private penColour(c: string) {
-    this.penColor = c;
+    this.setSettings((s) => ({ ...s, pen: { color: c } }));
+  }
+
+  /** Change the tools' settings, save them, and show them. */
+  private setSettings(change: (s: ToolSettings) => ToolSettings): void {
+    this.settings = change(this.settings);
+    saveToolSettings(this.settings).catch((e) => { console.error(e); this.say("Could not save the tools' settings."); });
     this.syncBar();
   }
 
@@ -441,7 +447,7 @@ class Reader {
 
   /** A background button: the selected marking's shape, keeping its colour; with Text as the tool, also the shape of new text. */
   private setBackground(b: BackgroundChoice) {
-    if (this.tool === 'text') this.textBackground = b;
+    if (this.tool === 'text') this.setSettings((s) => ({ ...s, text: { ...s.text, background: b } }));
     const sel = this.selected;
     if (sel && (sel.mark.background?.shape ?? 'none') !== b) {
       const { background: old, ...rest } = sel.mark;
@@ -455,7 +461,7 @@ class Reader {
 
   /** A font button: the font of new text, of the text being typed, and of the selected text marking. */
   private setFont(id: string) {
-    this.textFont = id;
+    this.setSettings((s) => ({ ...s, text: { ...s.text, font: id } }));
     // The field takes the font once it has loaded, and the font buttons show the field's.
     if (this.typing.open) void this.typing.setFont(id).then(() => this.syncBar(), (e) => { console.error(e); this.say('Could not change the font.'); });
     else if (this.selected?.mark.kind === 'text' && this.selected.mark.font !== id) {
@@ -470,7 +476,7 @@ class Reader {
     if (this.tool !== 'text' || this.textFonts.length < 2) return undefined;
     const sel = this.selected?.mark;
     const own = sel?.kind === 'text' && this.textFonts.some((c) => c.id === sel.font) ? sel.font : undefined;
-    return { choices: this.textFonts, pressed: this.typing.font ?? own ?? this.textFont };
+    return { choices: this.textFonts, pressed: this.typing.font ?? own ?? this.settings.text.font ?? ACADEMICO };
   }
 
   /** What the colour buttons show, while Text or Symbols is the tool: the selected marking's colour, and whether there is a marking to change. */
@@ -484,7 +490,7 @@ class Reader {
   private backgroundsView(): BackgroundsView | undefined {
     if (!placesMarkings(this.tool)) return undefined;
     if (this.selected) return { pressed: this.selected.mark.background?.shape ?? 'none', enabled: true };
-    if (this.tool === 'text') return { pressed: this.textBackground, enabled: true };
+    if (this.tool === 'text') return { pressed: this.settings.text.background, enabled: true };
     const sym = this.symbolLib && symbolsOf(this.symbolLib, this.group)[this.currentOf(this.group)];
     return { pressed: sym?.background?.shape ?? 'none', enabled: false };
   }
@@ -512,12 +518,12 @@ class Reader {
   /** A tap with Text as the tool: start typing a new text marking with the middle of its capitals at `at`. */
   private newText(slot: FrameSlot, at: [number, number]) {
     this.select(undefined);
-    const font = this.textFont, size = textSizeOf(this.state.score);
+    const font = this.settings.text.font ?? ACADEMICO, size = textSizeOf(this.state.score);
     void (async () => {
       try {
         const { capHeight } = await fontMetrics(font);
         await this.typing.show({
-          slot, font, size, color: markColors().color,
+          slot, font, size, color: ownColor(this.settings.text.color) ?? markColors().color,
           start: [at[0], at[1] + (capHeight / 2) * size],
           text: '',
           done: (text, typed) => void this.placeText(slot, typed, size, text, [at[0], at[1] + (capHeight / 2) * size]),
@@ -533,7 +539,8 @@ class Reader {
     const shaped = await this.shaped(font, text);
     const made = shaped && textMark(font, text, shaped.glyphs, start, size);
     if (!made) return;
-    const mark: PlacedMark = this.textBackground === 'none' ? made : { ...made, background: { shape: this.textBackground } };
+    const t = this.settings.text, color = ownColor(t.color), background = backgroundOf(t.background, t.backgroundColor);
+    const mark: PlacedMark = { ...made, ...(color ? { color } : {}), ...(background ? { background } : {}) };
     const claimed = claimMarking(slot.frame, compactMarking(mark), this.aspects);
     if (!claimed) return;
     const { cut, marking } = claimed, state = this.state;
@@ -727,7 +734,7 @@ class Reader {
       tool: this.tool,
       symbol: this.buttonSymbol(),
       backgrounds: this.backgroundsView(),
-      penColor: this.penColor,
+      penColor: this.settings.pen.color,
       cuts: this.editor.enabled,
       canUndo: this.undos.canUndo,
       canRedo: this.undos.canRedo,

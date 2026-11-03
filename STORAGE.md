@@ -42,6 +42,7 @@ The old database **`volti`**, from before scores, is deleted at start-up.
 | `glyph:<font id>:<gid>` | `string`, a glyph's outline | `markings/store.ts` |
 | `symbols` | `SymbolLibrary` | `markings/store.ts` |
 | `placed-mark-colors` | `{ color?: string; background?: string }`, the default colours | `markings/store.ts` |
+| `tool-settings` | `ToolSettings`, each tool's settings for new markings | `markings/store.ts` |
 | `last-read` | `LastRead` | `reader/_store.ts` |
 | `setlists` | `string[]`, setlist ids, newest first | `setlists/store.ts` |
 | `setlist:<id>` | `Setlist` | `setlists/store.ts` |

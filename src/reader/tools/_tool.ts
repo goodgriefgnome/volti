@@ -11,6 +11,9 @@ import type { ReaderView } from '../_view';
 /** What a tool needs from the reader. */
 export interface ToolHost extends ReaderView {
   penColor(): string;
+  highlightColor(): string;
+  /** The colour new symbols get; undefined: the app's marking colour. */
+  symbolColor(): string | undefined;
   /** The symbol the symbol tool places: the current one of its group. */
   placing(): LibrarySymbol | undefined;
   library(): SymbolLibrary | undefined;

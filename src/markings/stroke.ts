@@ -15,7 +15,10 @@ export interface Stroke {
 }
 
 export const PEN_COLORS = ['#1c1f26', '#c2271d', '#1f4fd1'] as const;
-export const HIGHLIGHT_COLOR = '#ffd400';
+/** The highlighter's colours besides Default (which is the app's background colour): yellow, green, pink. */
+export const HIGHLIGHT_COLORS = ['#fff09a', '#c8f0c0', '#ffd0e0'] as const;
+/** The backgrounds' colours besides Default: the same three. */
+export const BACKGROUND_COLORS = HIGHLIGHT_COLORS;
 export const PEN_SIZE = 0.0022;
 export const HIGHLIGHT_SIZE = 0.018;
 
@@ -77,8 +80,8 @@ export function share(points: readonly Point[], lo: number, hi: number, aspect: 
 /** Where a point of the page is on the target. */
 const at = (t: DrawTarget, p: Point) => [p[0] * t.w - t.ox, p[1] * t.h - t.oy] as const;
 
-/** Highlighter is see-through and only darkens, so the notes under it stay black. */
-const highlight = (color: string) => ({ color, opacity: 0.35, multiply: true });
+/** Highlighter is drawn at full strength but only darkens (multiplied), so the notes under it stay black. */
+const highlight = (color: string) => ({ color, opacity: 1, multiply: true });
 
 /** Draw the newest segment of a pen stroke while it is being written. */
 export function drawPenSegment(t: DrawTarget, s: Stroke, a: Point, b: Point) {

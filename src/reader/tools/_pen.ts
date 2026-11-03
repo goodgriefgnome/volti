@@ -1,7 +1,7 @@
 // The pen and highlighter: making a stroke as the pointer moves, and giving it to a cut when the
 // pointer lifts.
 
-import { compact, drawPenSegment, HIGHLIGHT_COLOR, HIGHLIGHT_SIZE, PEN_SIZE, type Stroke } from '../../markings/stroke';
+import { compact, drawPenSegment, HIGHLIGHT_SIZE, PEN_SIZE, type Stroke } from '../../markings/stroke';
 import { type Point } from '../../markings/model';
 import { frameTarget } from '../../render/paint';
 import { claimMarking } from '../../scores/ownership';
@@ -24,7 +24,7 @@ export const penTool = (kind: 'pen' | 'highlighter'): Tool => ({
     const hl = kind === 'highlighter';
     const stroke: Stroke = {
       tool: hl ? 'highlighter' : 'pen',
-      color: hl ? HIGHLIGHT_COLOR : host.penColor(),
+      color: hl ? host.highlightColor() : host.penColor(),
       size: hl ? HIGHLIGHT_SIZE : PEN_SIZE,
       points: [p],
     };

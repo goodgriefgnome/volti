@@ -32,9 +32,9 @@ describe('PdfDrawing', () => {
     expect(ops.filter((o) => o.endsWith(' w'))).toEqual(['1.2 w', '1.59 w']);
     expect(ops.some((o) => o.endsWith('gs'))).toBe(false);
   });
-  it('puts a see-through, darken-only line in a graphics state, shared by lines that look alike', () => {
+  it('puts a darken-only line in a graphics state, shared by lines that look alike', () => {
     const d = new PdfDrawing(lib, H);
-    const look = { color: '#ffd400', opacity: 0.35, multiply: true };
+    const look = { color: '#ffd400', opacity: 1, multiply: true };
     d.path([[0, 0], [10, 10]], 5, look);
     d.path([[0, 0], [10, 20]], 5, look);
     expect([...d.states.keys()]).toEqual(['G0']);
@@ -87,12 +87,12 @@ describe('annotate', () => {
     expect(ap.dict.lookup(lib.PDFName.of('BBox'), lib.PDFArray).asArray().map(String)).toEqual(rect);
     expect(ap.dict.get(lib.PDFName.of('Subtype'))).toEqual(lib.PDFName.of('Form'));
   });
-  it('makes a highlighter see-through and darken-only', async () => {
+  it('makes a highlighter darken-only', async () => {
     const [, h] = await exported(pen, highlight);
     const ap = h.lookup(lib.PDFName.of('AP'), lib.PDFDict).lookup(lib.PDFName.of('N'), lib.PDFStream);
     const gs = ap.dict.lookup(lib.PDFName.of('Resources'), lib.PDFDict).lookup(lib.PDFName.of('ExtGState'), lib.PDFDict).lookup(lib.PDFName.of('G0'), lib.PDFDict);
     expect(gs.get(lib.PDFName.of('BM'))).toEqual(lib.PDFName.of('Multiply'));
-    expect(gs.lookup(lib.PDFName.of('ca'), lib.PDFNumber).asNumber()).toBe(0.35);
+    expect(gs.lookup(lib.PDFName.of('ca'), lib.PDFNumber).asNumber()).toBe(1);
   });
 });
 

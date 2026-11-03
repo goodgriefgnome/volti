@@ -3,6 +3,12 @@
 Things to try on the tablet, grouped so each group can be done in one go. Some groups need
 DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the records.
 
+- **Tool settings kept** (marking tools, stage 2):
+  - Choose red for Pen, close the reader and Volti, open them again: Pen is still red.
+  - A new highlight is light blue (Default) and the notes under it stay black. An old yellow
+    highlight is now strong yellow.
+  - Change the Marking colour in the library: Pen on Default draws in the new colour; old strokes
+    keep theirs.
 - **The light reader** (marking tools, stage 1):
   - With the app in dark mode, open a score: the reader is light, and so are ⋯ and the title
     menu. Close it: the library is dark again.

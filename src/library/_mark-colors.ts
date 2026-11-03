@@ -28,7 +28,7 @@ export function openMarkColors(): void {
     d.append(row);
   }
   d.append(
-    el('p', 'hint', 'For symbols and text without a colour of their own. Pen and highlighter strokes keep theirs.'),
+    el('p', 'hint', 'For symbols, text and backgrounds on Default, and for new pen and highlighter strokes on Default. Strokes keep the colour they were drawn in.'),
     buttonRow(button('Done', closeOverlay, 'primary')),
   );
 }

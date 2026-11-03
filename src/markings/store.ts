@@ -5,6 +5,7 @@ import { kv } from '../storage/kv';
 import { addGlyph, glyphKey, glyphOf } from './glyphs';
 import type { SymbolLibrary } from './library';
 import { BUILT_IN_COLORS, setMarkColors, type MarkColors } from './placed';
+import { toolSettingsFrom, type ToolSettings } from './tool-settings';
 
 /** Load into the glyph table those of `keys` it hasn't got. */
 export async function loadGlyphs(wanted: Iterable<string>): Promise<void> {
@@ -46,3 +47,10 @@ export async function saveMarkColors(c: Partial<MarkColors>): Promise<void> {
   await kv.set(keys.markColors, own);
   setMarkColors(own);
 }
+
+/** Each tool's settings; the defaults for what is missing. */
+export async function loadToolSettings(): Promise<ToolSettings> {
+  return toolSettingsFrom(await kv.get(keys.toolSettings));
+}
+
+export const saveToolSettings = (s: ToolSettings) => kv.set(keys.toolSettings, s);
