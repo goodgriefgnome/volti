@@ -5,7 +5,7 @@
 
 import type { FileChange } from '../dialogs/score-files';
 import { ends } from '../scores/excerpts';
-import { addAdhoc, addGroup, findSymbol, putSymbol, symbolsOf, type LibrarySymbol, type SymbolLibrary } from '../markings/library';
+import { addAdhoc, addGroup, findSymbol, putSymbol, replaceSymbol, symbolsOf, type LibrarySymbol, type SymbolLibrary } from '../markings/library';
 import { type Marking } from '../markings/model';
 import { unlockFolder } from '../originals/device-score-fs';
 import { knownTitles } from '../originals/library-files';
@@ -19,7 +19,7 @@ import { pageWidths, screenAt } from '../render/screen';
 import { type Hatches } from '../render/paint';
 import { replaceMarking, setInk, textSizeOf } from '../scores/edits';
 import { centreOnFrame, extentOnFrame, movedTo, type Selected } from '../scores/placing';
-import { baselineStart, markColors, textMark, type PlacedMark } from '../markings/placed';
+import { baselineStart, markColors, textMark, type Background, type PlacedMark } from '../markings/placed';
 import { claimMarking } from '../scores/ownership';
 import { compactMarking } from '../markings/model';
 import { A4, type Aspects, type Cut, type NamedExcerpt, type State } from '../scores/model';
@@ -30,7 +30,7 @@ import { type Setlist } from '../setlists/model';
 import { closeOverlay, showDialog } from '../ui/overlay';
 import { ACADEMICO, BRAVURA, fontChoices, fontMetrics, shapeWith, type FontChoice } from '../fonts/fonts';
 import { loadToolSettings, saveGlyphs, saveLibrary, saveToolSettings } from '../markings/store';
-import { backgroundOf, type BackgroundChoice, DEFAULT_TOOL_SETTINGS, ownColor, strokeColor, type ToolSettings } from '../markings/tool-settings';
+import { backgroundOf, type BackgroundChoice, type ColorChoice, DEFAULT_TOOL_SETTINGS, ownColor, strokeColor, type ToolSettings } from '../markings/tool-settings';
 import { dpr, el } from '../ui/dom';
 import { Toast } from '../ui/toast';
 import { CutEditor } from './cuts/_editor';
@@ -48,9 +48,8 @@ import { glyphPicker } from './_glyph-picker';
 import { editLibrary } from './_library-editor';
 import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
 import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_spread';
-import { showStrokeColors } from './_tool-panels';
-import type { BackgroundsView, ColorsView, FontsView } from './_symbol-row';
-import { backIcon, placesMarkings, Toolbar, turnIcon, type ToolChoice } from './_toolbar';
+import { showStrokeColors, showSymbolPanel, showTextPanel, type SymbolSettingsView, type TextPanel } from './_tool-panels';
+import { backIcon, placesMarkings, Toolbar, turnIcon, type Look, type ToolChoice } from './_toolbar';
 import { ReaderMenus } from './_toolbar-menus';
 import { offerScore, turnFrom, type Offer } from './_turning';
 import type { ToolName } from './tools/_tools';
@@ -243,9 +242,8 @@ class Reader {
       edit: () => { if (this.symbolLib) editLibrary({ library: () => this.symbolLib!, change: (lib) => this.setLibrary(lib) }); },
       moveToGroup: (i, g) => this.moveToGroup(i, g),
       colors: (tool) => this.strokeColors(tool),
-      color: (c) => this.markColor(c),
-      font: (id) => this.setFont(id),
-      background: (b) => this.setBackground(b),
+      textPanel: () => this.textPanel(),
+      symbolPanel: () => this.symbolPanel(),
       undo: () => this.undo(),
       redo: () => this.redo(),
       toggleCuts: () => void this.withAccess(() => { this.editor.setEnabled(!this.editor.enabled); this.syncBar(); this.decorate(); }),
@@ -429,35 +427,99 @@ class Reader {
     this.syncBar();
   }
 
-  /** A colour in the second row: the selected marking's, or, for 'default', the default colour. The tool stays. */
-  private markColor(c: string | 'default') {
-    const sel = this.selected;
-    if (!sel) return;
-    if (c === 'default') {
-      if (sel.mark.color === undefined) return;
-      const { color: _, ...marked } = sel.mark;
-      this.commit(replaceMarking(this.state, sel.cut, sel.mark, marked), sel.cut);
-      this.selected = { cut: sel.cut, mark: marked };
-    } else {
-      const marked = { ...sel.mark, color: c };
-      this.commit(replaceMarking(this.state, sel.cut, sel.mark, marked), sel.cut);
-      this.selected = { cut: sel.cut, mark: marked };
-    }
-    this.refreshSelection();
+  /** The selected marking, when it is of `tool`'s kind. */
+  private selectedOf(tool: 'text' | 'symbol'): Selected | undefined {
+    return this.selected?.mark.kind === tool ? this.selected : undefined;
   }
 
-  /** A background button: the selected marking's shape, keeping its colour; with Text as the tool, also the shape of new text. */
-  private setBackground(b: BackgroundChoice) {
-    if (this.tool === 'text') this.setSettings((s) => ({ ...s, text: { ...s.text, background: b } }));
-    const sel = this.selected;
-    if (sel && (sel.mark.background?.shape ?? 'none') !== b) {
-      const { background: old, ...rest } = sel.mark;
-      const marked: PlacedMark = b === 'none' ? rest : { ...rest, background: { shape: b, ...(old?.color ? { color: old.color } : {}) } };
+  /** What the Text or Symbols button shows: the selected marking's look, else the settings for the next marking. */
+  private lookOf(tool: 'text' | 'symbol'): Look {
+    const m = this.selectedOf(tool)?.mark;
+    if (m) return { ...(tool === 'text' ? { font: m.font } : {}), color: m.color ?? markColors().color, ...(m.background ? { background: m.background } : {}) };
+    if (tool === 'text') {
+      const t = this.settings.text, background = backgroundOf(t.background, t.backgroundColor);
+      return { font: t.font ?? ACADEMICO, color: ownColor(t.color) ?? markColors().color, ...(background ? { background } : {}) };
+    }
+    const background = this.buttonSymbol()?.background;
+    return { color: ownColor(this.settings.symbol.color) ?? markColors().color, ...(background ? { background } : {}) };
+  }
+
+  /** A colour from the Text or Symbols panel: the selected marking of that kind takes it, and so do new ones. */
+  private panelColor(tool: 'text' | 'symbol', c: ColorChoice) {
+    const sel = this.selectedOf(tool);
+    if (sel && sel.mark.color !== ownColor(c)) {
+      const { color: _, ...rest } = sel.mark, own = ownColor(c);
+      const marked: PlacedMark = own ? { ...rest, color: own } : rest;
       this.commit(replaceMarking(this.state, sel.cut, sel.mark, marked), sel.cut);
       this.selected = { cut: sel.cut, mark: marked };
       this.refreshSelection();
     }
-    this.syncBar();
+    this.setSettings((s) => (tool === 'text' ? { ...s, text: { ...s.text, color: c } } : { ...s, symbol: { color: c } }));
+  }
+
+  /**
+   * A background shape or colour from the Text or Symbols panel: the selected marking of that kind
+   * takes it; for Text, so do new ones; for Symbols, so does the library symbol (the selected
+   * symbol's, or with none selected the tool's), which the next marking of it is a copy of.
+   */
+  private panelBackground(tool: 'text' | 'symbol', change: { shape?: BackgroundChoice; color?: ColorChoice }) {
+    const sel = this.selectedOf(tool);
+    const resolve = (was: Background | undefined) => backgroundOf(change.shape ?? was?.shape ?? 'none', change.color ?? was?.color ?? 'default');
+    let next: Background | undefined;
+    if (sel) {
+      next = resolve(sel.mark.background);
+      if (JSON.stringify(next) !== JSON.stringify(sel.mark.background)) {
+        const { background: _, ...rest } = sel.mark;
+        const marked: PlacedMark = next ? { ...rest, background: next } : rest;
+        this.commit(replaceMarking(this.state, sel.cut, sel.mark, marked), sel.cut);
+        this.selected = { cut: sel.cut, mark: marked };
+        this.refreshSelection();
+      }
+    }
+    if (tool === 'text') {
+      this.setSettings((s) => ({ ...s, text: { ...s.text, ...(change.shape !== undefined ? { background: change.shape } : {}), ...(change.color !== undefined ? { backgroundColor: change.color } : {}) } }));
+      return;
+    }
+    const lib = this.symbolLib;
+    const at = lib && sel && findSymbol(lib, sel.mark.font, sel.mark.text);
+    const sym = sel ? lib && at && symbolsOf(lib, at.group)[at.index] : this.buttonSymbol();
+    if (lib && sym) {
+      const { background: _, ...rest } = sym, was = sel ? next : resolve(sym.background);
+      this.setLibrary(replaceSymbol(lib, sym, was ? { ...rest, background: was } : rest));
+    } else this.syncBar();
+  }
+
+  /** The Text button's long press: its settings, or the selected text marking's. */
+  private textPanel() {
+    const sel = this.selectedOf('text')?.mark, t = this.settings.text;
+    const v: TextPanel = {
+      fonts: this.textFonts,
+      font: this.typing.font ?? sel?.font ?? t.font ?? ACADEMICO,
+      color: sel ? sel.color ?? 'default' : t.color,
+      background: sel ? sel.background?.shape ?? 'none' : t.background,
+      backgroundColor: sel ? sel.background?.color ?? 'default' : t.backgroundColor,
+    };
+    showTextPanel(this.toolbar.anchor('text'), v, {
+      font: (id) => this.setFont(id),
+      color: (c) => this.panelColor('text', c),
+      background: (b) => this.panelBackground('text', { shape: b }),
+      backgroundColor: (c) => this.panelBackground('text', { color: c }),
+    });
+  }
+
+  /** The Symbols button's long press: its settings, or the selected symbol's. */
+  private symbolPanel() {
+    const sel = this.selectedOf('symbol')?.mark, was = sel ? sel.background : this.buttonSymbol()?.background;
+    const v: SymbolSettingsView = {
+      color: sel ? sel.color ?? 'default' : this.settings.symbol.color,
+      background: was?.shape ?? 'none',
+      backgroundColor: was?.color ?? 'default',
+    };
+    showSymbolPanel(this.toolbar.anchor('symbols'), v, {
+      color: (c) => this.panelColor('symbol', c),
+      background: (b) => this.panelBackground('symbol', { shape: b }),
+      backgroundColor: (c) => this.panelBackground('symbol', { color: c }),
+    });
   }
 
   /** A font button: the font of new text, of the text being typed, and of the selected text marking. */
@@ -470,30 +532,6 @@ class Reader {
       void this.retext(sel, id, sel.mark.text);
     }
     this.syncBar();
-  }
-
-  /** What the font buttons show, while Text is the tool and there is a choice: the font of the text being typed, else of the selected text, else of new text. */
-  private fontsView(): FontsView | undefined {
-    if (this.tool !== 'text' || this.textFonts.length < 2) return undefined;
-    const sel = this.selected?.mark;
-    const own = sel?.kind === 'text' && this.textFonts.some((c) => c.id === sel.font) ? sel.font : undefined;
-    return { choices: this.textFonts, pressed: this.typing.font ?? own ?? this.settings.text.font ?? ACADEMICO };
-  }
-
-  /** What the colour buttons show, while Text or Symbols is the tool: the selected marking's colour, and whether there is a marking to change. */
-  private colorsView(): ColorsView | undefined {
-    if (!placesMarkings(this.tool)) return undefined;
-    const sel = this.selected;
-    return { pressed: sel ? sel.mark.color ?? 'default' : undefined, enabled: !!sel };
-  }
-
-  /** What the background buttons show: the selected marking's shape, or with nothing selected the shape new text gets or the placing symbol's. */
-  private backgroundsView(): BackgroundsView | undefined {
-    if (!placesMarkings(this.tool)) return undefined;
-    if (this.selected) return { pressed: this.selected.mark.background?.shape ?? 'none', enabled: true };
-    if (this.tool === 'text') return { pressed: this.settings.text.background, enabled: true };
-    const sym = this.symbolLib && symbolsOf(this.symbolLib, this.group)[this.currentOf(this.group)];
-    return { pressed: sym?.background?.shape ?? 'none', enabled: false };
   }
 
   /* ---------- typing ---------- */
@@ -734,7 +772,8 @@ class Reader {
       open: !!cur,
       tool: this.tool,
       symbol: this.buttonSymbol(),
-      backgrounds: this.backgroundsView(),
+      textLook: this.lookOf('text'),
+      symbolLook: this.lookOf('symbol'),
       penInk: strokeColor('pen', this.settings.pen.color, markColors()),
       highlightInk: strokeColor('highlighter', this.settings.highlighter.color, markColors()),
       cuts: this.editor.enabled,
@@ -742,7 +781,7 @@ class Reader {
       canRedo: this.undos.canRedo,
     });
     this.scope.hidden = this.reading.what.kind === 'score' || !this.editor.enabled;
-    this.toolbar.symbolRow.show(this.symbolLib, this.currents, this.adhocCurrent, this.tool === 'symbol' ? this.group : undefined, this.tool === 'symbol', this.fontsView(), this.colorsView(), this.backgroundsView());
+    this.toolbar.symbolRow.show(this.symbolLib, this.currents, this.adhocCurrent, this.tool === 'symbol' ? this.group : undefined, this.tool === 'symbol');
     this.root.classList.toggle('writing', this.tool !== 'none');
     this.root.classList.toggle('editing', this.editor.enabled);
     this.root.style.setProperty('--bar-h', this.toolbar.el.offsetHeight + 'px');

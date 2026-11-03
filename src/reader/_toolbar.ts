@@ -1,11 +1,14 @@
 // The reader's toolbar: building its buttons and showing the reader's state on them. The buttons
 // call back into the reader; what they do is not here.
 
+import { cssFamily } from '../fonts/fonts';
 import type { LibrarySymbol } from '../markings/library';
+import { markColors, type Background } from '../markings/placed';
 import { el } from '../ui/dom';
 import { onLongPress } from '../ui/long-press';
 import { symbolPicture } from './_symbol-picture';
-import { SymbolRow, type BackgroundsView, type SymbolRowActions } from './_symbol-row';
+import { SymbolRow, type SymbolRowActions } from './_symbol-row';
+import { backgroundPicture } from './_swatches';
 import { TOOL_NAMES, TOOLS, type ToolName } from './tools/_tools';
 
 /** The back arrow that leaves the reader for the library, on the toolbar and when it is hidden. */
@@ -84,6 +87,9 @@ export interface ToolbarActions extends SymbolRowActions {
   tool(t: ToolName): void;
   /** The Symbols tool: the last symbol picked becomes the tool, or the tool is put away. */
   symbols(): void;
+  /** A long press on Text, or on Symbols: its panel. */
+  textPanel(): void;
+  symbolPanel(): void;
   /** A long press on Pen or Highlight: its colours. */
   colors(tool: 'pen' | 'highlighter'): void;
   undo(): void;
@@ -92,6 +98,9 @@ export interface ToolbarActions extends SymbolRowActions {
   toggleCuts(): void;
 }
 
+/** What a placing tool's button shows: the selected marking's look, or the next marking's. */
+export interface Look { font?: string; color: string; background?: Background }
+
 /** What the toolbar shows. */
 export interface ToolbarView {
   /** The score is open; a score that can't be opened can't be written on or edited. */
@@ -99,8 +108,8 @@ export interface ToolbarView {
   tool: ToolChoice;
   /** The symbol the Symbols button shows; undefined: a generic pp. */
   symbol?: LibrarySymbol;
-  /** The second row's backgrounds; undefined hides them. */
-  backgrounds?: BackgroundsView;
+  textLook: Look;
+  symbolLook: Look;
   /** The colours Pen and Highlight draw in, shown under their icons. */
   penInk: string;
   highlightInk: string;
@@ -121,6 +130,8 @@ export class Toolbar {
   private buttons: Record<string, HTMLButtonElement> = {};
   /** What the Symbols button shows now, to draw it again only when it changes. */
   private symbolShown = '';
+  /** What the Text button shows now, likewise. */
+  private textShown = '';
 
   /** `reading` is what the reader reads, which decides the buttons on the right. */
   constructor(reading: 'score' | 'excerpt' | 'setlist', act: ToolbarActions) {
@@ -136,8 +147,7 @@ export class Toolbar {
     titleBlock.append(this.titleButton, this.info);
     left.append(back, titleBlock);
 
-    // Drawing tools, the tools that place markings,
-    // Cuts, and Undo and Redo, in groups between thin rules.
+    // Drawing tools, the tools that place markings, Cuts, and Undo and Redo, in groups between thin rules.
     const iconButton = (key: string, d: string, label: string, onClick: () => void, cls = '') => {
       const b = this.button(key, '', onClick, cls);
       b.append(icon(d));
@@ -152,11 +162,17 @@ export class Toolbar {
         b.append(el('span', 'ink'));
         onLongPress(b, () => act.colors(t));
       }
+      // Text shows a T in its font and colour, on its background, instead of an icon.
+      if (t === 'text') {
+        b.replaceChildren();
+        onLongPress(b, act.textPanel);
+      }
       return b;
     };
     const symbols = this.button('symbols', '', act.symbols, 'symbols-tool');
     symbols.setAttribute('aria-label', 'Symbols');
     symbols.title = 'Symbols';
+    onLongPress(symbols, act.symbolPanel);
     const cuts = this.button('cuts', '', act.toggleCuts, 'cuts-button');
     cuts.append(icon(SCISSORS), el('span', 'label', 'Cuts'));
     const rule = () => { const r = el('span', 'rule'); r.setAttribute('aria-hidden', 'true'); return r; };
@@ -185,15 +201,36 @@ export class Toolbar {
   }
 
   /** A toolbar button, for a menu to open below it. */
-  anchor(key: 'title' | 'more' | 'pen' | 'highlighter'): HTMLElement { return this.buttons[key]; }
+  anchor(key: 'title' | 'more' | 'pen' | 'highlighter' | 'text' | 'symbols'): HTMLElement { return this.buttons[key]; }
 
-  /** The Symbols button's picture: the symbol, drawn in the button's colour, or a generic pp. */
-  private symbolButton(sym: LibrarySymbol | undefined, pressed: boolean) {
-    const b = this.buttons.symbols, key = `${sym?.font}|${sym?.text}|${sym?.scale}|${pressed}`;
+  /** The Symbols button's picture: the symbol in the look's colour, on its background, or a generic pp. */
+  private symbolButton(sym: LibrarySymbol | undefined, look: Look) {
+    const b = this.buttons.symbols, key = `${sym?.font}|${sym?.text}|${sym?.scale}|${look.color}|${JSON.stringify(look.background)}|${markColors().background}`;
     if (key === this.symbolShown) return;
     this.symbolShown = key;
     if (!sym) { b.replaceChildren(el('span', 'pp', 'pp')); return; }
-    b.replaceChildren(symbolPicture(sym, getComputedStyle(b).color, 28));
+    b.replaceChildren(symbolPicture(sym, look.color, 28, undefined, look.background));
+  }
+
+  /** The Text button's T: in the look's font and colour, on its background. */
+  private textButton(look: Look) {
+    const b = this.buttons.text, key = `${look.font}|${look.color}|${JSON.stringify(look.background)}|${markColors().background}`;
+    if (key === this.textShown) return;
+    this.textShown = key;
+    const face = el('span', 'text-look');
+    if (look.background) {
+      const back = backgroundPicture(look.background.shape, look.background.color ?? markColors().background);
+      back.removeAttribute('width');
+      back.removeAttribute('height');
+      back.setAttribute('preserveAspectRatio', 'none');
+      face.append(back);
+    }
+    const t = el('span', 't', 'T');
+    t.style.color = look.color;
+    face.append(t);
+    // In its own font once that has loaded.
+    if (look.font) void cssFamily(look.font).then((family) => { t.style.fontFamily = `"${family}"`; }, () => {});
+    b.replaceChildren(face);
   }
 
   sync(v: ToolbarView) {
@@ -201,8 +238,9 @@ export class Toolbar {
     for (const t of TOOL_NAMES) pressed(t, v.tool === t);
     pressed('cuts', v.cuts);
     pressed('symbols', v.tool === 'symbol');
-    this.symbolRow.el.hidden = !placesMarkings(v.tool);
-    this.symbolButton(v.symbol, v.tool === 'symbol');
+    this.symbolRow.el.hidden = v.tool !== 'symbol';
+    this.symbolButton(v.symbol, v.symbolLook);
+    this.textButton(v.textLook);
     this.buttons.pen.querySelector<HTMLElement>('.ink')!.style.background = v.penInk;
     this.buttons.highlighter.querySelector<HTMLElement>('.ink')!.style.background = v.highlightInk;
     for (const k of [...TOOL_NAMES, 'symbols', 'cuts']) if (this.buttons[k]) this.buttons[k].disabled = !v.open;

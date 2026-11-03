@@ -81,6 +81,7 @@ Other rules, the first also tested:
 - The pages sit under the toolbar and are moved only by `drag` and `pinch` (`render/zoom.ts`), which keep or increase how much of the spread is in the view below the toolbar; a new screen is placed by `placeFresh`.
 - The reader sets `data-theme="light"` on the document while it is open and puts the app's theme back when it closes; its colours are the `--stage` and `--bar*` tokens in `styles/base.css`.
 - Each tool's settings for new markings (colours, text's font and background) are one `ToolSettings` (`markings/tool-settings.ts`), kept in the kv store under `tool-settings`; the reader holds them in `settings` and changes them through `setSettings`. Tools ask the host for the colour a stroke or symbol gets.
+- The Text and Symbols buttons show a `Look` (`_toolbar.ts`): the selected marking's, else the settings'. The reader's `lookOf` works it out; `panelColor` and `panelBackground` apply a choice from their panels to the selected marking, the settings and (for symbols' background) the library symbol.
 - A long press on a tool's button (`ui/long-press.ts`) opens that tool's panel (`reader/_tool-panels.ts`, with rows from `reader/_swatches.ts`); a tap still picks the tool.
 - `_toolbar.ts` builds the toolbar; `_toolbar-menus.ts` holds what its menus and dialogs do; `_title-menu.ts` the menu under the title, with the controls that change a setlist's entries and a score's named excerpts.
 - `_open-scores.ts` reads each score's file and opens its pages when it is near the one read, `_saver.ts` saves

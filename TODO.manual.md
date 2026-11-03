@@ -3,6 +3,14 @@
 Things to try on the tablet, grouped so each group can be done in one go. Some groups need
 DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the records.
 
+- **Text and Symbols settings** (marking tools, stage 4):
+  - Long-press Text: Font, Colour, Background. Pick a box: Background colour appears. The T on the
+    button shows the font, colour and box.
+  - Select a text marking: the T shows its look; change its colour in the panel: the marking
+    changes, and new text gets that colour too.
+  - Select a symbol and give it a box in the Symbols panel: the next time that symbol is placed it
+    has the box; another symbol doesn't.
+  - The second row shows only with Symbols as the tool, and has no Font, Colour or Background.
 - **Pen and Highlight colours** (marking tools, stage 3):
   - Long-press Pen: its swatches, Default first with a dashed ring. Pick red: the bar under Pen is
     red, and Pen draws red. Tap Pen: it's picked or put away as before.
