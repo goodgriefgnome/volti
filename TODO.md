@@ -241,5 +241,5 @@ scores.
     in `scores/edits.ts`), so copies don't share one.
   - Stripped when saving (`scoreEntries` in `scores/store.ts`), and kept out of the PDF export and
     of tests that compare states.
-  - To decide: whether undo and redo keep the selection when its marking is still there (they
-    end it now); and whether strokes get ids too, for when they become selectable.
+  - Undo and redo keep the selection when its marking is still there (they end it now).
+  - To decide: whether strokes get ids too, for when they become selectable.
