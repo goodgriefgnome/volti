@@ -1,7 +1,19 @@
+import { execSync } from 'node:child_process';
 import { defineConfig } from 'vitest/config';
 import { VitePWA } from 'vite-plugin-pwa';
 
+/** The commit this build is made from: its short hash and date, and (dev) when the tree has changes; `unknown` without git. */
+function version(): string {
+  try {
+    const run = (cmd: string) => execSync(cmd, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    return run('git log -1 --format="%h · %cs"') + (run('git status --porcelain') ? ' (dev)' : '');
+  } catch {
+    return 'unknown';
+  }
+}
+
 export default defineConfig({
+  define: { __VERSION__: JSON.stringify(version()) },
   // Served from https://goodgriefgnome.github.io/volti/
   base: '/volti/',
   plugins: [

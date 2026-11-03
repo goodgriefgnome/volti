@@ -355,3 +355,5 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     handle where they overlap.
   - Zoomed in on a large symbol, the handles grow up to 16 px and the line stays 1 px; zooming
     in and out on a small one keeps the box at least 24 px on screen.
+- **The version in the library's ⋯ menu:** after an update takes over, the menu's last line reads
+  `Version <hash> · <date>` of the commit just pushed.

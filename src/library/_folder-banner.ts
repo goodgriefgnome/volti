@@ -1,6 +1,6 @@
 // The tools at the top of the library, beside the name: the scores folder's buttons (Link scores
 // folder, Allow access), the library's ⋯ menu (the scores folder, Recently removed, Marking
-// colours, and the storage used), and Update when a new version of the app is ready.
+// colours, the storage used, and the version running), and Update when a new version of the app is ready.
 
 import { canLinkFolder } from '../originals/device-score-fs';
 import { button, el } from '../ui/dom';
@@ -40,6 +40,7 @@ export class FolderBanner {
       { label: 'Marking colours…', run: openMarkColors },
       'Storage used on this tablet',
       storageView(),
+      `Version ${__VERSION__}`,
     ]), 'More'));
   }
 
