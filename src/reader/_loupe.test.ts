@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { LOUPE_GAP_PX, LOUPE_PX, loupeCentre, loupeTarget, magnification, sharpIsFull, sharpSide } from './_loupe';
 
 describe('magnification', () => {
-  it('shows the ink 48 px tall, but never smaller than on screen', () => {
-    expect(magnification(16)).toBe(3);
-    expect(magnification(60)).toBe(1);
+  it('shows the staff 64 px tall, but never smaller than on screen', () => {
+    expect(magnification(20)).toBe(3.2);
+    expect(magnification(80)).toBe(1);
   });
 });
 

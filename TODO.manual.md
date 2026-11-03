@@ -30,6 +30,11 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     off-white, and nothing else looks chosen. The Font dropdown stays a white field.
   - On the toolbar, the tool in use and Cuts (when on) have the same blue ring, and their icons
     keep their colour.
+- **The loupe's magnification from the score's symbol size:** placing a staccato dot, a fingering,
+  *pp* and text on a whole spread, the loupe shows the staff at the same size each time (about
+  half the loupe's height), with the marking on it at its size relative to the staff. Zoomed in, a
+  marking shows no bigger relative to the staff than before, and the loupe is never smaller than
+  the screen.
 - **Menus on the bar's off-white** (in the reader, light theme):
   - The Symbols panel, the Text panel, Pen's colours, the title menu and ⋯ all have the same
     off-white background as the bar. Hovering or focusing a button there is a faint grey.

@@ -6,7 +6,7 @@ import { type LibrarySymbol, nextSymbol, scaleOf } from '../../markings/library'
 import { compactMarking, type Point } from '../../markings/model';
 import { markExtent, type PlacedMark } from '../../markings/placed';
 import { replaceMarking, setSymbolSize, textResized } from '../../scores/edits';
-import type { State } from '../../scores/model';
+import { symbolSizeOf, type State } from '../../scores/model';
 import { centreOnFrame, extentOnFrame, movedTo, placedAt, resizedFrom, type Selected } from '../../scores/placing';
 import { isTap } from '../_gestures';
 import { loupeTarget, type SharpInk } from '../_loupe';
@@ -136,7 +136,8 @@ export function placingTool(
         if (!ext) return;
         const r = s.box.getBoundingClientRect(); // includes the zoom
         const box = { x0: r.left + ext[0] * r.width, y0: r.top + ext[1] * r.width, x1: r.left + ext[2] * r.width, y1: r.top + ext[3] * r.width };
-        if (!lens) { host.loupe().begin(box.y1 - box.y0); lens = true; }
+        // The score's staff on screen: its symbol size in page widths, and a frame is a page wide.
+        if (!lens) { host.loupe().begin(symbolSizeOf(host.state().score) * r.width); lens = true; }
         host.loupe().show(host.slots(), loupeTarget(box), client, ink);
       };
       const unmagnify = () => { if (lens) host.loupe().end(); lens = false; };

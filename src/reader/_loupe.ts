@@ -8,14 +8,14 @@ import type { ScoreInk } from '../scores/model';
 import type { FrameSlot } from './_spread';
 import type { ReaderView } from './_view';
 
-/** The loupe's diameter, and the height the dragged marking's ink is shown at in it, in CSS px. */
+/** The loupe's diameter, and the height the score's staff (one em of a music font) is shown at in it, in CSS px. */
 export const LOUPE_PX = 128;
-export const LOUPE_INK_PX = 48;
+export const LOUPE_STAFF_PX = 64;
 /** The gap between the finger and the loupe's bottom edge, in CSS px. */
 export const LOUPE_GAP_PX = 56;
 
-/** How much to magnify: the ink shown LOUPE_INK_PX tall, but never smaller than on screen. */
-export const magnification = (inkPx: number) => Math.max(1, LOUPE_INK_PX / inkPx);
+/** How much to magnify: the staff (`staffPx` tall on screen) shown LOUPE_STAFF_PX tall, but never smaller than on screen. */
+export const magnification = (staffPx: number) => Math.max(1, LOUPE_STAFF_PX / staffPx);
 
 /** The point of an ink box (screen px) the loupe centres on: h/2 in from its top, left and bottom; across, its middle when it is narrower than tall. */
 export function loupeTarget(ink: { x0: number; y0: number; x1: number; y1: number }): { x: number; y: number } {
@@ -75,9 +75,9 @@ export class Loupe {
 
   constructor(private root: HTMLElement, private view: Pick<ReaderView, 'draw' | 'aspects'>) {}
 
-  /** Start: magnification fixed from the marking's ink height on screen. */
-  begin(inkPx: number): void {
-    this.m = magnification(inkPx);
+  /** Start: magnification fixed from the score's staff height on screen. */
+  begin(staffPx: number): void {
+    this.m = magnification(staffPx);
     this.forget();
     if (this.canvas) return;
     const d = dpr();

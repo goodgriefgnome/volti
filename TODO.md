@@ -16,24 +16,6 @@ scores.
 - **If the loupe is still slow on a page with much ink**, after the fix for it was tried on the
   tablet (see **The loupe stays smooth** in `TODO.manual.md`): draw only the markings near the
   loupe in `Loupe.drawInk` (those whose extent meets the loupe's area), not the whole frame's.
-- **The loupe's magnification from the score's symbol size, not the marking's ink**: today it is
-  `magnification(inkPx)` = 48 ÷ the dragged marking's ink height on screen (`reader/_loupe.ts`,
-  `LOUPE_INK_PX`; `begin(box.y1 - box.y0)` in `reader/tools/_placing.ts`, `magnify`), so a dot or
-  a fingering is blown up far more than *ff*, and each marking shows a different amount of music.
-  Make it the same for every marking (symbols and text) in a score at a given zoom: the score's
-  symbol size, which is one staff (one em of a music font), shown 64 px tall in the loupe, and
-  never less than 1×.
-  - `reader/_loupe.ts`: replace `LOUPE_INK_PX` by `export const LOUPE_STAFF_PX = 64;` and make
-    `magnification(staffPx)` = `Math.max(1, LOUPE_STAFF_PX / staffPx)`; `begin(staffPx)`.
-  - `_placing.ts`, `magnify`: the staff on screen is `symbolSizeOf(host.state().score)`
-    (`scores/model.ts`; in page widths, and a frame is a page wide) times the slot box's on-screen
-    width (`r.width`, which includes the zoom). Pass that to `begin`, for placing, moving and
-    resizing alike, text included. It is still fixed when the drag starts.
-  - Where the loupe centres (`loupeTarget`, on the marking's ink) doesn't change.
-  - Tests in `reader/_loupe.test.ts`: `magnification(20)` is 3.2; `magnification(80)` is 1.
-  - Check on the tablet: placing a staccato dot, a fingering, *pp* and text on a whole spread, the
-    loupe shows the staff at the same size each time (about half the loupe's height), with the
-    marking on it at its size relative to the staff.
 - **The loupe centres on the middle of the marking**: today it centres h/2 in from the left of the
   ink (`loupeTarget` in `reader/_loupe.ts`), so on a long marking (a long word, *cresc.*) it shows
   the left end, while the finger holds the marking by its middle (a symbol is placed centred on the
