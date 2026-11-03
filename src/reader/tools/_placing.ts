@@ -4,11 +4,12 @@
 
 import { type LibrarySymbol, nextSymbol, scaleOf } from '../../markings/library';
 import { compactMarking, type Point } from '../../markings/model';
-import type { PlacedMark } from '../../markings/placed';
+import { markExtent, type PlacedMark } from '../../markings/placed';
 import { replaceMarking, setSymbolSize, textResized } from '../../scores/edits';
 import type { State } from '../../scores/model';
 import { centreOnFrame, extentOnFrame, movedTo, placedAt, resizedFrom, type Selected } from '../../scores/placing';
 import { isTap } from '../_gestures';
+import { loupeTarget } from '../_loupe';
 import { slotUnder, type FrameSlot } from '../_spread';
 import type { Tool, ToolHost } from './_tool';
 
@@ -114,33 +115,54 @@ export function placingTool(
         }
       };
 
+      // The loupe, while a marking is dragged: begun with the first ink box it is shown for.
+      let lens = false;
+      /** Show the loupe on an ink box (frame widths on slot `s`), with the finger at `client`. */
+      const magnify = (s: FrameSlot, ext: readonly number[] | undefined, client: { x: number; y: number }) => {
+        if (!ext) return;
+        const r = s.box.getBoundingClientRect(); // includes the zoom
+        const ink = { x0: r.left + ext[0] * r.width, y0: r.top + ext[1] * r.width, x1: r.left + ext[2] * r.width, y1: r.top + ext[3] * r.width };
+        if (!lens) { host.loupe().begin(ink.y1 - ink.y0); lens = true; }
+        host.loupe().show(host.slots(), loupeTarget(ink), client);
+      };
+      const unmagnify = () => { if (lens) host.loupe().end(); lens = false; };
+
       /** Show the ghost under the finger, on the slot there, repainting only what changed. */
-      const showGhost = () => {
+      const showGhost = (client: { x: number; y: number }) => {
         const now = slotUnder(host.slots(), slot, [last[0], last[1]]);
         const mark = now && ghost(host, now.at);
         if (over && (!now || !mark || over.slot !== now.slot)) { host.paintInk(over.slot); over = undefined; }
-        if (!now || !mark) return;
-        if (over && over.at[0] === now.at[0] && over.at[1] === now.at[1]) return;
-        host.paintInk(now.slot, mark);
-        over = now;
+        if (!now || !mark) { unmagnify(); return; }
+        if (!over || over.at[0] !== now.at[0] || over.at[1] !== now.at[1]) {
+          host.paintInk(now.slot, mark);
+          over = now;
+        }
+        const e = markExtent(mark);
+        magnify(now.slot, e && [now.at[0] + e[0] * mark.size, now.at[1] + e[1] * mark.size, now.at[0] + e[2] * mark.size, now.at[1] + e[3] * mark.size], client);
       };
 
       /** Forget the drag: show the ink as it is, and the box again. */
       const drop = () => {
+        unmagnify();
         if (over) { host.paintInk(over.slot); over = undefined; }
         if (dragging) { host.paintInk(slot); host.select(host.selected()); }
       };
 
       return {
-        move(p) {
+        move(p, client) {
           last = p;
           if (!grab) {
             if (!placing && moved()) placing = true;
-            if (placing) showGhost();
+            if (placing) showGhost(client);
             return;
           }
           if (!dragging && moved()) dragging = true;
-          if (dragging) host.paintState(slot, dragged(grab).state);
+          if (dragging) {
+            const r = dragged(grab);
+            host.paintState(slot, r.state);
+            const item = itemOf(r.selected.cut);
+            magnify(slot, item && extentOnFrame(item, r.selected.mark, aspects[item.cut.page]), client);
+          }
         },
         end(cancelled) {
           if (cancelled) { drop(); return; }
@@ -156,6 +178,7 @@ export function placingTool(
             return;
           }
           const g = grab!, r = dragged(g);
+          unmagnify();
           let state: State = r.state;
           if (g.kind === 'resize') {
             const size = r.selected.mark.size;

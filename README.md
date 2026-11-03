@@ -121,6 +121,9 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   font, size and background, tinted blue. It follows the finger onto any page on the screen;
   letting go places it there (Text opens the typing field there), and letting go anywhere but on a
   page places nothing. A tap places it where tapped.
+- While a symbol or text is placed, moved or resized by dragging, a round loupe above the finger
+  (beside it, near the toolbar) shows the music and markings around it, magnified so the marking
+  is about 48 px tall (never less than on screen), until the finger lifts.
 - A long press on **Text** opens its **Font**, **Colour**, **Background** and, once a shape is chosen,
   **Background colour**; on **Symbols**, **Colour**, **Background** and **Background colour**.
   **Colour** is **Default** and the three pen colours. A choice changes the selected marking (of

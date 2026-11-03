@@ -155,3 +155,5 @@
 .symbol-panel .symbol-actions { display: flex; gap: 6px; }
 .symbol-panel .drag-ghost { position: fixed; z-index: 30; pointer-events: none; opacity: 0.85; }
 .symbol-panel .drop-line { position: fixed; z-index: 30; width: 3px; border-radius: 2px; background: var(--select); pointer-events: none; }
+/* The loupe: a round magnifier above the finger while a marking is dragged (reader/_loupe.ts). */
+.reader > .loupe { position: fixed; z-index: 8; pointer-events: none; border-radius: 50%; background: #ffffff; box-shadow: 0 0 0 2px #ffffff, 0 0 0 3px rgba(0, 0, 0, 0.25), 0 6px 18px rgba(0, 0, 0, 0.3); }

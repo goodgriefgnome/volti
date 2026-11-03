@@ -49,6 +49,7 @@ import { glyphPicker } from './_glyph-picker';
 import { editLibrary } from './_library-editor';
 import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
 import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_spread';
+import { Loupe } from './_loupe';
 import { showSymbolPanel } from './_symbol-panel';
 import { showStrokeColors, showTextPanel, type SymbolSettingsView, type TextPanel } from './_tool-panels';
 import { backIcon, placesMarkings, Toolbar, turnIcon, type Look, type ToolChoice } from './_toolbar';
@@ -174,6 +175,7 @@ class Reader {
   private selected: Selected | undefined;
   private selection = new SelectionBox(() => this.deleteSelected());
   private typing = new TypingField(this.stage);
+  private loupe = new Loupe(this.root);
   private undos = new History<Undo>();
   private saver: Saver;
   private editor: CutEditor;
@@ -322,6 +324,7 @@ class Reader {
       commit: (s, focus) => this.commit(s, focus),
       erased: (s, slot) => this.erased(s, slot),
       eraseEnded: (before, slot) => this.eraseEnded(before, slot),
+      loupe: () => this.loupe,
       textGhost: (at) => this.textGhost(at),
       newText: (slot, at) => this.newText(slot, at),
       editText: (sel) => this.editText(sel),

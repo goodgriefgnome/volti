@@ -6,6 +6,7 @@ import type { Marking, Point } from '../../markings/model';
 import type { PlacedMark } from '../../markings/placed';
 import type { State } from '../../scores/model';
 import type { Selected } from '../../scores/placing';
+import type { Loupe } from '../_loupe';
 import type { FrameSlot } from '../_spread';
 import type { ReaderView } from '../_view';
 
@@ -23,6 +24,8 @@ export interface ToolHost extends ReaderView {
   select(s: Selected | undefined): void;
   /** A selected symbol was changed to the next of its group: with Symbols as the tool, that symbol is the tool's now. */
   cycled(sym: LibrarySymbol): void;
+  /** The loupe shown while a marking is dragged. */
+  loupe(): Loupe;
   /** Draw a frame's ink again; `extra` is a marking still being made. */
   paintInk(slot: FrameSlot, extra?: Marking): void;
   /** Draw a frame's ink as it would be in `s`, without taking the edit: a marking being dragged. The selection's box is hidden until the next `select`. */
@@ -46,7 +49,7 @@ export interface ToolHost extends ReaderView {
  * a fraction of its width, y in frame widths from its top.
  */
 export interface ToolPointer {
-  move(p: Point): void;
+  move(p: Point, client: { x: number; y: number }): void;
   /** After the points of one pointer event have all been moved through. */
   moved?(): void;
   /** The pointer lifted, or the system cancelled it (`cancelled`: it decided this was a palm). */

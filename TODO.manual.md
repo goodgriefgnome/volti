@@ -3,6 +3,10 @@
 Things to try on the tablet, grouped so each group can be done in one go. Some groups need
 DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the records.
 
+- **The loupe** (marking tools, stage 8):
+  - Placing, moving and resizing a symbol: a round loupe above the finger, the symbol about 48 px
+    tall in it, centred on the symbol; near the toolbar it moves beside the finger.
+  - Zoomed far in, the loupe shows the symbol at its size on screen, not smaller.
 - **Placing by dragging** (marking tools, stage 7):
   - Press on empty music with Symbols: the symbol shows under the finger; drag it onto the facing
     page and let go: placed there. Drag it off the pages (onto the grey stage) and let go: nothing.

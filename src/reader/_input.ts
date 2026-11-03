@@ -205,7 +205,7 @@ export class Input {
     const a = this.active;
     if (!a || e.pointerId !== a.id) return;
     const events = e.getCoalescedEvents?.() ?? [];
-    for (const ce of events.length ? events : [e]) a.use.move(this.point(ce, a.rect));
+    for (const ce of events.length ? events : [e]) a.use.move(this.point(ce, a.rect), { x: ce.clientX, y: ce.clientY });
     a.use.moved?.();
   };
 
