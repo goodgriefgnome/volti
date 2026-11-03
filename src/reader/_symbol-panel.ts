@@ -2,7 +2,8 @@
 // symbols' settings.
 
 import { symbolsOf, type SymbolAt, type SymbolLibrary } from '../markings/library';
-import { button, el } from '../ui/dom';
+import { button, el, GRIP, icon } from '../ui/dom';
+import { dragToReorder } from '../ui/drag-reorder';
 import { closeOverlay, showMenu } from '../ui/overlay';
 import { isTap } from './_gestures';
 import { symbolPicture } from './_symbol-picture';
@@ -14,6 +15,8 @@ export interface SymbolPanelHost {
   tool(): SymbolAt | undefined;
   pick(at: SymbolAt): void;
   move(from: SymbolAt, to: SymbolAt | 'new'): void;
+  /** The group at `from` goes to `to`, as `moveGroup` counts. */
+  moveGroup(from: number, to: number): void;
   add(): void;
   edit(): void;
 }
@@ -51,6 +54,7 @@ export function showSymbolPanel(at: HTMLElement, host: SymbolPanelHost, settings
   const drawLibrary = () => {
     const lib = host.library(), lit = host.tool();
     const boxes: Box[] = [];
+    const groups = el('div', 'group-list');
     const newGroup = el('div', 'new-group', 'Drag here for a new group');
     newGroup.hidden = true;
 
@@ -64,6 +68,15 @@ export function showSymbolPanel(at: HTMLElement, host: SymbolPanelHost, settings
         b.addEventListener('pointerdown', (e) => begin(e, b, { group, index }));
         return b;
       });
+      // Each group but Recent has a grip at its left edge, which moves the group.
+      if (group >= 0) {
+        const grip = el('div', 'group-grip');
+        grip.append(icon(GRIP));
+        grip.setAttribute('aria-label', 'Move group');
+        grip.setAttribute('role', 'button');
+        dragToReorder(grip, box, groups, group, (to) => { host.moveGroup(group, to); drawLibrary(); });
+        box.append(grip);
+      }
       box.append(...buttons);
       return { group, box, buttons };
     };
@@ -71,8 +84,9 @@ export function showSymbolPanel(at: HTMLElement, host: SymbolPanelHost, settings
     const recent = lib.adhoc.length ? makeBox(-1) : undefined;
     if (recent) boxes.push(recent);
 
+    groups.append(...boxes.filter((b) => b.group >= 0).map((b) => b.box));
     library.replaceChildren(
-      ...boxes.filter((b) => b.group >= 0).map((b) => b.box),
+      groups,
       newGroup,
       ...(recent ? [el('div', 'label', 'Recent'), recent.box] : []),
       el('div', 'symbol-actions'),

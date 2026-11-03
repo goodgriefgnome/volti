@@ -16,20 +16,6 @@ scores.
 - **If the loupe is still slow on a page with much ink**, after the fix below was tried on the
   tablet (see **The loupe stays smooth** in `TODO.manual.md`): draw only the markings near the
   loupe in `Loupe.drawInk` (those whose extent meets the loupe's area), not the whole frame's.
-- **Groups reordered in the Symbols panel by a grip**: no group box has one yet
-  (`reader/_symbol-panel.ts`, `makeBox`). Give each group's box (not Recent's) a grip at its left
-  edge. Dragging the grip up or down moves the group, with a line where it would go, as
-  `dragToReorder` (`ui/drag-reorder.ts`) does for the title menu; on lifting,
-  `moveGroup(lib, from, to)` (`markings/library.ts`) through a new `SymbolPanelHost.moveGroup`.
-  - The reader keeps each group's current symbol by index (`currents`) and the tool's group by
-    index (`group`), and `setLibrary` only clamps them (`reader/reader.ts`, `setLibrary`), so a
-    reorder would hand each group another's current symbol. Move `currents[from]` to `to` the
-    same way, and follow `group` when it was the moved group or between `from` and `to`.
-  - A press on a symbol still picks or drags the symbol; only the grip moves the group.
-  - Test: `moveGroup` already has tests in `markings/library.test.ts`. If the reader's following
-    is pulled out as a pure function (say `_symbols.ts`, `reorderedCurrents(currents, group, from,
-    to)`), test it there.
-  - Groups are now reordered here as well as in **Edit library…**.
 - **A long press on a tool's button makes it the tool**: today a long press on Pen, Highlight,
   Text or Symbols only opens its panel (`reader/reader.ts`: `strokeColors`, `textPanel`,
   `symbolPanel`; the long presses are the `onLongPress` calls in `reader/_toolbar.ts`). In each,

@@ -16,7 +16,7 @@ import type { NamedExcerpt, Score } from '../scores/model';
 import { loadSavedScore, saveScore } from '../scores/store';
 import { addEntries, moveEntry, withSetlist } from '../setlists/model';
 import { saveLastAddedTo } from '../setlists/store';
-import { button, dpr, el, plural } from '../ui/dom';
+import { button, dpr, el, GRIP, icon, plural } from '../ui/dom';
 import { dragToReorder } from '../ui/drag-reorder';
 import { buttonRow, closeOverlay, overlayOpen, showDialog, showMenu, whenOverlayCloses } from '../ui/overlay';
 import type { OpenScore } from './_open-scores';
@@ -75,21 +75,6 @@ export function _titleRows(h: MenusHost): TitleRow[] {
   return rows;
 }
 
-const SVG = 'http://www.w3.org/2000/svg';
-
-/** A small icon drawn with the path `d`, in the button's colour. */
-function icon(d: string): SVGSVGElement {
-  const svg = document.createElementNS(SVG, 'svg');
-  svg.setAttribute('viewBox', '0 0 24 24');
-  svg.setAttribute('aria-hidden', 'true');
-  svg.classList.add('row-icon');
-  const path = document.createElementNS(SVG, 'path');
-  path.setAttribute('d', d);
-  svg.append(path);
-  return svg;
-}
-
-const GRIP = 'M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01';
 const SWAP = 'M4 8h15l-4-4M20 16H5l4 4';
 const BIN = 'M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12';
 

@@ -5,7 +5,7 @@
 
 import type { FileChange } from '../dialogs/score-files';
 import { ends } from '../scores/excerpts';
-import { addAdhoc, findSymbol, moveSymbol, replaceSymbol, symbolsOf, type LibrarySymbol, type SymbolAt, type SymbolLibrary } from '../markings/library';
+import { addAdhoc, findSymbol, moveGroup, moveSymbol, replaceSymbol, symbolsOf, type LibrarySymbol, type SymbolAt, type SymbolLibrary } from '../markings/library';
 import { type Marking } from '../markings/model';
 import { unlockFolder } from '../originals/device-score-fs';
 import { knownTitles } from '../originals/library-files';
@@ -44,7 +44,7 @@ import { Reading, setlistItems, type ReadingKind, type ReadingSnapshot } from '.
 import { Saver } from './_saver';
 import { TypingField } from './_typing';
 import { SelectionBox } from './_selection';
-import { lastSymbol, makeSymbol, savedLibrary, symbolLibrary } from './_symbols';
+import { lastSymbol, makeSymbol, reorderedCurrents, savedLibrary, symbolLibrary } from './_symbols';
 import { glyphPicker } from './_glyph-picker';
 import { editLibrary } from './_library-editor';
 import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
@@ -532,6 +532,7 @@ class Reader {
       tool: () => { const lib = this.symbolLib, s = this.buttonSymbol(); return lib && s && this.tool === 'symbol' ? findSymbol(lib, s.font, s.text) : undefined; },
       pick: (at) => this.chooseSymbol(at.group, at.index),
       move: (from, to) => this.moveSymbolTo(from, to),
+      moveGroup: (from, to) => this.moveGroupTo(from, to),
       add: () => this.addSymbol(),
       edit: () => { if (this.symbolLib) editLibrary({ library: () => this.symbolLib!, change: (lib) => this.setLibrary(lib) }); },
     }, v, {
@@ -807,6 +808,16 @@ class Reader {
     const at = tool && findSymbol(next, tool.font, tool.text);
     if (at) this.group = at.group;
     this.setLibrary(next);
+  }
+
+  /** A group of the Symbols panel moved to `to`: each group keeps its current symbol, and the tool its group. */
+  private moveGroupTo(from: number, to: number) {
+    const lib = this.symbolLib;
+    if (!lib || !lib.groups[from] || to < 0 || to >= lib.groups.length) return;
+    const r = reorderedCurrents(this.currents, this.group, from, to);
+    this.currents = r.currents;
+    this.group = r.group;
+    this.setLibrary(moveGroup(lib, from, to));
   }
 
   /** The symbol the Symbols button shows: the last one picked; none before the library has symbols. */

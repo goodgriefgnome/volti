@@ -147,6 +147,10 @@
 .symbol-panel .symbol-settings { flex: none; display: grid; gap: 8px; }
 .symbol-panel { max-height: 100%; }
 .symbol-panel .group-box { display: flex; flex-wrap: wrap; gap: 4px; min-height: 52px; padding: 4px; border: 1px solid var(--bar-line); border-radius: 10px; touch-action: none; }
+.symbol-panel .group-list { display: grid; gap: 8px; }
+.symbol-panel .group-grip { flex: none; align-self: stretch; width: 28px; display: grid; place-items: center; color: var(--muted); touch-action: none; }
+.symbol-panel .group-grip .row-icon { stroke-width: 3; }
+.symbol-panel .group-box.dragging { opacity: 0.6; }
 .symbol-panel .symbol-choice { width: 52px; min-height: 52px; padding: 4px; touch-action: none; }
 .symbol-panel .symbol-choice[aria-pressed="true"] { background: var(--bar-pressed); box-shadow: 0 0 0 1px var(--bar-pressed-ring), 0 1px 3px rgba(0, 0, 0, 0.12); }
 .symbol-panel .symbol-choice.dragging { opacity: 0.35; }

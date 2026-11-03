@@ -22,6 +22,18 @@ export function lastSymbol(lib: SymbolLibrary, group: number, currents: readonly
   return first === undefined ? null : { group: first, index: 0 };
 }
 
+/**
+ * The groups' current symbols (by group index) and the tool's group once group `from` has moved to
+ * `to` (as `moveGroup` does): each group keeps its own current symbol, and the tool keeps its group.
+ * `group` is -1 for the ad-hoc group, which doesn't move.
+ */
+export function reorderedCurrents(currents: readonly number[], group: number, from: number, to: number): { currents: number[]; group: number } {
+  const moved = [...currents];
+  if (from < moved.length) moved.splice(to, 0, ...moved.splice(from, 1));
+  const follow = (i: number) => (i === from ? to : from < i && i <= to ? i - 1 : to <= i && i < from ? i + 1 : i);
+  return { currents: moved, group: group < 0 ? group : follow(group) };
+}
+
 /** The library, if one has been made. */
 export const savedLibrary = (): Promise<SymbolLibrary | undefined> => loadLibrary();
 

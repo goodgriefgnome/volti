@@ -10,6 +10,13 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     music is sharp where the drag starts, and past about 64 px of dragging turns softer rather
     than slowing the drag. At lower zoom it still turns sharp wherever it goes.
   - Lift: the marking is placed where the last move was.
+- **Reordering groups in the Symbols panel** (a grip at each group's left edge, not on Recent):
+  - Drag a group by its grip up or down: a line shows where it would go; let go: it is there.
+    A press on a symbol still picks or drags the symbol, not the group.
+  - With Symbols as the tool, move the tool's group, and groups around it: the tool's symbol stays
+    lit and the button shows the same symbol. Pick a non-first symbol in a group, move that group:
+    the long press on the Symbols button, and the next tap on it, still give that symbol.
+  - Edit library… shows the new order.
 - **The Symbols panel stays open on a pick:**
   - Tap a symbol in the panel: it is the tool and is lit, and the panel stays open; tap another:
     that one is lit instead. The settings beside the library follow the symbol picked.

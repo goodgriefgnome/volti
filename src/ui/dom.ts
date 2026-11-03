@@ -28,3 +28,20 @@ export function focusHighlighted(input: HTMLInputElement) {
   input.select();
   input.addEventListener('pointerdown', () => input.setSelectionRange(input.selectionEnd, input.selectionEnd), { once: true });
 }
+
+const SVG = 'http://www.w3.org/2000/svg';
+
+/** A small icon drawn with the path `d`, in the button's colour. */
+export function icon(d: string): SVGSVGElement {
+  const svg = document.createElementNS(SVG, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.classList.add('row-icon');
+  const path = document.createElementNS(SVG, 'path');
+  path.setAttribute('d', d);
+  svg.append(path);
+  return svg;
+}
+
+/** The path of the grip icon, six dots, for `icon`: what a row is dragged by. */
+export const GRIP = 'M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01';
