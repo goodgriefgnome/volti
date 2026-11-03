@@ -73,7 +73,7 @@ scores.
   - Check on the tablet, on a scanned score and a vector one: the loupe is there as soon as the
     finger touches a symbol or empty music with Symbols, it follows the finger smoothly, and the
     music in it turns sharp shortly after the finger stops.
-- **A chosen button in the reader's menus and panels stands out**: today chosen and not look the
+- **A chosen button in the reader's toolbar, menus and panels stands out**: today chosen and not look the
   same. Every button is white (`button` in `styles/base.css`: `background: var(--surface)`), and
   `.menu button` (`styles/overlay.css`) only drops its border, so on the off-white menus
   (`body.reading .menu`, `styles/reader.css`) each swatch, shape and symbol is a white tile, and a
@@ -87,8 +87,12 @@ scores.
     fill, so colours read true. One rule for all three, replacing the two at `reader.css` (swatch
     and shape, symbol choice).
   - The font dropdown (`.tool-panel .font-select`) stays white with its border, as a field.
+  - The toolbar's pressed buttons match: `.bar button[aria-pressed="true"]` (`styles/reader.css`)
+    gets the same white with the 2 px `var(--select)` ring, in place of its pale ring and shadow.
+    Its icon keeps its own colour.
   - Check: in Pen's colours, the Text panel and the Symbols panel, the chosen colour, shape and
-    symbol are plain to see at a glance, and nothing else looks chosen.
+    symbol are plain to see at a glance, and nothing else looks chosen; on the toolbar, the tool
+    in use and Cuts (when on) have the same blue ring.
 
 ## Confirmed features which require more thought
 
