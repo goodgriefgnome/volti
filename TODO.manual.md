@@ -10,6 +10,10 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     music is sharp where the drag starts, and past about 64 px of dragging turns softer rather
     than slowing the drag. At lower zoom it still turns sharp wherever it goes.
   - Lift: the marking is placed where the last move was.
+- **The Symbols panel stays open on a pick:**
+  - Tap a symbol in the panel: it is the tool and is lit, and the panel stays open; tap another:
+    that one is lit instead. The settings beside the library follow the symbol picked.
+  - Tap outside the panel: it closes. **+** and **Edit library…** still close it.
 - **Selecting with no tool** (toolbar showing, no tool lit):
   - Tap a placed symbol or text: it is selected. Tap it again: a symbol goes to the next in its
     group, text opens for editing. Tap another marking: that one is selected.
@@ -42,7 +46,7 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     marking: only deselected.
 - **The Symbols panel** (marking tools, stage 5):
   - Long-press Symbols: the groups in boxes, Recent under its heading, only the tool's symbol lit.
-    Tap one: it is the tool and the panel closes.
+    Tap one: it is the tool (see the next group).
   - Drag a symbol within its group: it goes where dropped. Drag one to another group, to Recent,
     and to the dashed box (only there while dragging): a new last group.
   - Drag the last symbol out of a group: the group is gone. Drag a ninth into Recent: the oldest

@@ -132,7 +132,7 @@ export function showSymbolPanel(at: HTMLElement, host: SymbolPanelHost, settings
       const up = (u: PointerEvent) => {
         const dragged = !!ghost, drop = dragged ? dropAt(u.clientX, u.clientY, from) : undefined;
         stop();
-        if (!dragged) { closeOverlay(); host.pick(from); return; }
+        if (!dragged) { host.pick(from); drawLibrary(); drawSettings(); return; }
         if (drop) { host.move(from, drop.to); drawLibrary(); }
         else b.classList.remove('dragging');
       };

@@ -16,10 +16,6 @@ scores.
 - **If the loupe is still slow on a page with much ink**, after the fix below was tried on the
   tablet (see **The loupe stays smooth** in `TODO.manual.md`): draw only the markings near the
   loupe in `Loupe.drawInk` (those whose extent meets the loupe's area), not the whole frame's.
-- **Picking a symbol in the Symbols panel keeps the panel open**: `reader/_symbol-panel.ts`, the
-  `up` handler (`if (!dragged) { closeOverlay(); host.pick(from); … }`), closes it. Drop the
-  `closeOverlay()` and draw the library again (`drawLibrary()`) so the new tool's symbol is lit.
-  A tap outside still closes it. Tapping a symbol makes it the tool; the panel stays open.
 - **Groups reordered in the Symbols panel by a grip**: no group box has one yet
   (`reader/_symbol-panel.ts`, `makeBox`). Give each group's box (not Recent's) a grip at its left
   edge. Dragging the grip up or down moves the group, with a line where it would go, as
