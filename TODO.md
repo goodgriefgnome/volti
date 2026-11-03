@@ -13,6 +13,32 @@ scores.
 
 ## Work for the immediate future
 
+- **The loupe gets slow while dragging, and slower as a page gets more markings**: not reproduced
+  on the tablet; found by reading the code.
+  - The sharp music is asked for again and again at high magnification. A region is asked for
+    when the loupe comes within `SHARP_EDGE_PX` (64) of its edge (`reader/_loupe.ts`, `show`),
+    and the loupe is drawn again each time one is done (`ask`, its last line). But a region is at
+    most `SHARP_MAX_PX` (2048) device pixels across, so above about `16 / dpr - 1` magnification
+    (4.3× at 3 device pixels per CSS pixel, 7× at 2) the loupe is always that near its edge.
+    Each new region is drawn from the PDF at the loupe's width (the page up to ~9000 px wide),
+    at priority `now`, in a new canvas of up to 2048 × 2048, for as long as the finger is down.
+    Crops aren't held by the page cache (`page-cache/cache.ts`, `render`), so none of it is
+    reused. Fix: ask for a new region only when the loupe is near its edge *and* the region
+    drawn isn't already as big as `SHARP_MAX_PX` allows. Otherwise keep it, and past its edge
+    show the softer on-screen copy, as `show` already does when a region doesn't cover the loupe.
+  - Every coalesced pointer event redraws the whole frame's ink twice. `_input.ts` hands the tool
+    each coalesced event (`onMove`, `getCoalescedEvents`). For each one, `_placing.ts` repaints
+    the frame's ink on screen (`showGhost`'s `host.paintInk`, or `paintState` when moving or
+    resizing). Then `Loupe.show` redraws every marking on the frame at the magnified width
+    (`drawInk`, `drawFrameInk`). Fix: in `_placing.ts`, `move` only records the latest point and
+    client position, and the ghost, the dragged marking and the loupe are drawn once per
+    animation frame (`requestAnimationFrame`, cancelled in `end` and `drop`). `end` uses the
+    latest point as now.
+  - If it is still slow on a page with much ink: draw only the markings near the loupe in
+    `drawInk` (those whose extent meets the loupe's area), not the whole frame's.
+  - Check on the tablet with a small fingering on a zoomed-out spread, and on a page with many
+    pen strokes: dragging stays smooth, and the loupe's music still turns sharp.
+
 ## Confirmed features which require more thought
 
 - **Highlights hide the music under them on screen** [needs a decision]: the highlighter is drawn at
