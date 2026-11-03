@@ -11,7 +11,7 @@ import { markColors, type Background } from '../markings/placed';
 import { button, el, plural } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog, showOnTop } from '../ui/overlay';
 import { glyphPicker } from './_glyph-picker';
-import { BACKGROUNDS, backgroundPicture } from './_symbol-row';
+import { BACKGROUNDS, backgroundPicture } from './_swatches';
 import { hasInk, symbolPicture } from './_symbol-picture';
 import { makeSymbol } from './_symbols';
 

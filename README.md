@@ -78,6 +78,8 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
 - The reader is always light, whatever the app's theme (its menus and dialogs too, while it is
   open). Its toolbar is one row: the back arrow, the title with the page info under it, the tools as icons
   (**Pen**, **Highlight**, **Erase**, **Text**, **Symbols**), **Cuts**, **Undo**, **Redo** and **⋯**.
+- A long press on **Pen** or **Highlight** opens its colours (**Default** first, with a dashed ring, which
+  follows the library's Marking colours); the button shows the colour in a short bar under its icon.
 - Each tool's settings (Pen's and Highlight's colour, Text's font, colour and background, Symbols' colour)
   are kept across restarts. Highlights are drawn at full strength, multiplied, so the notes under
   them stay black.

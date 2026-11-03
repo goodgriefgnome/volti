@@ -3,6 +3,11 @@
 Things to try on the tablet, grouped so each group can be done in one go. Some groups need
 DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the records.
 
+- **Pen and Highlight colours** (marking tools, stage 3):
+  - Long-press Pen: its swatches, Default first with a dashed ring. Pick red: the bar under Pen is
+    red, and Pen draws red. Tap Pen: it's picked or put away as before.
+  - The same for Highlight, with Default, yellow, green and pink.
+  - Long-press a group button in the second row (still there): its symbols menu opens as before.
 - **Tool settings kept** (marking tools, stage 2):
   - Choose red for Pen, close the reader and Volti, open them again: Pen is still red.
   - A new highlight is light blue (Default) and the notes under it stay black. An old yellow

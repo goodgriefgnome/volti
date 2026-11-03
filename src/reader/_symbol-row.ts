@@ -3,12 +3,14 @@
 
 import { cssFamily, type FontChoice } from '../fonts/fonts';
 import type { LibrarySymbol, SymbolLibrary } from '../markings/library';
-import { markColors, type Background } from '../markings/placed';
+import { markColors } from '../markings/placed';
 import type { BackgroundChoice } from '../markings/tool-settings';
 import { PEN_COLORS } from '../markings/stroke';
 import { button, el } from '../ui/dom';
+import { onLongPress } from '../ui/long-press';
 import { closeOverlay, showMenu } from '../ui/overlay';
 import { symbolPicture as picture } from './_symbol-picture';
+import { BACKGROUNDS, backgroundPicture } from './_swatches';
 
 export interface SymbolRowActions {
   /** The button of a group was pressed (-1 for the ad-hoc group). */
@@ -29,40 +31,6 @@ export interface SymbolRowActions {
   moveToGroup(index: number, group: number | 'new'): void;
 }
 
-export const BACKGROUNDS: [choice: BackgroundChoice, label: string][] = [
-  ['none', 'No background'], ['box', 'Box'], ['tag-left', 'Tag pointing left'], ['tag-right', 'Tag pointing right'],
-];
-
-/** The outline of each shape in a 24 × 16 picture. */
-const SHAPE_POINTS: Record<Background['shape'], string> = {
-  box: '3,2 21,2 21,14 3,14',
-  'tag-left': '3,2 21,2 21,14 3,14 0,8',
-  'tag-right': '3,2 21,2 24,8 21,14 3,14',
-};
-
-/** A small picture of a background shape in the default background colour (none: an empty square crossed by a line). */
-export function backgroundPicture(choice: BackgroundChoice): SVGSVGElement {
-  const ns = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('viewBox', '0 0 24 16');
-  svg.setAttribute('width', '24');
-  svg.setAttribute('height', '16');
-  svg.setAttribute('aria-hidden', 'true');
-  if (choice === 'none') {
-    const rect = document.createElementNS(ns, 'rect');
-    for (const [k, v] of Object.entries({ x: '3', y: '2', width: '18', height: '12', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.5' })) rect.setAttribute(k, v);
-    const line = document.createElementNS(ns, 'line');
-    for (const [k, v] of Object.entries({ x1: '3', y1: '14', x2: '21', y2: '2', stroke: 'currentColor', 'stroke-width': '1.5' })) line.setAttribute(k, v);
-    svg.append(rect, line);
-  } else {
-    const shape = document.createElementNS(ns, 'polygon');
-    shape.setAttribute('points', SHAPE_POINTS[choice]);
-    shape.setAttribute('fill', markColors().background);
-    svg.append(shape);
-  }
-  return svg;
-}
-
 /** What the background buttons show: which is pressed, and whether they can be pressed. */
 export interface BackgroundsView { pressed?: BackgroundChoice; enabled: boolean }
 
@@ -72,8 +40,6 @@ export interface ColorsView { pressed?: string | 'default'; enabled: boolean }
 /** What the font buttons show: the text fonts, and which is pressed. */
 export interface FontsView { choices: FontChoice[]; pressed: string }
 
-/** How long a press is held to count as a long press. */
-const LONG_PRESS_MS = 500;
 export class SymbolRow {
   readonly el = el('div', 'symbol-row');
   private shown = '';
@@ -173,31 +139,20 @@ export class SymbolRow {
     b.setAttribute('aria-pressed', String(pressed));
     const sym = symbols[index] ?? symbols[0];
     if (sym) b.append(picture(sym, pressed ? '#14161b' : '#ffffff'));
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let long = false;
-    const stop = () => clearTimeout(timer);
-    b.addEventListener('pointerdown', () => {
-      long = false;
-      timer = setTimeout(() => {
-        long = true;
-        showMenu(b, 'Symbols', symbols.map((s, j) => {
-          const item = el('button', 'symbol-choice');
-          item.type = 'button';
-          item.append(picture(s, '#14161b'));
-          item.addEventListener('click', () => { closeOverlay(); this.act.choose(group, j); });
-          // An ad-hoc symbol can also go into a group.
-          if (group >= 0) return item;
-          const row = el('div', 'symbol-choice-row');
-          row.append(item, button('To group', () => this.groupMenu(b, j)));
-          return row;
-        }));
-      }, LONG_PRESS_MS);
+    onLongPress(b, () => {
+      showMenu(b, 'Symbols', symbols.map((s, j) => {
+        const item = el('button', 'symbol-choice');
+        item.type = 'button';
+        item.append(picture(s, '#14161b'));
+        item.addEventListener('click', () => { closeOverlay(); this.act.choose(group, j); });
+        // An ad-hoc symbol can also go into a group.
+        if (group >= 0) return item;
+        const row = el('div', 'symbol-choice-row');
+        row.append(item, button('To group', () => this.groupMenu(b, j)));
+        return row;
+      }));
     });
-    b.addEventListener('pointerup', stop);
-    b.addEventListener('pointercancel', stop);
-    b.addEventListener('pointerleave', stop);
-    b.addEventListener('contextmenu', (e) => e.preventDefault());
-    b.addEventListener('click', () => { if (!long) this.act.pick(group); long = false; });
+    b.addEventListener('click', () => this.act.pick(group));
     return b;
   }
 

@@ -2,8 +2,8 @@
 // call back into the reader; what they do is not here.
 
 import type { LibrarySymbol } from '../markings/library';
-import { PEN_COLORS } from '../markings/stroke';
 import { el } from '../ui/dom';
+import { onLongPress } from '../ui/long-press';
 import { symbolPicture } from './_symbol-picture';
 import { SymbolRow, type BackgroundsView, type SymbolRowActions } from './_symbol-row';
 import { TOOL_NAMES, TOOLS, type ToolName } from './tools/_tools';
@@ -84,7 +84,8 @@ export interface ToolbarActions extends SymbolRowActions {
   tool(t: ToolName): void;
   /** The Symbols tool: the last symbol picked becomes the tool, or the tool is put away. */
   symbols(): void;
-  penColor(c: string): void;
+  /** A long press on Pen or Highlight: its colours. */
+  colors(tool: 'pen' | 'highlighter'): void;
   undo(): void;
   redo(): void;
   /** Show or hide the cut editor's tabs, room shading and space line. */
@@ -100,7 +101,9 @@ export interface ToolbarView {
   symbol?: LibrarySymbol;
   /** The second row's backgrounds; undefined hides them. */
   backgrounds?: BackgroundsView;
-  penColor: string;
+  /** The colours Pen and Highlight draw in, shown under their icons. */
+  penInk: string;
+  highlightInk: string;
   /** The cuts show. */
   cuts: boolean;
   canUndo: boolean;
@@ -133,7 +136,7 @@ export class Toolbar {
     titleBlock.append(this.titleButton, this.info);
     left.append(back, titleBlock);
 
-    // Drawing tools, then the pen's colours (while Pen is the tool), the tools that place markings,
+    // Drawing tools, the tools that place markings,
     // Cuts, and Undo and Redo, in groups between thin rules.
     const iconButton = (key: string, d: string, label: string, onClick: () => void, cls = '') => {
       const b = this.button(key, '', onClick, cls);
@@ -142,14 +145,15 @@ export class Toolbar {
       b.title = label;
       return b;
     };
-    const toolButton = (t: ToolName) => iconButton(t, TOOL_ICONS[t], TOOLS[t].label, () => act.tool(t));
-    const swatches = el('div', 'group swatches');
-    for (const c of PEN_COLORS) {
-      const b = this.button('color' + c, '', () => act.penColor(c), 'swatch');
-      b.style.setProperty('--swatch', c);
-      b.setAttribute('aria-label', 'Pen colour');
-      swatches.append(b);
-    }
+    const toolButton = (t: ToolName) => {
+      const b = iconButton(t, TOOL_ICONS[t], TOOLS[t].label, () => act.tool(t));
+      // Pen and Highlight show the colour they draw in under the icon; a long press offers the colours.
+      if (t === 'pen' || t === 'highlighter') {
+        b.append(el('span', 'ink'));
+        onLongPress(b, () => act.colors(t));
+      }
+      return b;
+    };
     const symbols = this.button('symbols', '', act.symbols, 'symbols-tool');
     symbols.setAttribute('aria-label', 'Symbols');
     symbols.title = 'Symbols';
@@ -158,7 +162,7 @@ export class Toolbar {
     const rule = () => { const r = el('span', 'rule'); r.setAttribute('aria-hidden', 'true'); return r; };
     const tools = el('div', 'group tools');
     tools.append(
-      ...TOOL_NAMES.filter((t) => !placesMarkings(t)).map(toolButton), swatches, rule(),
+      ...TOOL_NAMES.filter((t) => !placesMarkings(t)).map(toolButton), rule(),
       ...TOOL_NAMES.filter(placesMarkings).map(toolButton), symbols, rule(),
       cuts, rule(),
       iconButton('undo', UNDO, 'Undo', act.undo), iconButton('redo', REDO, 'Redo', act.redo),
@@ -181,7 +185,7 @@ export class Toolbar {
   }
 
   /** A toolbar button, for a menu to open below it. */
-  anchor(key: 'title' | 'more'): HTMLElement { return this.buttons[key]; }
+  anchor(key: 'title' | 'more' | 'pen' | 'highlighter'): HTMLElement { return this.buttons[key]; }
 
   /** The Symbols button's picture: the symbol, drawn in the button's colour, or a generic pp. */
   private symbolButton(sym: LibrarySymbol | undefined, pressed: boolean) {
@@ -199,9 +203,8 @@ export class Toolbar {
     pressed('symbols', v.tool === 'symbol');
     this.symbolRow.el.hidden = !placesMarkings(v.tool);
     this.symbolButton(v.symbol, v.tool === 'symbol');
-    // The pen's colours show on the top row only while Pen is the tool.
-    this.el.classList.toggle('pen', v.tool === 'pen');
-    for (const c of PEN_COLORS) pressed('color' + c, v.tool === 'pen' && v.penColor === c);
+    this.buttons.pen.querySelector<HTMLElement>('.ink')!.style.background = v.penInk;
+    this.buttons.highlighter.querySelector<HTMLElement>('.ink')!.style.background = v.highlightInk;
     for (const k of [...TOOL_NAMES, 'symbols', 'cuts']) if (this.buttons[k]) this.buttons[k].disabled = !v.open;
     this.buttons.undo.disabled = !v.canUndo;
     this.buttons.redo.disabled = !v.canRedo;

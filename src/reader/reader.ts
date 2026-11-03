@@ -48,6 +48,7 @@ import { glyphPicker } from './_glyph-picker';
 import { editLibrary } from './_library-editor';
 import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
 import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_spread';
+import { showStrokeColors } from './_tool-panels';
 import type { BackgroundsView, ColorsView, FontsView } from './_symbol-row';
 import { backIcon, placesMarkings, Toolbar, turnIcon, type ToolChoice } from './_toolbar';
 import { ReaderMenus } from './_toolbar-menus';
@@ -241,7 +242,7 @@ class Reader {
       add: () => this.addSymbol(),
       edit: () => { if (this.symbolLib) editLibrary({ library: () => this.symbolLib!, change: (lib) => this.setLibrary(lib) }); },
       moveToGroup: (i, g) => this.moveToGroup(i, g),
-      penColor: (c) => this.penColour(c),
+      colors: (tool) => this.strokeColors(tool),
       color: (c) => this.markColor(c),
       font: (id) => this.setFont(id),
       background: (b) => this.setBackground(b),
@@ -416,9 +417,9 @@ class Reader {
     this.tool = t;
   }
 
-  /** A pen colour on the top row, which shows only while Pen is the tool. */
-  private penColour(c: string) {
-    this.setSettings((s) => ({ ...s, pen: { color: c } }));
+  /** A long press on Pen or Highlight: its colours, under its button. */
+  private strokeColors(tool: 'pen' | 'highlighter') {
+    showStrokeColors(this.toolbar.anchor(tool), tool, this.settings[tool].color, (c) => this.setSettings((s) => ({ ...s, [tool]: { color: c } })));
   }
 
   /** Change the tools' settings, save them, and show them. */
@@ -734,7 +735,8 @@ class Reader {
       tool: this.tool,
       symbol: this.buttonSymbol(),
       backgrounds: this.backgroundsView(),
-      penColor: this.settings.pen.color,
+      penInk: strokeColor('pen', this.settings.pen.color, markColors()),
+      highlightInk: strokeColor('highlighter', this.settings.highlighter.color, markColors()),
       cuts: this.editor.enabled,
       canUndo: this.undos.canUndo,
       canRedo: this.undos.canRedo,
