@@ -11,14 +11,17 @@ import type { HandHost, Tool, ToolHost, ToolName } from './_tool';
 /** The toolbar's groups of tools, in order, with a rule between groups. */
 export const TOOLBAR: Exclude<ToolName, 'hand'>[][] = [['pen', 'highlighter', 'eraser'], ['text', 'symbol']];
 
-/** The tools, made for one reader; `hand` is for the hand tool, which has no button. */
-export function makeTools(host: ToolHost, hand: HandHost): Record<ToolName, Tool> {
+/**
+ * The tools, made for one reader. Each gets the host made for it by `hostFor`, whose layers and
+ * button face are its own; `hand` is for the hand tool, which has no button.
+ */
+export function makeTools(hostFor: (tool: ToolName) => ToolHost, hand: HandHost): Record<ToolName, Tool> {
   return {
     hand: handTool(hand),
-    pen: penTool(host, 'pen'),
-    highlighter: penTool(host, 'highlighter'),
-    eraser: eraserTool(host),
-    text: textTool(host),
-    symbol: symbolTool(host),
+    pen: penTool(hostFor('pen'), 'pen'),
+    highlighter: penTool(hostFor('highlighter'), 'highlighter'),
+    eraser: eraserTool(hostFor('eraser')),
+    text: textTool(hostFor('text')),
+    symbol: symbolTool(hostFor('symbol')),
   };
 }

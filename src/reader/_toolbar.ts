@@ -1,14 +1,10 @@
 // The reader's toolbar: building its buttons and showing the reader's state on them. The buttons
 // call back into the reader; what they do is not here.
 
-import { cssFamily } from '../fonts/fonts';
-import type { LibrarySymbol } from '../markings/library';
-import { markColors, type Background } from '../markings/placed';
 import { el } from '../ui/dom';
 import { onLongPress } from '../ui/long-press';
-import { symbolPicture } from './_symbol-picture';
-import { backgroundPicture } from './_swatches';
-import { TOOL_LABELS, type ToolName } from './tools/_tool';
+import { icon } from './tools/_faces';
+import { TOOL_LABELS, type ButtonFace, type Tool, type ToolName } from './tools/_tool';
 import { TOOLBAR } from './tools/_tools';
 
 /** The back arrow that leaves the reader for the library, on the toolbar and when it is hidden. */
@@ -22,29 +18,6 @@ export function backIcon(): SVGSVGElement {
   svg.append(path);
   return svg;
 }
-
-/** A tool's or button's icon, drawn in the button's colour from the path `d` in a 24 x 24 box. */
-export function icon(d: string): SVGSVGElement {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 24 24');
-  svg.setAttribute('aria-hidden', 'true');
-  svg.classList.add('tool-icon');
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.setAttribute('d', d);
-  svg.append(path);
-  return svg;
-}
-
-/** The tools with an icon on their button: Symbols shows a symbol. */
-const TOOL_NAMES = TOOLBAR.flat().filter((t): t is Exclude<ToolName, 'hand' | 'symbol'> => t !== 'symbol');
-
-/** Each tool's icon: a new tool needs one here. */
-export const TOOL_ICONS: Record<Exclude<ToolName, 'hand' | 'symbol'>, string> = {
-  pen: 'M4 20l4-1 11-11-3-3L5 16z',
-  highlighter: 'M5 20h7M7 16l9-9 3 3-9 9H7z',
-  eraser: 'M8 20h12M5 15l8-8 5 5-6 6H9z',
-  text: 'M5 6h14M12 6v13',
-};
 
 const SCISSORS = 'M6 3a3 3 0 1 0 .01 0M6 15a3 3 0 1 0 .01 0M8.5 7.5L20 19M8.5 16.5L20 5';
 const UNDO = 'M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3';
@@ -88,34 +61,19 @@ export interface ToolbarActions {
   more(): void;
   /** Tapping the active tool again puts it away. */
   tool(t: Exclude<ToolName, 'hand'>): void;
-  /** The Symbols tool: the last symbol picked becomes the tool, or the tool is put away. */
-  symbols(): void;
-  /** A long press on Text, or on Symbols: its panel. */
-  textPanel(): void;
-  symbolPanel(): void;
-  /** A long press on Pen or Highlight: its colours. */
-  colors(tool: 'pen' | 'highlighter'): void;
+  /** A long press on a tool's button: its panel. */
+  panel(t: Exclude<ToolName, 'hand'>): void;
   undo(): void;
   redo(): void;
   /** Show or hide the cut editor's tabs, room shading and space line. */
   toggleCuts(): void;
 }
 
-/** What a placing tool's button shows: the selected marking's look, or the next marking's. */
-export interface Look { font?: string; color: string; background?: Background }
-
 /** What the toolbar shows. */
 export interface ToolbarView {
   /** The score is open; a score that can't be opened can't be written on or edited. */
   open: boolean;
   tool: ToolChoice;
-  /** The symbol the Symbols button shows; undefined: a generic pp. */
-  symbol?: LibrarySymbol;
-  textLook: Look;
-  symbolLook: Look;
-  /** The colours Pen and Highlight draw in, shown under their icons. */
-  penInk: string;
-  highlightInk: string;
   /** The cuts show. */
   cuts: boolean;
   canUndo: boolean;
@@ -129,13 +87,11 @@ export class Toolbar {
   readonly titleButton: HTMLButtonElement;
   readonly info = el('span', 'page-info');
   private buttons: Record<string, HTMLButtonElement> = {};
-  /** What the Symbols button shows now, to draw it again only when it changes. */
-  private symbolShown = '';
-  /** What the Text button shows now, likewise. */
-  private textShown = '';
+  /** The key of what each tool's button shows now, to draw it again only when it changes. */
+  private faces = new Map<ToolName, string>();
 
   /** `reading` is what the reader reads, which decides the buttons on the right. */
-  constructor(reading: 'score' | 'excerpt' | 'setlist', act: ToolbarActions) {
+  constructor(reading: 'score' | 'excerpt' | 'setlist', act: ToolbarActions, tools: Record<ToolName, Tool>) {
     const left = el('div', 'group left');
     const back = this.button('close', '', act.close);
     back.append(backIcon());
@@ -148,7 +104,7 @@ export class Toolbar {
     titleBlock.append(this.titleButton, this.info);
     left.append(back, titleBlock);
 
-    // Drawing tools, the tools that place markings, Cuts, and Undo and Redo, in groups between thin rules.
+    // The tools in their groups, Cuts, and Undo and Redo, in groups between thin rules.
     const iconButton = (key: string, d: string, label: string, onClick: () => void, cls = '') => {
       const b = this.button(key, '', onClick, cls);
       b.append(icon(d));
@@ -156,31 +112,20 @@ export class Toolbar {
       b.title = label;
       return b;
     };
-    const toolButton = (t: (typeof TOOL_NAMES)[number]) => {
-      const b = iconButton(t, TOOL_ICONS[t], TOOL_LABELS[t], () => act.tool(t));
-      // Pen and Highlight show the colour they draw in under the icon; a long press offers the colours.
-      if (t === 'pen' || t === 'highlighter') {
-        b.append(el('span', 'ink'));
-        onLongPress(b, () => act.colors(t));
-      }
-      // Text shows a T in its font and colour, on its background, instead of an icon.
-      if (t === 'text') {
-        b.replaceChildren();
-        onLongPress(b, act.textPanel);
-      }
+    // A tool's button shows the face its tool sets; a long press shows its panel, when it has one.
+    const toolButton = (t: Exclude<ToolName, 'hand'>) => {
+      const b = this.button(t, '', () => act.tool(t), `tool-${t}`);
+      b.setAttribute('aria-label', TOOL_LABELS[t]);
+      b.title = TOOL_LABELS[t];
+      if (tools[t].showPanel) onLongPress(b, () => act.panel(t));
       return b;
     };
-    const symbols = this.button('symbols', '', act.symbols, 'symbols-tool');
-    symbols.setAttribute('aria-label', 'Symbols');
-    symbols.title = 'Symbols';
-    onLongPress(symbols, act.symbolPanel);
     const cuts = this.button('cuts', '', act.toggleCuts, 'cuts-button');
     cuts.append(icon(SCISSORS), el('span', 'label', 'Cuts'));
     const rule = () => { const r = el('span', 'rule'); r.setAttribute('aria-hidden', 'true'); return r; };
-    const tools = el('div', 'group tools');
-    tools.append(
-      ...TOOL_NAMES.filter((t) => !placesMarkings(t)).map(toolButton), rule(),
-      ...TOOL_NAMES.filter(placesMarkings).map(toolButton), symbols, rule(),
+    const group = el('div', 'group tools');
+    group.append(
+      ...TOOLBAR.flatMap((g, i) => [...(i ? [rule()] : []), ...g.map(toolButton)]), rule(),
       cuts, rule(),
       iconButton('undo', UNDO, 'Undo', act.undo), iconButton('redo', REDO, 'Redo', act.redo),
     );
@@ -188,7 +133,7 @@ export class Toolbar {
     const more = iconButton('more', DOTS, reading === 'setlist' ? 'More for this setlist' : 'More', act.more, 'more');
     more.setAttribute('aria-haspopup', 'menu');
     const main = el('div', 'bar-main');
-    main.append(left, tools, more);
+    main.append(left, group, more);
     this.el.append(main);
   }
 
@@ -201,48 +146,22 @@ export class Toolbar {
   }
 
   /** A toolbar button, for a menu to open below it. */
-  anchor(key: 'title' | 'more' | 'pen' | 'highlighter' | 'text' | 'symbols'): HTMLElement { return this.buttons[key]; }
+  anchor(key: 'title' | 'more' | Exclude<ToolName, 'hand'>): HTMLElement { return this.buttons[key]; }
 
-  /** The Symbols button's picture: the symbol in the look's colour, on its background, or a generic pp. */
-  private symbolButton(sym: LibrarySymbol | undefined, look: Look) {
-    const b = this.buttons.symbols, key = `${sym?.font}|${sym?.text}|${sym?.scale}|${look.color}|${JSON.stringify(look.background)}|${markColors().background}`;
-    if (key === this.symbolShown) return;
-    this.symbolShown = key;
-    if (!sym) { b.replaceChildren(el('span', 'pp', 'pp')); return; }
-    b.replaceChildren(symbolPicture(sym, look.color, 28, undefined, look.background));
-  }
-
-  /** The Text button's T: in the look's font and colour, on its background. */
-  private textButton(look: Look) {
-    const b = this.buttons.text, key = `${look.font}|${look.color}|${JSON.stringify(look.background)}|${markColors().background}`;
-    if (key === this.textShown) return;
-    this.textShown = key;
-    const face = el('span', 'text-look');
-    if (look.background) {
-      const back = backgroundPicture(look.background.shape, look.background.color ?? markColors().background);
-      back.removeAttribute('width');
-      back.removeAttribute('height');
-      back.setAttribute('preserveAspectRatio', 'none');
-      face.append(back);
-    }
-    const t = el('span', 't', 'T');
-    t.style.color = look.color;
-    face.append(t);
-    // In its own font once that has loaded.
-    if (look.font) void cssFamily(look.font).then((family) => { t.style.fontFamily = `"${family}"`; }, () => {});
-    b.replaceChildren(face);
+  /** A tool's button shows `face` from now on; drawn again only when its key has changed. */
+  setFace(tool: ToolName, face: ButtonFace) {
+    const b = this.buttons[tool];
+    if (!b || this.faces.get(tool) === face.key) return;
+    this.faces.set(tool, face.key);
+    b.replaceChildren(face.draw());
   }
 
   sync(v: ToolbarView) {
     const pressed = (k: string, on: boolean) => this.buttons[k].setAttribute('aria-pressed', String(on));
-    for (const t of TOOL_NAMES) pressed(t, v.tool === t);
+    const toolKeys = TOOLBAR.flat();
+    for (const t of toolKeys) pressed(t, v.tool === t);
     pressed('cuts', v.cuts);
-    pressed('symbols', v.tool === 'symbol');
-    this.symbolButton(v.symbol, v.symbolLook);
-    this.textButton(v.textLook);
-    this.buttons.pen.querySelector<HTMLElement>('.ink')!.style.background = v.penInk;
-    this.buttons.highlighter.querySelector<HTMLElement>('.ink')!.style.background = v.highlightInk;
-    for (const k of [...TOOL_NAMES, 'symbols', 'cuts']) if (this.buttons[k]) this.buttons[k].disabled = !v.open;
+    for (const k of [...toolKeys, 'cuts']) if (this.buttons[k]) this.buttons[k].disabled = !v.open;
     this.buttons.undo.disabled = !v.canUndo;
     this.buttons.redo.disabled = !v.canRedo;
   }

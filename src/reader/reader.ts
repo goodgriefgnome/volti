@@ -18,7 +18,7 @@ import { fitScale, isIdentity, NO_ZOOM, placeFresh, type View, type Zoom } from 
 import { pageWidths, screenAt } from '../render/screen';
 import { type Hatches } from '../render/paint';
 import { replaceMarking, setInk, textSizeOf } from '../scores/edits';
-import { centreOnFrame, extentOnFrame, movedTo, type Selected } from '../scores/placing';
+import { centreOnFrame, movedTo, type Selected } from '../scores/placing';
 import { baselineStart, markColors, textMark, type Background, type PlacedMark } from '../markings/placed';
 import { claimMarking } from '../scores/ownership';
 import { compactMarking } from '../markings/model';
@@ -44,7 +44,6 @@ import { Reading, setlistItems, type ReadingKind, type ReadingSnapshot } from '.
 import { Saver } from './_saver';
 import { TypingField } from './_typing';
 import { LendStack } from './_lending';
-import { SelectionBox } from './_selection';
 import { lastSymbol, makeSymbol, reorderedCurrents, savedLibrary, symbolLibrary } from './_symbols';
 import { glyphPicker } from './_glyph-picker';
 import { editLibrary } from './_library-editor';
@@ -52,12 +51,13 @@ import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
 import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_spread';
 import { Loupe } from './_loupe';
 import { showSymbolPanel } from './_symbol-panel';
-import { showStrokeColors, showTextPanel, type SymbolSettingsView, type TextPanel } from './_tool-panels';
-import { backIcon, placesMarkings, Toolbar, turnIcon, type Look, type ToolChoice } from './_toolbar';
+import { showTextPanel, type SymbolSettingsView, type TextPanel } from './_tool-panels';
+import { backIcon, Toolbar, turnIcon, type ToolChoice } from './_toolbar';
+import { symbolFace, textFace, type Look } from './tools/_faces';
 import { ReaderMenus } from './_toolbar-menus';
 import { offerScore, turnFrom, type Offer } from './_turning';
 import { makeTools } from './tools/_tools';
-import type { HandHost, Tool, ToolName } from './tools/_tool';
+import type { ButtonFace, HandHost, Tool, ToolName } from './tools/_tool';
 import { resumeAt } from './_last-read';
 import { loadLastRead, saveLastRead } from './_store';
 import type { ReaderView } from './_view';
@@ -162,6 +162,8 @@ class Reader {
   private stack = new LendStack<ToolChoice>('hand');
   /** The tools, made for this reader. */
   private tools!: Record<ToolName, Tool>;
+  /** What each tool's button shows, as the tool last set it. */
+  private faces = new Map<ToolName, ButtonFace>();
   /** The tool in use: the one on top of the stack. */
   private get tool(): ToolChoice { return this.stack.active; }
   /** Each tool's settings for new markings; kept across restarts. */
@@ -180,7 +182,6 @@ class Reader {
   private textFonts: FontChoice[] = [];
   /** The placed marking showing its box, while a symbol is the tool. */
   private selected: Selected | undefined;
-  private selection = new SelectionBox(() => this.deleteSelected());
   private typing = new TypingField(this.stage);
   private loupe: Loupe;
   private undos = new History<Undo>();
@@ -241,19 +242,67 @@ class Reader {
     });
     this.detail = new Detail(view);
     this.loupe = new Loupe(this.root, view);
+    const base: Omit<InputHost & HandHost, 'layer' | 'setButtonFace'> = {
+      ...view,
+      editor: this.editor,
+      tool: () => this.tool,
+      penColor: () => strokeColor('pen', this.settings.pen.color, markColors()),
+      highlightColor: () => strokeColor('highlighter', this.settings.highlighter.color, markColors()),
+      symbolColor: () => ownColor(this.settings.symbol.color),
+      placing: () => this.symbolLib && symbolsOf(this.symbolLib, this.group)[this.currentOf(this.group)],
+      library: () => this.symbolLib,
+      paintState: (slot, s) => this.paintInk(slot, s),
+      selected: () => this.selected,
+      select: (s) => this.select(s),
+      delete: () => this.deleteSelected(),
+      settings: () => this.settings,
+      setSettings: (change) => this.setSettings(change),
+      textPanel: () => this.textPanel(),
+      symbolPanel: () => void this.symbolPanel(),
+      cycled: (sym) => this.cycledTo(sym),
+      setZoom: (z) => this.setZoom(z),
+      view: () => this.view(),
+      minScale: () => this.minScale,
+      annotating: () => this.annotating,
+      act: (g) => this.act(g),
+      paintInk: (slot, extra) => this.paintInk(slot, this.state, extra),
+      commit: (s, focus, selected) => this.commit(s, focus, selected),
+      show: (s, slot) => this.showState(s, slot),
+      undoTo: (before, slot) => this.undoTo(before, slot),
+      lendForPress: (tool) => { this.stack.lend(tool, 'press'); this.refreshSelection(); },
+      endPressLend: () => { this.stack.end('press'); this.refreshSelection(); },
+      unequip: () => { this.useTool('hand'); this.syncBar(); },
+      lift: () => {},
+      toggleToolbar: () => this.act('toggleChrome'),
+      cutsOn: () => this.editor.enabled,
+      cutMenu: (p) => this.editor.menuAt(p.x, p.y),
+      loupe: () => this.loupe,
+      textGhost: (at) => this.textGhost(at),
+      newText: (slot, at) => this.newText(slot, at),
+      editText: (sel) => this.editText(sel),
+      typing: () => this.typing.open,
+      finishTyping: () => this.typing.finish(),
+    };
+    // Each tool gets a host whose chrome layers and button face are its own.
+    const hostFor = (tool: ToolName): InputHost & HandHost => ({
+      ...base,
+      layer: (slot) => this.layerFor(tool, slot),
+      setButtonFace: (face) => this.setFace(tool, face),
+    });
+    const host = hostFor('hand');
+    this.tools = makeTools(hostFor, host);
     this.toolbar = new Toolbar(what.kind, {
       close: () => history.back(),
       titleMenu: () => this.menus.titleMenu(),
       more: () => void this.menus.more(),
-      tool: (t) => this.setTool(t),
-      symbols: () => void this.symbols(),
-      colors: (tool) => this.strokeColors(tool),
-      textPanel: () => this.textPanel(),
-      symbolPanel: () => void this.symbolPanel(),
+      tool: (t) => (t === 'symbol' ? void this.symbols() : this.setTool(t)),
+      panel: (t) => this.panel(t),
       undo: () => this.undo(),
       redo: () => this.redo(),
       toggleCuts: () => void this.withAccess(() => { this.editor.setEnabled(!this.editor.enabled); this.syncBar(); this.decorate(); }),
-    });
+    }, this.tools);
+    // Faces the tools set before the toolbar was there.
+    for (const [tool, face] of this.faces) this.toolbar.setFace(tool, face);
     this.menus = new ReaderMenus({
       reading: this.reading,
       toolbar: this.toolbar,
@@ -309,45 +358,6 @@ class Reader {
     document.body.classList.add('reading');
     document.documentElement.dataset.theme = 'light';
 
-    const host: InputHost & HandHost = {
-      ...view,
-      editor: this.editor,
-      tool: () => this.tool,
-      penColor: () => strokeColor('pen', this.settings.pen.color, markColors()),
-      highlightColor: () => strokeColor('highlighter', this.settings.highlighter.color, markColors()),
-      symbolColor: () => ownColor(this.settings.symbol.color),
-      placing: () => this.symbolLib && symbolsOf(this.symbolLib, this.group)[this.currentOf(this.group)],
-      library: () => this.symbolLib,
-      paintState: (slot, s) => { this.selection.hide(); this.paintInk(slot, s); },
-      selected: () => this.selected,
-      select: (s) => this.select(s),
-      cycled: (sym) => this.cycledTo(sym),
-      setZoom: (z) => this.setZoom(z),
-      view: () => this.view(),
-      minScale: () => this.minScale,
-      annotating: () => this.annotating,
-      act: (g) => this.act(g),
-      paintInk: (slot, extra) => this.paintInk(slot, this.state, extra),
-      commit: (s, focus, selected) => this.commit(s, focus, selected),
-      show: (s, slot) => this.showState(s, slot),
-      undoTo: (before, slot) => this.undoTo(before, slot),
-      setButtonFace: () => {},
-      lendForPress: (tool) => { this.stack.lend(tool, 'press'); this.refreshSelection(); },
-      endPressLend: () => { this.stack.end('press'); this.refreshSelection(); },
-      unequip: () => { this.useTool('hand'); this.syncBar(); },
-      layer: () => document.createElement('div'),
-      lift: () => {},
-      toggleToolbar: () => this.act('toggleChrome'),
-      cutsOn: () => this.editor.enabled,
-      cutMenu: (p) => this.editor.menuAt(p.x, p.y),
-      loupe: () => this.loupe,
-      textGhost: (at) => this.textGhost(at),
-      newText: (slot, at) => this.newText(slot, at),
-      editText: (sel) => this.editText(sel),
-      typing: () => this.typing.open,
-      finishTyping: () => this.typing.finish(),
-    };
-    this.tools = makeTools(host, host);
     this.input = new Input(host, this.tools);
     document.addEventListener('visibilitychange', this.onVisible);
     window.addEventListener('popstate', this.onPop);
@@ -438,7 +448,13 @@ class Reader {
   private deselect() {
     this.stack.end('selection');
     this.selected = undefined;
-    this.selection.hide();
+    this.selectionChanged();
+  }
+
+  /** Every tool is told the selection changed, to draw its chrome again. */
+  private selectionChanged() {
+    this.showLayers();
+    for (const t of Object.values(this.tools ?? {})) t.onSelectionChanged?.();
   }
 
   /** Selecting a marking lends the tool for its kind, keeping the selection; ending the selection takes the lend off. */
@@ -455,10 +471,39 @@ class Reader {
     this.syncBar();
   }
 
-  /** A long press on Pen or Highlight: its colours, under its button. */
-  private strokeColors(tool: 'pen' | 'highlighter') {
-    this.chooseOnLongPress(tool);
-    showStrokeColors(this.toolbar.anchor(tool), tool, this.settings[tool].color, (c) => this.setSettings((s) => ({ ...s, [tool]: { color: c } })));
+  /** A long press on a tool's button: it becomes the tool (Symbols does that itself), and its panel shows under the button. */
+  private panel(tool: Exclude<ToolName, 'hand'>) {
+    if (tool !== 'symbol') this.chooseOnLongPress(tool);
+    this.tools[tool].showPanel?.(this.toolbar.anchor(tool));
+  }
+
+  /** A tool's button shows `face` from now on. */
+  private setFace(tool: ToolName, face: ButtonFace) {
+    this.faces.set(tool, face);
+    this.toolbar?.setFace(tool, face);
+  }
+
+  /** The tool's chrome layer in a frame, made the first time it is asked for and shown while the tool is in use. */
+  private layerFor(tool: ToolName, slot: FrameSlot): HTMLElement {
+    slot.layers ??= {};
+    let layer = slot.layers[tool];
+    if (!layer) {
+      layer = el('div', 'tool-layer');
+      layer.hidden = tool !== this.tool;
+      slot.box.append(layer);
+      slot.layers[tool] = layer;
+    }
+    return layer;
+  }
+
+  /** Only the chrome of the tool in use shows. */
+  private showLayers() {
+    for (const slot of this.slots) for (const [tool, layer] of Object.entries(slot.layers ?? {})) layer.hidden = tool !== this.tool;
+  }
+
+  /** Every tool draws its chrome again: the layout or the zoom changed. */
+  private drawChromes() {
+    for (const t of Object.values(this.tools ?? {})) t.drawChrome?.();
   }
 
   /** Change the tools' settings, save them, and show them. */
@@ -567,7 +612,7 @@ class Reader {
       background: was?.shape ?? 'none',
       backgroundColor: was?.color ?? 'default',
     };
-    showSymbolPanel(this.toolbar.anchor('symbols'), {
+    showSymbolPanel(this.toolbar.anchor('symbol'), {
       library: () => this.symbolLib!,
       tool: () => { const lib = this.symbolLib, s = this.pickedSymbol(); return lib && s && this.tool === 'symbol' ? findSymbol(lib, s.font, s.text) : undefined; },
       pick: (at) => this.chooseSymbol(at.group, at.index),
@@ -699,7 +744,6 @@ class Reader {
       try {
         const font = (await fontChoices()).some((c) => c.id === mark.font) ? mark.font : ACADEMICO;
         // Without the marking while its field is open.
-        this.selection.hide();
         this.paintInk(slot, replaceMarking(this.state, sel.cut, sel.mark));
         await this.typing.show({
           slot, font, size, color: mark.color ?? markColors().color, start, text: mark.text,
@@ -739,15 +783,11 @@ class Reader {
     if (sel) this.commit(replaceMarking(this.state, sel.cut, sel.mark), sel.cut);
   }
 
-  /** Show the selected marking's box, or none: a selection ends when its marking is gone from the state. The box is hidden while a tool that doesn't place markings is lent over it (Erase). */
+  /** Tell the tools what is selected: a selection ends when its marking is gone from the state. */
   private refreshSelection() {
     const sel = this.selected, cur = this.current;
     if (sel && (!cur || !cur.state.ink[sel.cut]?.includes(sel.mark))) this.deselect();
-    const now = this.selected;
-    const slot = now && placesMarkings(this.tool) && this.slots.find((sl) => sl.frame.items.some((i) => i.cut.id === now.cut));
-    const item = slot && slot.frame.items.find((i) => i.cut.id === now!.cut);
-    this.selection.show(slot || undefined, item && now ? extentOnFrame(item, now.mark, this.aspects[item.cut.page]) : undefined, this.zoom.s);
-    for (const t of Object.values(this.tools ?? {})) t.onSelectionChanged?.();
+    this.selectionChanged();
     if (cur) this.syncBar();
   }
 
@@ -882,14 +922,14 @@ class Reader {
   private syncBar() {
     const cur = this.current;
     if (this.tool === 'text') this.prepareGhost();
+    // Until Text and Symbols set their own, the reader sets their faces.
+    this.setFace('text', textFace(this.lookOf('text')));
+    this.setFace('symbol', symbolFace(this.buttonSymbol(), this.lookOf('symbol')));
+    for (const t of Object.values(this.tools ?? {})) t.onSettingsChanged?.();
+    this.showLayers();
     this.toolbar.sync({
       open: !!cur,
       tool: this.tool,
-      symbol: this.buttonSymbol(),
-      textLook: this.lookOf('text'),
-      symbolLook: this.lookOf('symbol'),
-      penInk: strokeColor('pen', this.settings.pen.color, markColors()),
-      highlightInk: strokeColor('highlighter', this.settings.highlighter.color, markColors()),
       cuts: this.editor.enabled,
       canUndo: this.undos.canUndo,
       canRedo: this.undos.canRedo,
@@ -1009,6 +1049,7 @@ class Reader {
     this.spreadEl.replaceChildren(...this.slots.map((s) => s.box), ...extra);
     if (place === 'fresh') this.placeFresh();
     this.decorate();
+    this.drawChromes();
     this.refreshSelection();
     // The score's pages are its frames; in a setlist, the excerpt's own.
     const last = this.frame + on.length;
@@ -1317,7 +1358,7 @@ class Reader {
   private setZoom(z: Zoom) {
     this.zoom = z;
     this.spreadEl.style.transform = !isIdentity(z) ? `translate(${z.x}px, ${z.y}px) scale(${z.s})` : '';
-    this.selection.zoomed(z.s);
+    this.drawChromes();
     this.syncBar();
     this.detail.update();
   }

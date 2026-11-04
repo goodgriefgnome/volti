@@ -3,6 +3,7 @@
 
 import type { SymbolLibrary, LibrarySymbol } from '../../markings/library';
 import type { Marking, Point } from '../../markings/model';
+import type { ToolSettings } from '../../markings/tool-settings';
 import type { Zoom, View } from '../../render/zoom';
 import type { PlacedMark } from '../../markings/placed';
 import type { State } from '../../scores/model';
@@ -23,6 +24,8 @@ export interface ToolHost extends ReaderView {
   /** The placed marking showing its box, if any. */
   selected(): Selected | undefined;
   select(s: Selected | undefined): void;
+  /** Take the selected marking away, as one undo step; the selection ends. */
+  delete(): void;
   /** A selected symbol was changed to the next of its group: with Symbols as the tool, that symbol is the tool's now. */
   cycled(sym: LibrarySymbol): void;
   /** The loupe shown while a marking is dragged. */
@@ -48,6 +51,12 @@ export interface ToolHost extends ReaderView {
   undoTo(before: State, slot: FrameSlot): void;
   /** Its button shows `face` from now on: set when the tool is made, and whenever its look changes. */
   setButtonFace(face: ButtonFace): void;
+  settings(): ToolSettings;
+  setSettings(change: (s: ToolSettings) => ToolSettings): void;
+  /** The Text panel, under its button (until Text owns it). */
+  textPanel(): void;
+  /** The Symbols panel, under its button (until Symbols owns it). */
+  symbolPanel(): void;
   /** The typing field is open (until Text owns it). */
   typing(): boolean;
   /** Close the typing field, placing what is in it (until Text owns it). */
@@ -133,6 +142,8 @@ export interface Tool {
   onEquipped?(): void | Promise<void>;
   /** It left the lend stack. */
   onUnequipped?(): void | Promise<void>;
+  /** Its settings, or the colours the markings are drawn in, changed: set its button face again. */
+  onSettingsChanged?(): void;
   /** The selection changed (`host.selected()`): draw its chrome again, and set its button face again when it shows the selection. Every tool is told. */
   onSelectionChanged?(): void;
 

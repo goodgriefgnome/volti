@@ -4,6 +4,7 @@ import { hitDistance, type Point } from '../../markings/model';
 import { setInk } from '../../scores/edits';
 import { visible } from '../../scores/ownership';
 import type { FrameSlot } from '../_spread';
+import { iconFace } from './_faces';
 import { TOOL_LABELS, type Tool, type ToolHost } from './_tool';
 
 const ERASER_RADIUS = 0.012;
@@ -24,20 +25,23 @@ function eraseAt(host: ToolHost, slot: FrameSlot, p: Point) {
 }
 
 /** The eraser: markings go as it touches them, and the whole sweep is one undo step. */
-export const eraserTool = (host: ToolHost): Tool => ({
-  name: 'eraser',
-  label: TOOL_LABELS.eraser,
-  suppressions: () => ({ selecting: true }),
-  start({ slot, framePoint: p }) {
-    if (!slot) return undefined;
-    const before = host.state();
-    eraseAt(host, slot, p);
-    return {
-      move(p) { eraseAt(host, slot, p); },
-      end() {
-        if (host.state() !== before) host.undoTo(before, slot);
-      },
-      drop() {},
-    };
-  },
-});
+export const eraserTool = (host: ToolHost): Tool => {
+  host.setButtonFace(iconFace('M8 20h12M5 15l8-8 5 5-6 6H9z'));
+  return {
+    name: 'eraser',
+    label: TOOL_LABELS.eraser,
+    suppressions: () => ({ selecting: true }),
+    start({ slot, framePoint: p }) {
+      if (!slot) return undefined;
+      const before = host.state();
+      eraseAt(host, slot, p);
+      return {
+        move(p) { eraseAt(host, slot, p); },
+        end() {
+          if (host.state() !== before) host.undoTo(before, slot);
+        },
+        drop() {},
+      };
+    },
+  };
+};

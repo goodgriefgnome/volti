@@ -124,8 +124,8 @@
 .bar .title-button { display: flex; align-items: center; gap: 4px; min-width: 0; }
 .bar .chevron-icon { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 /* The Symbols button before it has a symbol to show. */
-.bar .symbols-tool .pp { font: italic 700 1.1rem var(--font-brand, serif); }
-.bar .symbols-tool canvas { display: block; }
+.bar .tool-symbol .pp { font: italic 700 1.1rem var(--font-brand, serif); }
+.bar .tool-symbol canvas { display: block; }
 
 /* Pen's and Highlight's colour, a short bar under the icon. */
 .bar button:has(> .ink) { display: grid; justify-items: center; align-content: center; gap: 2px; }
@@ -170,3 +170,8 @@ body.reading .menu button:not([aria-pressed="true"]):hover, body.reading .menu b
 .symbol-panel .drop-line { position: fixed; z-index: 30; width: 3px; border-radius: 2px; background: var(--select); pointer-events: none; }
 /* The loupe: a round magnifier above the finger while a marking is dragged (reader/_loupe.ts). */
 .reader > .loupe { position: fixed; z-index: 8; pointer-events: none; border-radius: 50%; background: #ffffff; box-shadow: 0 0 0 2px #ffffff, 0 0 0 3px rgba(0, 0, 0, 0.25), 0 6px 18px rgba(0, 0, 0, 0.3); }
+
+/* A tool's chrome over a frame (reader/tools/): shown only for the tool in use; elements in it that take their own presses are marked data-own-presses. */
+.tool-layer { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.tool-layer[hidden] { display: none; }
+.tool-layer [data-own-presses] { pointer-events: auto; }

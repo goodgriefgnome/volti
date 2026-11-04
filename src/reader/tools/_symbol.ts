@@ -16,11 +16,14 @@ function symbolMark(host: ToolHost, at: [number, number]): PlacedMark | undefine
   return color ? { ...made, color } : made;
 }
 
-export const symbolTool = (host: ToolHost): Tool => placingTool(host, 'symbol', (m) => 'kind' in m && m.kind === 'symbol', (slot, at) => {
-  const made = symbolMark(host, at), state = host.state();
-  if (!made) return;
-  const claimed = claimMarking(slot.frame, compactMarking(made), host.aspects());
-  if (!claimed) return;
-  const { cut, marking } = claimed;
-  host.commit(setInk(state, cut.id, [...(state.ink[cut.id] ?? []), marking]), cut.id);
-}, (at) => symbolMark(host, at));
+export const symbolTool = (host: ToolHost): Tool => {
+  const placing = placingTool(host, 'symbol', (m) => 'kind' in m && m.kind === 'symbol', (slot, at) => {
+    const made = symbolMark(host, at), state = host.state();
+    if (!made) return;
+    const claimed = claimMarking(slot.frame, compactMarking(made), host.aspects());
+    if (!claimed) return;
+    const { cut, marking } = claimed;
+    host.commit(setInk(state, cut.id, [...(state.ink[cut.id] ?? []), marking]), cut.id);
+  }, (at) => symbolMark(host, at));
+  return { ...placing, showPanel: () => host.symbolPanel() };
+};

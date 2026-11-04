@@ -1,8 +1,8 @@
-// The selected marking's box over its frame: a line, a handle at each corner and a delete button above. DOM elements in the frame's box, so they zoom with it; on screen only, never exported.
+// The selected marking's box over its frame: a line, a handle at each corner and a delete button above. DOM elements in a tool's layer of the frame's box, so they zoom with it; on screen only, never exported.
 
-import { el } from '../ui/dom';
-import { handleRadius, MIN_BOX_PX, selectionBox } from '../scores/placing';
-import type { FrameSlot } from './_spread';
+import { el } from '../../ui/dom';
+import { handleRadius, MIN_BOX_PX, selectionBox } from '../../scores/placing';
+import type { FrameSlot } from '../_spread';
 
 type Ext = [number, number, number, number];
 
@@ -34,13 +34,13 @@ export class SelectionBox {
   }
 
   /**
-   * Show it over `slot` round the marking whose ink is at `ext` (frame coordinates: x in frame
-   * widths, y in frame widths from its top), the spread zoomed by `s`; or hide it.
+   * Show it in `layer` of `slot` round the marking whose ink is at `ext` (frame coordinates: x in
+   * frame widths, y in frame widths from its top), the spread zoomed by `s`; or hide it.
    */
-  show(slot: FrameSlot | undefined, ext: Ext | undefined, s: number) {
-    if (!slot || !ext) { this.hide(); return; }
+  show(layer: HTMLElement | undefined, slot: FrameSlot | undefined, ext: Ext | undefined, s: number) {
+    if (!layer || !slot || !ext) { this.hide(); return; }
     this.shown = { slot, ext };
-    if (this.box.parentElement !== slot.box) slot.box.append(this.box);
+    if (this.box.parentElement !== layer) layer.append(this.box);
     this.zoomed(s);
     this.box.hidden = false;
   }

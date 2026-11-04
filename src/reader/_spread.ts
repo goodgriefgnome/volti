@@ -7,6 +7,7 @@ import { placeScreen, type ScreenBox } from '../render/screen';
 import type { Aspects, ScoreInk } from '../scores/model';
 import type { Frame } from '../scores/frames';
 import { el } from '../ui/dom';
+import type { ToolName } from './tools/_tool';
 
 /** A frame on the screen. Sizes are CSS pixels in the unzoomed spread. */
 export interface FrameSlot {
@@ -22,6 +23,8 @@ export interface FrameSlot {
   detail?: { canvas: HTMLCanvasElement; under: HTMLCanvasElement; ink: HTMLCanvasElement; W: number; x: number; y: number };
   /** The editing tabs and shading over the frame. */
   ui?: HTMLElement;
+  /** Each tool's chrome layer over the frame, once it has asked for it. */
+  layers?: Partial<Record<ToolName, HTMLElement>>;
 }
 
 /** Put boxes where `placeScreen` says, with `aspects` their shapes. */

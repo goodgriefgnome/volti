@@ -12,6 +12,7 @@ import { centreOnFrame, extentOnFrame, handleRadius, MIN_BOX_PX, movedTo, pressO
 import { isTap } from '../_gestures';
 import { loupeTarget, type SharpInk } from '../_loupe';
 import { slotUnder, type FrameSlot } from '../_spread';
+import { SelectionBox } from './_selection';
 import { TOOL_LABELS, type Press, type Tool, type ToolHost, type ToolName } from './_tool';
 
 
@@ -83,6 +84,17 @@ export function placingTool(
   let held = false;
   // The selection before the last change and now: a press on the marking that was already selected goes again.
   let before: Selected | undefined, now: Selected | undefined;
+  // The box, handles and delete button of the selected marking when it is its own; hidden while one is moved.
+  let box: SelectionBox | undefined; // made when first shown: it is DOM
+  let moving = false;
+  const drawChrome = () => {
+    const sel = host.selected();
+    const slot = sel && !moving && owns(sel.mark) ? host.slots().find((sl) => sl.frame.items.some((i) => i.cut.id === sel.cut)) : undefined;
+    const item = slot && slot.frame.items.find((i) => i.cut.id === sel!.cut);
+    const ext = item && sel ? extentOnFrame(item, sel.mark, host.aspects()[item.cut.page]) : undefined;
+    if (slot && ext) (box ??= new SelectionBox(() => host.delete())).show(host.layer(slot), slot, ext, host.zoom().s);
+    else box?.hide();
+  };
   return {
     name,
     label,
@@ -91,7 +103,9 @@ export function placingTool(
     onSelectionChanged() {
       before = now;
       now = host.selected();
+      drawChrome();
     },
+    drawChrome,
     isChromeAt(slot, framePoint) {
       const sel = host.selected(), item = sel && slot.frame.items.find((i) => i.cut.id === sel.cut);
       const box = sel && item && selectionOn(item, sel, host.aspects()[item.cut.page], slot.w * host.zoom().s);
@@ -144,7 +158,7 @@ export function placingTool(
         const marked = target ?? (hit && { cut: hit.cut.id, mark: hit.mark });
         switch (_tapAction(on?.what === 'chrome' ? sel?.mark : before?.mark, hit?.mark)) {
           case 'select': host.select(marked!); break;
-          case 'again': if (marked!.mark.kind === 'text') host.editText(marked!); else cycle(host, marked!.cut, marked!.mark); break;
+          case 'again': if (marked!.mark.kind === 'text') { box?.hide(); host.editText(marked!); } else cycle(host, marked!.cut, marked!.mark); break;
           case 'place': {
             // Where the ghost was when the finger lifted, so what was shown is what is placed.
             const under = slotUnder(host.slots(), slot, [last[0], last[1]]);
@@ -185,7 +199,7 @@ export function placingTool(
       const drop = () => {
         unmagnify();
         if (over) { host.paintInk(over.slot); over = undefined; }
-        if (dragging) { host.paintInk(slot); host.select(host.selected()); }
+        if (dragging) { moving = false; host.paintInk(slot); host.select(host.selected()); }
       };
 
       // Pointer events come faster than frames: `move` records the latest, and what it shows is drawn once per animation frame.
@@ -199,6 +213,8 @@ export function placingTool(
         }
         if (!dragging) return;
         const r = dragged(grab);
+        moving = true;
+        box?.hide();
         host.paintState(slot, r.state);
         const item = itemOf(r.selected.cut);
         magnify(slot, item && extentOnFrame(item, r.selected.mark, aspects[item.cut.page]), client, { ink: r.state.ink });
@@ -249,6 +265,7 @@ export function placingTool(
           if (how === 'tap') { drop(); tap(); return; }
           const r = dragged(g);
           unmagnify();
+          moving = false;
           let state: State = r.state;
           if (g.kind === 'resize') {
             const size = r.selected.mark.size;

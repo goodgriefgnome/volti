@@ -10,6 +10,7 @@ export const textTool = (host: ToolHost): Tool => {
     ...placing,
     // While the field is open, every press is Text's, and only finishes typing.
     suppressions: () => (host.typing() ? { allPresses: true } : placing.suppressions!()),
+    showPanel: () => host.textPanel(),
     start(press) {
       if (host.typing()) { host.finishTyping(); return undefined; }
       return placing.start(press);
