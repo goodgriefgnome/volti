@@ -115,14 +115,41 @@ export const symbolTool = (host: ToolHost): Tool => {
     setFace();
   };
 
-  /** A symbol picked in the panel, or placed through +: current. */
+  /** A symbol made current: by cycling, or picked in the panel or placed through + with no symbol selected. */
   const choose = (g: number, index: number) => {
     setCurrent(g, index);
     group = g;
     setFace();
   };
 
-  /** + in the second row: pick glyphs, and make them the tool's, among the ad-hoc symbols unless the library has them. */
+  /**
+   * Replace the selected symbol with `sym`, keeping its size relative to its symbol's scale, its own
+   * colour and background, and the selection; the size it implies becomes the score's symbol size,
+   * and `sym` its group's current symbol.
+   */
+  const replaceWith = ({ cut, mark }: Selected, sym: LibrarySymbol) => {
+    if (!lib) return;
+    const size = (mark.size / scaleOf(lib, mark.font, mark.text)) * sym.scale;
+    // It keeps its own colour and background, not the new symbol's.
+    const { background: _, ...fresh } = placed(sym, mark.at, size);
+    const replacement = compactMarking({ ...fresh, ...(mark.color ? { color: mark.color } : {}), ...(mark.background ? { background: { ...mark.background } } : {}) }) as PlacedMark;
+    host.commit(setSymbolSize(replaceMarking(host.state(), cut, mark, replacement), size / sym.scale), cut, { cut, mark: replacement });
+    host.select({ cut, mark: replacement });
+    const at = findSymbol(lib, sym.font, sym.text);
+    if (at) choose(at.group, at.index);
+  };
+
+  /** A symbol picked in the panel: the selected symbol becomes it, and with none selected it is current. */
+  const pick = (g: number, index: number) => {
+    const sel = selectedSymbol(), sym = lib && symbolsOf(lib, g)[index];
+    if (sel && sym) replaceWith(sel, sym);
+    else choose(g, index);
+  };
+
+  /**
+   * + in the second row: pick glyphs, which go among the ad-hoc symbols unless the library has
+   * them; the selected symbol becomes them, and with none selected they are the tool's.
+   */
   const addSymbol = () => {
     const dialog = showDialog('Place a symbol', 'glyph-picker');
     glyphPicker(dialog, {
@@ -137,12 +164,12 @@ export const symbolTool = (host: ToolHost): Tool => {
           try {
             const sym = await makeSymbol(font, text, 1);
             if (!lib) return;
-            const at = findSymbol(lib, font, text);
-            if (at && at.group >= 0) choose(at.group, at.index);
-            else {
+            let at = findSymbol(lib, font, text);
+            if (!at || at.group < 0) {
               setLibrary(addAdhoc(lib, sym));
-              choose(-1, 0);
+              at = { group: -1, index: 0 };
             }
+            pick(at.group, at.index);
           } catch (e) { console.error(e); host.say('Could not make the symbol.'); }
         })();
       },
@@ -186,18 +213,10 @@ export const symbolTool = (host: ToolHost): Tool => {
     return color ? { ...made, color } : made;
   };
 
-  /** Replace the selected symbol with the next of its group, make the size it implies the score's symbol size, and make it its group's current symbol. */
-  const cycle = ({ cut, mark }: Selected) => {
-    const next = lib && nextSymbol(lib, mark.font, mark.text);
-    if (!lib || !next) return;
-    const size = (mark.size / scaleOf(lib, mark.font, mark.text)) * next.scale;
-    // It keeps its own colour and background, not the next symbol's.
-    const { background: _, ...fresh } = placed(next, mark.at, size);
-    const replacement = compactMarking({ ...fresh, ...(mark.color ? { color: mark.color } : {}), ...(mark.background ? { background: { ...mark.background } } : {}) }) as PlacedMark;
-    host.commit(setSymbolSize(replaceMarking(host.state(), cut, mark, replacement), size / next.scale), cut, { cut, mark: replacement });
-    host.select({ cut, mark: replacement });
-    const at = findSymbol(lib, next.font, next.text);
-    if (at) choose(at.group, at.index);
+  /** Replace the selected symbol with the next of its group. */
+  const cycle = (sel: Selected) => {
+    const next = lib && nextSymbol(lib, sel.mark.font, sel.mark.text);
+    if (next) replaceWith(sel, next);
   };
 
   /* ---------- the panel ---------- */
@@ -266,8 +285,9 @@ export const symbolTool = (host: ToolHost): Tool => {
       };
       showSymbolPanel(anchor, {
         library: () => lib!,
-        tool: () => { const s = picked(); return lib && s && equipped ? findSymbol(lib, s.font, s.text) : undefined; },
-        pick: (at) => choose(at.group, at.index),
+        // The panel lights the selected symbol, as the button pictures it; with none selected, the tool's.
+        tool: () => { const s = selectedSymbol()?.mark ?? picked(); return lib && s && equipped ? findSymbol(lib, s.font, s.text) : undefined; },
+        pick: (at) => pick(at.group, at.index),
         move: moveSymbolTo,
         moveGroup: moveGroupTo,
         add: addSymbol,

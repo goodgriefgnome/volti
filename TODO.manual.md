@@ -3,6 +3,13 @@
 Things to try on the tablet, grouped so each group can be done in one go. Some groups need
 DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the records.
 
+- **Picking a symbol in the Symbols panel with a symbol selected:**
+  - Select a placed fermata while the tool's symbol is something else, and open the panel: the
+    fermata is lit, as on the button.
+  - Pick another symbol: the selected one becomes it, at the same place, the same size relative to
+    its symbol, its own colour and background, still selected; the tool's symbol is now it.
+  - Add one through + with the symbol selected: the selected one becomes the new glyphs.
+  - Undo: the fermata comes back. With nothing selected, picking only changes the tool's symbol.
 - **Highlights and backgrounds multiply over the music:**
   - A highlight over notes leaves them black: in the reader, zoomed in (after the sharp close-up
     comes), in the loupe while dragging a marking, and in the Excerpt picker's thumbnails.
