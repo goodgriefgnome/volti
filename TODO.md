@@ -241,14 +241,13 @@ scores.
   found by identity now (`includes(sel.mark)` in `refreshSelection`, `reader/reader.ts`), and an
   edit always makes a new object, so every edit to the selected marking has to hand the reader
   its replacement (`commit`'s `selected`). An `id` field on `Marking`, never stored, would let the
-  reader find the selected marking again by id, in any cut, after any commit; `commit` would lose
+  reader find the selected marking again by id, on its page, after any commit; `commit` would lose
   `selected`.
   - Most edits spread the old marking, so the id comes along by itself (the panels, `movedTo`
     in `scores/placing.ts`). Cycling a symbol builds its replacement afresh (`cycle`,
     `reader/tools/_placing.ts`) and must copy the id.
   - Every place a marking is made gives it a new id: loading a score (`scores/store.ts`), the pen,
-    placing a symbol or text, and `copyMarking` when pages are inserted with their ink (`insertPages`
-    in `scores/edits.ts`), so copies don't share one.
+    and placing a symbol or text.
   - Stripped when saving (`scoreEntries` in `scores/store.ts`), and kept out of the PDF export and
     of tests that compare states.
   - Undo and redo keep the selection when its marking is still there (they end it now).

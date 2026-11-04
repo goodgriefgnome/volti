@@ -31,12 +31,23 @@ and the module that owns it.
 
 The old database **`volti`**, from before scores, is deleted at start-up.
 
+The **version of the stored data** is kept under `data-version` (none stored is version 1). At
+start-up, before anything else reads the store, `src/stored-data.ts` runs each step from the stored
+version up to the app's, raising the stored version after each; the library opens only once they
+are done. Data from a newer version than the app's is not opened.
+
+- **Version 1 to 2:** ink went from being kept by cut to being kept by page of the original, and
+  archived cuts went. Each score's markings, archived cuts' included, went on their cut's page with
+  no pass; exact duplicates on a page were kept once; ink under a cut id no cut had, archived cuts
+  and `ownInk` were dropped (`scoresToVersion2` in `scores/store.ts`).
+
 ### Every key
 
 | Key | Value | Owner |
 | --- | --- | --- |
 | `original:<id>` | `OriginalRecord` | `originals/` |
 | `folder` | `FolderLink` | `originals/device-score-fs.ts` |
+| `data-version` | `number`, the version of the stored data; 1 when missing | `stored-data.ts` |
 | `score:<id>` | `StoredScore` | `scores/store.ts` |
 | `ink:<id>` | `ScoreInk` | `scores/store.ts` |
 | `glyph:<font id>:<gid>` | `string`, a glyph's outline | `markings/store.ts` |
@@ -168,12 +179,11 @@ interface Score {           // scores/model.ts, in memory
   id: string;               // not stored: taken from the key on loading
   key: string;              // the musical key; nothing sets it yet
   cuts: Cut[];              // the played order
-  archived: Cut[];          // removed cuts that had their own ink
   excerpts?: NamedExcerpt[]; // the score's named excerpts; missing until one is named
   symbolSize?: number;       // the size a symbol of scale 1 is placed at, in page widths; 0.035 until set
   textScale?: number;        // text's size relative to the symbol size: the one the last text resize implied; 0.6 until set
 }
-interface Cut { id: string; page: number; y0: number; y1: number; pad?: number; ownInk?: boolean }
+interface Cut { id: string; page: number; y0: number; y1: number; pad?: number; pass?: number /* from 1; none is pass 1 */ }
 interface NamedExcerpt { first?: string; last?: string; name: string }
 ```
 
@@ -184,13 +194,14 @@ named excerpts of an earlier version, now `excerpts`) without carrying it over.
 ### `ink:<id>`
 
 ```ts
-type ScoreInk = Record<string /* cut id */, Marking[]>;
+type ScoreInk = Record<number /* original page, 0-based */, Marking[]>;
 type Marking = Stroke | PlacedMark;
 interface Stroke {
   tool: 'pen' | 'highlighter';
   color: string;
   size: number;                                          // line width, as a fraction of the page width
   points: [x: number, y: number, pressure: number][];    // x, y as fractions of the page's width and height
+  pass?: number;                                         // the one pass of its page it belongs to; every pass when missing
 }
 /** A symbol or text: glyphs placed whole at a point. A stroke has no `kind`. */
 interface PlacedMark {
@@ -202,12 +213,16 @@ interface PlacedMark {
   size: number;                                          // its em size, in page widths
   color?: string;                                        // the default colour when missing
   background?: Background;                               // none when missing
+  pass?: number;                                         // the one pass of its page it belongs to; every pass when missing
 }
 interface Background {
   shape: 'box' | 'tag-left' | 'tag-right';
   color?: string;                                        // the default background colour when missing
 }
 ```
+
+A cut shows a marking of its page whose anchor (a placed marking's centre, a stroke's first point)
+lies within it, ends included, and that has no pass or the cut's. A marking no cut shows is kept.
 
 A score and its ink are always written in one transaction, so they never disagree. The glyphs a
 marking names are in `glyph:` records, written before the marking that first uses them.

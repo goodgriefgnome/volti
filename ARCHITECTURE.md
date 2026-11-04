@@ -14,9 +14,10 @@ The code uses these words, always in these senses.
 | **original** | A source file Volti has read: its pages to draw (a PDF's by pdf.js, an image's from its bitmap) and its music as a PDF (a `RenderedPdf`), for export. Reading a PDF asks for its password the first time it needs one. | `Original` (`originals/types.ts`) |
 | **original page** | One page of an original. 0-based in the code (`cut.page`), 1-based to pdf.js and to the user. | |
 | **aspects** | Each original page's shape, height / width. Lengths on a page are in page widths. | `Aspects` (`scores/model.ts`) |
-| **score** | What is shown of an original: its cuts in played order, its archived cuts and its named excerpts. Its id is its file's. It stays when its file is gone. | `Score` |
-| **cut** | A horizontal band of one original page (`y0`..`y1`, fractions of its height). A score is its cuts, stacked in the order they are played. | `Cut` |
-| **ink**, **marking** | A marking is one thing drawn on the music (pen and highlighter strokes, and symbols and text placed whole); a score's ink is its markings, kept by the cut that holds most of each. | `Marking`, `ScoreInk` |
+| **score** | What is shown of an original: its cuts in played order, its ink and its named excerpts. Its id is its file's. It stays when its file is gone. | `Score` |
+| **cut** | A horizontal band of one original page (`y0`..`y1`, fractions of its height), and which pass of its page it plays. A score is its cuts, stacked in the order they are played. | `Cut` |
+| **pass** | Which time a page's music is played: each cut has one, from 1, and a marking may be limited to one. | `Cut.pass`, `passOf` |
+| **ink**, **marking** | A marking is one thing drawn on the music (pen and highlighter strokes, and symbols and text placed whole); a score's ink is its markings by page of the original; a marking may belong to one pass. A cut shows the markings of its page whose anchor it holds, of its pass or of none. | `Marking`, `ScoreInk` |
 | **state** | A score and its ink, which every edit keeps in step. | `State` |
 | **frame** | One of the score's own pages: cuts stacked down it until it is full, shaped like the original page of its first cut. What the user calls a score's "pages" are its frames. | `Frame` (`scores/frames.ts`) |
 | **screen** | The frames shown at once: one, or two of the other orientation, side by side or one above the other. | `render/screen.ts` |
@@ -43,14 +44,14 @@ takes `putInbox` without pdf.js): keep it true, and do any start-up work from `m
 
 | Layer | Directory | What it holds |
 | --- | --- | --- |
-| 9 | `src/*.ts` | Start-up (`main.ts`), taking new versions (`updates.ts`), the service worker (`sw.ts`) |
+| 9 | `src/*.ts` | Start-up (`main.ts`), taking new versions (`updates.ts`), bringing the stored data up to the app's version (`stored-data.ts`), the service worker (`sw.ts`) |
 | 8 | `library/` | The Library screen; keeping the pages setlists play offline (`_offline-pages`) and saying how much of each is saved (`_offline-status`) |
 | 7 | `reader/` | The score screen: reading a score, an excerpt or a setlist, writing on it, editing its cuts |
 | 6 | `dialogs/` | Dialogs both screens open: choosing an excerpt (over a strip of a score's frames, `thumb-strip`), the named excerpt dialogs, adding scores to a setlist, renaming and filing a score's file, exporting, setlist names and menus, a PDF's password |
 | 5 | `export/` | Exporting PDFs (with pdf-lib) |
 | 4 | `render/` | What is on a screen: fitting frames to it (`layout`, `screen`), zoom maths (`zoom`), drawing a frame on a canvas (`paint`) |
 | 3 | `setlists/` | Setlists and their entries, and keeping them on the same music when a score's cuts change |
-| 2 | `scores/`, `originals/` | A score: its data (`model`), edits (`edits`), frames (`frames`), excerpts of its cuts and their names (`excerpts`), which cut owns a marking (`ownership`), storage (`store`). Originals, in sixteen files, each importing only from those before it: file names, folders, titles and what happens to files arriving at paths (`path-utils`), general helpers for walking and writing folders and hashing (`_filesystem-utils`), the public types (`types`) and those private to the directory (`_types`), what is recorded about each original and every rule about where its bytes are (`_record-model`, pure), the records in IndexedDB with a copy in memory (`_record-store`), everything only about PDFs (`_pdf-source`: pdf.js, passwords, decryption, a PDF's music for export) and only about images (`_image-source`), the open pages of each original, one set per id for the whole app (`_sources`), a source file read into an original that draws through the page cache (`original`), the linked folder (its handle, linking, access) and Exports (`device-score-fs`), Volti's own folder in OPFS (`internal-score-fs`), the bytes of the inbox, which the service worker fills (`inbox-fs`), and of Recently removed (`trash-fs`), each pointed to by a record, the library's root and its files, listing and start-up tidying (`library-files`), and files held outside the library (`misc-files`)|
+| 2 | `scores/`, `originals/` | A score: its data (`model`), edits (`edits`), frames (`frames`), excerpts of its cuts and their names (`excerpts`), which cut a marking is on and which cuts show it (`ownership`), storage (`store`). Originals, in sixteen files, each importing only from those before it: file names, folders, titles and what happens to files arriving at paths (`path-utils`), general helpers for walking and writing folders and hashing (`_filesystem-utils`), the public types (`types`) and those private to the directory (`_types`), what is recorded about each original and every rule about where its bytes are (`_record-model`, pure), the records in IndexedDB with a copy in memory (`_record-store`), everything only about PDFs (`_pdf-source`: pdf.js, passwords, decryption, a PDF's music for export) and only about images (`_image-source`), the open pages of each original, one set per id for the whole app (`_sources`), a source file read into an original that draws through the page cache (`original`), the linked folder (its handle, linking, access) and Exports (`device-score-fs`), Volti's own folder in OPFS (`internal-score-fs`), the bytes of the inbox, which the service worker fills (`inbox-fs`), and of Recently removed (`trash-fs`), each pointed to by a record, the library's root and its files, listing and start-up tidying (`library-files`), and files held outside the library (`misc-files`)|
 | 1 | `fonts/` | The bundled fonts, reading them and shaping text into glyphs (fontkit), SMuFL's glyph names (`smufl`); nothing about markings |
 | 1 | `page-cache/`, `markings/`, `ui/` | The page cache: pages drawn in memory under a budget and saved in OPFS under an epoch, the scheduling of draws (two at once, `now` before `ahead` before `later`, a draw shared by its requesters), and stand-ins for progressive drawing; it knows nothing about files, and is given a `PageSource` to draw from (`cache`, with `_match`, `_budget`, `_memory`, `_scheduler` and `_disk`). What can be drawn on the music, and how (`draw`); generic pieces of the interface: elements (`dom`), menus and dialogs one at a time (`overlay`), asking for a line of text (`ask-text`), toasts |
 | 0 | `storage/`, `types/` | The IndexedDB key-value store, with every key in `keys.ts`, all described in `STORAGE.md`; missing DOM types |
@@ -59,7 +60,7 @@ takes `putInbox` without pdf.js): keep it true, and do any start-up work from `m
 
 Other rules, the first also tested:
 
-- Only the `store.ts` files and `originals/` use the kv store, and `storage/keys.ts` names the
+- Only the `store.ts` files, `originals/` and `stored-data.ts` use the kv store, and `storage/keys.ts` names the
   module that reads and writes each key.
 - Files that say **Pure** at the top use no DOM and no storage, and are unit tested next to them
   (`*.test.ts`). Most of the rules of the app (`scores/edits.ts`, `scores/excerpts.ts`,
@@ -106,7 +107,7 @@ ask the Library to change it (`change`, `update`, `refresh`).
 
 **A new kind of marking** (a post-it, say): add it to the `Marking` union in
 `markings/model.ts` and pick it out in `behaviour()`; give its `_KindBehaviour` in a file of its own
-beside `stroke.ts` and `placed.ts`; add a tool to make it (below). Cut edits, the eraser, drawing and exporting then
+beside `stroke.ts` and `placed.ts`; add a tool to make it (below). Which cuts show it, the eraser, drawing and exporting then
 work for it, through `markings/model.ts`.
 
 **A new tool**: a file in `reader/tools/` exporting a function from its host to a `Tool` (its name in
@@ -127,6 +128,10 @@ the file is `_`-prefixed), and import it from the file where it is defined.
 
 **Something new to store**: a key in `storage/keys.ts`, saying what it holds and which module uses
 it, and the loading and saving in that module's `store.ts` (or in `originals/`); and in `STORAGE.md`.
+A change to what is already stored adds a step: raise `DATA_VERSION` in `src/stored-data.ts` and add
+the step from the version before to `STEPS`, a function that brings the whole store up (run again
+after failing partway, it finishes what is left). The steps run at start-up, on the start screen,
+before anything else reads the store; after them, the code reads only the new form.
 
 **A toolbar button** that isn't a tool's: a button in `reader/_toolbar.ts` (and its state in `sync`),
 an action in `ToolbarActions`, and what it does in `reader/reader.ts` or, for a menu or dialog,

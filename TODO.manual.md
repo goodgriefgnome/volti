@@ -3,6 +3,22 @@
 Things to try on the tablet, grouped so each group can be done in one go. Some groups need
 DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the records.
 
+- **Ink on the page and passes:**
+  - Open the app for the first time after updating: "Updating your scores…" shows briefly, then the
+    library. Each score's markings are where they were; on a page played twice, markings drawn on
+    only one of its cuts now show on both.
+  - Pages inserted earlier with their markings copied show each marking once, not twice.
+  - Drag a cut's bottom edge up past a symbol: it disappears; drag it back: it is there again. Do
+    it with two cuts of one page (shrink one, grow the next): the symbol shows on the other cut.
+  - Remove a cut with markings: no "archived" message; insert the page again: the markings are
+    there.
+  - Insert a page that is already played: the pass row offers 1 and 2 (new), 2 chosen. With Cuts
+    on, both cuts' top tabs say their pass; with Cuts off, nothing does.
+  - Change a cut's pass with Pass…: the tab and the markings it shows change.
+  - Select a symbol on a page played twice: "This time only" shows, off. Turn it on: the symbol
+    goes from the other pass's cut. Undo: it is back. On a page played once it does not show.
+  - Move a "this time only" symbol onto a cut of the other pass: it now belongs to that pass.
+  - Export the score as a PDF: each cut has the markings it shows on screen.
 - **Picking a symbol in the Symbols panel with a symbol selected:**
   - Select a placed fermata while the tool's symbol is something else, and open the panel: the
     fermata is lit, as on the button.
