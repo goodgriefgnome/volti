@@ -12,6 +12,8 @@ export interface Stroke {
   /** Line width as a fraction of the page width. */
   size: number;
   points: Point[];
+  /** The one pass of its page it belongs to (see Cut.pass); none: every pass. */
+  pass?: number;
 }
 
 export const PEN_COLORS = ['#1c1f26', '#c2271d', '#1f4fd1'] as const;

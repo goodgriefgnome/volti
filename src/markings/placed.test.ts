@@ -2,7 +2,7 @@ import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { Drawing, Paint, PathCmd } from './draw';
 import { addGlyph } from './glyphs';
 import { _placed, backgroundOutline, baselineStart, centred, emExtent, glyphKeysIn, markColors, markExtent, setMarkColors, textMark, type PlacedMark } from './placed';
-import type { DrawTarget } from './model';
+import { compactMarking, copyMarking, type DrawTarget } from './model';
 import type { Stroke } from './stroke';
 
 beforeAll(() => {
@@ -193,5 +193,15 @@ describe('backgrounds', () => {
     const c = _placed.copy(m);
     expect(c.background).toEqual(m.background);
     expect(c.background).not.toBe(m.background);
+  });
+});
+
+describe('passes', () => {
+  const stroke: Stroke = { tool: 'pen', color: '#000', size: 0.002, points: [[0.1, 0.2, 0.5]], pass: 2 };
+  it('are kept when a marking is compacted or copied', () => {
+    for (const m of [{ ...mark, pass: 2 }, stroke]) {
+      expect(compactMarking(m).pass).toBe(2);
+      expect(copyMarking(m).pass).toBe(2);
+    }
   });
 });

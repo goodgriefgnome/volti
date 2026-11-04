@@ -18,6 +18,8 @@ export interface PlacedMark {
   color?: string;
   /** None when missing. */
   background?: Background;
+  /** The one pass of its page it belongs to (see Cut.pass); none: every pass. */
+  pass?: number;
 }
 
 export interface Background {

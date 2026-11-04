@@ -15,7 +15,11 @@ export interface Cut {
   pad?: number;
   /** Someone has drawn or erased on this cut, so removing it archives it rather than deleting it. */
   ownInk?: boolean;
+  /** Which pass of its page this cut plays, from 1; none is pass 1. */
+  pass?: number;
 }
+
+export const passOf = (c: Cut) => c.pass ?? 1;
 
 /**
  * A score: what is shown of its original, as cuts in played order. Its id is its original's id; its
