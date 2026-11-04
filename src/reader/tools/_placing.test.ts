@@ -75,45 +75,56 @@ describe('placingTool: the press', () => {
     } as unknown as ToolHost;
     const ghost = () => ({ ...m, at: [0.2, 0.2] as [number, number] });
     const placed: number[] = [];
-    return { calls, placed, host, tool: placingTool('t', () => void placed.push(1), ghost) };
+    return { calls, placed, host, tool: placingTool(host, 'symbol', () => void placed.push(1), ghost) };
   };
+  const press = (x: number) => ({ slot, framePoint: [x, y, 0.5] as [number, number, number], screenPoint: { x: x * 1000, y: 0 } });
   it('shows the loupe on a placed marking at once, and hides it when lifting', () => {
-    const { calls, host, tool } = setup();
-    const use = tool.start(host, slot, [0.5, y, 0.5]);
+    const { calls, tool } = setup();
+    const use = tool.start(press(0.5))!;
     expect(calls).toEqual(['begin', 'show']);
     use.end(false);
     expect(calls).toEqual(['begin', 'show', 'end']);
   });
   it('shows the ghost\'s loupe at once on empty music with nothing selected', () => {
-    const { calls, host, tool } = setup();
-    tool.start(host, slot, [0.1, y, 0.5]);
+    const { calls, tool } = setup();
+    tool.start(press(0.1))!;
     expect(calls).toEqual(['begin', 'show']);
   });
   it('waits for a move on empty music with a marking selected', () => {
-    const { calls, host, tool } = setup(m);
-    tool.start(host, slot, [0.1, y, 0.5]);
+    const { calls, tool } = setup(m);
+    tool.start(press(0.1))!;
     expect(calls).toEqual([]);
   });
   it('only deselects on empty music with a marking selected: a drag shows and places nothing', () => {
-    const { calls, placed, host, tool } = setup(m);
-    const use = tool.start(host, slot, [0.1, y, 0.5]);
+    const { calls, placed, tool } = setup(m);
+    const use = tool.start(press(0.1))!;
     use.move([0.3, y, 0.5], { x: 300, y: 0 });
     use.end(false);
     expect(calls).toEqual([]);
     expect(placed).toEqual([]);
   });
   it('places where the finger lifted after a drag on empty music with nothing selected', () => {
-    const { placed, host, tool } = setup();
-    const use = tool.start(host, slot, [0.1, y, 0.5]);
+    const { placed, tool } = setup();
+    const use = tool.start(press(0.1))!;
     use.move([0.3, y, 0.5], { x: 300, y: 0 });
     use.end(false);
     expect(placed).toEqual([1]);
   });
-  it('holds a second finger off while a marking is pressed, not while a ghost shows or on a selected press on empty music', () => {
-    expect(setup().tool.start(setup().host, slot, [0.5, y, 0.5]).holds?.()).toBe(true);
+  it('suppresses a pinch while a marking is pressed, not while a ghost shows or on a selected press on empty music', () => {
+    const a = setup();
+    expect(a.tool.suppressions?.().pinching).toBeUndefined();
+    const use = a.tool.start(press(0.5))!;
+    expect(a.tool.suppressions?.().pinching).toBe(true);
+    use.end(false);
+    expect(a.tool.suppressions?.().pinching).toBeUndefined();
     const g = setup();
-    expect(g.tool.start(g.host, slot, [0.1, y, 0.5]).holds?.()).toBe(false);
+    g.tool.start(press(0.1));
+    expect(g.tool.suppressions?.().pinching).toBeUndefined();
     const s = setup(m);
-    expect(s.tool.start(s.host, slot, [0.1, y, 0.5]).holds?.()).toBe(false);
+    s.tool.start(press(0.1));
+    expect(s.tool.suppressions?.().pinching).toBeUndefined();
+  });
+  it('declines a press off the frames', () => {
+    expect(setup().tool.start({ framePoint: [0.5, y, 0.5], screenPoint: { x: 0, y: 0 } })).toBeUndefined();
   });
 });

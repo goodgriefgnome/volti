@@ -10,9 +10,7 @@ import { gestureForKey, isTap, turnFor, type Gesture } from './_gestures';
 import type { FrameSlot } from './_spread';
 import { placesMarkings, type ToolChoice } from './_toolbar';
 import { pressesMarking, selectingTool } from './tools/_placing';
-import { symbolTool } from './tools/_symbol';
-import { TOOLS } from './tools/_tools';
-import type { ToolHost, ToolPointer } from './tools/_tool';
+import type { Press, Tool, ToolHost, ToolName, ToolPointer } from './tools/_tool';
 
 /**
  * While the pen is down, and this long after it lifts, finger touches are ignored, as they are
@@ -53,7 +51,9 @@ export class Input {
   /** Pointers to disregard until they lift: palms, and the finger left over after a pinch. */
   private ignored = new Set<number>();
   /** The pointer using a tool, and the frame it started on. */
-  private active: { id: number; type: string; slot: FrameSlot; rect: DOMRect; use: ToolPointer } | null = null;
+  private active: { id: number; type: string; slot: FrameSlot; rect: DOMRect; tool: Tool; use: ToolPointer } | null = null;
+  /** What a press on a placed marking goes to when no tool is equipped. */
+  private selecting: Tool;
   private gesture: { id: number; x: number; y: number; t: number } | null = null;
   private pinching: { ids: [number, number]; start: Zoom; c0: Pt; d0: number } | null = null;
   private panning: { id: number; start: Zoom; x0: number; y0: number; t: number } | null = null;
@@ -61,8 +61,9 @@ export class Input {
   /** Pens on the screen, by pointer id. */
   private pens = new Set<number>();
 
-  constructor(private host: InputHost) {
+  constructor(private host: InputHost, private tools: Record<ToolName, Tool>) {
     const { stage } = host;
+    this.selecting = selectingTool(host);
     stage.addEventListener('pointerdown', this.onDown);
     stage.addEventListener('pointermove', this.onMove);
     stage.addEventListener('pointerup', (e) => this.onUp(e, false));
@@ -87,6 +88,11 @@ export class Input {
       if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) return { slot, rect };
     }
     return null;
+  }
+
+  /** A press on `hit`'s frame, as a tool gets it. */
+  private press(e: PointerEvent, hit: { slot: FrameSlot; rect: DOMRect }): Press {
+    return { slot: hit.slot, framePoint: this.point(e, hit.rect), screenPoint: { x: e.clientX, y: e.clientY } };
   }
 
   /** A point on a frame: x as a fraction of its width, y in frame widths from its top. */
@@ -142,7 +148,7 @@ export class Input {
         // A second finger: this is a pinch, not writing, a tap or panning. With the toolbar hidden,
         // only when the first went down in the middle, where it didn't turn: the pinch shows the toolbar.
         // A marking being moved or resized stays as it is: the second finger is ignored. Placing one is dropped by the pinch.
-        if (this.active?.use.holds?.()) { this.ignored.add(e.pointerId); return; }
+        if (this.active?.tool.suppressions?.().pinching) { this.ignored.add(e.pointerId); return; }
         const fromMiddle = !!this.gesture && this.fingers.has(this.gesture.id);
         this.dropActive();
         host.editor.cancel();
@@ -178,8 +184,8 @@ export class Input {
     if (tool !== 'none') {
       const hit = this.slotAt(e.clientX, e.clientY);
       if (!hit) return;
-      const use = (tool === 'symbol' ? symbolTool : TOOLS[tool]).start(host, hit.slot, this.point(e, hit.rect));
-      this.active = { id: e.pointerId, type: e.pointerType, ...hit, use };
+      const t = this.tools[tool], use = t.start(this.press(e, hit));
+      if (use) this.active = { id: e.pointerId, type: e.pointerType, ...hit, tool: t, use };
       return;
     }
     // With no tool, a press on a placed marking or the selected one's box selects and moves it, as with Text or Symbols; elsewhere it pans.
@@ -187,7 +193,8 @@ export class Input {
     if (onMarking) {
       const p = this.point(e, onMarking.rect);
       if (pressesMarking(host, onMarking.slot, p)) {
-        this.active = { id: e.pointerId, type: e.pointerType, ...onMarking, use: selectingTool.start(host, onMarking.slot, p) };
+        const use = this.selecting.start(this.press(e, onMarking));
+        if (use) this.active = { id: e.pointerId, type: e.pointerType, ...onMarking, tool: this.selecting, use };
         return;
       }
     }

@@ -38,7 +38,7 @@ import { CutEditor } from './cuts/_editor';
 import { Detail } from './_detail';
 import type { Gesture } from './_gestures';
 import { History } from './_history';
-import { Input } from './_input';
+import { Input, type InputHost } from './_input';
 import { OpenScores, openPages, type DrawPage, type DrawProgressive, type Item, type OpenScore } from './_open-scores';
 import { Reading, setlistItems, type ReadingKind, type ReadingSnapshot } from './_reading';
 import { Saver } from './_saver';
@@ -56,7 +56,8 @@ import { showStrokeColors, showTextPanel, type SymbolSettingsView, type TextPane
 import { backIcon, placesMarkings, Toolbar, turnIcon, type Look, type ToolChoice } from './_toolbar';
 import { ReaderMenus } from './_toolbar-menus';
 import { offerScore, turnFrom, type Offer } from './_turning';
-import type { ToolName } from './tools/_tools';
+import { makeTools } from './tools/_tools';
+import type { HandHost, ToolName } from './tools/_tool';
 import { resumeAt } from './_last-read';
 import { loadLastRead, saveLastRead } from './_store';
 import type { ReaderView } from './_view';
@@ -307,7 +308,7 @@ class Reader {
     document.body.classList.add('reading');
     document.documentElement.dataset.theme = 'light';
 
-    this.input = new Input({
+    const host: InputHost & HandHost = {
       ...view,
       editor: this.editor,
       tool: () => this.tool,
@@ -327,15 +328,22 @@ class Reader {
       act: (g) => this.act(g),
       paintInk: (slot, extra) => this.paintInk(slot, this.state, extra),
       commit: (s, focus, selected) => this.commit(s, focus, selected),
-      erased: (s, slot) => this.erased(s, slot),
-      eraseEnded: (before, slot) => this.eraseEnded(before, slot),
+      show: (s, slot) => this.showState(s, slot),
+      undoTo: (before, slot) => this.undoTo(before, slot),
+      setButtonFace: () => {},
+      unequip: () => { this.useTool('none'); this.syncBar(); },
+      layer: () => document.createElement('div'),
+      lift: () => {},
+      toggleToolbar: () => this.act('toggleChrome'),
+      cutMenu: () => {},
       loupe: () => this.loupe,
       textGhost: (at) => this.textGhost(at),
       newText: (slot, at) => this.newText(slot, at),
       editText: (sel) => this.editText(sel),
       typing: () => this.typing.open,
       finishTyping: () => this.typing.finish(),
-    });
+    };
+    this.input = new Input(host, makeTools(host, host));
     document.addEventListener('visibilitychange', this.onVisible);
     window.addEventListener('popstate', this.onPop);
     history.pushState({ reader: true }, '');
@@ -1252,14 +1260,14 @@ class Reader {
   }
 
   /** The eraser took strokes away: show and save them gone, but leave the undo step until it lifts. */
-  private erased(s: State, slot: FrameSlot) {
+  private showState(s: State, slot: FrameSlot) {
     this.current!.state = s;
     this.saver.soon(this.current);
     this.paintInk(slot, s);
   }
 
   /** One undo step for the whole sweep of the eraser. */
-  private eraseEnded(before: State, slot: FrameSlot) {
+  private undoTo(before: State, slot: FrameSlot) {
     this.undos.record({ open: this.current!, state: before, reading: this.reading.snapshot(), k: this.k, focus: slot.frame.items[0]?.cut.id });
     this.frames = this.framesFor(this.k);
     slot.frame = this.frames[slot.index];

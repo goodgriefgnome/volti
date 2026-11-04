@@ -7,7 +7,7 @@ import { frameTarget } from '../../render/paint';
 import { claimMarking } from '../../scores/ownership';
 import { setInk } from '../../scores/edits';
 import type { FrameSlot } from '../_spread';
-import type { Tool, ToolHost } from './_tool';
+import { TOOL_LABELS, type Tool, type ToolHost } from './_tool';
 
 /** Draw a stroke as it is written: the pen a segment at a time, the highlighter all again. */
 function drawLive(host: ToolHost, slot: FrameSlot, s: Stroke, a: Point, b: Point) {
@@ -18,9 +18,13 @@ function drawLive(host: ToolHost, slot: FrameSlot, s: Stroke, a: Point, b: Point
 }
 
 /** The pen, in the chosen colour, or the highlighter. A finished stroke goes to the cut that holds most of it. */
-export const penTool = (kind: 'pen' | 'highlighter'): Tool => ({
-  label: kind === 'pen' ? 'Pen' : 'Highlight',
-  start(host, slot, p) {
+export const penTool = (host: ToolHost, kind: 'pen' | 'highlighter'): Tool => ({
+  name: kind,
+  label: TOOL_LABELS[kind],
+  suppressions: () => ({ selecting: true }),
+  start(press) {
+    const { slot, framePoint: p } = press;
+    if (!slot) return undefined;
     const hl = kind === 'highlighter';
     const stroke: Stroke = {
       tool: hl ? 'highlighter' : 'pen',

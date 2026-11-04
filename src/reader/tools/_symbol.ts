@@ -6,7 +6,7 @@ import type { PlacedMark } from '../../markings/placed';
 import { symbolSizeOf } from '../../scores/model';
 import { claimMarking } from '../../scores/ownership';
 import { placed, placingTool } from './_placing';
-import type { ToolHost } from './_tool';
+import type { Tool, ToolHost } from './_tool';
 
 /** The current symbol as it would be placed, centred at `at`: its colour and background. */
 function symbolMark(host: ToolHost, at: [number, number]): PlacedMark | undefined {
@@ -16,11 +16,11 @@ function symbolMark(host: ToolHost, at: [number, number]): PlacedMark | undefine
   return color ? { ...made, color } : made;
 }
 
-export const symbolTool = placingTool('Symbol', (host, slot, at) => {
+export const symbolTool = (host: ToolHost): Tool => placingTool(host, 'symbol', (slot, at) => {
   const made = symbolMark(host, at), state = host.state();
   if (!made) return;
   const claimed = claimMarking(slot.frame, compactMarking(made), host.aspects());
   if (!claimed) return;
   const { cut, marking } = claimed;
   host.commit(setInk(state, cut.id, [...(state.ink[cut.id] ?? []), marking]), cut.id);
-}, symbolMark);
+}, (at) => symbolMark(host, at));

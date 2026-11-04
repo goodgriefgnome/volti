@@ -8,7 +8,8 @@ import { el } from '../ui/dom';
 import { onLongPress } from '../ui/long-press';
 import { symbolPicture } from './_symbol-picture';
 import { backgroundPicture } from './_swatches';
-import { TOOL_NAMES, TOOLS, type ToolName } from './tools/_tools';
+import { TOOL_LABELS, type ToolName } from './tools/_tool';
+import { TOOLBAR } from './tools/_tools';
 
 /** The back arrow that leaves the reader for the library, on the toolbar and when it is hidden. */
 export function backIcon(): SVGSVGElement {
@@ -34,8 +35,11 @@ export function icon(d: string): SVGSVGElement {
   return svg;
 }
 
+/** The tools with an icon on their button: Symbols shows a symbol. */
+const TOOL_NAMES = TOOLBAR.flat().filter((t): t is Exclude<ToolName, 'symbol'> => t !== 'symbol');
+
 /** Each tool's icon: a new tool needs one here. */
-export const TOOL_ICONS: Record<ToolName, string> = {
+export const TOOL_ICONS: Record<Exclude<ToolName, 'symbol'>, string> = {
   pen: 'M4 20l4-1 11-11-3-3L5 16z',
   highlighter: 'M5 20h7M7 16l9-9 3 3-9 9H7z',
   eraser: 'M8 20h12M5 15l8-8 5 5-6 6H9z',
@@ -71,7 +75,7 @@ export function turnIcon(dir: 'prev' | 'next'): SVGSVGElement {
 }
 
 /** The tool selected in the toolbar, if any. */
-export type ToolChoice = 'none' | ToolName | 'symbol';
+export type ToolChoice = 'none' | ToolName;
 
 /** The tools that place markings whole: a symbol, or text. */
 export const placesMarkings = (tool: ToolChoice) => tool === 'symbol' || tool === 'text';
@@ -152,8 +156,8 @@ export class Toolbar {
       b.title = label;
       return b;
     };
-    const toolButton = (t: ToolName) => {
-      const b = iconButton(t, TOOL_ICONS[t], TOOLS[t].label, () => act.tool(t));
+    const toolButton = (t: (typeof TOOL_NAMES)[number]) => {
+      const b = iconButton(t, TOOL_ICONS[t], TOOL_LABELS[t], () => act.tool(t));
       // Pen and Highlight show the colour they draw in under the icon; a long press offers the colours.
       if (t === 'pen' || t === 'highlighter') {
         b.append(el('span', 'ink'));

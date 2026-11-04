@@ -12,7 +12,7 @@ import { centreOnFrame, extentOnFrame, handleRadius, MIN_BOX_PX, markingAt, move
 import { isTap } from '../_gestures';
 import { loupeTarget, type SharpInk } from '../_loupe';
 import { slotUnder, type FrameSlot } from '../_spread';
-import type { Tool, ToolHost } from './_tool';
+import { TOOL_LABELS, type Press, type Tool, type ToolHost, type ToolName } from './_tool';
 
 /** How far from a marking's ink a tap still counts as on it, in CSS pixels. */
 const TAP_MARGIN_PX = 12;
@@ -92,13 +92,20 @@ type Grab =
  * press shows under the finger meanwhile: a marking centred at `at`; undefined: nothing to place yet.
  */
 export function placingTool(
-  label: string,
-  place: (host: ToolHost, slot: FrameSlot, at: [number, number]) => void,
-  ghost: (host: ToolHost, at: [number, number]) => PlacedMark | undefined,
+  host: ToolHost,
+  name: ToolName,
+  place: (slot: FrameSlot, at: [number, number]) => void,
+  ghost: (at: [number, number]) => PlacedMark | undefined,
+  label = TOOL_LABELS[name],
 ): Tool {
+  // Whether its pointer holds a marking, moving or resizing it: a second finger then doesn't pinch.
+  let held = false;
   return {
+    name,
     label,
-    start(host, slot, p0) {
+    suppressions: () => (held ? { pinching: true } : {}),
+    start({ slot, framePoint: p0 }: Press) {
+      if (!slot) return undefined;
       const t0 = performance.now();
       const px = slot.w * host.zoom().s; // CSS pixels in a frame width
       const aspects = host.aspects();
@@ -152,7 +159,7 @@ export function placingTool(
           case 'place': {
             // Where the ghost was when the finger lifted, so what was shown is what is placed.
             const under = slotUnder(host.slots(), slot, [last[0], last[1]]);
-            if (under) place(host, under.slot, under.at);
+            if (under) place(under.slot, under.at);
             break;
           }
         }
@@ -174,7 +181,7 @@ export function placingTool(
       /** Show the ghost under the finger, on the slot there, repainting only what changed. */
       const showGhost = (client: { x: number; y: number }) => {
         const now = slotUnder(host.slots(), slot, [last[0], last[1]]);
-        const mark = now && ghost(host, now.at);
+        const mark = now && ghost(now.at);
         if (over && (!now || !mark || over.slot !== now.slot)) { host.paintInk(over.slot); over = undefined; }
         if (!now || !mark) { unmagnify(); return; }
         if (!over || over.at[0] !== now.at[0] || over.at[1] !== now.at[1]) {
@@ -219,6 +226,7 @@ export function placingTool(
         } else if (!sel) showGhost(client);
       }
 
+      held = !!grab;
       return {
         move(p, c) {
           last = p;
@@ -229,15 +237,15 @@ export function placingTool(
           }
           frame ||= requestAnimationFrame(draw);
         },
-        holds: () => !!grab,
         end(cancelled) {
+          held = false;
           cancelFrame();
           if (cancelled) { drop(); return; }
           if (placing) {
             // Lifting over a slot places there; anywhere else places nothing.
             const under = slotUnder(host.slots(), slot, [last[0], last[1]]);
             drop();
-            if (under) place(host, under.slot, under.at);
+            if (under) place(under.slot, under.at);
             return;
           }
           const ms = performance.now() - t0;
@@ -263,11 +271,11 @@ export function placingTool(
           host.select(r.selected);
           if (how === 'move-then-tap') tap(r.selected);
         },
-        drop() { cancelFrame(); drop(); },
+        drop() { held = false; cancelFrame(); drop(); },
       };
     },
   };
 }
 
 /** With no tool, a press on a marking: a tap selects, deselects or goes again, a drag moves or resizes; it never places. */
-export const selectingTool: Tool = placingTool('Select', () => {}, () => undefined);
+export const selectingTool = (host: ToolHost): Tool => placingTool(host, 'symbol', () => {}, () => undefined, 'Select');
