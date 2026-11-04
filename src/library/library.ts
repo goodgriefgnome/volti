@@ -278,26 +278,40 @@ export class Library implements LibraryHost {
     this.scoresSection.render();
   }
 
+  /** Show the setlists changed, and save them with `also`; a save that fails is said, and shows again what is stored. */
   async change(next: Setlist[], also: [string, unknown][] = []) {
     const before = this.setlists;
     this.setlists = next;
     this.render();
-    await saveChanged(next, before, also);
+    try {
+      await saveChanged(next, before, also);
+    } catch (e) {
+      console.error('Could not save the setlists:', e);
+      this.say('Could not save that change.');
+      await this.loadSetlists().then(() => this.render(), () => {});
+    }
   }
 
   update(s: Setlist) {
     return this.change(withSetlist(this.setlists, s));
   }
 
-  async deleteSetlist(s: Setlist) {
-    await deleteSetlist(this.setlists, s.id);
+  async deleteSetlist(s: Setlist): Promise<boolean> {
+    try {
+      await deleteSetlist(this.setlists, s.id);
+    } catch (e) {
+      console.error('Could not delete the setlist:', e);
+      this.say(`Could not delete “${s.title}”.`);
+      return false;
+    }
     this.setlists = this.setlists.filter((x) => x.id !== s.id);
     this.render();
+    return true;
   }
 
   addedTo(id: string) {
     this.lastAddedTo = id;
-    void saveLastAddedTo(id);
+    void saveLastAddedTo(id).catch((e) => console.warn('Could not save the setlist last added to:', e));
   }
 
   /**

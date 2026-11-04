@@ -242,9 +242,9 @@ async function addScores(h: MenusHost) {
       const now = reading.setlist;
       if (!now) return;
       // The scores excerpts were chosen from too, so the excerpts and the cuts they name agree.
-      for (const x of scores) void saveScore(x.state);
+      for (const x of scores) void saveScore(x.state).catch((e) => { console.error('Could not save a score:', e); h.say('Could not save the excerpts chosen.'); });
       reading.setlists = withSetlist(reading.setlists, addEntries(now, entries));
-      void saveLastAddedTo(now.id);
+      void saveLastAddedTo(now.id).catch((e) => console.warn('Could not save the setlist last added to:', e));
       h.saver.soon();
       void h.relisted(reading.items[h.k()]?.entryId);
       h.say(`Added ${plural(entries.length, 'score')} to “${now.title}”.`);

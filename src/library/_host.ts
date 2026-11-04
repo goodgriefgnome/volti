@@ -43,7 +43,8 @@ export interface LibraryHost {
   change(next: Setlist[], also?: [string, unknown][]): Promise<void>;
   /** Change one setlist. */
   update(s: Setlist): Promise<void>;
-  deleteSetlist(s: Setlist): Promise<void>;
+  /** False, having said why, when it couldn't be deleted. */
+  deleteSetlist(s: Setlist): Promise<boolean>;
   /** Note the setlist scores were just added to, which is the default from now on. */
   addedTo(id: string): void;
   /** Read the library's root (the scores folder, or the app's own) again, and show it. */

@@ -23,7 +23,7 @@ export const textTool = (host: ToolHost): Tool => {
   const typing = new TypingField((px) => host.lift(px));
   /** The fonts text can be typed in, once known. */
   let fonts: FontChoice[] = [];
-  void fontChoices().then((all) => { fonts = all.filter((c) => c.text); }, () => {});
+  void fontChoices().then((all) => { fonts = all.filter((c) => c.text); }, (e) => console.warn('Could not list the fonts:', e));
   let equipped = false;
 
   const isText = (m: Marking) => 'kind' in m && m.kind === 'text';

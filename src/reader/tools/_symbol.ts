@@ -45,7 +45,7 @@ export const symbolTool = (host: ToolHost): Tool => {
   let equipped = false;
 
   // As the app opens, a library saved before is loaded; the starter is made only when it is first needed.
-  void savedLibrary().then((saved) => { if (saved && !lib) { lib = saved; setFace(); } }, () => {});
+  void savedLibrary().then((saved) => { if (saved && !lib) { lib = saved; setFace(); } }, (e) => console.warn('Could not load the symbol library:', e));
 
   const currentOf = (g: number) => (g < 0 ? adhocCurrent : currents[g] ?? 0);
   const setCurrent = (g: number, index: number) => {

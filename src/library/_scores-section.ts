@@ -102,7 +102,7 @@ export class ScoresSection {
       // A search opens lists for the while; what is closed by hand is remembered.
       if (searching) return;
       if (now) closed.delete(folder); else closed.add(folder);
-      void saveClosedFolders([...closed]);
+      void saveClosedFolders([...closed]).catch((e) => console.warn('Could not save the closed folders:', e));
     }, 'folder-head');
     head.append(el('span', 'chev'), el('span', '', folder.split('/').join(' / ')));
     head.setAttribute('aria-expanded', String(open));

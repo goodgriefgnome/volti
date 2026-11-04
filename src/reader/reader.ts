@@ -46,7 +46,7 @@ import { ReaderMenus } from './_toolbar-menus';
 import { offerScore, turnFrom, type Offer } from './_turning';
 import { makeTools } from './tools/_tools';
 import type { ButtonFace, HandHost, Tool, ToolName } from './tools/_tool';
-import { resumeAt } from './_last-read';
+import { resumeAt, type LastRead } from './_last-read';
 import { loadLastRead, saveLastRead } from './_store';
 import type { ReaderView } from './_view';
 
@@ -304,7 +304,7 @@ class Reader {
       filesChanged: (change) => { this.fileChanges.push(change); },
     });
     this.syncBar();
-    void loadToolSettings().then((s) => { this.settings = s; this.syncBar(); }, () => {});
+    void loadToolSettings().then((s) => { this.settings = s; this.syncBar(); }, (e) => console.warn("Could not load the tools' settings:", e));
     this.stage.append(this.spreadEl);
     this.scope.hidden = true;
     // While the toolbar is hidden, a small back arrow at the top left still leads to the library.
@@ -738,9 +738,10 @@ class Reader {
   private saveSpot(cut: string | undefined) {
     if (!cut) return;
     const what = this.reading.what, item = this.items[this.k];
+    const save = (last: LastRead) => void saveLastRead(last).catch((e) => console.warn('Could not save where this was read:', e));
     if (what.kind === 'setlist') {
-      if (item.entryId) void saveLastRead({ kind: 'setlist', id: what.id, entry: item.entryId, cut });
-    } else void saveLastRead({ kind: 'excerpt', id: item.scoreId, ...(what.kind === 'excerpt' ? ends(what.excerpt) : {}), cut });
+      if (item.entryId) save({ kind: 'setlist', id: what.id, entry: item.entryId, cut });
+    } else save({ kind: 'excerpt', id: item.scoreId, ...(what.kind === 'excerpt' ? ends(what.excerpt) : {}), cut });
   }
 
   /** Draw a frame's music and ink at its current layout. */

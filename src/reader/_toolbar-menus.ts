@@ -101,7 +101,7 @@ export class ReaderMenus {
     const what = (cur && reading.excerptName(0, cur.state.score, cur.aspects)) ?? it.title;
     const add = (s: Setlist) => {
       reading.addTo(reading.setlists.find((x) => x.id === s.id) ?? s);
-      void saveLastAddedTo(s.id);
+      void saveLastAddedTo(s.id).catch((e) => console.warn('Could not save the setlist last added to:', e));
       this.h.saver.soon();
       this.h.say(`Added “${what}” to “${s.title}”.`);
     };
@@ -172,8 +172,14 @@ export class ReaderMenus {
       buttonRow(button('Cancel', closeOverlay), button('Delete', async () => {
         closeOverlay();
         const { reading } = this.h, all = reading.setlists;
+        try {
+          await deleteSetlist(all, s.id);
+        } catch (e) {
+          console.error('Could not delete the setlist:', e);
+          this.h.say(`Could not delete “${s.title}”.`);
+          return;
+        }
         reading.setlists = all.filter((x) => x.id !== s.id);
-        await deleteSetlist(all, s.id);
         this.h.leave();
       }, 'danger')),
     );

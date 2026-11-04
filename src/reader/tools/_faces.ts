@@ -58,7 +58,7 @@ export function textFace(look: Look): ButtonFace {
       t.style.color = look.color;
       face.append(t);
       // In its own font once that has loaded.
-      if (look.font) void cssFamily(look.font).then((family) => { t.style.fontFamily = `"${family}"`; }, () => {});
+      if (look.font) void cssFamily(look.font).then((family) => { t.style.fontFamily = `"${family}"`; }, (e) => console.warn('Could not load a font:', e));
       return face;
     },
   };

@@ -181,8 +181,7 @@ export class SetlistsSection {
       el('p', '', 'The scores, with their cuts and markings, stay in the library.'),
       buttonRow(button('Cancel', closeOverlay), button('Delete', async () => {
         closeOverlay();
-        await this.lib.deleteSetlist(s);
-        this.lib.toast.say(`Deleted “${s.title}”.`);
+        if (await this.lib.deleteSetlist(s)) this.lib.toast.say(`Deleted “${s.title}”.`);
       }, 'danger')),
     );
   }
