@@ -18,7 +18,7 @@ import { pageWidths, screenAt } from '../render/screen';
 import { type Hatches } from '../render/paint';
 import { replaceMarking } from '../scores/edits';
 import { shows } from '../scores/ownership';
-import { type Selected } from '../scores/placing';
+import { setThisTimeOnly, type Selected } from '../scores/placing';
 import { A4, type Aspects, type Cut, type NamedExcerpt, type State } from '../scores/model';
 import { frameOf, pack, type Frame } from '../scores/frames';
 import { loadScore } from '../scores/store';
@@ -227,6 +227,7 @@ class Reader {
       selected: () => this.selected,
       select: (s) => this.select(s),
       delete: () => this.deleteSelected(),
+      setThisTimeOnly: (on) => this.setThisTimeOnly(on),
       settings: () => this.settings,
       setSettings: (change) => this.setSettings(change),
       say: (t) => this.say(t),
@@ -498,6 +499,14 @@ class Reader {
   private deleteSelected() {
     const sel = this.selected;
     if (sel) this.commit(replaceMarking(this.state, sel.page, sel.mark), sel.cut);
+  }
+
+  /** The selected marking's "This time only": its cut's pass (on) or none (off), as one undo step; it stays selected. */
+  private setThisTimeOnly(on: boolean) {
+    const sel = this.selected;
+    if (!sel) return;
+    const { state, selected } = setThisTimeOnly(this.state, sel, on);
+    this.commit(state, sel.cut, selected);
   }
 
   /**

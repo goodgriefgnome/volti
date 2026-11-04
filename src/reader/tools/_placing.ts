@@ -6,7 +6,7 @@ import type { Marking, Point } from '../../markings/model';
 import { markExtent, type PlacedMark } from '../../markings/placed';
 import type { Placed } from '../../scores/frames';
 import { symbolSizeOf, type Cut, type State } from '../../scores/model';
-import { centreOnFrame, extentOnFrame, handleRadius, MIN_BOX_PX, movedTo, pressOnSelection, resizedFrom, selectionBox, type Selected } from '../../scores/placing';
+import { centreOnFrame, extentOnFrame, handleRadius, MIN_BOX_PX, movedTo, pressOnSelection, resizedFrom, selectionBox, thisTimeOnly, type Selected } from '../../scores/placing';
 import { isTap } from '../_gestures';
 import { loupeTarget, type SharpInk } from '../_loupe';
 import { slotUnder, type FrameSlot } from '../_spread';
@@ -65,8 +65,8 @@ export interface Placing {
 
 /**
  * A tool for placed markings: the state machine for a press (ghost and placing on empty music;
- * moving, resizing and the second tap on the selected marking), and the box with its handles and
- * delete button. What differs is in `spec`.
+ * moving, resizing and the second tap on the selected marking), and the box with its handles,
+ * delete button and "This time only". What differs is in `spec`.
  */
 export function placingTool(host: ToolHost, spec: Placing): Tool {
   const { name, owns, place, ghost, label = TOOL_LABELS[name] } = spec;
@@ -74,7 +74,7 @@ export function placingTool(host: ToolHost, spec: Placing): Tool {
   let held = false;
   // The selection before the last change and now: a press on the marking that was already selected goes again.
   let before: Selected | undefined, now: Selected | undefined;
-  // The box, handles and delete button of the selected marking when it is its own; hidden while one is moved.
+  // The box, handles, delete button and "This time only" of the selected marking when it is its own; hidden while one is moved.
   let box: SelectionBox | undefined; // made when first shown: it is DOM
   let moving = false;
   const drawChrome = () => {
@@ -82,7 +82,10 @@ export function placingTool(host: ToolHost, spec: Placing): Tool {
     const slot = sel && !moving && !spec.chromeHidden?.() && owns(sel.mark) ? host.slots().find((sl) => sl.frame.items.some((i) => i.cut.id === sel.cut)) : undefined;
     const item = slot && slot.frame.items.find((i) => i.cut.id === sel!.cut);
     const ext = item && sel ? extentOnFrame(item, sel.mark, host.aspects()[item.cut.page]) : undefined;
-    if (slot && ext) (box ??= new SelectionBox(() => host.delete())).show(host.layer(slot), slot, ext, host.zoom().s);
+    if (slot && ext && sel) {
+      box ??= new SelectionBox(() => host.delete(), (on) => host.setThisTimeOnly(on));
+      box.show(host.layer(slot), slot, ext, host.zoom().s, thisTimeOnly(host.state().score, sel));
+    }
     else box?.hide();
   };
   return {

@@ -124,16 +124,19 @@ export const symbolTool = (host: ToolHost): Tool => {
 
   /**
    * Replace the selected symbol with `sym`, keeping its size relative to its symbol's scale, its own
-   * colour and background, and the selection; the size it implies becomes the score's symbol size,
+   * colour, background and pass, and the selection; the size it implies becomes the score's symbol size,
    * and `sym` its group's current symbol.
    */
   const replaceWith = (sel: Selected, sym: LibrarySymbol) => {
     const { mark } = sel;
     if (!lib) return;
     const size = (mark.size / scaleOf(lib, mark.font, mark.text)) * sym.scale;
-    // It keeps its own colour and background, not the new symbol's.
+    // It keeps its own colour, background and pass, not the new symbol's.
     const { background: _, ...fresh } = placed(sym, mark.at, size);
-    const replacement = compactMarking({ ...fresh, ...(mark.color ? { color: mark.color } : {}), ...(mark.background ? { background: { ...mark.background } } : {}) }) as PlacedMark;
+    const replacement = compactMarking({
+      ...fresh, ...(mark.color ? { color: mark.color } : {}), ...(mark.background ? { background: { ...mark.background } } : {}),
+      ...(mark.pass !== undefined ? { pass: mark.pass } : {}),
+    }) as PlacedMark;
     host.commit(setSymbolSize(replaceMarking(host.state(), sel.page, mark, replacement), size / sym.scale), sel.cut, { ...sel, mark: replacement });
     host.select({ ...sel, mark: replacement });
     const at = findSymbol(lib, sym.font, sym.text);

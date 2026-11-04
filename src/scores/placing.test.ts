@@ -4,7 +4,7 @@ import type { Marking } from '../markings/model';
 import type { PlacedMark } from '../markings/placed';
 import type { ScoreInk } from './model';
 import { pack } from './frames';
-import { extentOnFrame, handleRadius, markingAt, movedTo, pressOnSelection, resizedFrom, selectionBox } from './placing';
+import { extentOnFrame, handleRadius, markingAt, movedTo, pressOnSelection, resizedFrom, selectionBox, setThisTimeOnly, thisTimeOnly } from './placing';
 import { A4, aspects, cut, state } from './testing';
 
 beforeAll(() => {
@@ -201,5 +201,38 @@ describe('movedTo', () => {
     const plain = mark(0.3, 0.1);
     const q = movedTo(state([second, firstPass], { 0: [plain] }), f, { page: 0, cut: second.id, mark: plain }, [0.4, A4 * 0.75], aspects);
     expect('pass' in q.selected.mark).toBe(false);
+  });
+});
+
+describe('thisTimeOnly', () => {
+  const plain = mark(0.5, 0.5), own = { ...mark(0.5, 0.5), pass: 1 };
+  it('is hidden on a page played in one pass, for a marking without a pass, and on for one with', () => {
+    const c = cut(0), score = state([c, cut(1)]).score;
+    expect(thisTimeOnly(score, { page: 0, cut: c.id, mark: plain })).toBeUndefined();
+    expect(thisTimeOnly(score, { page: 0, cut: c.id, mark: own })).toBe('on');
+  });
+  it('is off without a pass and on with one, on a page played in two passes', () => {
+    const c = cut(0), score = state([c, cut(0, 0, 1, { pass: 2 })]).score;
+    expect(thisTimeOnly(score, { page: 0, cut: c.id, mark: plain })).toBe('off');
+    expect(thisTimeOnly(score, { page: 0, cut: c.id, mark: own })).toBe('on');
+  });
+});
+
+describe('setThisTimeOnly', () => {
+  const first = cut(0), second = cut(0, 0, 1, { pass: 2 });
+  const before = mark(0.2, 0.2), m = mark(0.5, 0.5), after = mark(0.8, 0.8);
+  const s = state([first, second], { 0: [before, m, after] });
+  it('gives the marking the pass of the cut it was selected in, in its place in the page\'s ink', () => {
+    const r = setThisTimeOnly(s, { page: 0, cut: second.id, mark: m }, true);
+    expect(r.selected.mark.pass).toBe(2);
+    expect(r.state.ink[0]).toEqual([before, { ...m, pass: 2 }, after]);
+    expect(r.state.ink[0][1]).toBe(r.selected.mark);
+    expect(r.selected).toMatchObject({ page: 0, cut: second.id });
+  });
+  it('takes the pass away when turned off', () => {
+    const on = setThisTimeOnly(s, { page: 0, cut: second.id, mark: m }, true);
+    const off = setThisTimeOnly(on.state, on.selected, false);
+    expect('pass' in off.selected.mark).toBe(false);
+    expect(off.state.ink[0][1]).toBe(off.selected.mark);
   });
 });

@@ -69,6 +69,10 @@
 .selection-handle { position: absolute; box-sizing: border-box; border-radius: 50%; border: 1.5px solid #1f6fe0; background: #ffffff; pointer-events: none; }
 .selection[hidden] { display: none; }
 .selection-delete { position: absolute; left: 50%; bottom: calc(100% + 10px); width: 28px; height: 28px; min-height: 0; margin-left: -14px; padding: 0; pointer-events: auto; border-radius: 50%; border: 0; background: #1f6fe0; color: #ffffff; font: 600 18px/28px sans-serif; text-align: center; }
+/* "This time only", to the right of the delete button on its line: a pill, filled while on. */
+.selection-pass { position: absolute; left: calc(50% + 20px); bottom: calc(100% + 10px); height: 28px; min-height: 0; padding: 0 10px; pointer-events: auto; border-radius: 14px; border: 1.5px solid #1f6fe0; background: #ffffff; color: #1f6fe0; font: 600 13px/25px sans-serif; white-space: nowrap; }
+.selection-pass[aria-pressed="true"] { background: #1f6fe0; color: #ffffff; }
+.selection-pass[hidden] { display: none; }
 
 /* The glyph picker: the characters and their preview above a search and the grid, which scrolls inside the dialog. */
 .dialog.glyph-picker { width: min(900px, calc(100vw - 32px)); }

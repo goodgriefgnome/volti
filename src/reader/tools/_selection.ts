@@ -1,4 +1,4 @@
-// The selected marking's box over its frame: a line, a handle at each corner and a delete button above. DOM elements in a tool's layer of the frame's box, so they zoom with it; on screen only, never exported.
+// The selected marking's box over its frame: a line, a handle at each corner, and above it a delete button and "This time only" (the marking shown in its cut's pass alone). DOM elements in a tool's layer of the frame's box, so they zoom with it; on screen only, never exported.
 
 import { el } from '../../ui/dom';
 import { handleRadius, MIN_BOX_PX, selectionBox } from '../../scores/placing';
@@ -21,25 +21,32 @@ export class SelectionBox {
   private handles = CUTS.map((cut) => { const h = el('div', 'selection-handle'); h.style.clipPath = cut; return h; });
   private line = el('div', 'selection-line');
   private remove = el('button', 'selection-delete', '×');
+  private pass = el('button', 'selection-pass', 'This time only');
   private shown: { slot: FrameSlot; ext: Ext } | undefined;
 
-  constructor(onDelete: () => void) {
+  constructor(onDelete: () => void, onThisTimeOnly: (on: boolean) => void) {
     this.remove.type = 'button';
     this.remove.dataset.ownPresses = '';
     this.remove.setAttribute('aria-label', 'Delete');
     this.remove.addEventListener('click', onDelete);
-    // The line over the handles, and the button last, so it wins over both where they overlap.
-    this.box.append(...this.handles, this.line, this.remove);
+    this.pass.type = 'button';
+    this.pass.dataset.ownPresses = '';
+    this.pass.addEventListener('click', () => onThisTimeOnly(this.pass.getAttribute('aria-pressed') !== 'true'));
+    // The line over the handles, and the buttons last, so they win over both where they overlap.
+    this.box.append(...this.handles, this.line, this.remove, this.pass);
     this.box.hidden = true;
   }
 
   /**
    * Show it in `layer` of `slot` round the marking whose ink is at `ext` (frame coordinates: x in
-   * frame widths, y in frame widths from its top), the spread zoomed by `s`; or hide it.
+   * frame widths, y in frame widths from its top), the spread zoomed by `s`, with "This time only"
+   * on, off, or hidden (undefined); or hide it.
    */
-  show(layer: HTMLElement | undefined, slot: FrameSlot | undefined, ext: Ext | undefined, s: number) {
+  show(layer: HTMLElement | undefined, slot: FrameSlot | undefined, ext: Ext | undefined, s: number, pass: 'on' | 'off' | undefined) {
     if (!layer || !slot || !ext) { this.hide(); return; }
     this.shown = { slot, ext };
+    this.pass.hidden = pass === undefined;
+    this.pass.setAttribute('aria-pressed', String(pass === 'on'));
     if (this.box.parentElement !== layer) layer.append(this.box);
     this.zoomed(s);
     this.box.hidden = false;

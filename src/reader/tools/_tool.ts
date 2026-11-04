@@ -17,6 +17,8 @@ export interface ToolHost extends ReaderView {
   select(s: Selected | undefined): void;
   /** Take the selected marking away, as one undo step; the selection ends. */
   delete(): void;
+  /** The selected marking given its cut's pass (on) or none (off): one edit; it stays selected. */
+  setThisTimeOnly(on: boolean): void;
   /** The loupe shown while a marking is dragged. */
   loupe(): Loupe;
   /** Draw a frame's ink again; `extra` is a marking still being made. */

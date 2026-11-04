@@ -1,10 +1,11 @@
-// Placed markings on a frame: where they are, which one is at a point, and moving them. Pure.
+// Placed markings on a frame: where they are, which one is at a point, moving them, and giving one
+// its cut's pass. Pure.
 
 import { compactMarking, hitDistance, type Marking, type Point } from '../markings/model';
 import { markExtent, type PlacedMark } from '../markings/placed';
-import { replaceMarking, setInk } from './edits';
+import { passesOf, replaceMarking, setInk } from './edits';
 import type { Frame, Placed } from './frames';
-import { passOf, type Aspects, type Cut, type ScoreInk, type State } from './model';
+import { passOf, type Aspects, type Cut, type Score, type ScoreInk, type State } from './model';
 import { claimMarking, shownBy } from './ownership';
 
 /** A placed marking chosen on the music: the page whose ink holds it, the marking itself (found there by identity), and the cut it was chosen in, which shows it. */
@@ -115,4 +116,21 @@ export function movedTo(
     ? replaceMarking(s, page, from.mark, mark)
     : (() => { const left = replaceMarking(s, from.page, from.mark); return setInk(left, page, [...(left.ink[page] ?? []), mark]); })();
   return { state, selected: { page, cut: claimed.cut.id, mark } };
+}
+
+/**
+ * The "This time only" toggle for a selection: 'on' when its marking has a pass, 'off' when not;
+ * undefined (hidden) when its page's cuts all have one pass and the marking has none.
+ */
+export function thisTimeOnly(score: Score, sel: Selected): 'on' | 'off' | undefined {
+  if (sel.mark.pass !== undefined) return 'on';
+  return passesOf(score, [sel.page]).length > 1 ? 'off' : undefined;
+}
+
+/** The state with the selected marking given its cut's pass (on) or none (off), and the marking as it is then. */
+export function setThisTimeOnly(s: State, sel: Selected, on: boolean): { state: State; selected: Selected } {
+  const cut = s.score.cuts.find((c) => c.id === sel.cut);
+  const { pass: _, ...rest } = sel.mark;
+  const mark: PlacedMark = on ? { ...rest, pass: cut ? passOf(cut) : 1 } : rest;
+  return { state: replaceMarking(s, sel.page, sel.mark, mark), selected: { ...sel, mark } };
 }
