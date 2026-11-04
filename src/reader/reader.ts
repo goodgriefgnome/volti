@@ -43,6 +43,7 @@ import { OpenScores, openPages, type DrawPage, type DrawProgressive, type Item, 
 import { Reading, setlistItems, type ReadingKind, type ReadingSnapshot } from './_reading';
 import { Saver } from './_saver';
 import { TypingField } from './_typing';
+import { LendStack } from './_lending';
 import { SelectionBox } from './_selection';
 import { lastSymbol, makeSymbol, reorderedCurrents, savedLibrary, symbolLibrary } from './_symbols';
 import { glyphPicker } from './_glyph-picker';
@@ -156,9 +157,10 @@ class Reader {
   private minScale = 1;
   private detail: Detail;
 
-  private tool: ToolChoice = 'none';
-  /** While selecting a marking has lent the tool for its kind: the tool to give back when the selection ends. */
-  private lentFrom?: ToolChoice;
+  /** The tool equipped by its button, with the tools a selection has lent on top of it. */
+  private stack = new LendStack<ToolChoice>('none');
+  /** The tool in use: the one on top of the stack. */
+  private get tool(): ToolChoice { return this.stack.active; }
   /** Each tool's settings for new markings; kept across restarts. */
   private settings: ToolSettings = DEFAULT_TOOL_SETTINGS;
   /** The symbol library, once it has been made. */
@@ -414,25 +416,23 @@ class Reader {
   private useTool(t: ToolChoice) {
     if (t !== this.tool) {
       this.typing.finish();
-      this.lentFrom = undefined;
-      this.deselect(false);
+      this.stack.equip(t);
+      this.deselect();
     }
-    this.tool = t;
   }
 
   /** End the selection and hide its box; the tool its marking lent, if any, goes back to what it was. The caller shows the toolbar. */
-  private deselect(giveBack = true) {
-    if (giveBack && this.lentFrom !== undefined) { this.tool = this.lentFrom; this.lentFrom = undefined; }
+  private deselect() {
+    this.stack.end('selection');
     this.selected = undefined;
     this.selection.hide();
   }
 
-  /** Selecting a marking makes the tool for its kind the tool, keeping the selection; the first tool lent from is the one to give back. */
+  /** Selecting a marking lends the tool for its kind, keeping the selection; ending the selection takes the lend off. */
   private lend(kind: 'text' | 'symbol') {
     if (this.tool === kind) return;
     this.typing.finish();
-    this.lentFrom ??= this.tool;
-    this.tool = kind;
+    this.stack.lend(kind, 'selection');
   }
 
   /** A long press on a tool's button makes it the tool, if it isn't; when it is, the press leaves it be. */
@@ -756,7 +756,7 @@ class Reader {
 
   /** A selected symbol was cycled to `sym`: with Symbols as the tool (not lent by the selection), it is the tool's symbol now. */
   private cycledTo(sym: LibrarySymbol) {
-    const at = this.tool === 'symbol' && this.lentFrom === undefined && this.symbolLib && findSymbol(this.symbolLib, sym.font, sym.text);
+    const at = this.tool === 'symbol' && !this.stack.has('selection') && this.symbolLib && findSymbol(this.symbolLib, sym.font, sym.text);
     if (!at) return;
     this.group = at.group;
     this.setCurrent(at.group, at.index);
@@ -784,7 +784,7 @@ class Reader {
     this.adhocCurrent = clamp(this.adhocCurrent, lib.adhoc.length);
     if (!symbolsOf(lib, this.group).length) {
       const first = [...lib.groups.keys(), -1].find((g) => symbolsOf(lib, g).length);
-      if (first === undefined) { if (this.tool === 'symbol') this.tool = 'none'; }
+      if (first === undefined) { if (this.tool === 'symbol') this.stack.equip('none'); }
       else { this.group = first; this.setCurrent(first, 0); }
     }
     this.syncBar();
