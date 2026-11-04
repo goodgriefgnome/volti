@@ -973,12 +973,17 @@ class Reader {
 
   private onPop = () => void this.close();
 
+  /** Going back failed to save the changes: the next Back leaves without them. */
+  private leaveUnsaved = false;
+
   private async close() {
     // Every tool on the stack is unequipped: Text finishes typing.
     this.tell(this.stack.equip('hand'));
     await this.told;
-    this.scores.closed = true;
     closeOverlay();
+    this.editor.dismiss();
+    if (!(await this.savedForClosing())) return;
+    this.scores.closed = true;
     window.removeEventListener('popstate', this.onPop);
     this.input.detach();
     document.removeEventListener('visibilitychange', this.onVisible);
@@ -986,9 +991,7 @@ class Reader {
     this.detail.stop();
     this.seq++;
     this.ahead.abort();
-    this.editor.dismiss();
     this.card.stop();
-    await this.saver.flush();
     void this.wake?.release().catch(() => {});
     // Leaving full screen settles before the library is shown, so it doesn't undo the library's scroll.
     if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
@@ -998,5 +1001,25 @@ class Reader {
     if (this.themeBefore === undefined) delete document.documentElement.dataset.theme;
     else document.documentElement.dataset.theme = this.themeBefore;
     this.onClose(this.fileChanges);
+  }
+
+  /**
+   * Write the changes before closing. When that fails the reader stays open, Back being put back,
+   * and says so: Try again goes back again, and so does Back, which leaves even when that fails too.
+   */
+  private async savedForClosing(): Promise<boolean> {
+    try {
+      await this.saver.flush();
+      return true;
+    } catch {
+      if (this.leaveUnsaved) {
+        this.saver.stop();
+        return true;
+      }
+      this.leaveUnsaved = true;
+      history.pushState({ reader: true }, '');
+      this.toast.say('Could not save your changes. Back leaves without them.', ['Try again', () => { this.leaveUnsaved = false; history.back(); }], true);
+      return false;
+    }
   }
 }
