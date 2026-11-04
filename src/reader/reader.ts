@@ -197,7 +197,7 @@ class Reader {
   ) {
     this.reading = new Reading(items, what, setlists);
     this.scores = new OpenScores(items, first);
-    this.saver = new Saver(() => this.reading.setlists, setlists);
+    this.saver = new Saver(() => this.reading.setlists, setlists, () => this.say('Could not save your changes. Volti keeps trying.'));
     const view: ReaderView = {
       stage: this.stage,
       aspects: () => this.aspects,
@@ -968,7 +968,7 @@ class Reader {
 
   private onVisible = () => {
     if (document.visibilityState === 'visible') void this.requestWake();
-    else void this.saver.flush();
+    else void this.saver.flush().catch(() => {});
   };
 
   private onPop = () => void this.close();
