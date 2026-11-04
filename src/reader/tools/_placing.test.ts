@@ -43,7 +43,8 @@ describe('placingTool: the press', () => {
     } as unknown as ToolHost;
     const ghost = () => ({ ...m, at: [0.2, 0.2] as [number, number] });
     const placed: number[] = [];
-    return { calls, placed, host, tool: placingTool(host, 'symbol', () => true, () => void placed.push(1), ghost) };
+    const tool = placingTool(host, { name: 'symbol', owns: () => true, place: () => void placed.push(1), ghost, again: () => {}, resized: (s) => s });
+    return { calls, placed, host, tool };
   };
   const press = (x: number, on?: Press['on'], py = y): Press => ({ slot, framePoint: [x, py, 0.5], screenPoint: { x: x * 1000, y: 0 }, ...(on ? { on } : {}) });
   const grabbed: Press['on'] = { what: 'grabbed', sel: { cut: c.id, mark: m } };
@@ -103,7 +104,7 @@ describe('placingTool: its chrome', () => {
       zoom: () => ({ s: 1 }), aspects: () => aspects, state: () => state([c], { [c.id]: [m] }),
       selected: () => (selected ? { cut: c.id, mark: m } : undefined),
     } as unknown as ToolHost;
-    return placingTool(host, 'symbol', () => true, () => {}, () => undefined);
+    return placingTool(host, { name: 'symbol', owns: () => true, place: () => {}, ghost: () => undefined, again: () => {}, resized: (s) => s });
   };
   const big: PlacedMark = { kind: 'symbol', text: 'x', font: 'p', glyphs: [[1, -0.5, 0.5]], at: [0.5, 0.5], size: 0.1 };
   it('is on the selected marking\'s box and its handles, and nowhere else', () => {

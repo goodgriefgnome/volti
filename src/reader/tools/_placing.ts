@@ -5,7 +5,7 @@
 import { type LibrarySymbol, nextSymbol, scaleOf } from '../../markings/library';
 import { compactMarking, type Marking, type Point } from '../../markings/model';
 import { markExtent, type PlacedMark } from '../../markings/placed';
-import { replaceMarking, setSymbolSize, textResized } from '../../scores/edits';
+import { replaceMarking, setSymbolSize } from '../../scores/edits';
 import type { Placed } from '../../scores/frames';
 import { symbolSizeOf, type Cut, type State } from '../../scores/model';
 import { centreOnFrame, extentOnFrame, handleRadius, MIN_BOX_PX, movedTo, pressOnSelection, resizedFrom, selectionBox, type Selected } from '../../scores/placing';
@@ -34,7 +34,7 @@ export const placed = (sym: LibrarySymbol, at: [number, number], size: number): 
 });
 
 /** Replace the selected symbol with the next of its group, and make the size it implies the score's symbol size. */
-function cycle(host: ToolHost, cut: string, mark: PlacedMark) {
+export function cycle(host: ToolHost, cut: string, mark: PlacedMark) {
   const lib = host.library();
   const next = lib && nextSymbol(lib, mark.font, mark.text);
   if (!lib || !next) return;
@@ -67,19 +67,31 @@ type Grab =
   | { kind: 'move'; from: Selected; centre: readonly [number, number] }
   | { kind: 'resize'; from: Selected; corner: 0 | 1 | 2 | 3; ext: [number, number, number, number]; centre: readonly [number, number] };
 
+/** What differs between the tools that place markings whole. */
+export interface Placing {
+  name: ToolName;
+  /** Whether a marking is its own. */
+  owns(m: Marking): boolean;
+  /** What a tap on empty music does, and what lifting after pressing on empty music and dragging does, on the slot the finger is over. */
+  place(slot: FrameSlot, at: [number, number]): void;
+  /** What the press shows under the finger meanwhile: a marking centred at `at`; undefined: nothing to place yet. */
+  ghost(at: [number, number]): PlacedMark | undefined;
+  /** The second tap on its selected marking. */
+  again(sel: Selected): void;
+  /** The state with the marking resized to `size`: what a resize sets on the score. */
+  resized(s: State, size: number, from: PlacedMark): State;
+  /** Whether its chrome is hidden for now (its field is open on the marking). */
+  chromeHidden?(): boolean;
+  label?: string;
+}
+
 /**
- * A tool for placed markings. `place` is what a tap on empty music does, and what lifting after
- * pressing on empty music and dragging does, on the slot the finger is over. `ghost` is what the
- * press shows under the finger meanwhile: a marking centred at `at`; undefined: nothing to place yet.
+ * A tool for placed markings: the state machine for a press (ghost and placing on empty music;
+ * moving, resizing and the second tap on the selected marking), and the box with its handles and
+ * delete button. What differs is in `spec`.
  */
-export function placingTool(
-  host: ToolHost,
-  name: ToolName,
-  owns: (m: Marking) => boolean,
-  place: (slot: FrameSlot, at: [number, number]) => void,
-  ghost: (at: [number, number]) => PlacedMark | undefined,
-  label = TOOL_LABELS[name],
-): Tool {
+export function placingTool(host: ToolHost, spec: Placing): Tool {
+  const { name, owns, place, ghost, label = TOOL_LABELS[name] } = spec;
   // Whether its pointer holds a marking, moving or resizing it: a second finger then doesn't pinch.
   let held = false;
   // The selection before the last change and now: a press on the marking that was already selected goes again.
@@ -89,7 +101,7 @@ export function placingTool(
   let moving = false;
   const drawChrome = () => {
     const sel = host.selected();
-    const slot = sel && !moving && owns(sel.mark) ? host.slots().find((sl) => sl.frame.items.some((i) => i.cut.id === sel.cut)) : undefined;
+    const slot = sel && !moving && !spec.chromeHidden?.() && owns(sel.mark) ? host.slots().find((sl) => sl.frame.items.some((i) => i.cut.id === sel.cut)) : undefined;
     const item = slot && slot.frame.items.find((i) => i.cut.id === sel!.cut);
     const ext = item && sel ? extentOnFrame(item, sel.mark, host.aspects()[item.cut.page]) : undefined;
     if (slot && ext) (box ??= new SelectionBox(() => host.delete())).show(host.layer(slot), slot, ext, host.zoom().s);
@@ -158,7 +170,7 @@ export function placingTool(
         const marked = target ?? (hit && { cut: hit.cut.id, mark: hit.mark });
         switch (_tapAction(on?.what === 'chrome' ? sel?.mark : before?.mark, hit?.mark)) {
           case 'select': host.select(marked!); break;
-          case 'again': if (marked!.mark.kind === 'text') { box?.hide(); host.editText(marked!); } else cycle(host, marked!.cut, marked!.mark); break;
+          case 'again': spec.again(marked!); break;
           case 'place': {
             // Where the ghost was when the finger lifted, so what was shown is what is placed.
             const under = slotUnder(host.slots(), slot, [last[0], last[1]]);
@@ -268,10 +280,7 @@ export function placingTool(
           moving = false;
           let state: State = r.state;
           if (g.kind === 'resize') {
-            const size = r.selected.mark.size;
-            state = g.from.mark.kind === 'text'
-              ? textResized(state, size)
-              : setSymbolSize(state, size / scaleOf(host.library(), g.from.mark.font, g.from.mark.text));
+            state = spec.resized(state, r.selected.mark.size, g.from.mark);
           }
           host.commit(state, r.selected.cut, r.selected);
           host.select(r.selected);

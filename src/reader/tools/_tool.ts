@@ -5,7 +5,6 @@ import type { SymbolLibrary, LibrarySymbol } from '../../markings/library';
 import type { Marking, Point } from '../../markings/model';
 import type { ToolSettings } from '../../markings/tool-settings';
 import type { Zoom, View } from '../../render/zoom';
-import type { PlacedMark } from '../../markings/placed';
 import type { State } from '../../scores/model';
 import type { Selected } from '../../scores/placing';
 import type { Loupe } from '../_loupe';
@@ -14,8 +13,6 @@ import type { ReaderView } from '../_view';
 
 /** What a tool needs from the reader. */
 export interface ToolHost extends ReaderView {
-  penColor(): string;
-  highlightColor(): string;
   /** The colour new symbols get; undefined: the app's marking colour. */
   symbolColor(): string | undefined;
   /** The symbol the symbol tool places: the current one of its group. */
@@ -32,14 +29,8 @@ export interface ToolHost extends ReaderView {
   loupe(): Loupe;
   /** Draw a frame's ink again; `extra` is a marking still being made. */
   paintInk(slot: FrameSlot, extra?: Marking): void;
-  /** Draw a frame's ink as it would be in `s`, without taking the edit: a marking being dragged. The selection's box is hidden until the next `select`. */
+  /** Draw a frame's ink as it would be in `s`, without taking the edit: a marking being dragged. */
   paintState(slot: FrameSlot, s: State): void;
-  /** The word "Ag" as new text would be placed, centred as typing starts at `at`, in a tint that reads as a marker; undefined until it is shaped. */
-  textGhost(at: [number, number]): PlacedMark | undefined;
-  /** Start typing a new text marking with the middle of its capitals at `at` on the slot's frame. */
-  newText(slot: FrameSlot, at: [number, number]): void;
-  /** Edit the selected text marking. */
-  editText(sel: Selected): void;
   /**
    * Take an edit: undo, save, reflow, and show the frame holding `focus`. `selected` is the
    * selected marking as it is in `s`, when the edit replaced it, so the selection doesn't end.
@@ -53,14 +44,9 @@ export interface ToolHost extends ReaderView {
   setButtonFace(face: ButtonFace): void;
   settings(): ToolSettings;
   setSettings(change: (s: ToolSettings) => ToolSettings): void;
-  /** The Text panel, under its button (until Text owns it). */
-  textPanel(): void;
   /** The Symbols panel, under its button (until Symbols owns it). */
   symbolPanel(): void;
-  /** The typing field is open (until Text owns it). */
-  typing(): boolean;
-  /** Close the typing field, placing what is in it (until Text owns it). */
-  finishTyping(): void;
+  say(text: string): void;
   /** Unequip it: the hand tool is equipped. */
   unequip(): void;
   /** Its chrome layer in a frame. Elements in it with `data-own-presses` get their presses untouched. */

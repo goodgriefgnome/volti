@@ -17,21 +17,18 @@ import { framesOnScreen } from '../render/layout';
 import { fitScale, isIdentity, NO_ZOOM, placeFresh, type View, type Zoom } from '../render/zoom';
 import { pageWidths, screenAt } from '../render/screen';
 import { type Hatches } from '../render/paint';
-import { replaceMarking, setInk, textSizeOf } from '../scores/edits';
-import { centreOnFrame, movedTo, type Selected } from '../scores/placing';
-import { baselineStart, markColors, textMark, type Background, type PlacedMark } from '../markings/placed';
-import { claimMarking } from '../scores/ownership';
-import { compactMarking } from '../markings/model';
+import { replaceMarking } from '../scores/edits';
+import { type Selected } from '../scores/placing';
+import { markColors, type Background, type PlacedMark } from '../markings/placed';
 import { A4, type Aspects, type Cut, type NamedExcerpt, type State } from '../scores/model';
 import { frameOf, pack, type Frame } from '../scores/frames';
 import { loadScore } from '../scores/store';
 import { loadSetlists } from '../setlists/store';
 import { type Setlist } from '../setlists/model';
 import { closeOverlay, showDialog } from '../ui/overlay';
-import { ACADEMICO, BRAVURA, fontChoices, fontMetrics, shapeWith, type FontChoice } from '../fonts/fonts';
-import { loadToolSettings, saveGlyphs, saveLibrary, saveToolSettings } from '../markings/store';
-import { mix } from '../markings/draw';
-import { backgroundOf, type BackgroundChoice, type ColorChoice, DEFAULT_TOOL_SETTINGS, ownColor, strokeColor, type ToolSettings } from '../markings/tool-settings';
+import { BRAVURA } from '../fonts/fonts';
+import { loadToolSettings, saveLibrary, saveToolSettings } from '../markings/store';
+import { backgroundOf, type BackgroundChoice, type ColorChoice, DEFAULT_TOOL_SETTINGS, ownColor, type ToolSettings } from '../markings/tool-settings';
 import { dpr, el } from '../ui/dom';
 import { Toast } from '../ui/toast';
 import { CutEditor } from './cuts/_editor';
@@ -42,8 +39,7 @@ import { Input, type InputHost } from './_input';
 import { OpenScores, openPages, type DrawPage, type DrawProgressive, type Item, type OpenScore } from './_open-scores';
 import { Reading, setlistItems, type ReadingKind, type ReadingSnapshot } from './_reading';
 import { Saver } from './_saver';
-import { TypingField } from './_typing';
-import { LendStack } from './_lending';
+import { LendStack, type StackChange } from './_lending';
 import { lastSymbol, makeSymbol, reorderedCurrents, savedLibrary, symbolLibrary } from './_symbols';
 import { glyphPicker } from './_glyph-picker';
 import { editLibrary } from './_library-editor';
@@ -51,9 +47,9 @@ import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
 import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_spread';
 import { Loupe } from './_loupe';
 import { showSymbolPanel } from './_symbol-panel';
-import { showTextPanel, type SymbolSettingsView, type TextPanel } from './_tool-panels';
+import type { SymbolSettingsView } from './_tool-panels';
 import { backIcon, Toolbar, turnIcon, type ToolChoice } from './_toolbar';
-import { symbolFace, textFace, type Look } from './tools/_faces';
+import { symbolFace, type Look } from './tools/_faces';
 import { ReaderMenus } from './_toolbar-menus';
 import { offerScore, turnFrom, type Offer } from './_turning';
 import { makeTools } from './tools/_tools';
@@ -160,6 +156,8 @@ class Reader {
 
   /** The tool equipped by its button, with the tools a selection has lent on top of it. */
   private stack = new LendStack<ToolChoice>('hand');
+  /** The tools' being told of the stack's changes, in order. */
+  private told: Promise<void> = Promise.resolve();
   /** The tools, made for this reader. */
   private tools!: Record<ToolName, Tool>;
   /** What each tool's button shows, as the tool last set it. */
@@ -178,11 +176,8 @@ class Reader {
   private adhocCurrent = 0;
   /** The font last used in the glyph picker, while the app runs. */
   private pickerFont = BRAVURA;
-  /** The fonts text can be typed in, once known. */
-  private textFonts: FontChoice[] = [];
   /** The placed marking showing its box, while a symbol is the tool. */
   private selected: Selected | undefined;
-  private typing = new TypingField(this.stage);
   private loupe: Loupe;
   private undos = new History<Undo>();
   private saver: Saver;
@@ -246,8 +241,6 @@ class Reader {
       ...view,
       editor: this.editor,
       tool: () => this.tool,
-      penColor: () => strokeColor('pen', this.settings.pen.color, markColors()),
-      highlightColor: () => strokeColor('highlighter', this.settings.highlighter.color, markColors()),
       symbolColor: () => ownColor(this.settings.symbol.color),
       placing: () => this.symbolLib && symbolsOf(this.symbolLib, this.group)[this.currentOf(this.group)],
       library: () => this.symbolLib,
@@ -257,7 +250,7 @@ class Reader {
       delete: () => this.deleteSelected(),
       settings: () => this.settings,
       setSettings: (change) => this.setSettings(change),
-      textPanel: () => this.textPanel(),
+      say: (t) => this.say(t),
       symbolPanel: () => void this.symbolPanel(),
       cycled: (sym) => this.cycledTo(sym),
       setZoom: (z) => this.setZoom(z),
@@ -269,19 +262,14 @@ class Reader {
       commit: (s, focus, selected) => this.commit(s, focus, selected),
       show: (s, slot) => this.showState(s, slot),
       undoTo: (before, slot) => this.undoTo(before, slot),
-      lendForPress: (tool) => { this.stack.lend(tool, 'press'); this.refreshSelection(); },
-      endPressLend: () => { this.stack.end('press'); this.refreshSelection(); },
+      lendForPress: (tool) => { this.tell(this.stack.lend(tool, 'press')); this.refreshSelection(); },
+      endPressLend: () => { this.tell(this.stack.end('press')); this.refreshSelection(); },
       unequip: () => { this.useTool('hand'); this.syncBar(); },
-      lift: () => {},
+      lift: (px) => { this.stage.style.translate = px ? `0 -${px}px` : ''; },
       toggleToolbar: () => this.act('toggleChrome'),
       cutsOn: () => this.editor.enabled,
       cutMenu: (p) => this.editor.menuAt(p.x, p.y),
       loupe: () => this.loupe,
-      textGhost: (at) => this.textGhost(at),
-      newText: (slot, at) => this.newText(slot, at),
-      editText: (sel) => this.editText(sel),
-      typing: () => this.typing.open,
-      finishTyping: () => this.typing.finish(),
     };
     // Each tool gets a host whose chrome layers and button face are its own.
     const hostFor = (tool: ToolName): InputHost & HandHost => ({
@@ -339,7 +327,6 @@ class Reader {
     });
     this.syncBar();
     void loadToolSettings().then((s) => { this.settings = s; this.syncBar(); }, () => {});
-    void fontChoices().then((all) => { this.textFonts = all.filter((c) => c.text); this.syncBar(); }, () => {});
     void savedLibrary().then((lib) => { if (lib && !this.symbolLib) { this.symbolLib = lib; this.syncBar(); } }, () => {});
     this.stage.append(this.spreadEl);
     this.scope.hidden = true;
@@ -438,15 +425,23 @@ class Reader {
   /** Change the tool; the selection ends with it, between Text and a symbol too, and nothing is given back. */
   private useTool(t: ToolChoice) {
     if (t !== this.tool) {
-      this.typing.finish();
-      this.stack.equip(t);
+      this.tell(this.stack.equip(t));
       this.deselect();
     }
   }
 
+  /** Tell the tools what the change to the stack did: each is told in turn, waiting for the one before, and then the new tool draws its chrome. */
+  private tell(change: StackChange<ToolName>) {
+    if (!change.unequipped.length && !change.equipped.length) return;
+    this.told = this.told.then(async () => {
+      for (const t of change.unequipped) await this.tools[t].onUnequipped?.();
+      for (const t of change.equipped) { await this.tools[t].onEquipped?.(); this.tools[t].drawChrome?.(); }
+    }).catch((e) => console.error(e));
+  }
+
   /** End the selection and hide its box; the tool its marking lent, if any, goes back to what it was. The caller shows the toolbar. */
   private deselect() {
-    this.stack.end('selection');
+    this.tell(this.stack.end('selection'));
     this.selected = undefined;
     this.selectionChanged();
   }
@@ -460,8 +455,7 @@ class Reader {
   /** Selecting a marking lends the tool for its kind, keeping the selection; ending the selection takes the lend off. */
   private lend(kind: ToolName) {
     if (this.tool === kind) return;
-    this.typing.finish();
-    this.stack.lend(kind, 'selection');
+    this.tell(this.stack.lend(kind, 'selection'));
   }
 
   /** A long press on a tool's button makes it the tool, if it isn't; when it is, the press leaves it be. */
@@ -513,41 +507,37 @@ class Reader {
     this.syncBar();
   }
 
-  /** The selected marking, when it is of `tool`'s kind. */
-  private selectedOf(tool: 'text' | 'symbol'): Selected | undefined {
-    return this.selected?.mark.kind === tool ? this.selected : undefined;
+  /** The selected marking, when it is a symbol. */
+  private selectedSymbol(): Selected | undefined {
+    return this.selected?.mark.kind === 'symbol' ? this.selected : undefined;
   }
 
-  /** What the Text or Symbols button shows: the selected marking's look, else the settings for the next marking. */
-  private lookOf(tool: 'text' | 'symbol'): Look {
-    const m = this.selectedOf(tool)?.mark;
-    if (m) return { ...(tool === 'text' ? { font: m.font } : {}), color: m.color ?? markColors().color, ...(m.background ? { background: m.background } : {}) };
-    if (tool === 'text') {
-      const t = this.settings.text, background = backgroundOf(t.background, t.backgroundColor);
-      return { font: t.font ?? ACADEMICO, color: ownColor(t.color) ?? markColors().color, ...(background ? { background } : {}) };
-    }
+  /** What the Symbols button shows: the selected symbol's look, else the settings for the next one. */
+  private lookOf(): Look {
+    const m = this.selectedSymbol()?.mark;
+    if (m) return { color: m.color ?? markColors().color, ...(m.background ? { background: m.background } : {}) };
     const background = this.pickedSymbol()?.background;
     return { color: ownColor(this.settings.symbol.color) ?? markColors().color, ...(background ? { background } : {}) };
   }
 
-  /** A colour from the Text or Symbols panel: the selected marking of that kind takes it, and so do new ones. */
-  private panelColor(tool: 'text' | 'symbol', c: ColorChoice) {
-    const sel = this.selectedOf(tool);
+  /** A colour from the Symbols panel: the selected symbol takes it, and so do new ones. */
+  private panelColor(c: ColorChoice) {
+    const sel = this.selectedSymbol();
     if (sel && sel.mark.color !== ownColor(c)) {
       const { color: _, ...rest } = sel.mark, own = ownColor(c);
       const marked: PlacedMark = own ? { ...rest, color: own } : rest;
       this.commit(replaceMarking(this.state, sel.cut, sel.mark, marked), sel.cut, { cut: sel.cut, mark: marked });
     }
-    this.setSettings((s) => (tool === 'text' ? { ...s, text: { ...s.text, color: c } } : { ...s, symbol: { color: c } }));
+    this.setSettings((s) => ({ ...s, symbol: { color: c } }));
   }
 
   /**
-   * A background shape or colour from the Text or Symbols panel: the selected marking of that kind
-   * takes it; for Text, so do new ones; for Symbols, so does the library symbol (the selected
-   * symbol's, or with none selected the tool's), which the next marking of it is a copy of.
+   * A background shape or colour from the Symbols panel: the selected symbol takes it, and so does
+   * the library symbol (the selected symbol's, or with none selected the tool's), which the next
+   * marking of it is a copy of.
    */
-  private panelBackground(tool: 'text' | 'symbol', change: { shape?: BackgroundChoice; color?: ColorChoice }) {
-    const sel = this.selectedOf(tool);
+  private panelBackground(change: { shape?: BackgroundChoice; color?: ColorChoice }) {
+    const sel = this.selectedSymbol();
     const resolve = (was: Background | undefined) => backgroundOf(change.shape ?? was?.shape ?? 'none', change.color ?? was?.color ?? 'default');
     let next: Background | undefined;
     if (sel) {
@@ -558,10 +548,6 @@ class Reader {
         this.commit(replaceMarking(this.state, sel.cut, sel.mark, marked), sel.cut, { cut: sel.cut, mark: marked });
       }
     }
-    if (tool === 'text') {
-      this.setSettings((s) => ({ ...s, text: { ...s.text, ...(change.shape !== undefined ? { background: change.shape } : {}), ...(change.color !== undefined ? { backgroundColor: change.color } : {}) } }));
-      return;
-    }
     const lib = this.symbolLib;
     const at = lib && sel && findSymbol(lib, sel.mark.font, sel.mark.text);
     const sym = sel ? lib && at && symbolsOf(lib, at.group)[at.index] : this.pickedSymbol();
@@ -569,25 +555,6 @@ class Reader {
       const { background: _, ...rest } = sym, was = sel ? next : resolve(sym.background);
       this.setLibrary(replaceSymbol(lib, sym, was ? { ...rest, background: was } : rest));
     } else this.syncBar();
-  }
-
-  /** The Text button's long press: it becomes the tool, and its settings show, or the selected text marking's. */
-  private textPanel() {
-    this.chooseOnLongPress('text');
-    const sel = this.selectedOf('text')?.mark, t = this.settings.text;
-    const v: TextPanel = {
-      fonts: this.textFonts,
-      font: this.typing.font ?? sel?.font ?? t.font ?? ACADEMICO,
-      color: sel ? sel.color ?? 'default' : t.color,
-      background: sel ? sel.background?.shape ?? 'none' : t.background,
-      backgroundColor: sel ? sel.background?.color ?? 'default' : t.backgroundColor,
-    };
-    showTextPanel(this.toolbar.anchor('text'), v, {
-      font: (id) => this.setFont(id),
-      color: (c) => this.panelColor('text', c),
-      background: (b) => this.panelBackground('text', { shape: b }),
-      backgroundColor: (c) => this.panelBackground('text', { color: c }),
-    });
   }
 
   /** The library, made the first time; undefined, having said so, when that fails. */
@@ -606,7 +573,7 @@ class Reader {
       const at = lastSymbol(this.symbolLib!, this.group, this.currents, this.adhocCurrent);
       if (at) this.chooseSymbol(at.group, at.index);
     }
-    const sel = this.selectedOf('symbol')?.mark, was = sel ? sel.background : this.pickedSymbol()?.background;
+    const sel = this.selectedSymbol()?.mark, was = sel ? sel.background : this.pickedSymbol()?.background;
     const v: SymbolSettingsView = {
       color: sel ? sel.color ?? 'default' : this.settings.symbol.color,
       background: was?.shape ?? 'none',
@@ -621,25 +588,13 @@ class Reader {
       add: () => this.addSymbol(),
       edit: () => { if (this.symbolLib) editLibrary({ library: () => this.symbolLib!, change: (lib) => this.setLibrary(lib) }); },
     }, v, {
-      color: (c) => this.panelColor('symbol', c),
-      background: (b) => this.panelBackground('symbol', { shape: b }),
-      backgroundColor: (c) => this.panelBackground('symbol', { color: c }),
+      color: (c) => this.panelColor(c),
+      background: (b) => this.panelBackground({ shape: b }),
+      backgroundColor: (c) => this.panelBackground({ color: c }),
     });
   }
 
-  /** A font from the Text panel: the font of new text, of the text being typed, and of the selected text marking. */
-  private setFont(id: string) {
-    this.setSettings((s) => ({ ...s, text: { ...s.text, font: id } }));
-    // The field takes the font once it has loaded, and the panel shows the field's.
-    if (this.typing.open) void this.typing.setFont(id).then(() => this.syncBar(), (e) => { console.error(e); this.say('Could not change the font.'); });
-    else if (this.selected?.mark.kind === 'text' && this.selected.mark.font !== id) {
-      const sel = this.selected;
-      void this.retext(sel, id, sel.mark.text);
-    }
-    this.syncBar();
-  }
-
-  /* ---------- typing ---------- */
+  /* ---------- the selection ---------- */
 
   private select(s: Selected | undefined) {
     if (s) {
@@ -648,133 +603,6 @@ class Reader {
       if (owner) this.lend(owner.name);
     } else this.deselect();
     this.refreshSelection();
-  }
-
-  /** Shape typed text and store its glyphs; undefined, having said so, when that fails. */
-  private async shaped(font: string, text: string) {
-    try {
-      const shaped = await shapeWith(font, text);
-      await saveGlyphs(font, shaped.paths);
-      return shaped;
-    } catch (e) {
-      console.error(e);
-      this.say('Could not place the text.');
-      return undefined;
-    }
-  }
-
-  /** "Ag" shaped in a font, for the ghost; the font it was asked for, to ask once. */
-  private ghostText: { font: string; glyphs: { gid: number; x: number; y: number }[]; capHeight: number } | undefined;
-  private ghostFont: string | undefined;
-
-  /** Shape "Ag" in the text font, once, so the ghost can show; it shows when this is done. */
-  private prepareGhost() {
-    const font = this.settings.text.font ?? ACADEMICO;
-    if (this.ghostFont === font) return;
-    this.ghostFont = font;
-    this.ghostText = undefined;
-    void (async () => {
-      try {
-        const [shaped, { capHeight }] = await Promise.all([shapeWith(font, 'Ag'), fontMetrics(font)]);
-        await saveGlyphs(font, shaped.paths);
-        if (this.ghostFont === font) this.ghostText = { font, glyphs: shaped.glyphs, capHeight };
-      } catch (e) { console.error(e); }
-    })();
-  }
-
-  /** What a press with Text shows under the finger: "Ag" where typing would start, in the text's size, font and background, its colour tinted towards the selection blue. */
-  private textGhost(at: [number, number]): PlacedMark | undefined {
-    const g = this.ghostText, t = this.settings.text;
-    if (!g || g.font !== (t.font ?? ACADEMICO)) return undefined;
-    const size = textSizeOf(this.state.score);
-    const made = textMark(g.font, 'Ag', g.glyphs, [at[0], at[1] + (g.capHeight / 2) * size], size);
-    if (!made) return undefined;
-    const background = backgroundOf(t.background, t.backgroundColor);
-    return { ...made, color: mix(ownColor(t.color) ?? markColors().color, '#1f6fe0', 0.25), ...(background ? { background } : {}) };
-  }
-
-  /** A tap with Text as the tool: start typing a new text marking with the middle of its capitals at `at`. */
-  private newText(slot: FrameSlot, at: [number, number]) {
-    this.select(undefined);
-    const font = this.settings.text.font ?? ACADEMICO, size = textSizeOf(this.state.score);
-    void (async () => {
-      try {
-        const { capHeight } = await fontMetrics(font);
-        await this.typing.show({
-          slot, font, size, color: ownColor(this.settings.text.color) ?? markColors().color,
-          start: [at[0], at[1] + (capHeight / 2) * size],
-          text: '',
-          done: (text, typed) => void this.placeText(slot, typed, size, text, [at[0], at[1] + (capHeight / 2) * size]),
-          cancel: () => {},
-        });
-      } catch (e) { console.error(e); this.say('Could not place the text.'); }
-    })();
-  }
-
-  /** Typed text, shaped, stored and placed in the frame of `slot`, then selected. */
-  private async placeText(slot: FrameSlot, font: string, size: number, text: string, start: [number, number]) {
-    if (!text.trim()) return;
-    const shaped = await this.shaped(font, text);
-    const made = shaped && textMark(font, text, shaped.glyphs, start, size);
-    if (!made) return;
-    const t = this.settings.text, color = ownColor(t.color), background = backgroundOf(t.background, t.backgroundColor);
-    const mark: PlacedMark = { ...made, ...(color ? { color } : {}), ...(background ? { background } : {}) };
-    const claimed = claimMarking(slot.frame, compactMarking(mark), this.aspects);
-    if (!claimed) return;
-    const { cut, marking } = claimed, state = this.state;
-    this.commit(setInk(state, cut.id, [...(state.ink[cut.id] ?? []), marking]), cut.id);
-  }
-
-  /** The slot showing the cut of a selected text marking, and the start of its baseline in that frame. */
-  private textSite(sel: Selected): { slot: FrameSlot; start: [number, number] } | undefined {
-    const slot = this.slots.find((sl) => sl.frame.items.some((i) => i.cut.id === sel.cut));
-    const item = slot?.frame.items.find((i) => i.cut.id === sel.cut);
-    if (!slot || !item) return undefined;
-    const { mark } = sel, size = mark.size;
-    const [cx, cy] = centreOnFrame(item, mark, this.aspects[item.cut.page]), [bx, by] = baselineStart(mark);
-    return { slot, start: [cx + bx * size, cy + by * size] };
-  }
-
-  /** The selected text marking: open its field on it. */
-  private editText(sel: Selected) {
-    const site = this.textSite(sel);
-    if (!site) return;
-    const { slot, start } = site, { mark } = sel, size = mark.size;
-    void (async () => {
-      try {
-        const font = (await fontChoices()).some((c) => c.id === mark.font) ? mark.font : ACADEMICO;
-        // Without the marking while its field is open.
-        this.paintInk(slot, replaceMarking(this.state, sel.cut, sel.mark));
-        await this.typing.show({
-          slot, font, size, color: mark.color ?? markColors().color, start, text: mark.text,
-          done: (text, typed) => void this.retext(sel, typed, text),
-          cancel: () => { this.paintInk(slot, this.state); this.select(sel); },
-        });
-      } catch (e) {
-        console.error(e);
-        this.say('Could not place the text.');
-        this.paintInk(slot, this.state);
-        this.select(sel);
-      }
-    })();
-  }
-
-  /** The field on `sel` closed with `text`: change the marking, delete it when there is no ink, or leave it. */
-  private async retext(sel: Selected, font: string, text: string) {
-    const site = this.textSite(sel);
-    if (!site) return;
-    const { slot, start } = site;
-    const state = this.state, { mark } = sel;
-    const restore = () => { this.paintInk(slot, this.state); this.select(sel); };
-    if (!state.ink[sel.cut]?.includes(mark)) { this.paintInk(slot, state); return; }
-    if (text === mark.text && font === mark.font) { restore(); return; }
-    const shaped = text.trim() ? await this.shaped(font, text) : undefined;
-    if (text.trim() && !shaped) { restore(); return; }
-    const next = shaped && textMark(font, text, shaped.glyphs, start, mark.size);
-    if (!next) { this.commit(replaceMarking(state, sel.cut, mark), sel.cut); return; }
-    const moved = movedTo(state, slot.frame, sel, next.at, this.aspects, next.size, { text, font, glyphs: next.glyphs });
-    this.commit(moved.state, moved.selected.cut, moved.selected);
-    this.select(moved.selected);
   }
 
   /** The selected marking's delete button: take it away, as one undo step. */
@@ -842,7 +670,7 @@ class Reader {
     this.adhocCurrent = clamp(this.adhocCurrent, lib.adhoc.length);
     if (!symbolsOf(lib, this.group).length) {
       const first = [...lib.groups.keys(), -1].find((g) => symbolsOf(lib, g).length);
-      if (first === undefined) { if (this.tool === 'symbol') this.stack.equip('hand'); }
+      if (first === undefined) { if (this.tool === 'symbol') this.tell(this.stack.equip('hand')); }
       else { this.group = first; this.setCurrent(first, 0); }
     }
     this.syncBar();
@@ -907,7 +735,7 @@ class Reader {
 
   /** The symbol the Symbols button pictures: the selected symbol's, else the last one picked. */
   private buttonSymbol(): LibrarySymbol | undefined {
-    const m = this.selectedOf('symbol')?.mark;
+    const m = this.selectedSymbol()?.mark;
     if (!m) return this.pickedSymbol();
     const lib = this.symbolLib, at = lib && findSymbol(lib, m.font, m.text);
     return lib && at ? symbolsOf(lib, at.group)[at.index] : { font: m.font, text: m.text, scale: 1, glyphs: m.glyphs.map((g) => [...g]) };
@@ -921,10 +749,8 @@ class Reader {
 
   private syncBar() {
     const cur = this.current;
-    if (this.tool === 'text') this.prepareGhost();
-    // Until Text and Symbols set their own, the reader sets their faces.
-    this.setFace('text', textFace(this.lookOf('text')));
-    this.setFace('symbol', symbolFace(this.buttonSymbol(), this.lookOf('symbol')));
+    // Until Symbols sets its own, the reader sets its face.
+    this.setFace('symbol', symbolFace(this.buttonSymbol(), this.lookOf()));
     for (const t of Object.values(this.tools ?? {})) t.onSettingsChanged?.();
     this.showLayers();
     this.toolbar.sync({
@@ -995,7 +821,6 @@ class Reader {
    */
   private async show({ turned = false, place = 'fresh' }: { turned?: boolean; place?: 'keep' | 'fresh' } = {}) {
     const seq = ++this.seq; // a newer show() (turn, resize, edit) supersedes this one
-    this.typing.finish(); // its slot is about to go
     this.ahead.abort();
     this.ahead = new AbortController();
     const W = this.stage.clientWidth;
@@ -1377,7 +1202,9 @@ class Reader {
   private onPop = () => void this.close();
 
   private async close() {
-    this.typing.finish();
+    // Every tool on the stack is unequipped: Text finishes typing.
+    this.tell(this.stack.equip('hand'));
+    await this.told;
     this.scores.closed = true;
     closeOverlay();
     window.removeEventListener('popstate', this.onPop);

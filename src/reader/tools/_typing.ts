@@ -2,9 +2,9 @@
 // marking will be, over the frame so it zooms with it; and the on-screen keyboard kept from
 // covering it.
 
-import { cssFamily, fontMetrics } from '../fonts/fonts';
-import { el } from '../ui/dom';
-import type { FrameSlot } from './_spread';
+import { cssFamily, fontMetrics } from '../../fonts/fonts';
+import { el } from '../../ui/dom';
+import type { FrameSlot } from '../_spread';
 
 export interface TypingRequest {
   slot: FrameSlot;
@@ -37,10 +37,13 @@ export class TypingField {
   /** How far the stage is moved up, in CSS pixels. */
   private shift = 0;
 
-  /** `stage` is moved up while the field would be under the keyboard. */
-  constructor(private stage: HTMLElement) {}
+  /** `lift` moves the music up by that many pixels while the field would be under the keyboard, and puts it back at 0. */
+  constructor(private lift: (px: number) => void) {}
 
   get open() { return !!this.field; }
+
+  /** The frame the open field is on. */
+  get slot(): FrameSlot | undefined { return this.request?.slot; }
 
   /** The font of the open field, if any. */
   get font(): string | undefined { return this.request?.font; }
@@ -88,11 +91,11 @@ export class TypingField {
     const vk = keyboard();
     if (vk) {
       vk.overlaysContent = true;
-      vk.addEventListener('geometrychange', this.lift);
+      vk.addEventListener('geometrychange', this.keepClear);
     }
     field.focus({ preventScroll: true });
     field.setSelectionRange(field.value.length, field.value.length);
-    this.lift();
+    this.keepClear();
   }
 
   /** Show the text in another font, keeping its baseline start, size and what is typed; `done` then gives the font too. */
@@ -105,7 +108,7 @@ export class TypingField {
     request.font = font;
     field.style.fontFamily = `"${family}"`;
     field.style.top = ((request.start[1] - m.ascent * request.size) / request.slot.frame.aspect) * 100 + '%';
-    this.lift();
+    this.keepClear();
   }
 
   /** Close it, calling `done` with what was typed; nothing when it isn't open. */
@@ -124,15 +127,15 @@ export class TypingField {
     field.remove();
     const vk = keyboard();
     if (vk) {
-      vk.removeEventListener('geometrychange', this.lift);
+      vk.removeEventListener('geometrychange', this.keepClear);
       vk.overlaysContent = false;
     }
     this.move(0);
     return request;
   }
 
-  /** Move the stage up when the keyboard would cover the field, or put it back. */
-  private lift = () => {
+  /** Move the music up when the keyboard would cover the field, or put it back. */
+  private keepClear = () => {
     const vk = keyboard();
     if (!this.field || !vk) return;
     const top = vk.boundingRect.height ? vk.boundingRect.top : Infinity;
@@ -143,6 +146,6 @@ export class TypingField {
 
   private move(shift: number) {
     this.shift = shift;
-    this.stage.style.translate = shift ? `0 -${shift}px` : '';
+    this.lift(shift);
   }
 }
