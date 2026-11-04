@@ -33,9 +33,7 @@ export type _Annotation =
 
 /** What each kind of marking does. Lengths are in page widths; `aspect` is the page's height / width. */
 export interface _KindBehaviour<M> {
-  /** How much of it lies between lo and hi in y, from 0 to 1, so the cut that holds most of it gets it, when it is made or moved. */
-  share(m: M, lo: number, hi: number, aspect: number): number;
-  /** Where it is: the cuts whose music holds this point show it; and, when it lies in no cut, the nearest cut gets it. */
+  /** Where it is: a marking made or moved goes on the page of the cut holding this point (the nearest cut, when none does), and the cuts that hold it show it. */
   anchor(m: M): Point;
   /** The same marking with each of its points moved by f, as from frame to page coordinates. */
   map(m: M, f: (p: Point) => Point): M;
@@ -56,7 +54,6 @@ export interface _KindBehaviour<M> {
 /** Strokes were stored before other kinds existed, so they carry no kind of their own. */
 const behaviour = (m: Marking): _KindBehaviour<Marking> => ('kind' in m ? _placed : _strokes) as _KindBehaviour<Marking>;
 
-export const shareOf = (m: Marking, lo: number, hi: number, aspect: number) => behaviour(m).share(m, lo, hi, aspect);
 export const anchorOf = (m: Marking) => behaviour(m).anchor(m);
 export const mapMarking = (m: Marking, f: (p: Point) => Point) => behaviour(m).map(m, f);
 export const hitDistance = (m: Marking, p: Point, radius: number, aspect: number) => behaviour(m).hitDistance(m, p, radius, aspect);

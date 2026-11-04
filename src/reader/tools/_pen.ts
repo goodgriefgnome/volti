@@ -24,7 +24,7 @@ function drawLive(host: ToolHost, slot: FrameSlot, s: Stroke, a: Point, b: Point
 /** Each tool's icon on its button. */
 const PEN_ICONS = { pen: 'M4 20l4-1 11-11-3-3L5 16z', highlighter: 'M5 20h7M7 16l9-9 3 3-9 9H7z' };
 
-/** The pen, in the chosen colour, or the highlighter. A finished stroke goes to the cut that holds most of it. */
+/** The pen, in the chosen colour, or the highlighter. A finished stroke goes on the page of the cut where it starts. */
 export const penTool = (host: ToolHost, kind: 'pen' | 'highlighter'): Tool => {
   /** The colour it draws in. */
   const color = () => strokeColor(kind, host.settings()[kind].color, markColors());

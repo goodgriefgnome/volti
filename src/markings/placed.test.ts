@@ -49,9 +49,7 @@ describe('text markings', () => {
 });
 
 describe('placed markings', () => {
-  it('belong wholly to the band their centre is in', () => {
-    expect(_placed.share(mark, 0.4, 0.6, 1.4)).toBe(1);
-    expect(_placed.share(mark, 0.6, 0.9, 1.4)).toBe(0);
+  it('are anchored at their centre', () => {
     expect(_placed.anchor(mark)).toEqual([0.5, 0.5, 0]);
   });
   it('move their centre through f, leaving the rest', () => {

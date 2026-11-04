@@ -60,25 +60,6 @@ export function _hitDistance(stroke: Stroke, p: Point, radius: number, aspect: n
   return d <= radius ? d : undefined;
 }
 
-/**
- * How much of a path lies between lo and hi in y, as a fraction of its length. Lengths are in
- * page widths, so y is scaled by `aspect`. A path of no length counts as wholly where it starts.
- */
-export function share(points: readonly Point[], lo: number, hi: number, aspect: number): number {
-  let inside = 0, total = 0;
-  for (let i = 1; i < points.length; i++) {
-    const [ax, ay] = points[i - 1], [bx, by] = points[i];
-    const len = Math.hypot(bx - ax, (by - ay) * aspect);
-    if (!len) continue;
-    total += len;
-    const top = Math.min(ay, by), bottom = Math.max(ay, by);
-    if (bottom === top) { if (top >= lo && top <= hi) inside += len; continue; }
-    inside += len * Math.max(0, Math.min(hi, bottom) - Math.max(lo, top)) / (bottom - top);
-  }
-  if (!total) return points.length && points[0][1] >= lo && points[0][1] <= hi ? 1 : 0;
-  return inside / total;
-}
-
 /* ---------- drawing ---------- */
 
 /** Where a point of the page is on the target. */
@@ -106,7 +87,6 @@ function drawStroke(t: DrawTarget, s: Stroke) {
 
 /** What markings/model.ts needs to know about strokes. */
 export const _strokes: _KindBehaviour<Stroke> = {
-  share: (s, lo, hi, aspect) => share(s.points, lo, hi, aspect),
   anchor: (s) => s.points[0],
   map: (s, f) => ({ ...s, points: s.points.map(f) }),
   hitDistance: _hitDistance,

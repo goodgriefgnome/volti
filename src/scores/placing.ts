@@ -100,7 +100,7 @@ export function resizedFrom(ext: Box, corner: 0 | 1 | 2 | 3, p: readonly [number
 
 /**
  * The state with a placed marking moved to `at` on the frame (frame coordinates) and, when `size`
- * is given, resized, put on the page of the cut holding most of it; and the marking as it is now.
+ * is given, resized, put on the page of the cut holding its centre; and the marking as it is now.
  * A marking with a pass takes that cut's; one without stays without. `content` is spread over the
  * moved marking, for its new text, font and glyphs.
  */

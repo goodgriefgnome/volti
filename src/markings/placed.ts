@@ -173,7 +173,6 @@ function drawPlaced(t: DrawTarget, m: PlacedMark) {
 
 /** What markings/model.ts needs to know about placed markings. */
 export const _placed: _KindBehaviour<PlacedMark> = {
-  share: (m, lo, hi) => (m.at[1] >= lo && m.at[1] <= hi ? 1 : 0),
   anchor: (m): Point => [m.at[0], m.at[1], 0],
   map: (m, f) => {
     const [x, y] = f([m.at[0], m.at[1], 0]);
