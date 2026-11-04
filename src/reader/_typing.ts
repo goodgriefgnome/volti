@@ -54,6 +54,7 @@ export class TypingField {
 
     const { slot } = r;
     const field = el('input', 'typing');
+    field.dataset.ownPresses = '';
     field.type = 'text';
     field.enterKeyHint = 'done';
     field.autocapitalize = 'off';

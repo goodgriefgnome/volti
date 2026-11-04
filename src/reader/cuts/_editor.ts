@@ -113,7 +113,6 @@ export class CutEditor {
   /* ---------- pointers ---------- */
 
   onDown(e: PointerEvent): boolean {
-    if (overlayOpen()) { this.dismiss(); return true; }
     if (!this.enabled) return false;
     const target = e.target as Element;
     const tab = target.closest<HTMLElement>('.tab');

@@ -25,6 +25,7 @@ export class SelectionBox {
 
   constructor(onDelete: () => void) {
     this.remove.type = 'button';
+    this.remove.dataset.ownPresses = '';
     this.remove.setAttribute('aria-label', 'Delete');
     this.remove.addEventListener('click', onDelete);
     // The line over the handles, and the button last, so it wins over both where they overlap.

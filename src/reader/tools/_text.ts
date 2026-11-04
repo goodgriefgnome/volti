@@ -4,4 +4,15 @@
 import { placingTool } from './_placing';
 import type { Tool, ToolHost } from './_tool';
 
-export const textTool = (host: ToolHost): Tool => placingTool(host, 'text', (slot, at) => host.newText(slot, at), (at) => host.textGhost(at));
+export const textTool = (host: ToolHost): Tool => {
+  const placing = placingTool(host, 'text', (slot, at) => host.newText(slot, at), (at) => host.textGhost(at));
+  return {
+    ...placing,
+    // While the field is open, every press is Text's, and only finishes typing.
+    suppressions: () => (host.typing() ? { allPresses: true } : placing.suppressions!()),
+    start(press) {
+      if (host.typing()) { host.finishTyping(); return undefined; }
+      return placing.start(press);
+    },
+  };
+};

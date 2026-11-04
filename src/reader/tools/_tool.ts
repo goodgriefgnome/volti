@@ -48,6 +48,10 @@ export interface ToolHost extends ReaderView {
   undoTo(before: State, slot: FrameSlot): void;
   /** Its button shows `face` from now on: set when the tool is made, and whenever its look changes. */
   setButtonFace(face: ButtonFace): void;
+  /** The typing field is open (until Text owns it). */
+  typing(): boolean;
+  /** Close the typing field, placing what is in it (until Text owns it). */
+  finishTyping(): void;
   /** Unequip it: the hand tool is equipped. */
   unequip(): void;
   /** Its chrome layer in a frame. Elements in it with `data-own-presses` get their presses untouched. */

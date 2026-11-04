@@ -1,5 +1,5 @@
-// Pointer and keyboard input on the score: palm rejection, pinch and pan, handing a pointer to the
-// cut editor or the selected tool, and presses, taps and keys that turn pages or hide the toolbar. What each tool does
+// Pointer and keyboard input on the score: palm rejection, pinch, handing a pointer to the cut
+// editor or the equipped tool, and presses, taps and keys that turn pages or hide the toolbar. What each tool does
 // is in tools/.
 
 import type { Point } from '../markings/model';
@@ -8,9 +8,22 @@ import { closeOverlay, overlayOpen } from '../ui/overlay';
 import type { CutEditor } from './cuts/_editor';
 import { gestureForKey, isTap, turnFor, type Gesture } from './_gestures';
 import type { FrameSlot } from './_spread';
-import { placesMarkings, type ToolChoice } from './_toolbar';
+import type { ToolChoice } from './_toolbar';
 import { pressesMarking, selectingTool } from './tools/_placing';
 import type { Press, Tool, ToolHost, ToolName, ToolPointer } from './tools/_tool';
+
+/** What a press goes to, from what is known of it as it goes down. */
+export function _route(f: {
+  onTab: boolean; turn: 'next' | 'prev' | null; toolbarShown: boolean; eraserButton: boolean;
+  onFrame: boolean; selecting: boolean;
+}): 'tab' | 'turn' | 'toolbar-tap' | 'select' | 'tool' | 'hand' {
+  if (f.onTab) return 'tab';
+  if (f.turn) return 'turn';
+  if (!f.toolbarShown) return 'toolbar-tap';
+  if (!f.onFrame) return 'hand';
+  // The stylus's eraser button is Erase's press, which doesn't select.
+  return f.selecting && !f.eraserButton ? 'select' : 'tool';
+}
 
 /**
  * While the pen is down, and this long after it lifts, finger touches are ignored, as they are
@@ -31,19 +44,15 @@ export interface InputHost extends ToolHost {
   annotating(): boolean;
   /** Turn a page, or show or hide the toolbar. */
   act(g: Gesture): void;
-  /** The typing field is open. */
-  typing(): boolean;
-  /** Close the typing field, placing what is in it. */
-  finishTyping(): void;
 }
 
 /**
  * Pointers and keys on the score. A press turns the page as it goes down: at each side while the
  * toolbar is hidden (a tap in the middle shows it, and so does a pinch whose first finger goes down
  * there), and only in the band at each side while it shows (_gestures.ts). Otherwise,
- * with the toolbar showing, two fingers pinch, one drags the spread, a pen or finger uses the
- * selected tool (tools/), and a tap hides the toolbar; the pen writes in the bands too. A palm
- * resting while the pen writes is ignored. The cut editor's tabs get the pointer first.
+ * with the toolbar showing, two fingers pinch, and a pen or finger uses the equipped tool
+ * (tools/): the hand tool pans and a tap hides the toolbar. A palm resting while the pen writes is
+ * ignored. The cut editor's tabs get the pointer first.
  */
 export class Input {
   /** Fingers currently on the screen, by pointer id. */
@@ -121,13 +130,16 @@ export class Input {
 
   private onDown = (e: PointerEvent) => {
     const { host } = this;
-    // While typing, a press inside the field is the field's; one elsewhere only finishes typing.
-    if (host.typing()) {
-      if (!(e.target as Element | null)?.closest?.('.typing')) host.finishTyping();
+    // 1. An open menu or panel: the press only closes it.
+    if (overlayOpen()) { closeOverlay(); return; }
+    // 2. Chrome that takes its own presses (the delete button, the typing field): no capture, no tool.
+    if ((e.target as Element | null)?.closest?.('[data-own-presses]')) return;
+    // 3. While the tool suppresses all presses (Text while typing), each one is the tool's.
+    const equipped = this.tools[host.tool()];
+    if (equipped.suppressions?.().allPresses) {
+      equipped.start(this.press(e, this.slotAt(e.clientX, e.clientY)));
       return;
     }
-    // The selected marking's delete button takes its own click: no capture, no tool.
-    if ((e.target as Element | null)?.closest?.('.selection-delete')) return;
     const now = performance.now();
     if (e.pointerType === 'pen') {
       this.lastPen = now;
@@ -162,30 +174,27 @@ export class Input {
     if (this.active || this.pinching) return;
     if (e.button === 2) return; // right-click opens a menu instead
     host.stage.setPointerCapture(e.pointerId);
-    // A tab takes the pointer before turning, writing or panning.
-    if (host.editor.onDown(e)) return;
-
+    const onTab = host.editor.onDown(e); // 6. a tab takes the pointer
     const eraserButton = e.pointerType === 'pen' && !!(e.buttons & 32); // the pen's eraser end or button
     const tool = eraserButton ? 'eraser' : host.tool();
     const toolbar = host.annotating();
-    // With a symbol or text as the tool the pen acts as a finger: it taps and drags, and turns pages at the sides.
-    const penWrites = toolbar && tool !== 'hand' && !placesMarkings(tool) && e.pointerType === 'pen';
-    const turn = penWrites ? null : turnFor(this.stagePoint(e.clientX, e.clientY).x, host.stage.clientWidth, toolbar);
-    if (turn) {
-      host.editor.cancel(); // no long press on the page it turned from
-      host.act(turn);
-      return;
-    }
-    if (!toolbar) { // the middle, toolbar hidden: only a tap, which shows it
-      this.gesture = { id: e.pointerId, x: e.clientX, y: e.clientY, t: now };
-      return;
-    }
-    // With the hand tool, a press on a placed marking or the selected one's box selects and moves it, as with Text or Symbols; elsewhere it pans.
+    const turn = turnFor(this.stagePoint(e.clientX, e.clientY).x, host.stage.clientWidth, toolbar);
     const hit = this.slotAt(e.clientX, e.clientY);
-    let t = this.tools[tool];
-    if (tool === 'hand' && hit && pressesMarking(host, hit.slot, this.point(e, hit.rect))) t = this.selecting;
-    else if (tool !== 'hand' && !hit) return;
-    const use = t.start(this.press(e, hit));
+    // Until selecting is the reader's, only the hand tool selects: a press on a placed marking or the selected one's box.
+    const onMarking = tool === 'hand' && !!hit && pressesMarking(host, hit.slot, this.point(e, hit.rect));
+    const route = _route({ onTab, turn, toolbarShown: toolbar, eraserButton, onFrame: !!hit, selecting: onMarking && !this.tools[tool].suppressions?.().selecting });
+    switch (route) {
+      case 'tab': return;
+      case 'turn': host.act(turn!); return;
+      case 'toolbar-tap': // the middle, toolbar hidden: only a tap, which shows it
+        this.gesture = { id: e.pointerId, x: e.clientX, y: e.clientY, t: now };
+        return;
+      case 'hand': if (tool !== 'hand') return; break; // off the frames only the hand tool gets presses
+    }
+    const t = route === 'select' ? this.selecting : this.tools[tool];
+    const press = this.press(e, hit);
+    // A tool that declines the press leaves it to the hand tool.
+    const use = t.start(press) ?? (t === this.tools.hand ? undefined : this.tools.hand.start(press));
     if (use) this.active = { id: e.pointerId, type: e.pointerType, slot: hit?.slot, rect: hit?.rect, tool: t, use };
   };
 
