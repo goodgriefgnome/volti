@@ -53,7 +53,7 @@ describe('Reading', () => {
     const other: Setlist = { ...newSetlist('Autumn'), entries: [{ ...newEntry('p'), last: b.id }] };
     const r = new Reading([item], { kind: 'excerpt', excerpt: { last: b.id } }, [other]);
     // A page inserted after the Kyrie, while reading it, joins it.
-    const { state: after } = insertPages(s, { id: b.id, after: true }, 2, 2);
+    const { state: after } = insertPages(s, { id: b.id, after: true }, 2, 2, 1);
     const took = r.edited(0, 'p', s.score.cuts, after);
     const last = after.score.cuts[2].id;
     expect(r.what).toEqual({ kind: 'excerpt', excerpt: { last } });

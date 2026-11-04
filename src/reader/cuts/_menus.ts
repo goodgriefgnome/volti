@@ -1,8 +1,8 @@
 // The cut editor's menus, on a right-click or a long press: on a tab, on the music, or above or
 // below it.
 
-import { cutAt, edgeKind, joinNext, remove, restoreEdge, setPad, tidy } from '../../scores/edits';
-import { type Cut, type State } from '../../scores/model';
+import { cutAt, edgeKind, joinNext, passChoices, remove, restoreEdge, setPad, setPass, tidy } from '../../scores/edits';
+import { passOf, type Cut, type State } from '../../scores/model';
 import { type Placed } from '../../scores/frames';
 import { closeWithOverlay, showMenu, type MenuItem } from '../../ui/overlay';
 import { el } from '../../ui/dom';
@@ -69,7 +69,7 @@ export function tabMenu(host: EditorHost, id: string, kind: Edge | 'pad', x: num
       break;
   }
   items.push(...removeItem(host, c));
-  menuAt(host, x, y, `${top ? 'Top' : 'Bottom'} of this cut (${pageLabel(c)})`, items);
+  menuAt(host, x, y, `${top ? 'Top' : 'Bottom'} of this cut (${pageLabel(c, s.score)})`, items);
 }
 
 /** The menu on a cut's music, pressed `fy` frame widths from the top of the frame. */
@@ -77,10 +77,12 @@ function cutMenu(host: EditorHost, slot: FrameSlot, p: Placed, fy: number, x: nu
   const c = p.cut, s = host.state();
   const at = c.y0 + (fy - p.top) / host.aspects()[c.page];
   const cut = cutAt(s, c.id, at);
-  menuAt(host, x, y, `Cut from ${pageLabel(c)}`, [
+  const label = pageLabel(c, s.score);
+  menuAt(host, x, y, `Cut from ${label}`, [
     ...(cut ? [{ label: 'Cut here', run: () => host.commit(cut, c.id) }] : []),
-    { label: 'Insert original pages before this cut…', run: () => openPicker(host, { id: c.id, after: false }, `Insert original pages before this cut (${pageLabel(c)})`, c.page) },
-    { label: 'Insert original pages after this cut…', run: () => openPicker(host, { id: c.id, after: true }, `Insert original pages after this cut (${pageLabel(c)})`, c.page) },
+    { label: 'Insert original pages before this cut…', run: () => openPicker(host, { id: c.id, after: false }, `Insert original pages before this cut (${label})`, c.page) },
+    { label: 'Insert original pages after this cut…', run: () => openPicker(host, { id: c.id, after: true }, `Insert original pages after this cut (${label})`, c.page) },
+    { label: 'Pass…', run: () => passMenu(host, c, x, y) },
     ...removeItem(host, c),
   ]);
   // Show where "Cut here" would cut while the menu is open.
@@ -90,4 +92,14 @@ function cutMenu(host: EditorHost, slot: FrameSlot, p: Placed, fy: number, x: nu
     slot.ui.append(mark);
     closeWithOverlay(mark);
   }
+}
+
+/** The choice of a cut's pass: each its page's cuts have, and one more; the cut's own is checked. */
+function passMenu(host: EditorHost, c: Cut, x: number, y: number) {
+  const s = host.state(), choices = passChoices(s.score, [c.page]), own = passOf(c);
+  menuAt(host, x, y, `Pass of this cut (${pageLabel(c, s.score)})`, choices.map((n, i) => ({
+    label: `Pass ${n}` + (i === choices.length - 1 ? ' (new)' : ''),
+    checked: n === own,
+    run: () => { if (n !== own) host.commit(setPass(host.state(), c.id, n), c.id); },
+  })));
 }

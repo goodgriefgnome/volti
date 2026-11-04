@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  cutAt, edgeKind, edgeRange, insertPages, joinNext,
-  release, remove, replaceMarking, setEdge, setInk, setPad, setSymbolSize, split, textResized, textSizeOf, tidy,
+  cutAt, edgeKind, edgeRange, insertPages, joinNext, passChoices, passesOf,
+  release, remove, replaceMarking, setEdge, setInk, setPad, setPass, setSymbolSize, split, textResized, textSizeOf, tidy,
 } from './edits';
 import { pack } from './frames';
 import { A4, aspects, cut, _line, _mark, _pages, sarabande, state } from './testing';
@@ -128,14 +128,14 @@ describe('cutAt', () => {
 describe('insertPages', () => {
   it('inserts a range of whole pages in page order, however it was picked', () => {
     const s = state([cut(0), cut(2)]);
-    const r = insertPages(s, { id: s.score.cuts[0].id, after: true }, 2, 1);
+    const r = insertPages(s, { id: s.score.cuts[0].id, after: true }, 2, 1, 1);
     expect(_pages(r.state)).toEqual([[0, 0, 1], [1, 0, 1], [2, 0, 1], [2, 0, 1]]);
     expect(r.first).toBe(r.state.score.cuts[1].id);
   });
   it('leaves the ink as it was', () => {
     const c = cut(0);
     const before = state([c], { 0: [_line(0.1, 0.2)] });
-    expect(insertPages(before, { id: c.id, after: true }, 0, 0).state.ink).toBe(before.ink);
+    expect(insertPages(before, { id: c.id, after: true }, 0, 0, 1).state.ink).toBe(before.ink);
   });
 });
 
@@ -207,5 +207,54 @@ describe('textResized', () => {
     const s = textResized(state([cut(0)], { 3: [symbol] }), 0.014);
     expect(s.score.textScale).toBeCloseTo(0.4);
     expect(s.score.symbolSize).toBeUndefined();
+  });
+});
+
+describe('passes', () => {
+  it('make cuts of one page with different passes unrelated at their edges', () => {
+    const split2 = [cut(0, 0, 0.5), cut(0, 0.5, 1, { pass: 2 })];
+    expect(edgeKind(split2, 0, 'bottom')).toBe('trimmed');
+    expect(edgeKind(split2, 1, 'top')).toBe('trimmed');
+    const cutOut = [cut(0, 0, 0.3), cut(0, 0.6, 1, { pass: 2 })];
+    expect(edgeKind(cutOut, 0, 'bottom')).toBe('trimmed');
+    expect(edgeRange(cutOut, 0, 'bottom')).toEqual([0, 1]);
+    expect(edgeRange(cutOut, 1, 'top')).toEqual([0, 1]);
+    const same = [cut(0, 0, 0.3, { pass: 2 }), cut(0, 0.6, 1, { pass: 2 })];
+    expect(edgeKind(same, 0, 'bottom')).toBe('cutOut');
+    expect(edgeKind([cut(0, 0, 0.5), cut(0, 0.5, 1)], 0, 'bottom')).toBe('split');
+  });
+  it('does not join cuts with different passes', () => {
+    const a = cut(0, 0, 0.5), b = cut(0, 0.5, 1, { pass: 2 });
+    const s = state([a, b]);
+    expect(joinNext(s, a.id)).toBe(s);
+  });
+  it('are kept by both halves of a split, and by a join from the upper cut', () => {
+    const c = cut(0, 0, 1, { pass: 2 });
+    const { state: s } = split(state([c]), c.id, 0.5);
+    expect(s.score.cuts.map((c) => c.pass)).toEqual([2, 2]);
+    expect(joinNext(s, s.score.cuts[0].id).score.cuts).toEqual([{ ...c, y1: 1 }]);
+  });
+  it('are given to inserted cuts, none stored for pass 1', () => {
+    const c = cut(0);
+    const one = insertPages(state([c]), { id: c.id, after: true }, 0, 0, 1);
+    expect('pass' in one.state.score.cuts[1]).toBe(false);
+    const two = insertPages(state([c]), { id: c.id, after: true }, 0, 1, 2);
+    expect(two.state.score.cuts.slice(1).map((c) => c.pass)).toEqual([2, 2]);
+  });
+  it('offer each pass of the pages\' cuts and one more, or pass 1 for pages with none', () => {
+    const score = state([cut(0), cut(1), cut(2, 0, 1, { pass: 3 }), cut(2)]).score;
+    expect(passChoices(score, [5])).toEqual([1]);
+    expect(passChoices(score, [0])).toEqual([1, 2]);
+    expect(passChoices(score, [2])).toEqual([1, 3, 4]);
+    expect(passesOf(score, [0, 2])).toEqual([1, 3]);
+    expect(passesOf(state([cut(0, 0, 1, { pass: 2 }), cut(1)]).score, [0, 1])).toEqual([1, 2]);
+  });
+  it('are set on a cut, none stored for pass 1, leaving the ink', () => {
+    const c = cut(0, 0, 1, { pass: 2 });
+    const before = state([c], { 0: [_line(0.1, 0.2)] });
+    expect('pass' in setPass(before, c.id, 1).score.cuts[0]).toBe(false);
+    const t = setPass(before, c.id, 3);
+    expect(t.score.cuts[0].pass).toBe(3);
+    expect(t.ink).toBe(before.ink);
   });
 });

@@ -42,7 +42,7 @@ describe('followScore', () => {
     expect(out[2]).toBe(setlists[2]);
   });
   it('grows every entry of the excerpt being read, and no other', () => {
-    const r = insertPages(s, { id: excerpt.first!, after: false }, 0, 0);
+    const r = insertPages(s, { id: excerpt.first!, after: false }, 0, 0, 1);
     const third = { ...newEntry('p'), first: excerpt.first }, mixed = [...setlists, list('d', third)];
     const out = followScore(mixed, 'p', s.score.cuts, r.state.score.cuts, excerpt);
     expect(out[0].entries[0].first).toBe(r.first);
@@ -65,7 +65,7 @@ describe('followScore', () => {
     const [, , p3] = s.score.cuts;
     const kyrie = { ...newEntry('p'), last: p3.id }, gloria = { ...newEntry('p'), first: p3.id };
     const mass = [list('m', kyrie, gloria)];
-    const r = insertPages(s, { id: p3.id, after: true }, 0, 0);
+    const r = insertPages(s, { id: p3.id, after: true }, 0, 0, 1);
     const out = followScore(mass, 'p', s.score.cuts, r.state.score.cuts, kyrie)[0].entries;
     expect(out[0].last).toBe(r.first);
     expect(out[1]).toBe(gloria);

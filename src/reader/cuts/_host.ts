@@ -2,7 +2,8 @@
 // share.
 
 import type { Hatches } from '../../render/paint';
-import type { Cut, State } from '../../scores/model';
+import { passesOf } from '../../scores/edits';
+import { passOf, type Cut, type Score, type State } from '../../scores/model';
 import type { Frame } from '../../scores/frames';
 import type { ReaderView } from '../_view';
 
@@ -23,5 +24,8 @@ export interface EditorHost extends ReaderView {
 
 export type Edge = 'top' | 'bottom';
 
-/** The page of the original a cut is from. The score's own pages are its frames. */
-export const pageLabel = (c: Cut) => `original page ${c.page + 1}`;
+/** Whether the cuts of a cut's page have more than one pass among them, so its pass is worth saying. */
+export const passShown = (c: Cut, score: Score) => passesOf(score, [c.page]).length > 1;
+
+/** The page of the original a cut is from, and its pass when its page has more than one. The score's own pages are its frames. */
+export const pageLabel = (c: Cut, score: Score) => `original page ${c.page + 1}` + (passShown(c, score) ? `, pass ${passOf(c)}` : '');

@@ -19,6 +19,13 @@
 .tab.dragging::after { background: var(--select); opacity: 1; }
 .tab:focus-visible { outline: none; }
 .tab:focus-visible::after { opacity: 1; outline: 3px solid var(--select); }
+/* A top tab's pass, on the tab itself, when its page is played in more than one pass. */
+.tab .tab-pass {
+  position: absolute; left: 0; top: 12px; z-index: 1; width: 40px; height: 28px; display: grid; place-items: center;
+  font-size: 10px; font-weight: 600; line-height: 1; white-space: nowrap; color: #ffffff;
+}
+/* Behind its pass, the tab is drawn solid, so the white text reads at 4.5:1 over the music. */
+.tab:has(.tab-pass)::after { opacity: 1; }
 
 .pad-line { position: absolute; left: 0; right: 0; border-top: 1px dashed rgba(0, 0, 0, 0.3); }
 /* The room left on the frame before: this much of the frame's top would fit there. */
@@ -32,3 +39,7 @@
 .thumb canvas, .thumb .thumb-space { width: 84px; background: #ffffff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); }
 .thumb span { font-size: 13px; color: var(--muted); }
 .thumb[aria-pressed="true"] { border-color: var(--select); background: color-mix(in srgb, var(--select) 12%, transparent); }
+/* The insert dialog's choice of pass, under the page strip. */
+.dialog .pass-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.dialog .pass-row .pass-label { color: var(--muted); margin-right: 4px; }
+.dialog .pass-row button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }

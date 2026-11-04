@@ -130,25 +130,25 @@ describe('followEdit', () => {
   });
   it('pages inserted inside an excerpt are played', () => {
     const { s, excerpt } = four();
-    const r = insertPages(s, { id: excerpt.first!, after: true }, 0, 0);
+    const r = insertPages(s, { id: excerpt.first!, after: true }, 0, 0, 1);
     const f = followEdit(excerpt, s.score.cuts, r.state.score.cuts);
     expect(f).toBe(excerpt);
     expect(plays(r.state, f).map((c) => c[0])).toEqual([1, 0, 2]);
   });
   it('pages inserted at an excerpt\'s edges stay outside it, unless it grows', () => {
     const { s, excerpt } = four();
-    const before = insertPages(s, { id: excerpt.first!, after: false }, 0, 1);
+    const before = insertPages(s, { id: excerpt.first!, after: false }, 0, 1, 1);
     expect(followEdit(excerpt, s.score.cuts, before.state.score.cuts)).toBe(excerpt);
     const grown = followEdit(excerpt, s.score.cuts, before.state.score.cuts, true);
     expect(grown.first).toBe(before.first);
     expect(plays(before.state, grown).map((c) => c[0])).toEqual([0, 1, 1, 2]);
 
-    const after = insertPages(s, { id: excerpt.last!, after: true }, 0, 0);
+    const after = insertPages(s, { id: excerpt.last!, after: true }, 0, 0, 1);
     expect(plays(after.state, followEdit(excerpt, s.score.cuts, after.state.score.cuts, true)).map((c) => c[0])).toEqual([1, 2, 0]);
   });
   it('a whole score stays whole whatever is inserted at its ends', () => {
     const { s } = four();
-    const r = insertPages(s, { id: ids(s)[3], after: true }, 0, 0);
+    const r = insertPages(s, { id: ids(s)[3], after: true }, 0, 0, 1);
     expect(followEdit({}, s.score.cuts, r.state.score.cuts, true)).toEqual({});
   });
 });
@@ -215,7 +215,7 @@ describe('followExcerpts', () => {
   });
   it('grows the name of the excerpt being read, and only that one', () => {
     const { s, b, c } = mass();
-    const r = insertPages(s, { id: b.id, after: true }, 0, 0);
+    const r = insertPages(s, { id: b.id, after: true }, 0, 0, 1);
     const names = followExcerpts(s.score.excerpts, s.score.cuts, r.state.score.cuts, { last: b.id })!;
     expect(names[0].last).toBe(r.first);
     expect(names[1].first).toBe(c.id);

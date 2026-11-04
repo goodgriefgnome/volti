@@ -1,16 +1,19 @@
-// Every edit to a score's played order: cutting, joining, trimming, padding, removing cuts and
-// inserting pages, and setting a page's ink. Each takes a State and returns a new one; edits to the
+// Every edit to a score's played order: cutting, joining, trimming, padding, removing cuts,
+// inserting pages and setting a cut's pass, and setting a page's ink. Each takes a State and returns a new one; edits to the
 // cuts leave the ink as it is. Pure: no DOM, no storage.
 
 import type { Marking } from '../markings/model';
-import { _EPS, _newCutId, symbolSizeOf, textScaleOf, type Aspects, type Cut, type Score, type State } from './model';
+import { _EPS, _newCutId, passOf, symbolSizeOf, textScaleOf, type Aspects, type Cut, type Score, type State } from './model';
 
 export const _MIN_CUT = 0.004;
 export const _MIN_SPLIT = 0.01;
 export const _MAX_PAD = 0.6;
 
-/** Same page and in page order, so the gap between them (if any) is music cut out. */
-const inOrder = (a: Cut, b: Cut) => a.page === b.page && b.y0 >= a.y1 - _EPS;
+/**
+ * Same page and pass, and in page order, so the gap between them (if any) is music cut out. Cuts of
+ * a page with different passes are as unrelated as cuts of different pages.
+ */
+const inOrder = (a: Cut, b: Cut) => a.page === b.page && passOf(a) === passOf(b) && b.y0 >= a.y1 - _EPS;
 
 export type _EdgeKind = 'cutOut' | 'split' | 'trimmed' | 'whole';
 
@@ -116,11 +119,31 @@ const place = (s: State, at: InsertAt, add: Cut[]): Cut[] => {
   return [...cuts.slice(0, k), ...add, ...cuts.slice(k)];
 };
 
-/** Insert whole pages `from`..`to` (0-based), always in page order. Returns the id of the first new cut. */
-export function insertPages(s: State, at: InsertAt, from: number, to: number): { state: State; first: string } {
+/** Insert whole pages `from`..`to` (0-based), always in page order, each cut of pass `pass`. Returns the id of the first new cut. */
+export function insertPages(s: State, at: InsertAt, from: number, to: number, pass: number): { state: State; first: string } {
   const add: Cut[] = [];
-  for (let p = Math.min(from, to); p <= Math.max(from, to); p++) add.push({ id: _newCutId(), page: p, y0: 0, y1: 1 });
+  for (let p = Math.min(from, to); p <= Math.max(from, to); p++) add.push({ id: _newCutId(), page: p, y0: 0, y1: 1, ...(pass > 1 ? { pass } : {}) });
   return { state: tidy({ ...s, score: { ...s.score, cuts: place(s, at, add) } }), first: add[0].id };
+}
+
+/** Each pass the score's cuts of `pages` have, in order. */
+export function passesOf(score: Score, pages: readonly number[]): number[] {
+  const passes = new Set(score.cuts.filter((c) => pages.includes(c.page)).map(passOf));
+  return [...passes].sort((a, b) => a - b);
+}
+
+/** The passes offered for cuts of `pages`: each they have, and one more (the highest plus 1); [1] when they have none. The last is the one chosen at first. */
+export function passChoices(score: Score, pages: readonly number[]): number[] {
+  const passes = passesOf(score, pages);
+  return passes.length ? [...passes, passes.at(-1)! + 1] : [1];
+}
+
+/** A cut given pass `pass` (none stored for pass 1). */
+export function setPass(s: State, id: string, pass: number): State {
+  return mapCut(s, id, (c) => {
+    const { pass: _, ...rest } = c;
+    return pass > 1 ? { ...rest, pass } : rest;
+  });
 }
 
 /** Set the markings of a page of the original. */

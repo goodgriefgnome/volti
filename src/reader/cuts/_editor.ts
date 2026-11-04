@@ -5,11 +5,11 @@
 import type { Hatches } from '../../render/paint';
 import { edgeRange, release, setEdge, setPad, tidy } from '../../scores/edits';
 import { freeze, roomBefore, type Frame } from '../../scores/frames';
-import { type Cut, type State } from '../../scores/model';
+import { passOf, type Cut, type State } from '../../scores/model';
 import { closeOverlay, overlayOpen } from '../../ui/overlay';
 import { el } from '../../ui/dom';
 import type { FrameSlot } from '../_spread';
-import { pageLabel, type Edge, type EditorHost } from './_host';
+import { pageLabel, passShown, type Edge, type EditorHost } from './_host';
 import { openContext, tabMenu } from './_menus';
 
 type Drag =
@@ -98,7 +98,10 @@ export class CutEditor {
     b.dataset.cut = c.id;
     b.dataset.edge = kind;
     b.style.top = top;
-    b.setAttribute('aria-label', kind === 'pad' ? 'Space above the music' : `${kind === 'top' ? 'Top' : 'Bottom'} of this cut (${pageLabel(c)})`);
+    const score = this.host.state().score;
+    b.setAttribute('aria-label', kind === 'pad' ? 'Space above the music' : `${kind === 'top' ? 'Top' : 'Bottom'} of this cut (${pageLabel(c, score)})`);
+    // While Cuts is on, the top tab says which pass the cut plays, when its page has more than one.
+    if (kind === 'top' && passShown(c, score)) b.append(el('span', 'tab-pass', `Pass ${passOf(c)}`));
     const d = this.drag;
     if (d && d.moved && d.id === c.id && (d.kind === 'pad' ? 'pad' : d.edge) === kind) b.classList.add('dragging');
     // From the keyboard, a tab opens its menu.
