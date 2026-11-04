@@ -1,10 +1,9 @@
-// Every edit to a score's played order: cutting, joining, trimming, padding, removing and archiving
-// cuts, inserting pages, and setting a cut's ink. Each takes a State and returns a new one, keeping
-// the ink in step. Pure: no DOM, no storage.
+// Every edit to a score's played order: cutting, joining, trimming, padding, removing cuts and
+// inserting pages, and setting a page's ink. Each takes a State and returns a new one; edits to the
+// cuts leave the ink as it is. Pure: no DOM, no storage.
 
-import { copyMarking, type Marking } from '../markings/model';
+import type { Marking } from '../markings/model';
 import { _EPS, _newCutId, symbolSizeOf, textScaleOf, type Aspects, type Cut, type Score, type State } from './model';
-import { _claimFirstPass, _splitMarkings } from './ownership';
 
 export const _MIN_CUT = 0.004;
 export const _MIN_SPLIT = 0.01;
@@ -55,33 +54,19 @@ export function setPad(s: State, id: string, pad: number, aspects: Aspects): Sta
   });
 }
 
-/** End a drag. A cut dragged to nothing is removed as it was before the drag, so its ink is archived whole. */
+/** End a drag. A cut dragged to nothing is removed as it was before the drag. */
 export function release(s: State, before: State, id: string): State {
   const c = s.score.cuts.find((c) => c.id === id);
   if (c && c.y1 - c.y0 <= _MIN_CUT) return tidy(remove(before, id));
   return tidy(s);
 }
 
-const hasOwnInk = (s: State, c: Cut) => !!c.ownInk && !!s.ink[c.id]?.length;
-
-/** Take a cut out of the played order: archived if it has ink of its own, otherwise deleted. */
+/** Take a cut out of the played order. Its page's ink stays. */
 export function remove(s: State, id: string): State {
-  const { cuts, archived } = s.score;
+  const cuts = s.score.cuts;
   const c = cuts.find((c) => c.id === id);
   if (!c || cuts.length <= 1) return s;
-  const keep = hasOwnInk(s, c);
-  const ink = { ...s.ink };
-  if (!keep) delete ink[id];
-  return {
-    score: { ...s.score, cuts: cuts.filter((x) => x !== c), archived: keep ? [...archived, c] : archived },
-    ink,
-  };
-}
-
-export function deleteArchived(s: State, id: string): State {
-  const ink = { ...s.ink };
-  delete ink[id];
-  return { score: { ...s.score, archived: s.score.archived.filter((c) => c.id !== id) }, ink };
+  return { ...s, score: { ...s.score, cuts: cuts.filter((x) => x !== c) } };
 }
 
 /** Merge cut `id` with the one after it (same page, in order): joins a split, or restores the music cut out. */
@@ -89,32 +74,23 @@ export function joinNext(s: State, id: string): State {
   const cuts = s.score.cuts, i = cuts.findIndex((c) => c.id === id);
   const a = cuts[i], b = cuts[i + 1];
   if (!a || !b || !inOrder(a, b)) return s;
-  const merged: Cut = { ...a, y1: b.y1, ...(a.ownInk || b.ownInk ? { ownInk: true } : {}) };
-  const ink = { ...s.ink };
-  const markings = [...(ink[a.id] ?? []), ...(ink[b.id] ?? [])];
-  delete ink[b.id];
-  if (markings.length) ink[a.id] = markings;
-  return { score: { ...s.score, cuts: cuts.flatMap((c) => (c === a ? [merged] : c === b ? [] : [c])) }, ink };
+  const merged: Cut = { ...a, y1: b.y1 };
+  return { ...s, score: { ...s.score, cuts: cuts.flatMap((c) => (c === a ? [merged] : c === b ? [] : [c])) } };
 }
 
 export function restoreEdge(s: State, id: string, edge: 'top' | 'bottom'): State {
   return mapCut(s, id, (c) => (edge === 'top' ? { ...c, y0: 0 } : { ...c, y1: 1 }));
 }
 
-/** Split a cut at y (a fraction of the page height). Each marking goes to the half that holds most of it. */
-export function split(s: State, id: string, y: number, aspects: Aspects): { state: State; lower: string } {
+/** Split a cut at y (a fraction of the page height). */
+export function split(s: State, id: string, y: number): { state: State; lower: string } {
   const cuts = s.score.cuts, i = cuts.findIndex((c) => c.id === id);
   const c = cuts[i];
   const upper: Cut = { ...c, y1: y };
   const { pad: _, ...rest } = c;
   const lower: Cut = { ...rest, id: _newCutId(), y0: y };
-  const [up, down] = _splitMarkings(s.ink[c.id] ?? [], y, aspects[c.page]);
-  const ink = { ...s.ink };
-  delete ink[c.id];
-  if (up.length) ink[upper.id] = up;
-  if (down.length) ink[lower.id] = down;
   return {
-    state: { score: { ...s.score, cuts: [...cuts.slice(0, i), upper, lower, ...cuts.slice(i + 1)] }, ink },
+    state: { ...s, score: { ...s.score, cuts: [...cuts.slice(0, i), upper, lower, ...cuts.slice(i + 1)] } },
     lower: lower.id,
   };
 }
@@ -126,10 +102,10 @@ export function tidy(s: State): State {
 }
 
 /** Cut a cut in two at y (a fraction of its page's height), unless either half would be a sliver. */
-export function cutAt(s: State, id: string, y: number, aspects: Aspects): State | null {
+export function cutAt(s: State, id: string, y: number): State | null {
   const c = s.score.cuts.find((c) => c.id === id);
   if (!c || y - c.y0 < _MIN_SPLIT || c.y1 - y < _MIN_SPLIT) return null;
-  return split(s, id, y, aspects).state;
+  return split(s, id, y).state;
 }
 
 export interface InsertAt { id: string; after: boolean }
@@ -140,39 +116,18 @@ const place = (s: State, at: InsertAt, add: Cut[]): Cut[] => {
   return [...cuts.slice(0, k), ...add, ...cuts.slice(k)];
 };
 
-/**
- * Insert whole pages `from`..`to` (0-based), always in page order.
- * With `copyInk`, each new cut gets a copy of the markings from the first time each part of
- * its page is played. Returns the id of the first new cut.
- */
-export function insertPages(
-  s: State, at: InsertAt, from: number, to: number, copyInk: boolean, aspects: Aspects,
-): { state: State; first: string } {
+/** Insert whole pages `from`..`to` (0-based), always in page order. Returns the id of the first new cut. */
+export function insertPages(s: State, at: InsertAt, from: number, to: number): { state: State; first: string } {
   const add: Cut[] = [];
   for (let p = Math.min(from, to); p <= Math.max(from, to); p++) add.push({ id: _newCutId(), page: p, y0: 0, y1: 1 });
-  const ink = { ...s.ink };
-  if (copyInk) {
-    for (const c of add) {
-      const markings = _claimFirstPass(s.score.cuts.filter((x) => x.page === c.page), s.ink, aspects[c.page]);
-      if (markings.length) ink[c.id] = markings.map(copyMarking);
-    }
-  }
-  return { state: tidy({ score: { ...s.score, cuts: place(s, at, add) }, ink }), first: add[0].id };
+  return { state: tidy({ ...s, score: { ...s.score, cuts: place(s, at, add) } }), first: add[0].id };
 }
 
-/** Put an archived cut back into the played order, with its ink. */
-export function insertArchived(s: State, at: InsertAt, id: string): State {
-  const c = s.score.archived.find((c) => c.id === id);
-  if (!c) return s;
-  const score = { ...s.score, cuts: place(s, at, [c]), archived: s.score.archived.filter((x) => x !== c) };
-  return tidy({ ...s, score });
-}
-
-/** Record that a cut's ink was changed by hand, then set its markings. */
-export function setInk(s: State, id: string, markings: Marking[]): State {
+/** Set the markings of a page of the original. */
+export function setInk(s: State, page: number, markings: Marking[]): State {
   const ink = { ...s.ink };
-  if (markings.length) ink[id] = markings; else delete ink[id];
-  return { ...mapCut(s, id, (c) => (c.ownInk ? c : { ...c, ownInk: true })), ink };
+  if (markings.length) ink[page] = markings; else delete ink[page];
+  return { ...s, ink };
 }
 
 /** The score's symbol size set, which what placed it or resized it implied. */
@@ -183,7 +138,7 @@ export const textSizeOf = (score: Score) => symbolSizeOf(score) * textScaleOf(sc
 
 /**
  * After a text marking is resized to `size`: the score's text scale becomes size / its symbol
- * size; but while its ink (every cut's, archived ones included) has no symbol, its symbol size
+ * size; but while its ink (every page's) has no symbol, its symbol size
  * becomes size / its text scale instead.
  */
 export function textResized(s: State, size: number): State {
@@ -192,8 +147,8 @@ export function textResized(s: State, size: number): State {
   return setSymbolSize(s, size / textScaleOf(s.score));
 }
 
-/** A marking of a cut replaced by `next` (taken away when there is none), as an edit by hand. */
-export function replaceMarking(s: State, cutId: string, old: Marking, next?: Marking): State {
-  const list = (s.ink[cutId] ?? []).flatMap((m) => (m !== old ? [m] : next ? [next] : []));
-  return setInk(s, cutId, list);
+/** A marking of a page replaced by `next` (taken away when there is none), as an edit by hand. */
+export function replaceMarking(s: State, page: number, old: Marking, next?: Marking): State {
+  const list = (s.ink[page] ?? []).flatMap((m) => (m !== old ? [m] : next ? [next] : []));
+  return setInk(s, page, list);
 }

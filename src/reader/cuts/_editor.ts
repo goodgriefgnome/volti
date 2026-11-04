@@ -9,7 +9,7 @@ import { type Cut, type State } from '../../scores/model';
 import { closeOverlay, overlayOpen } from '../../ui/overlay';
 import { el } from '../../ui/dom';
 import type { FrameSlot } from '../_spread';
-import { pageLabel, sayArchived, type Edge, type EditorHost } from './_host';
+import { pageLabel, type Edge, type EditorHost } from './_host';
 import { openContext, tabMenu } from './_menus';
 
 type Drag =
@@ -170,9 +170,7 @@ export class CutEditor {
     if (!d.moved) return true; // a tap on a tab does nothing
     if (cancelled) { this.host.preview(null, null); return true; }
     if (d.kind === 'pad') { this.host.commit(tidy(d.current), d.id); return true; }
-    const after = release(d.current, d.before, d.id);
-    this.host.commit(after, d.id);
-    if (after.score.archived.length > d.before.score.archived.length) sayArchived(this.host);
+    this.host.commit(release(d.current, d.before, d.id), d.id);
     return true;
   }
 

@@ -64,7 +64,7 @@ export const penTool = (host: ToolHost, kind: 'pen' | 'highlighter'): Tool => {
           const claimed = claimMarking(slot.frame, { ...stroke, points: compact(stroke.points) }, host.aspects());
           if (!claimed) { host.paintInk(slot); return; }
           const { cut, marking } = claimed, state = host.state();
-          host.commit(setInk(state, cut.id, [...(state.ink[cut.id] ?? []), marking]), cut.id);
+          host.commit(setInk(state, cut.page, [...(state.ink[cut.page] ?? []), marking]), cut.id);
         },
         drop() {
           host.paintInk(slot);

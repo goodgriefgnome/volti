@@ -2,12 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { type Excerpt, namedExcerptOf, setName, excerptCuts } from '../scores/excerpts';
 import { insertPages, split } from '../scores/edits';
 import type { Score, State } from '../scores/model';
-import { A4, cut, state } from '../scores/testing';
+import { cut, state } from '../scores/testing';
 import {
   addEntries, defaultSetlist, duplicate, followScore, moveEntry, moveExcerpt, newEntry, newSetlist, setEntryExcerpt, withSetlist, type Setlist,
 } from './model';
-
-const aspects = [A4, A4, A4, A4];
 
 /** The cuts an excerpt plays, as [page, y0, y1]. */
 const plays = (s: State, excerpt: Excerpt) => excerptCuts(s.score.cuts, excerpt).map((c) => [c.page, c.y0, c.y1]);
@@ -36,7 +34,7 @@ describe('followScore', () => {
   const setlists = [list('a', e1, other), list('b', e2), list('c', other)];
 
   it('updates every entry of the score and leaves other setlists as they were', () => {
-    const r = split(s, excerpt.last!, 0.5, aspects);
+    const r = split(s, excerpt.last!, 0.5);
     const out = followScore(setlists, 'p', s.score.cuts, r.state.score.cuts);
     expect(out[0].entries[0].last).toBe(r.lower);
     expect(out[0].entries[1]).toBe(other);
@@ -44,7 +42,7 @@ describe('followScore', () => {
     expect(out[2]).toBe(setlists[2]);
   });
   it('grows every entry of the excerpt being read, and no other', () => {
-    const r = insertPages(s, { id: excerpt.first!, after: false }, 0, 0, false, aspects);
+    const r = insertPages(s, { id: excerpt.first!, after: false }, 0, 0);
     const third = { ...newEntry('p'), first: excerpt.first }, mixed = [...setlists, list('d', third)];
     const out = followScore(mixed, 'p', s.score.cuts, r.state.score.cuts, excerpt);
     expect(out[0].entries[0].first).toBe(r.first);
@@ -56,7 +54,7 @@ describe('followScore', () => {
     const [p1, , p3] = s.score.cuts;
     const kyrie = { ...newEntry('p'), last: p1.id }, gloria = { ...newEntry('p'), first: p3.id };
     const mass = [list('m', kyrie, other, gloria)];
-    const r = split(s, p1.id, 0.5, aspects).state;
+    const r = split(s, p1.id, 0.5).state;
     const out = followScore(mass, 'p', s.score.cuts, r.score.cuts)[0].entries;
     expect(plays(r, out[0])).toEqual([[0, 0, 0.5], [0, 0.5, 1]]);
     expect(out[1]).toBe(other);
@@ -67,7 +65,7 @@ describe('followScore', () => {
     const [, , p3] = s.score.cuts;
     const kyrie = { ...newEntry('p'), last: p3.id }, gloria = { ...newEntry('p'), first: p3.id };
     const mass = [list('m', kyrie, gloria)];
-    const r = insertPages(s, { id: p3.id, after: true }, 0, 0, false, aspects);
+    const r = insertPages(s, { id: p3.id, after: true }, 0, 0);
     const out = followScore(mass, 'p', s.score.cuts, r.state.score.cuts, kyrie)[0].entries;
     expect(out[0].last).toBe(r.first);
     expect(out[1]).toBe(gloria);

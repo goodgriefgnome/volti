@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
-  cutAt, deleteArchived, edgeKind, edgeRange, insertArchived, insertPages, joinNext,
+  cutAt, edgeKind, edgeRange, insertPages, joinNext,
   release, remove, replaceMarking, setEdge, setInk, setPad, setSymbolSize, split, textResized, textSizeOf, tidy,
 } from './edits';
-import type { Stroke } from '../markings/stroke';
 import { pack } from './frames';
 import { A4, aspects, cut, _line, _mark, _pages, sarabande, state } from './testing';
 
@@ -44,63 +43,46 @@ describe('tidy', () => {
   });
 });
 
-describe('remove and archive', () => {
-  it('deletes a cut without ink of its own, and any copied ink', () => {
+describe('remove', () => {
+  it('takes the cut out, leaving its page\'s ink', () => {
     const a = cut(0), b = cut(1);
-    const s = remove(state([a, b], { [b.id]: [_line(0.1, 0.2)] }), b.id);
+    const before = state([a, b], { 1: [_line(0.1, 0.2)] });
+    const s = remove(before, b.id);
     expect(s.score.cuts).toEqual([a]);
-    expect(s.score.archived).toEqual([]);
-    expect(s.ink[b.id]).toBeUndefined();
-  });
-  it('archives a cut whose ink was drawn on it, keeping the ink', () => {
-    const a = cut(0), b = cut(1);
-    let s = setInk(state([a, b]), b.id, [_line(0.1, 0.2)]);
-    s = remove(s, b.id);
-    expect(s.score.cuts.map((c) => c.id)).toEqual([a.id]);
-    expect(s.score.archived.map((c) => c.id)).toEqual([b.id]);
-    expect(s.ink[b.id]).toHaveLength(1);
-  });
-  it('deletes a cut whose own ink was all erased', () => {
-    const a = cut(0), b = cut(1);
-    const s = remove(setInk(state([a, b]), b.id, []), b.id);
-    expect(s.score.archived).toEqual([]);
+    expect(s.ink).toBe(before.ink);
   });
   it('never removes the last cut', () => {
     const s = state([cut(0)]);
     expect(remove(s, s.score.cuts[0].id)).toBe(s);
   });
-  it('brings an archived cut back with its id and ink', () => {
-    const a = cut(0), b = cut(1, 0.2, 0.7);
-    let s = remove(setInk(state([a, b]), b.id, [_line(0.3, 0.4)]), b.id);
-    s = insertArchived(s, { id: a.id, after: false }, b.id);
-    expect(s.score.cuts.map((c) => c.id)).toEqual([b.id, a.id]);
-    expect(s.score.cuts[0]).toMatchObject({ y0: 0.2, y1: 0.7 });
-    expect(s.score.archived).toEqual([]);
-    expect(s.ink[b.id]).toHaveLength(1);
-  });
-  it('deletes an archived cut for good', () => {
-    const a = cut(0), b = cut(1);
-    let s = remove(setInk(state([a, b]), b.id, [_line(0.3, 0.4)]), b.id);
-    s = deleteArchived(s, b.id);
-    expect(s.score.archived).toEqual([]);
-    expect(s.ink[b.id]).toBeUndefined();
-  });
-  it('archives a cut dragged to nothing as it was before the drag', () => {
+  it('removes a cut dragged to nothing as it was before the drag, leaving the ink', () => {
     const a = cut(0), b = cut(1, 0.2, 0.9);
-    const before = setInk(state([a, b]), b.id, [_line(0.3, 0.4)]);
+    const before = state([a, b], { 1: [_line(0.3, 0.4)] });
     const dragged = setEdge(before, b.id, 'bottom', 0, edgeRange(before.score.cuts, 1, 'bottom'));
     const s = release(dragged, before, b.id);
     expect(s.score.cuts.map((c) => c.id)).toEqual([a.id]);
-    expect(s.score.archived[0]).toMatchObject({ id: b.id, y0: 0.2, y1: 0.9 });
+    expect(s.ink).toEqual(before.ink);
+  });
+});
+
+describe('moving an edge', () => {
+  it('leaves the ink as it was', () => {
+    const a = cut(0, 0, 0.5), b = cut(0, 0.5, 1);
+    const before = state([a, b], { 0: [_line(0.4, 0.45)] });
+    const s = release(setEdge(before, a.id, 'bottom', 0.3, edgeRange(before.score.cuts, 0, 'bottom')), before, a.id);
+    expect(s.score.cuts[0].y1).toBe(0.3);
+    expect(s.ink).toEqual(before.ink);
   });
 });
 
 describe('join and restore', () => {
-  it('restores music cut out by merging the two cuts and their ink', () => {
+  it('restores music cut out by merging the two cuts, leaving the ink', () => {
     const a = cut(0, 0, 0.3), b = cut(0, 0.6, 1);
-    const s = joinNext(state([a, b], { [b.id]: [_line(0.7, 0.8)] }), a.id);
+    const before = state([a, b], { 0: [_line(0.7, 0.8)] });
+    const s = joinNext(before, a.id);
     expect(_pages(s)).toEqual([[0, 0, 1]]);
-    expect(s.ink[a.id]).toHaveLength(1);
+    expect(s.score.cuts[0].id).toBe(a.id);
+    expect(s.ink).toBe(before.ink);
   });
   it('does not join cuts of different pages, or a repeat', () => {
     const s = sarabande();
@@ -109,17 +91,17 @@ describe('join and restore', () => {
 });
 
 describe('split', () => {
-  it('gives each stroke to the half that holds most of its length', () => {
+  it('cuts the cut in two, leaving the ink', () => {
     const c = cut(0);
-    const strokes = [_line(0.1, 0.3), _line(0.4, 0.55), _line(0.45, 0.9)];
-    const { state: s, lower } = split(state([c], { [c.id]: strokes }), c.id, 0.5, aspects);
+    const before = state([c], { 0: [_line(0.1, 0.3), _line(0.45, 0.9)] });
+    const { state: s, lower } = split(before, c.id, 0.5);
     expect(_pages(s)).toEqual([[0, 0, 0.5], [0, 0.5, 1]]);
-    expect(s.ink[c.id]).toEqual(strokes.slice(0, 2));
-    expect(s.ink[lower]).toEqual(strokes.slice(2));
+    expect(s.score.cuts[1].id).toBe(lower);
+    expect(s.ink).toBe(before.ink);
   });
   it('keeps the pad on the upper half', () => {
     const c = cut(0, 0, 1, { pad: 0.1 });
-    const { state: s } = split(state([c]), c.id, 0.5, aspects);
+    const { state: s } = split(state([c]), c.id, 0.5);
     expect(s.score.cuts.map((c) => c.pad)).toEqual([0.1, undefined]);
   });
 });
@@ -127,47 +109,33 @@ describe('split', () => {
 describe('cutAt', () => {
   it('cuts a cut in two where you pressed, and the halves stay apart', () => {
     const c = cut(0, 0.1, 0.9);
-    const s = cutAt(state([c, cut(1)]), c.id, 0.4, aspects)!;
+    const s = cutAt(state([c, cut(1)]), c.id, 0.4)!;
     expect(_pages(s)).toEqual([[0, 0.1, 0.4], [0, 0.4, 0.9], [1, 0, 1]]);
     expect(edgeKind(s.score.cuts, 0, 'bottom')).toBe('split');
   });
   it('lets a split carry the top of a page onto the frame before', () => {
     const t = sarabande();
-    const r = cutAt(t, t.score.cuts[4].id, 0.3, aspects)!;
+    const r = cutAt(t, t.score.cuts[4].id, 0.3)!;
     expect(pack(r.score.cuts, aspects).map((f) => f.items.length)).toEqual([1, 1, 3, 1]);
   });
   it('will not leave a sliver', () => {
     const c = cut(0, 0.1, 0.9);
-    expect(cutAt(state([c]), c.id, 0.105, aspects)).toBeNull();
-    expect(cutAt(state([c]), c.id, 0.895, aspects)).toBeNull();
+    expect(cutAt(state([c]), c.id, 0.105)).toBeNull();
+    expect(cutAt(state([c]), c.id, 0.895)).toBeNull();
   });
 });
 
 describe('insertPages', () => {
   it('inserts a range of whole pages in page order, however it was picked', () => {
     const s = state([cut(0), cut(2)]);
-    const r = insertPages(s, { id: s.score.cuts[0].id, after: true }, 2, 1, false, aspects);
+    const r = insertPages(s, { id: s.score.cuts[0].id, after: true }, 2, 1);
     expect(_pages(r.state)).toEqual([[0, 0, 1], [1, 0, 1], [2, 0, 1], [2, 0, 1]]);
     expect(r.first).toBe(r.state.score.cuts[1].id);
   });
-  it('copies the markings from the first time each part of the page is played', () => {
-    const top = cut(1, 0, 0.5), bottom = cut(1, 0.5, 1), again = cut(1, 0.3, 1);
-    const ink = {
-      [top.id]: [_line(0.1, 0.2)],
-      [bottom.id]: [_line(0.6, 0.7)],
-      [again.id]: [_line(0.62, 0.72), _line(0.35, 0.45)], // 2nd time: one over a walked part, one in the top half
-    };
-    const s = state([cut(0), top, bottom, cut(2), again], ink);
-    const r = insertPages(s, { id: again.id, after: true }, 1, 1, true, aspects);
-    const copied = r.state.ink[r.first];
-    expect(copied.map((st) => (st as Stroke).points[0][1])).toEqual([0.1, 0.6]);
-    expect(copied[0]).not.toBe(ink[top.id][0]);
-    expect(r.state.score.cuts.find((c) => c.id === r.first)!.ownInk).toBeUndefined();
-  });
-  it('copies nothing with the option off', () => {
+  it('leaves the ink as it was', () => {
     const c = cut(0);
-    const r = insertPages(state([c], { [c.id]: [_line(0.1, 0.2)] }), { id: c.id, after: true }, 0, 0, false, aspects);
-    expect(r.state.ink[r.first]).toBeUndefined();
+    const before = state([c], { 0: [_line(0.1, 0.2)] });
+    expect(insertPages(before, { id: c.id, after: true }, 0, 0).state.ink).toBe(before.ink);
   });
 });
 
@@ -179,18 +147,31 @@ describe('setPad', () => {
   });
 });
 
+describe('setInk', () => {
+  it('sets a page\'s markings, leaving the cuts', () => {
+    const c = cut(0), a = _line(0.1, 0.2);
+    const before = state([c], { 1: [_mark(0.5, 0.5)] });
+    const s = setInk(before, 0, [a]);
+    expect(s.ink).toEqual({ 0: [a], 1: before.ink[1] });
+    expect(s.score).toBe(before.score);
+  });
+  it('leaves no entry for a page with no markings', () => {
+    const s = setInk(state([cut(0)], { 0: [_line(0.1, 0.2)] }), 0, []);
+    expect(0 in s.ink).toBe(false);
+  });
+});
+
 describe('replaceMarking', () => {
-  it('replaces a marking by identity, and marks the cut as having ink of its own', () => {
+  it('replaces a marking of a page by identity', () => {
     const c = cut(0), a = _line(0.1, 0.2), b = _mark(0.5, 0.5), n = _mark(0.6, 0.6);
-    const s = replaceMarking(state([c], { [c.id]: [a, b] }), c.id, b, n);
-    expect(s.ink[c.id]).toEqual([a, n]);
-    expect(s.ink[c.id][1]).toBe(n);
-    expect(s.score.cuts[0].ownInk).toBe(true);
+    const s = replaceMarking(state([c], { 0: [a, b] }), 0, b, n);
+    expect(s.ink[0]).toEqual([a, n]);
+    expect(s.ink[0][1]).toBe(n);
   });
   it('removes it when there is nothing to replace it with', () => {
     const c = cut(0), a = _line(0.1, 0.2), b = _mark(0.5, 0.5);
-    expect(replaceMarking(state([c], { [c.id]: [a, b] }), c.id, b).ink[c.id]).toEqual([a]);
-    expect(replaceMarking(state([c], { [c.id]: [b] }), c.id, b).ink[c.id]).toBeUndefined();
+    expect(replaceMarking(state([c], { 0: [a, b] }), 0, b).ink[0]).toEqual([a]);
+    expect(replaceMarking(state([c], { 0: [b] }), 0, b).ink[0]).toBeUndefined();
   });
 });
 
@@ -212,20 +193,18 @@ describe('textResized', () => {
   const symbol = { ..._mark(0.5, 0.5), kind: 'symbol' as const };
   it('sets the text scale, leaving the symbol size, while the ink has a symbol', () => {
     const c = cut(0);
-    const s = textResized(state([c], { [c.id]: [symbol] }), 0.021);
+    const s = textResized(state([c], { 0: [symbol] }), 0.021);
     expect(s.score.textScale).toBeCloseTo(0.6);
     expect(s.score.symbolSize).toBeUndefined();
-    expect(textResized(state([c], { [c.id]: [symbol] }), 0.014).score.textScale).toBeCloseTo(0.4);
+    expect(textResized(state([c], { 0: [symbol] }), 0.014).score.textScale).toBeCloseTo(0.4);
   });
   it('sets the symbol size, leaving the text scale, while the ink has none', () => {
     const s = textResized(state([cut(0)]), 0.03);
     expect(s.score.symbolSize).toBeCloseTo(0.05);
     expect(s.score.textScale).toBeUndefined();
   });
-  it('counts a symbol in an archived cut\'s ink', () => {
-    const c = cut(0), gone = cut(0);
-    const base = state([c], { [gone.id]: [symbol] });
-    const s = textResized({ ...base, score: { ...base.score, archived: [gone] } }, 0.014);
+  it('counts a symbol on a page no cut plays', () => {
+    const s = textResized(state([cut(0)], { 3: [symbol] }), 0.014);
     expect(s.score.textScale).toBeCloseTo(0.4);
     expect(s.score.symbolSize).toBeUndefined();
   });

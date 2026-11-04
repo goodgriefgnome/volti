@@ -4,7 +4,7 @@
 
 import { canvasDrawing, splitDrawing, type Drawing } from '../markings/draw';
 import { drawMarkings, type DrawTarget, type Marking } from '../markings/model';
-import { visible } from '../scores/ownership';
+import { shownBy } from '../scores/ownership';
 import { type Aspects, type ScoreInk } from '../scores/model';
 import { type Frame, type Placed } from '../scores/frames';
 
@@ -63,8 +63,8 @@ export function cutTarget(draw: Drawing, p: Placed, W: number, aspects: Aspects,
 /** A target for a marking still being made, whose points are in frame coordinates. */
 export const frameTarget = (on: CanvasRenderingContext2D | Drawing, W: number, ox = 0, oy = 0): DrawTarget => ({ draw: 'path' in on ? on : canvasDrawing(on), w: W, h: W, ox, oy });
 
-/** The markings a cut shows: whole, when most of the marking lies within the cut. */
-export const shownOn = (p: Placed, ink: ScoreInk, aspects: Aspects) => (ink[p.cut.id] ?? []).filter((m) => visible(m, p.cut, aspects[p.cut.page]));
+/** The markings a cut shows (ownership.ts's `shows`), drawn whole. */
+export const shownOn = (p: Placed, ink: ScoreInk) => shownBy(p.cut, ink);
 
 /** Draw the markings each cut on the frame shows. */
 export function drawFrameInk(ctx: CanvasRenderingContext2D, frame: Frame, ink: ScoreInk, aspects: Aspects, W: number, ox = 0, oy = 0, extra?: Marking, under?: CanvasRenderingContext2D) {
@@ -72,7 +72,7 @@ export function drawFrameInk(ctx: CanvasRenderingContext2D, frame: Frame, ink: S
   under?.clearRect(0, 0, under.canvas.width, under.canvas.height);
   // With `under`, what multiplies goes there, to be blended over the music by the canvas's own blend mode; without, it multiplies on this canvas alone.
   const draw = under ? splitDrawing(canvasDrawing(ctx), canvasDrawing(under)) : canvasDrawing(ctx);
-  for (const p of frame.items) drawMarkings(cutTarget(draw, p, W, aspects, ox, oy), shownOn(p, ink, aspects));
+  for (const p of frame.items) drawMarkings(cutTarget(draw, p, W, aspects, ox, oy), shownOn(p, ink));
   if (extra) drawMarkings(frameTarget(draw, W, ox, oy), [extra]);
 }
 

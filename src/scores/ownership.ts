@@ -1,37 +1,18 @@
-// Which cut owns a marking: the one that holds most of it. Used when a marking is made, when a cut
-// is split, and when markings are copied to inserted pages. Works for every kind of marking,
-// through markings/model.ts. Pure.
+// Which cut a marking is on: the page a marking made or moved on a frame goes on, and which cuts
+// show a marking. Works for every kind of marking, through markings/model.ts. Pure.
 
 import { anchorOf, mapMarking, shareOf, type Marking, type Point } from '../markings/model';
 import type { Frame } from './frames';
-import type { Cut, ScoreInk } from './model';
+import { passOf, type Cut, type ScoreInk } from './model';
 
-/** A cut shows a marking, unclipped, when most of the marking lies within the cut. */
-export const visible = (m: Marking, c: Cut, aspect: number) => shareOf(m, c.y0, c.y1, aspect) > 0.5;
-
-/** Markings above and below y, each going to the side that holds most of it. */
-export function _splitMarkings(list: readonly Marking[], y: number, aspect: number): [Marking[], Marking[]] {
-  const up: Marking[] = [], down: Marking[] = [];
-  for (const m of list) (shareOf(m, -Infinity, y, aspect) >= 0.5 ? up : down).push(m);
-  return [up, down];
+/** Whether cut `c` shows `m`, a marking of its page: its anchor between the cut's top and bottom (ends included), and no pass or the cut's. */
+export function shows(c: Cut, m: Marking): boolean {
+  const y = anchorOf(m)[1];
+  return y >= c.y0 && y <= c.y1 && (m.pass === undefined || m.pass === passOf(c));
 }
 
-/**
- * The markings from the first time each part of a page is played: walk the page's cuts in
- * played order and take each marking that lies mostly in that cut and not in one walked before.
- */
-export function _claimFirstPass(cuts: readonly Cut[], ink: ScoreInk, aspect: number): Marking[] {
-  const out: Marking[] = [], walked: [number, number][] = [];
-  for (const c of cuts) {
-    for (const m of ink[c.id] ?? []) {
-      if (shareOf(m, c.y0, c.y1, aspect) <= 0.5) continue;
-      const before = walked.reduce((sum, [lo, hi]) => sum + shareOf(m, lo, hi, aspect), 0);
-      if (before <= 0.5) out.push(m);
-    }
-    walked.push([c.y0, c.y1]);
-  }
-  return out;
-}
+/** The markings `c` shows, in their order in its page's ink. */
+export const shownBy = (c: Cut, ink: ScoreInk): Marking[] => (ink[c.page] ?? []).filter((m) => shows(c, m));
 
 /**
  * Give a marking made on a frame to the cut that holds most of it (the nearest cut, if none

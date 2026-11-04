@@ -127,14 +127,15 @@ export const symbolTool = (host: ToolHost): Tool => {
    * colour and background, and the selection; the size it implies becomes the score's symbol size,
    * and `sym` its group's current symbol.
    */
-  const replaceWith = ({ cut, mark }: Selected, sym: LibrarySymbol) => {
+  const replaceWith = (sel: Selected, sym: LibrarySymbol) => {
+    const { mark } = sel;
     if (!lib) return;
     const size = (mark.size / scaleOf(lib, mark.font, mark.text)) * sym.scale;
     // It keeps its own colour and background, not the new symbol's.
     const { background: _, ...fresh } = placed(sym, mark.at, size);
     const replacement = compactMarking({ ...fresh, ...(mark.color ? { color: mark.color } : {}), ...(mark.background ? { background: { ...mark.background } } : {}) }) as PlacedMark;
-    host.commit(setSymbolSize(replaceMarking(host.state(), cut, mark, replacement), size / sym.scale), cut, { cut, mark: replacement });
-    host.select({ cut, mark: replacement });
+    host.commit(setSymbolSize(replaceMarking(host.state(), sel.page, mark, replacement), size / sym.scale), sel.cut, { ...sel, mark: replacement });
+    host.select({ ...sel, mark: replacement });
     const at = findSymbol(lib, sym.font, sym.text);
     if (at) choose(at.group, at.index);
   };
@@ -227,7 +228,7 @@ export const symbolTool = (host: ToolHost): Tool => {
     if (sel && sel.mark.color !== ownColor(c)) {
       const { color: _, ...rest } = sel.mark, own = ownColor(c);
       const marked: PlacedMark = own ? { ...rest, color: own } : rest;
-      host.commit(replaceMarking(host.state(), sel.cut, sel.mark, marked), sel.cut, { cut: sel.cut, mark: marked });
+      host.commit(replaceMarking(host.state(), sel.page, sel.mark, marked), sel.cut, { ...sel, mark: marked });
     }
     host.setSettings((s) => ({ ...s, symbol: { color: c } }));
   };
@@ -246,7 +247,7 @@ export const symbolTool = (host: ToolHost): Tool => {
       if (JSON.stringify(next) !== JSON.stringify(sel.mark.background)) {
         const { background: _, ...rest } = sel.mark;
         const marked: PlacedMark = next ? { ...rest, background: next } : rest;
-        host.commit(replaceMarking(host.state(), sel.cut, sel.mark, marked), sel.cut, { cut: sel.cut, mark: marked });
+        host.commit(replaceMarking(host.state(), sel.page, sel.mark, marked), sel.cut, { ...sel, mark: marked });
       }
     }
     const at = lib && sel && findSymbol(lib, sel.mark.font, sel.mark.text);
@@ -266,7 +267,7 @@ export const symbolTool = (host: ToolHost): Tool => {
       const claimed = claimMarking(slot.frame, compactMarking(made), host.aspects());
       if (!claimed) return;
       const { cut, marking } = claimed;
-      host.commit(setInk(state, cut.id, [...(state.ink[cut.id] ?? []), marking]), cut.id);
+      host.commit(setInk(state, cut.page, [...(state.ink[cut.page] ?? []), marking]), cut.id);
     },
     ghost: symbolMark,
     again: cycle,

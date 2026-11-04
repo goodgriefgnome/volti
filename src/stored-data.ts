@@ -2,17 +2,18 @@
 // and the steps from each version to the next. A change to what is stored adds a step here and
 // raises DATA_VERSION.
 
+import { scoresToVersion2 } from './scores/store';
 import { keys } from './storage/keys';
 import { kv } from './storage/kv';
 
 /** The version of the stored data this app reads and writes. */
-export const DATA_VERSION = 1;
+export const DATA_VERSION = 2;
 
 /** A step brings the whole store from one version to the next. Run again after failing partway, it finishes what is left. */
 export type Step = () => Promise<void>;
 
 /** Each step, by the version it starts from. */
-const STEPS: Record<number, Step> = {};
+const STEPS: Record<number, Step> = { 1: scoresToVersion2 };
 
 /** Where the version is kept: the kv store, or a stand-in in tests. */
 export interface VersionStore { get(): Promise<number | undefined>; set(version: number): Promise<void> }

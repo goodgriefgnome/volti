@@ -106,7 +106,7 @@ async function addFrame(lib: PdfLib, out: PDFDocument, src: Source, frame: Frame
   await drawMusic(lib, out, page, src, frame, W, H);
   // Each marking as an annotation, placed as the reader places it.
   for (const p of frame.items) {
-    shownOn(p, src.state.ink, src.aspects).forEach((m, i) => annotate(lib, out, page, m, (draw) => cutTarget(draw, p, W, src.aspects), `${p.cut.id}-${i}`, describe));
+    shownOn(p, src.state.ink).forEach((m, i) => annotate(lib, out, page, m, (draw) => cutTarget(draw, p, W, src.aspects), `${p.cut.id}-${i}`, describe));
   }
 }
 

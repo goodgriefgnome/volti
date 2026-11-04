@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { PlacedMark } from '../markings/placed';
 import { share, type Stroke } from '../markings/stroke';
 import { pack } from './frames';
-import { _claimFirstPass, claimMarking, _splitMarkings, visible } from './ownership';
+import { claimMarking, shownBy, shows } from './ownership';
 import { A4, aspects, cut, _line, _mark, sarabande } from './testing';
 
 describe('ink shares', () => {
@@ -16,15 +16,37 @@ describe('ink shares', () => {
     expect(share(dot.points, 0.3, 0.5, A4)).toBe(1);
     expect(share(dot.points, 0.5, 0.6, A4)).toBe(0);
   });
-  it('shows a stroke when most of it is in the cut', () => {
-    expect(visible(_line(0.25, 0.45), cut(0, 0.3, 1), A4)).toBe(true);
-    expect(visible(_line(0.1, 0.35), cut(0, 0.3, 1), A4)).toBe(false);
+});
+
+describe('shows', () => {
+  const c = cut(0, 0.3, 0.6);
+  it('shows a symbol whose centre is in the cut, its ends included', () => {
+    expect(shows(c, _mark(0.5, 0.45))).toBe(true);
+    expect(shows(c, _mark(0.5, 0.3))).toBe(true);
+    expect(shows(c, _mark(0.5, 0.6))).toBe(true);
   });
-  it('splitMarkings and claimFirstPass agree on a simple case', () => {
-    const [up, down] = _splitMarkings([_line(0.1, 0.2), _line(0.8, 0.9)], 0.5, A4);
-    expect([up.length, down.length]).toEqual([1, 1]);
-    const c = cut(0);
-    expect(_claimFirstPass([c], { [c.id]: [_line(0.1, 0.2)] }, A4)).toHaveLength(1);
+  it('does not show a symbol whose centre is just outside, though most of it is inside', () => {
+    expect(shows(c, { ..._mark(0.5, 0.299), size: 0.3 })).toBe(false);
+  });
+  it('shows a stroke in the cut holding its first point', () => {
+    expect(shows(c, _line(0.35, 0.9))).toBe(true);
+    expect(shows(cut(0, 0.6, 1), _line(0.35, 0.9))).toBe(false);
+  });
+  it('shows a marking with a pass only in a cut with that pass, and one without in every pass', () => {
+    const second = cut(0, 0.3, 0.6, { pass: 2 });
+    expect(shows(second, { ..._mark(0.5, 0.45), pass: 2 })).toBe(true);
+    expect(shows(c, { ..._mark(0.5, 0.45), pass: 2 })).toBe(false);
+    expect(shows(second, _mark(0.5, 0.45))).toBe(true);
+    expect(shows(c, _mark(0.5, 0.45))).toBe(true);
+  });
+  it('lists what a cut shows in the order of its page\'s ink', () => {
+    const a = _mark(0.5, 0.5), b = _line(0.9, 0.95), d = _mark(0.2, 0.4);
+    expect(shownBy(c, { 0: [a, b, d], 1: [_mark(0.5, 0.5)] })).toEqual([a, d]);
+  });
+  it('shows a marking on page 2 of the sarabande on both cuts of page 2 that hold it', () => {
+    const s = sarabande(), m = _mark(0.5, 0.8);
+    const shown = s.score.cuts.map((c) => shownBy(c, { 1: [m] }).length);
+    expect(shown).toEqual([0, 1, 0, 1, 0]);
   });
 });
 
@@ -52,10 +74,5 @@ describe('placed markings', () => {
     const r = claimMarking(f, _mark(0.5, seam + 0.1), aspects)!;
     expect(r.cut.page).toBe(1);
     expect((r.marking as PlacedMark).at[1]).toBeCloseTo(2 / 3 + 0.1 / A4);
-  });
-  it('are split whole, to the side holding their centre', () => {
-    const [up, down] = _splitMarkings([_mark(0.5, 0.45), _mark(0.5, 0.55)], 0.5, A4);
-    expect(up).toHaveLength(1);
-    expect(down).toHaveLength(1);
   });
 });

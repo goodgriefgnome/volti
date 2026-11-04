@@ -2,7 +2,7 @@
 
 import { hitDistance, type Point } from '../../markings/model';
 import { setInk } from '../../scores/edits';
-import { visible } from '../../scores/ownership';
+import { shows } from '../../scores/ownership';
 import type { FrameSlot } from '../_spread';
 import { iconFace } from './_faces';
 import { TOOL_LABELS, type Tool, type ToolHost } from './_tool';
@@ -14,11 +14,12 @@ function eraseAt(host: ToolHost, slot: FrameSlot, p: Point) {
   let s = host.state();
   for (const item of slot.frame.items) {
     const { cut } = item, aspect = host.aspects()[cut.page];
-    const list = s.ink[cut.id] ?? [];
+    // Read afresh for each cut: two cuts of the frame can be on one page.
+    const list = s.ink[cut.page] ?? [];
     // The point on this cut's page; the eraser stays the same size on screen however far you zoom in.
     const q: Point = [p[0], cut.y0 + (p[1] - item.top) / aspect, p[2]];
-    const keep = list.filter((m) => !(visible(m, cut, aspect) && hitDistance(m, q, ERASER_RADIUS / host.zoom().s, aspect) !== undefined));
-    if (keep.length !== list.length) s = setInk(s, cut.id, keep);
+    const keep = list.filter((m) => !(shows(cut, m) && hitDistance(m, q, ERASER_RADIUS / host.zoom().s, aspect) !== undefined));
+    if (keep.length !== list.length) s = setInk(s, cut.page, keep);
   }
   if (s === host.state()) return;
   host.show(s, slot);

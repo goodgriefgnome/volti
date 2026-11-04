@@ -6,6 +6,7 @@ import { loadGlyphs } from '../markings/store';
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
 import { _forPages, newScore, type Aspects, type Score, type ScoreInk, type State } from './model';
+import { _fromVersion1, _isVersion1, type V1Ink, type V1Score } from './_version1';
 
 /** A score as stored: the key gives its id. */
 type StoredScore = Omit<Score, 'id'>;
@@ -44,3 +45,18 @@ export const loadSavedScore = async (id: string): Promise<Score | undefined> => 
   const score = await kv.get<StoredScore>(keys.score(id));
   return score && loaded(id, score);
 };
+
+/**
+ * The step from version 1 to 2 of the stored data: each score still in version 1 (every `score:`
+ * key) is converted with its ink, both written in one transaction.
+ */
+export async function scoresToVersion2(): Promise<void> {
+  const prefix = keys.score('');
+  for (const [key, score] of await kv.entries<V1Score>(prefix)) {
+    const id = key.slice(prefix.length);
+    const ink = await kv.get<V1Ink>(keys.ink(id));
+    if (!_isVersion1(score, ink)) continue;
+    const next = _fromVersion1(score, ink);
+    await kv.setMany([[keys.score(id), next.score], [keys.ink(id), next.ink]]);
+  }
+}

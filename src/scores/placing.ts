@@ -4,11 +4,11 @@ import { compactMarking, hitDistance, type Marking, type Point } from '../markin
 import { markExtent, type PlacedMark } from '../markings/placed';
 import { replaceMarking, setInk } from './edits';
 import type { Frame, Placed } from './frames';
-import type { Aspects, Cut, ScoreInk, State } from './model';
-import { claimMarking, visible } from './ownership';
+import { passOf, type Aspects, type Cut, type ScoreInk, type State } from './model';
+import { claimMarking, shownBy } from './ownership';
 
-/** A placed marking chosen on the music: the cut that holds it, and the marking itself (found in the ink by identity). */
-export interface Selected { cut: string; mark: PlacedMark }
+/** A placed marking chosen on the music: the page whose ink holds it, the marking itself (found there by identity), and the cut it was chosen in, which shows it. */
+export interface Selected { page: number; cut: string; mark: PlacedMark }
 
 type Box = [x0: number, y0: number, x1: number, y1: number];
 
@@ -69,8 +69,8 @@ export function markingAt(
     const { cut } = item, aspect = aspects[cut.page];
     // The point on this cut's page; a frame is a page wide, so frame widths are page widths.
     const q: Point = [p[0], cut.y0 + (p[1] - item.top) / aspect, 0];
-    for (const m of ink[cut.id] ?? []) {
-      if (!visible(m, cut, aspect) || !owned(m)) continue;
+    for (const m of shownBy(cut, ink)) {
+      if (!owned(m)) continue;
       const d = hitDistance(m, q, radius, aspect);
       if (d !== undefined && d <= nearest) { nearest = d; best = { cut, mark: m }; }
     }
@@ -99,18 +99,20 @@ export function resizedFrom(ext: Box, corner: 0 | 1 | 2 | 3, p: readonly [number
 
 /**
  * The state with a placed marking moved to `at` on the frame (frame coordinates) and, when `size`
- * is given, resized, given to the cut holding its centre; and the marking as it is now. `content`
- * is spread over the moved marking, for its new text, font and glyphs.
+ * is given, resized, put on the page of the cut holding most of it; and the marking as it is now.
+ * A marking with a pass takes that cut's; one without stays without. `content` is spread over the
+ * moved marking, for its new text, font and glyphs.
  */
 export function movedTo(
   s: State, frame: Frame, from: Selected, at: readonly [number, number], aspects: Aspects, size = from.mark.size, content: Partial<PlacedMark> = {},
 ): { state: State; selected: Selected } {
   const claimed = claimMarking(frame, { ...from.mark, ...content, at: [at[0], at[1]], size }, aspects);
   if (!claimed) return { state: s, selected: from };
-  const mark = compactMarking(claimed.marking) as PlacedMark;
-  const to = claimed.cut.id;
-  const state = to === from.cut
-    ? replaceMarking(s, to, from.mark, mark)
-    : (() => { const left = replaceMarking(s, from.cut, from.mark); return setInk(left, to, [...(left.ink[to] ?? []), mark]); })();
-  return { state, selected: { cut: to, mark } };
+  const moved = compactMarking(claimed.marking) as PlacedMark;
+  const mark = moved.pass === undefined ? moved : { ...moved, pass: passOf(claimed.cut) };
+  const page = claimed.cut.page;
+  const state = page === from.page
+    ? replaceMarking(s, page, from.mark, mark)
+    : (() => { const left = replaceMarking(s, from.page, from.mark); return setInk(left, page, [...(left.ink[page] ?? []), mark]); })();
+  return { state, selected: { page, cut: claimed.cut.id, mark } };
 }

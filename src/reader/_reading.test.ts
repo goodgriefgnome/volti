@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { namedExcerptOf, setName } from '../scores/excerpts';
 import { insertPages, remove } from '../scores/edits';
-import { aspects, cut, state } from '../scores/testing';
+import { cut, state } from '../scores/testing';
 import { newEntry, newSetlist, type Setlist } from '../setlists/model';
 import type { SourceFile } from '../originals/types';
 import { Reading, setlistItems } from './_reading';
@@ -53,7 +53,7 @@ describe('Reading', () => {
     const other: Setlist = { ...newSetlist('Autumn'), entries: [{ ...newEntry('p'), last: b.id }] };
     const r = new Reading([item], { kind: 'excerpt', excerpt: { last: b.id } }, [other]);
     // A page inserted after the Kyrie, while reading it, joins it.
-    const { state: after } = insertPages(s, { id: b.id, after: true }, 2, 2, false, aspects);
+    const { state: after } = insertPages(s, { id: b.id, after: true }, 2, 2);
     const took = r.edited(0, 'p', s.score.cuts, after);
     const last = after.score.cuts[2].id;
     expect(r.what).toEqual({ kind: 'excerpt', excerpt: { last } });

@@ -1,4 +1,4 @@
-// The data of a score: its cuts in played order, its archived cuts and its ink, as types, plus
+// The data of a score: its cuts in played order and its ink, as types, plus
 // making a new score, fitting one to its original's pages, and a few measurements. Pure: no DOM, no storage. Editing is edits.ts, layout
 // frames.ts, storage store.ts. The images the cuts are cut from come from the score's original
 // (originals/).
@@ -13,8 +13,6 @@ export interface Cut {
   y1: number;
   /** White space above, in page widths, used only when this cut starts a frame. */
   pad?: number;
-  /** Someone has drawn or erased on this cut, so removing it archives it rather than deleting it. */
-  ownInk?: boolean;
   /** Which pass of its page this cut plays, from 1; none is pass 1. */
   pass?: number;
 }
@@ -32,8 +30,6 @@ export interface Score {
   key: string;
   /** The played order. */
   cuts: Cut[];
-  /** Removed cuts that had their own ink; their markings stay in the ink record. */
-  archived: Cut[];
   /**
    * The score's named excerpts, the only excerpts a score keeps; they follow edits to the cuts as
    * setlist entries do (scores/excerpts.ts). At most one name per excerpt, and none on the whole
@@ -59,8 +55,8 @@ export const textScaleOf = (s: Score) => s.textScale ?? DEFAULT_TEXT_SCALE;
 /** A name on the cuts from `first` to `last`; a missing end is the score's start or end. */
 export interface NamedExcerpt { first?: string; last?: string; name: string }
 
-/** A score's ink: its markings by cut id, in the coordinates of the original's pages. */
-export type ScoreInk = Record<string, Marking[]>;
+/** A score's ink: its markings by original page (0-based), in the coordinates of that page. */
+export type ScoreInk = Record<number, Marking[]>;
 
 /** A score and its ink, which every edit to the cuts keeps in step. */
 export interface State { score: Score; ink: ScoreInk }
@@ -83,14 +79,15 @@ export function newScore(id: string, aspects: Aspects): Score {
   return {
     id, key: '',
     cuts: aspects.map((_, page) => ({ id: _newCutId(), page, y0: 0, y1: 1 })),
-    archived: [],
   };
 }
 
-/** Drop cuts of pages the original no longer has; a score left with nothing starts again from the pages. */
+/**
+ * Drop cuts of pages the original no longer has; a score left with nothing starts again from the
+ * pages. The ink of those pages stays.
+ */
 export function _forPages(s: State, aspects: Aspects): State {
-  const ok = (c: { page: number }) => c.page < aspects.length;
-  const score: Score = { ...s.score, cuts: s.score.cuts.filter(ok), archived: s.score.archived.filter(ok) };
+  const score: Score = { ...s.score, cuts: s.score.cuts.filter((c) => c.page < aspects.length) };
   if (!score.cuts.length) score.cuts = newScore(score.id, aspects).cuts;
   return { ...s, score };
 }

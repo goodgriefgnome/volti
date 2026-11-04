@@ -47,7 +47,7 @@ describe('placingTool: the press', () => {
     return { calls, placed, host, tool };
   };
   const press = (x: number, on?: Press['on'], py = y): Press => ({ slot, framePoint: [x, py, 0.5], screenPoint: { x: x * 1000, y: 0 }, ...(on ? { on } : {}) });
-  const grabbed: Press['on'] = { what: 'grabbed', sel: { cut: c.id, mark: m } };
+  const grabbed: Press['on'] = { what: 'grabbed', sel: { page: c.page, cut: c.id, mark: m } };
   it('shows the loupe on a grabbed marking at once, and hides it when lifting', () => {
     const { calls, tool } = setup();
     const use = tool.start(press(0.5, grabbed))!;

@@ -147,7 +147,7 @@ export function placingTool(host: ToolHost, spec: Placing): Tool {
       /** What a tap does; `target` is the marking it was on as it is now, if the press moved it. */
       const tap = (target?: Selected) => {
         if (grab?.kind === 'resize') return; // a tap on a handle does nothing
-        const marked = target ?? (hit && { cut: hit.cut.id, mark: hit.mark });
+        const marked = target ?? (hit && { page: hit.cut.page, cut: hit.cut.id, mark: hit.mark });
         switch (_tapAction(priorMark, hit?.mark)) {
           case 'select': host.select(marked!); break;
           case 'again': spec.again(marked!); break;

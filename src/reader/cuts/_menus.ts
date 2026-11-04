@@ -7,7 +7,7 @@ import { type Placed } from '../../scores/frames';
 import { closeWithOverlay, showMenu, type MenuItem } from '../../ui/overlay';
 import { el } from '../../ui/dom';
 import type { FrameSlot } from '../_spread';
-import { pageLabel, sayArchived, type Edge, type EditorHost } from './_host';
+import { pageLabel, type Edge, type EditorHost } from './_host';
 import { openPicker } from './_insert-picker';
 
 /** A menu at (x, y) on the screen, kept inside the stage. */
@@ -37,9 +37,7 @@ export function openContext(host: EditorHost, x: number, y: number) {
 
 /** Apply an edit from a menu: tidy, and show the given cut. */
 function apply(host: EditorHost, s: State, focus?: string) {
-  const before = host.state();
   host.commit(tidy(s), focus);
-  if (host.state().score.archived.length > before.score.archived.length) sayArchived(host);
 }
 
 function removeItem(host: EditorHost, c: Cut): MenuItem[] {
@@ -78,7 +76,7 @@ export function tabMenu(host: EditorHost, id: string, kind: Edge | 'pad', x: num
 function cutMenu(host: EditorHost, slot: FrameSlot, p: Placed, fy: number, x: number, y: number) {
   const c = p.cut, s = host.state();
   const at = c.y0 + (fy - p.top) / host.aspects()[c.page];
-  const cut = cutAt(s, c.id, at, host.aspects());
+  const cut = cutAt(s, c.id, at);
   menuAt(host, x, y, `Cut from ${pageLabel(c)}`, [
     ...(cut ? [{ label: 'Cut here', run: () => host.commit(cut, c.id) }] : []),
     { label: 'Insert original pages before this cut…', run: () => openPicker(host, { id: c.id, after: false }, `Insert original pages before this cut (${pageLabel(c)})`, c.page) },

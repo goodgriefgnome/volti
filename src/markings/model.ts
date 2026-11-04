@@ -1,5 +1,5 @@
 // What all kinds of marking share. A marking is something drawn or placed on the music; a score's
-// ink is its markings, kept per cut. This file has the Marking type, the _KindBehaviour each kind
+// ink is its markings, kept per page of the original. This file has the Marking type, the _KindBehaviour each kind
 // gives, and the functions the rest of the app uses on any marking, so cut edits, the eraser and
 // drawing work for every kind. Code for one kind goes in that kind's file (stroke.ts, placed.ts). To add a
 // kind, such as a post-it: add it to the Marking union, give its behaviour in a new file,
@@ -33,9 +33,9 @@ export type _Annotation =
 
 /** What each kind of marking does. Lengths are in page widths; `aspect` is the page's height / width. */
 export interface _KindBehaviour<M> {
-  /** How much of it lies between lo and hi in y, from 0 to 1, so the cut that holds most of it owns it. */
+  /** How much of it lies between lo and hi in y, from 0 to 1, so the cut that holds most of it gets it, when it is made or moved. */
   share(m: M, lo: number, hi: number, aspect: number): number;
-  /** Where it is, when it lies in no cut: the nearest cut owns it. */
+  /** Where it is: the cuts whose music holds this point show it; and, when it lies in no cut, the nearest cut gets it. */
   anchor(m: M): Point;
   /** The same marking with each of its points moved by f, as from frame to page coordinates. */
   map(m: M, f: (p: Point) => Point): M;

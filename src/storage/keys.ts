@@ -20,7 +20,7 @@ export const keys = {
    */
   /** The Score. */
   score: (id: string) => 'score:' + id,
-  /** ScoreInk, markings by cut id. */
+  /** ScoreInk: markings by original page. */
   ink: (id: string) => 'ink:' + id,
 
   /** A glyph's outline as path data, by `<font id>:<glyph index>` (markings/store.ts). */

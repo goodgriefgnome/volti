@@ -1,13 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { Stroke } from '../markings/stroke';
-import { insertArchived, insertPages, joinNext, remove, setEdge, split } from './edits';
+import { insertPages, joinNext, remove, setEdge, split } from './edits';
 import { excerptName, followEdit, followExcerpts, namedExcerptOf, nameProblem, removeName, sameExcerpt, setName, sortedExcerpts, excerptCuts, excerptFor, excerptLabel, excerptRange, type Excerpt } from './excerpts';
 import type { Score, State } from './model';
 import { A4, cut, state } from './testing';
 
 const aspects = [A4, A4, A4, A4];
 
-const dot: Stroke = { tool: 'pen', color: '#000', size: 0.002, points: [[0.5, 0.5, 0.5]] };
 const ids = (s: State) => s.score.cuts.map((c) => c.id);
 /** The cuts an excerpt plays, as [page, y0, y1]. */
 const plays = (s: State, excerpt: Excerpt) => excerptCuts(s.score.cuts, excerpt).map((c) => [c.page, c.y0, c.y1]);
@@ -82,25 +80,25 @@ describe('excerptLabel', () => {
 describe('followEdit', () => {
   it('an excerpt ending on a split cut ends on its lower half', () => {
     const { s, excerpt } = four();
-    const r = split(s, excerpt.last!, 0.4, aspects);
+    const r = split(s, excerpt.last!, 0.4);
     const f = followEdit(excerpt, s.score.cuts, r.state.score.cuts);
     expect(f).toEqual({ first: excerpt.first, last: r.lower });
     expect(plays(r.state, f)).toEqual([[1, 0, 1], [2, 0, 0.4], [2, 0.4, 1]]);
   });
   it('an excerpt starting on a split cut is unchanged', () => {
     const { s, excerpt } = four();
-    const r = split(s, excerpt.first!, 0.4, aspects);
+    const r = split(s, excerpt.first!, 0.4);
     expect(followEdit(excerpt, s.score.cuts, r.state.score.cuts)).toBe(excerpt);
   });
   it('an excerpt of one split cut plays both halves', () => {
     const s = state([cut(0), cut(1), cut(2)]);
     const excerpt = { first: ids(s)[1], last: ids(s)[1] };
-    const r = split(s, excerpt.first, 0.5, aspects);
+    const r = split(s, excerpt.first, 0.5);
     expect(plays(r.state, followEdit(excerpt, s.score.cuts, r.state.score.cuts))).toEqual([[1, 0, 0.5], [1, 0.5, 1]]);
   });
   it('splitting the cut before the start leaves the start alone, even when growing', () => {
     const { s, excerpt } = four();
-    const r = split(s, ids(s)[0], 0.5, aspects);
+    const r = split(s, ids(s)[0], 0.5);
     expect(followEdit(excerpt, s.score.cuts, r.state.score.cuts, true)).toBe(excerpt);
   });
   it('an excerpt starting or ending on a joined cut does so on the one it joined', () => {
@@ -132,33 +130,25 @@ describe('followEdit', () => {
   });
   it('pages inserted inside an excerpt are played', () => {
     const { s, excerpt } = four();
-    const r = insertPages(s, { id: excerpt.first!, after: true }, 0, 0, false, aspects);
+    const r = insertPages(s, { id: excerpt.first!, after: true }, 0, 0);
     const f = followEdit(excerpt, s.score.cuts, r.state.score.cuts);
     expect(f).toBe(excerpt);
     expect(plays(r.state, f).map((c) => c[0])).toEqual([1, 0, 2]);
   });
   it('pages inserted at an excerpt\'s edges stay outside it, unless it grows', () => {
     const { s, excerpt } = four();
-    const before = insertPages(s, { id: excerpt.first!, after: false }, 0, 1, false, aspects);
+    const before = insertPages(s, { id: excerpt.first!, after: false }, 0, 1);
     expect(followEdit(excerpt, s.score.cuts, before.state.score.cuts)).toBe(excerpt);
     const grown = followEdit(excerpt, s.score.cuts, before.state.score.cuts, true);
     expect(grown.first).toBe(before.first);
     expect(plays(before.state, grown).map((c) => c[0])).toEqual([0, 1, 1, 2]);
 
-    const after = insertPages(s, { id: excerpt.last!, after: true }, 0, 0, false, aspects);
+    const after = insertPages(s, { id: excerpt.last!, after: true }, 0, 0);
     expect(plays(after.state, followEdit(excerpt, s.score.cuts, after.state.score.cuts, true)).map((c) => c[0])).toEqual([1, 2, 0]);
-  });
-  it('an archived cut brought back at an edge grows the excerpt too', () => {
-    const marked = cut(1, 0, 1, { ownInk: true });
-    const s = state([cut(0), marked, cut(2), cut(3)], { [marked.id]: [dot] });
-    const removed = remove(s, marked.id);
-    const excerpt = { first: ids(s)[2], last: ids(s)[2] };
-    const back = insertArchived(removed, { id: excerpt.first, after: false }, marked.id);
-    expect(followEdit(excerpt, removed.score.cuts, back.score.cuts, true)).toEqual({ first: marked.id, last: excerpt.last });
   });
   it('a whole score stays whole whatever is inserted at its ends', () => {
     const { s } = four();
-    const r = insertPages(s, { id: ids(s)[3], after: true }, 0, 0, false, aspects);
+    const r = insertPages(s, { id: ids(s)[3], after: true }, 0, 0);
     expect(followEdit({}, s.score.cuts, r.state.score.cuts, true)).toEqual({});
   });
 });
@@ -213,19 +203,19 @@ describe('names on excerpts', () => {
 describe('followExcerpts', () => {
   it('keeps names on the same music', () => {
     const { s, b } = mass();
-    const r = split(s, b.id, 0.5, aspects);
+    const r = split(s, b.id, 0.5);
     const names = followExcerpts(s.score.excerpts, s.score.cuts, r.state.score.cuts)!;
     expect(names[0]).toEqual({ last: r.lower, name: 'Kyrie' });
     expect(names[1]).toBe(s.score.excerpts![1]);
   });
   it('returns the same list when nothing moved', () => {
     const { s, a } = mass();
-    const r = split(s, a.id, 0.5, aspects);
+    const r = split(s, a.id, 0.5);
     expect(followExcerpts(s.score.excerpts, s.score.cuts, r.state.score.cuts)).toBe(s.score.excerpts);
   });
   it('grows the name of the excerpt being read, and only that one', () => {
     const { s, b, c } = mass();
-    const r = insertPages(s, { id: b.id, after: true }, 0, 0, false, aspects);
+    const r = insertPages(s, { id: b.id, after: true }, 0, 0);
     const names = followExcerpts(s.score.excerpts, s.score.cuts, r.state.score.cuts, { last: b.id })!;
     expect(names[0].last).toBe(r.first);
     expect(names[1].first).toBe(c.id);

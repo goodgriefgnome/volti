@@ -17,6 +17,7 @@ import { fitScale, isIdentity, NO_ZOOM, placeFresh, type View, type Zoom } from 
 import { pageWidths, screenAt } from '../render/screen';
 import { type Hatches } from '../render/paint';
 import { replaceMarking } from '../scores/edits';
+import { shows } from '../scores/ownership';
 import { type Selected } from '../scores/placing';
 import { A4, type Aspects, type Cut, type NamedExcerpt, type State } from '../scores/model';
 import { frameOf, pack, type Frame } from '../scores/frames';
@@ -496,13 +497,17 @@ class Reader {
   /** The selected marking's delete button: take it away, as one undo step. */
   private deleteSelected() {
     const sel = this.selected;
-    if (sel) this.commit(replaceMarking(this.state, sel.cut, sel.mark), sel.cut);
+    if (sel) this.commit(replaceMarking(this.state, sel.page, sel.mark), sel.cut);
   }
 
-  /** Tell the tools what is selected: a selection ends when its marking is gone from the state. */
+  /**
+   * Tell the tools what is selected: a selection ends when its marking is gone from its page's ink,
+   * or the cut it was chosen in is no longer played or no longer shows it.
+   */
   private refreshSelection() {
     const sel = this.selected, cur = this.current;
-    if (sel && (!cur || !cur.state.ink[sel.cut]?.includes(sel.mark))) this.deselect();
+    const cut = sel && cur?.state.score.cuts.find((c) => c.id === sel.cut);
+    if (sel && (!cur || !cut || !cur.state.ink[sel.page]?.includes(sel.mark) || !shows(cut, sel.mark))) this.deselect();
     this.selectionChanged();
     if (cur) this.syncBar();
   }
