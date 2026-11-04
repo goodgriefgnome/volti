@@ -16,7 +16,7 @@ function symbolMark(host: ToolHost, at: [number, number]): PlacedMark | undefine
   return color ? { ...made, color } : made;
 }
 
-export const symbolTool = (host: ToolHost): Tool => placingTool(host, 'symbol', (slot, at) => {
+export const symbolTool = (host: ToolHost): Tool => placingTool(host, 'symbol', (m) => 'kind' in m && m.kind === 'symbol', (slot, at) => {
   const made = symbolMark(host, at), state = host.state();
   if (!made) return;
   const claimed = claimMarking(slot.frame, compactMarking(made), host.aspects());

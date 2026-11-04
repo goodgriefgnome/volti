@@ -3,19 +3,17 @@
 // music does is what tells the tools apart.
 
 import { type LibrarySymbol, nextSymbol, scaleOf } from '../../markings/library';
-import { compactMarking, type Point } from '../../markings/model';
+import { compactMarking, type Marking, type Point } from '../../markings/model';
 import { markExtent, type PlacedMark } from '../../markings/placed';
 import { replaceMarking, setSymbolSize, textResized } from '../../scores/edits';
 import type { Placed } from '../../scores/frames';
 import { symbolSizeOf, type Cut, type State } from '../../scores/model';
-import { centreOnFrame, extentOnFrame, handleRadius, MIN_BOX_PX, markingAt, movedTo, pressOnSelection, resizedFrom, selectionBox, type Selected } from '../../scores/placing';
+import { centreOnFrame, extentOnFrame, handleRadius, MIN_BOX_PX, movedTo, pressOnSelection, resizedFrom, selectionBox, type Selected } from '../../scores/placing';
 import { isTap } from '../_gestures';
 import { loupeTarget, type SharpInk } from '../_loupe';
 import { slotUnder, type FrameSlot } from '../_spread';
 import { TOOL_LABELS, type Press, type Tool, type ToolHost, type ToolName } from './_tool';
 
-/** How far from a marking's ink a tap still counts as on it, in CSS pixels. */
-const TAP_MARGIN_PX = 12;
 
 /**
  * The selected marking's box on `item`'s frame, and the radius of its handles (frame widths), with
@@ -26,11 +24,6 @@ function selectionOn(item: Placed, sel: Selected, aspect: number, px: number): {
   if (!ext) return undefined;
   const box = selectionBox(ext, MIN_BOX_PX / px);
   return { box, r: handleRadius(Math.min(box[2] - box[0], box[3] - box[1]) * px) / px };
-}
-
-/** The placed marking a press at `p` is on: the nearest within the tap margin (`px` CSS pixels in a frame width). */
-function placedAt(host: ToolHost, slot: FrameSlot, p: readonly [number, number], px: number): { cut: Cut; mark: PlacedMark } | undefined {
-  return markingAt(slot.frame, host.state().ink, host.aspects(), p, TAP_MARGIN_PX / px, (m) => 'kind' in m) as { cut: Cut; mark: PlacedMark } | undefined;
 }
 
 /** A placed symbol made from a library symbol, centred at `at` of its frame. */
@@ -53,22 +46,9 @@ function cycle(host: ToolHost, cut: string, mark: PlacedMark) {
   host.cycled(next);
 }
 
-/** What a tap does, from what is selected and what was hit. */
-export function _tapAction(selected: PlacedMark | undefined, hit: PlacedMark | undefined): 'deselect' | 'select' | 'again' | 'place' {
-  if (selected) return !hit ? 'deselect' : hit === selected ? 'again' : 'select';
-  return hit ? 'select' : 'place';
-}
-
-/**
- * Whether a press at `p` on `slot` is on a placed marking, or on the selected marking's box or
- * one of its handles: what, with no tool, goes to `selectingTool` instead of panning.
- */
-export function pressesMarking(host: ToolHost, slot: FrameSlot, press: Point): boolean {
-  const p: [number, number] = [press[0], press[1]], px = slot.w * host.zoom().s, aspects = host.aspects();
-  if (placedAt(host, slot, p, px)) return true;
-  const sel = host.selected(), item = sel && slot.frame.items.find((i) => i.cut.id === sel.cut);
-  const on = sel && item && selectionOn(item, sel, aspects[item.cut.page], px);
-  return !!on && !!pressOnSelection(on.box, on.r, p);
+/** What a tap does, from what was selected before the press and the marking it grabbed (undefined: empty music). */
+export function _tapAction(selected: PlacedMark | undefined, hit: PlacedMark | undefined): 'select' | 'again' | 'place' {
+  return !hit ? 'place' : hit === selected ? 'again' : 'select';
 }
 
 /**
@@ -94,17 +74,30 @@ type Grab =
 export function placingTool(
   host: ToolHost,
   name: ToolName,
+  owns: (m: Marking) => boolean,
   place: (slot: FrameSlot, at: [number, number]) => void,
   ghost: (at: [number, number]) => PlacedMark | undefined,
   label = TOOL_LABELS[name],
 ): Tool {
   // Whether its pointer holds a marking, moving or resizing it: a second finger then doesn't pinch.
   let held = false;
+  // The selection before the last change and now: a press on the marking that was already selected goes again.
+  let before: Selected | undefined, now: Selected | undefined;
   return {
     name,
     label,
+    ownsMarking: owns,
     suppressions: () => (held ? { pinching: true } : {}),
-    start({ slot, framePoint: p0 }: Press) {
+    onSelectionChanged() {
+      before = now;
+      now = host.selected();
+    },
+    isChromeAt(slot, framePoint) {
+      const sel = host.selected(), item = sel && slot.frame.items.find((i) => i.cut.id === sel.cut);
+      const box = sel && item && selectionOn(item, sel, host.aspects()[item.cut.page], slot.w * host.zoom().s);
+      return !!box && !!pressOnSelection(box.box, box.r, [framePoint[0], framePoint[1]]);
+    },
+    start({ slot, framePoint: p0, on }: Press) {
       if (!slot) return undefined;
       const t0 = performance.now();
       const px = slot.w * host.zoom().s; // CSS pixels in a frame width
@@ -112,26 +105,23 @@ export function placingTool(
       const at0: [number, number] = [p0[0], p0[1]];
       const itemOf = (cut: string) => slot.frame.items.find((i) => i.cut.id === cut);
 
-      // A press on a handle of the selected marking's box resizes it; on the box, moves it (and a tap acts on it, whatever lies under); on another placed marking, that marking.
+      // A press on a handle of the selected marking's box resizes it; on the box, moves it (and a tap acts on it); on a marking the reader selected for it, moves that.
       let grab: Grab | undefined;
       let hit: { cut: Cut; mark: PlacedMark } | undefined;
       const sel = host.selected(), selItem = sel && itemOf(sel.cut);
-      const on = sel && selItem && selectionOn(selItem, sel, aspects[selItem.cut.page], px);
-      const pressed = on && pressOnSelection(on.box, on.r, at0);
-      if (sel && selItem && on && pressed) {
+      if (on?.what === 'chrome' && sel && selItem) {
+        const box = selectionOn(selItem, sel, aspects[selItem.cut.page], px);
+        const pressed = box && pressOnSelection(box.box, box.r, at0);
         const centre = centreOnFrame(selItem, sel.mark, aspects[selItem.cut.page]);
-        if (pressed.kind === 'handle') grab = { kind: 'resize', from: sel, corner: pressed.corner, ext: on.box, centre };
+        if (box && pressed?.kind === 'handle') grab = { kind: 'resize', from: sel, corner: pressed.corner, ext: box.box, centre };
         else { grab = { kind: 'move', from: sel, centre }; hit = { cut: selItem.cut, mark: sel.mark }; }
-      } else {
-        hit = placedAt(host, slot, at0, px);
-        if (hit) {
-          const item = itemOf(hit.cut.id)!;
-          grab = { kind: 'move', from: { cut: hit.cut.id, mark: hit.mark }, centre: centreOnFrame(item, hit.mark, aspects[item.cut.page]) };
+      } else if (on?.what === 'grabbed') {
+        const item = itemOf(on.sel.cut);
+        if (item) {
+          hit = { cut: item.cut, mark: on.sel.mark as PlacedMark };
+          grab = { kind: 'move', from: on.sel, centre: centreOnFrame(item, on.sel.mark as PlacedMark, aspects[item.cut.page]) };
         }
       }
-      // A press on empty music with a marking selected only deselects, at once: it shows, moves and places nothing, tap or drag.
-      const inert = !grab && !!sel;
-      if (inert) host.select(undefined);
 
       let last: Point = p0;
       // A press on a marking moves or resizes it from the first pixel.
@@ -151,11 +141,10 @@ export function placingTool(
       /** What a tap does; `target` is the marking it was on as it is now, if the press moved it. */
       const tap = (target?: Selected) => {
         if (grab?.kind === 'resize') return; // a tap on a handle does nothing
-        const on = target ?? (hit && { cut: hit.cut.id, mark: hit.mark });
-        switch (_tapAction(sel?.mark, hit?.mark)) {
-          case 'deselect': host.select(undefined); break;
-          case 'select': host.select(on!); break;
-          case 'again': if (on!.mark.kind === 'text') host.editText(on!); else cycle(host, on!.cut, on!.mark); break;
+        const marked = target ?? (hit && { cut: hit.cut.id, mark: hit.mark });
+        switch (_tapAction(on?.what === 'chrome' ? sel?.mark : before?.mark, hit?.mark)) {
+          case 'select': host.select(marked!); break;
+          case 'again': if (marked!.mark.kind === 'text') host.editText(marked!); else cycle(host, marked!.cut, marked!.mark); break;
           case 'place': {
             // Where the ghost was when the finger lifted, so what was shown is what is placed.
             const under = slotUnder(host.slots(), slot, [last[0], last[1]]);
@@ -223,7 +212,7 @@ export function placingTool(
         if (grab) {
           const item = itemOf(grab.from.cut);
           magnify(slot, item && extentOnFrame(item, grab.from.mark, aspects[item.cut.page]), client, { ink: host.state().ink });
-        } else if (!sel) showGhost(client);
+        } else if (!on) showGhost(client);
       }
 
       held = !!grab;
@@ -232,7 +221,7 @@ export function placingTool(
           last = p;
           client = c;
           if (!grab && !placing) {
-            if (inert || !moved()) return;
+            if (!moved()) return;
             placing = true;
           }
           frame ||= requestAnimationFrame(draw);
@@ -276,6 +265,3 @@ export function placingTool(
     },
   };
 }
-
-/** With no tool, a press on a marking: a tap selects, deselects or goes again, a drag moves or resizes; it never places. */
-export const selectingTool = (host: ToolHost): Tool => placingTool(host, 'symbol', () => {}, () => undefined, 'Select');

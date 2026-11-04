@@ -57,7 +57,7 @@ import { backIcon, placesMarkings, Toolbar, turnIcon, type Look, type ToolChoice
 import { ReaderMenus } from './_toolbar-menus';
 import { offerScore, turnFrom, type Offer } from './_turning';
 import { makeTools } from './tools/_tools';
-import type { HandHost, ToolName } from './tools/_tool';
+import type { HandHost, Tool, ToolName } from './tools/_tool';
 import { resumeAt } from './_last-read';
 import { loadLastRead, saveLastRead } from './_store';
 import type { ReaderView } from './_view';
@@ -160,6 +160,8 @@ class Reader {
 
   /** The tool equipped by its button, with the tools a selection has lent on top of it. */
   private stack = new LendStack<ToolChoice>('hand');
+  /** The tools, made for this reader. */
+  private tools!: Record<ToolName, Tool>;
   /** The tool in use: the one on top of the stack. */
   private get tool(): ToolChoice { return this.stack.active; }
   /** Each tool's settings for new markings; kept across restarts. */
@@ -330,6 +332,8 @@ class Reader {
       show: (s, slot) => this.showState(s, slot),
       undoTo: (before, slot) => this.undoTo(before, slot),
       setButtonFace: () => {},
+      lendForPress: (tool) => { this.stack.lend(tool, 'press'); this.refreshSelection(); },
+      endPressLend: () => { this.stack.end('press'); this.refreshSelection(); },
       unequip: () => { this.useTool('hand'); this.syncBar(); },
       layer: () => document.createElement('div'),
       lift: () => {},
@@ -343,7 +347,8 @@ class Reader {
       typing: () => this.typing.open,
       finishTyping: () => this.typing.finish(),
     };
-    this.input = new Input(host, makeTools(host, host));
+    this.tools = makeTools(host, host);
+    this.input = new Input(host, this.tools);
     document.addEventListener('visibilitychange', this.onVisible);
     window.addEventListener('popstate', this.onPop);
     history.pushState({ reader: true }, '');
@@ -437,7 +442,7 @@ class Reader {
   }
 
   /** Selecting a marking lends the tool for its kind, keeping the selection; ending the selection takes the lend off. */
-  private lend(kind: 'text' | 'symbol') {
+  private lend(kind: ToolName) {
     if (this.tool === kind) return;
     this.typing.finish();
     this.stack.lend(kind, 'selection');
@@ -592,7 +597,11 @@ class Reader {
   /* ---------- typing ---------- */
 
   private select(s: Selected | undefined) {
-    if (s) { this.selected = s; this.lend(s.mark.kind); } else this.deselect();
+    if (s) {
+      this.selected = s;
+      const owner = Object.values(this.tools).find((t) => t.ownsMarking?.(s.mark));
+      if (owner) this.lend(owner.name);
+    } else this.deselect();
     this.refreshSelection();
   }
 
@@ -730,14 +739,15 @@ class Reader {
     if (sel) this.commit(replaceMarking(this.state, sel.cut, sel.mark), sel.cut);
   }
 
-  /** Show the selected marking's box, or none: a selection ends when its marking is gone from the state, or the tool isn't one that places markings (or none). */
+  /** Show the selected marking's box, or none: a selection ends when its marking is gone from the state. The box is hidden while a tool that doesn't place markings is lent over it (Erase). */
   private refreshSelection() {
     const sel = this.selected, cur = this.current;
-    if (sel && (!cur || !(placesMarkings(this.tool) || this.tool === 'hand') || !cur.state.ink[sel.cut]?.includes(sel.mark))) this.deselect();
+    if (sel && (!cur || !cur.state.ink[sel.cut]?.includes(sel.mark))) this.deselect();
     const now = this.selected;
-    const slot = now && this.slots.find((sl) => sl.frame.items.some((i) => i.cut.id === now.cut));
+    const slot = now && placesMarkings(this.tool) && this.slots.find((sl) => sl.frame.items.some((i) => i.cut.id === now.cut));
     const item = slot && slot.frame.items.find((i) => i.cut.id === now!.cut);
     this.selection.show(slot || undefined, item && now ? extentOnFrame(item, now.mark, this.aspects[item.cut.page]) : undefined, this.zoom.s);
+    for (const t of Object.values(this.tools ?? {})) t.onSelectionChanged?.();
     if (cur) this.syncBar();
   }
 
@@ -872,7 +882,6 @@ class Reader {
   private syncBar() {
     const cur = this.current;
     if (this.tool === 'text') this.prepareGhost();
-    if (this.selected && !(placesMarkings(this.tool) || this.tool === 'hand')) this.deselect();
     this.toolbar.sync({
       open: !!cur,
       tool: this.tool,

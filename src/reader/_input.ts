@@ -2,14 +2,15 @@
 // editor or the equipped tool, and presses, taps and keys that turn pages or hide the toolbar. What each tool does
 // is in tools/.
 
-import type { Point } from '../markings/model';
+import type { Marking, Point } from '../markings/model';
+import type { PlacedMark } from '../markings/placed';
+import { markingAt } from '../scores/placing';
 import { pinch, type Pt, type View, type Zoom } from '../render/zoom';
 import { closeOverlay, overlayOpen } from '../ui/overlay';
 import type { CutEditor } from './cuts/_editor';
 import { gestureForKey, isTap, turnFor, type Gesture } from './_gestures';
 import type { FrameSlot } from './_spread';
 import type { ToolChoice } from './_toolbar';
-import { pressesMarking, selectingTool } from './tools/_placing';
 import type { Press, Tool, ToolHost, ToolName, ToolPointer } from './tools/_tool';
 
 /** What a press goes to, from what is known of it as it goes down. */
@@ -30,11 +31,17 @@ export function _route(f: {
  * probably the writing hand: they neither write nor turn.
  */
 const PALM_GUARD_MS = 600;
+/** How far from a marking's ink a press still counts as on it, in CSS pixels. */
+const SELECT_MARGIN_PX = 12;
 
 /** What pointer and key handling needs from the reader, besides what the tools need. */
 export interface InputHost extends ToolHost {
   editor: CutEditor;
   tool(): ToolChoice;
+  /** The stylus's eraser button lends `tool` for the length of the press. */
+  lendForPress(tool: ToolName): void;
+  /** The press that lent a tool ended: it goes. */
+  endPressLend(): void;
   setZoom(z: Zoom): void;
   /** The part of the stage below the toolbar. */
   view(): View;
@@ -60,9 +67,7 @@ export class Input {
   /** Pointers to disregard until they lift: palms, and the finger left over after a pinch. */
   private ignored = new Set<number>();
   /** The pointer using a tool, and the frame it started on. */
-  private active: { id: number; type: string; slot?: FrameSlot; rect?: DOMRect; tool: Tool; use: ToolPointer } | null = null;
-  /** What a press on a placed marking goes to when no tool is equipped. */
-  private selecting: Tool;
+  private active: { id: number; type: string; slot?: FrameSlot; rect?: DOMRect; tool: Tool; use: ToolPointer; lent: boolean } | null = null;
   private gesture: { id: number; x: number; y: number; t: number } | null = null;
   private pinching: { ids: [number, number]; start: Zoom; c0: Pt; d0: number } | null = null;
   private lastPen = 0;
@@ -71,7 +76,6 @@ export class Input {
 
   constructor(private host: InputHost, private tools: Record<ToolName, Tool>) {
     const { stage } = host;
-    this.selecting = selectingTool(host);
     stage.addEventListener('pointerdown', this.onDown);
     stage.addEventListener('pointermove', this.onMove);
     stage.addEventListener('pointerup', (e) => this.onUp(e, false));
@@ -120,6 +124,7 @@ export class Input {
     if (!a) return;
     this.active = null;
     a.use.drop();
+    if (a.lent) this.host.endPressLend();
   }
 
   private startPinch() {
@@ -180,9 +185,7 @@ export class Input {
     const toolbar = host.annotating();
     const turn = turnFor(this.stagePoint(e.clientX, e.clientY).x, host.stage.clientWidth, toolbar);
     const hit = this.slotAt(e.clientX, e.clientY);
-    // Until selecting is the reader's, only the hand tool selects: a press on a placed marking or the selected one's box.
-    const onMarking = tool === 'hand' && !!hit && pressesMarking(host, hit.slot, this.point(e, hit.rect));
-    const route = _route({ onTab, turn, toolbarShown: toolbar, eraserButton, onFrame: !!hit, selecting: onMarking && !this.tools[tool].suppressions?.().selecting });
+    const route = _route({ onTab, turn, toolbarShown: toolbar, eraserButton, onFrame: !!hit, selecting: !!hit && !this.tools[tool].suppressions?.().selecting });
     switch (route) {
       case 'tab': return;
       case 'turn': host.act(turn!); return;
@@ -191,12 +194,40 @@ export class Input {
         return;
       case 'hand': if (tool !== 'hand') return; break; // off the frames only the hand tool gets presses
     }
-    const t = route === 'select' ? this.selecting : this.tools[tool];
-    const press = this.press(e, hit);
-    // A tool that declines the press leaves it to the hand tool.
+    // 9. The stylus's eraser button lends Erase for this press.
+    if (eraserButton) host.lendForPress('eraser');
+    let t = this.tools[tool];
+    let on: Press['on'];
+    // 10. Selecting.
+    if (route === 'select') {
+      const found = this.selectStep(e, hit!, t);
+      if (found === 'ended') return;
+      if (found) { t = found.tool; on = found.on; }
+    }
+    // 11. The tool; one that declines the press leaves it to the hand tool.
+    const press = { ...this.press(e, hit), on };
     const use = t.start(press) ?? (t === this.tools.hand ? undefined : this.tools.hand.start(press));
-    if (use) this.active = { id: e.pointerId, type: e.pointerType, slot: hit?.slot, rect: hit?.rect, tool: t, use };
+    if (use) this.active = { id: e.pointerId, type: e.pointerType, slot: hit?.slot, rect: hit?.rect, tool: t, use, lent: eraserButton };
+    else if (eraserButton) host.endPressLend();
   };
+
+  /** The marking that is a press's, or the selection's chrome it is on, or the end of the selection. */
+  private selectStep(e: PointerEvent, hit: { slot: FrameSlot; rect: DOMRect }, active: Tool): { tool: Tool; on: NonNullable<Press['on']> } | 'ended' | undefined {
+    const { host } = this, fp = this.point(e, hit.rect), sel = host.selected();
+    // 1. The active tool's chrome: the box and handles of the selected marking.
+    if (sel && active.isChromeAt?.(hit.slot, fp)) return { tool: active, on: { what: 'chrome' } };
+    // 2. The nearest marking some tool owns: selected, which lends its tool.
+    const owner = (m: Marking) => Object.values(this.tools).find((t) => t.ownsMarking?.(m));
+    const found = markingAt(hit.slot.frame, host.state().ink, host.aspects(), [fp[0], fp[1]], SELECT_MARGIN_PX / (hit.slot.w * host.zoom().s), (m) => !!owner(m));
+    if (found) {
+      const picked = { cut: found.cut.id, mark: found.mark as PlacedMark };
+      host.select(picked);
+      return { tool: owner(found.mark)!, on: { what: 'grabbed', sel: picked } };
+    }
+    // 3. Anywhere else, a selection only ends.
+    if (sel) { host.select(undefined); return 'ended'; }
+    return undefined;
+  }
 
   private onMove = (e: PointerEvent) => {
     const { host } = this;
@@ -247,6 +278,7 @@ export class Input {
     if (!a || e.pointerId !== a.id) return;
     this.active = null;
     a.use.end(cancelled);
+    if (a.lent) host.endPressLend();
   }
 
   private onKey = (e: KeyboardEvent) => {
