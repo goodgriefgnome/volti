@@ -384,3 +384,25 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     with the panel open. The same for a symbol selected with Text as the tool, from the Symbols
     panel. Move, resize and (for a symbol) cycle the selected marking, and edit a text marking's
     words: the lent tool stays chosen throughout.
+- **Tools and the reader (the tools' split from the reader), with the stylus and with fingers:**
+  - Pen, Highlight, Erase: writing, highlighting, erasing; the stylus turns the page in the band at
+    each side with each of them (it no longer starts a stroke there); a stroke started outside a
+    band goes on into it; the stylus's eraser button with every tool.
+  - Text: placing, typing (the keyboard clear of the field, the music moving up and back), editing,
+    moving, resizing, the panel (font, colour, background); a press elsewhere while typing only
+    finishes typing; the layout changing (turning, rotating) while typing finishes it.
+  - Symbols: placing, cycling (the cycled symbol is the one the button places next, lent or not),
+    moving, resizing, the panel and the library (picking, arranging, + for a new one, the editor).
+  - Selecting with no tool, with Text, with Symbols: a press on a symbol lights Symbols at once and a
+    drag moves it; between two symbols close together the one whose ink is nearer is selected; a
+    press on empty music with a selection only deselects, with every tool; with Pen, a press on a
+    symbol writes; the delete button; the box and handles at several zooms.
+  - The eraser button while a symbol is selected: Erase lights up, the box hides, it erases, and on
+    lifting the symbol's selection and Symbols come back; erasing the selected symbol with it ends
+    the selection and gives back the tool from before the selection.
+  - No tool: a drag pans, a tap hides and shows the toolbar, a long press with Cuts on opens the cut
+    menu (and with Cuts off doesn't); a long press on a cut tab opens its menu; with a tool, none of
+    these happen on the music.
+  - Pinch with every tool; not while moving or resizing a marking; a second finger while placing
+    drops the ghost and zooms.
+

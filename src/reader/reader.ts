@@ -40,7 +40,7 @@ import { LendStack, type StackChange } from './_lending';
 import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
 import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_spread';
 import { Loupe } from './_loupe';
-import { backIcon, Toolbar, turnIcon, type ToolChoice } from './_toolbar';
+import { backIcon, Toolbar, turnIcon } from './_toolbar';
 import { ReaderMenus } from './_toolbar-menus';
 import { offerScore, turnFrom, type Offer } from './_turning';
 import { makeTools } from './tools/_tools';
@@ -146,7 +146,7 @@ class Reader {
   private detail: Detail;
 
   /** The tool equipped by its button, with the tools a selection has lent on top of it. */
-  private stack = new LendStack<ToolChoice>('hand');
+  private stack = new LendStack<ToolName>('hand');
   /** The tools' being told of the stack's changes, in order. */
   private told: Promise<void> = Promise.resolve();
   /** The tools, made for this reader. */
@@ -154,7 +154,7 @@ class Reader {
   /** What each tool's button shows, as the tool last set it. */
   private faces = new Map<ToolName, ButtonFace>();
   /** The tool in use: the one on top of the stack. */
-  private get tool(): ToolChoice { return this.stack.active; }
+  private get tool(): ToolName { return this.stack.active; }
   /** Each tool's settings for new markings; kept across restarts. */
   private settings: ToolSettings = DEFAULT_TOOL_SETTINGS;
   /** The placed marking showing its box, while a symbol is the tool. */
@@ -398,7 +398,7 @@ class Reader {
   }
 
   /** Change the tool; the selection ends with it, between Text and a symbol too, and nothing is given back. */
-  private useTool(t: ToolChoice) {
+  private useTool(t: ToolName) {
     if (t !== this.tool) {
       this.tell(this.stack.equip(t));
       this.deselect();

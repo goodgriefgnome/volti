@@ -10,7 +10,6 @@ import { closeOverlay, overlayOpen } from '../ui/overlay';
 import type { CutEditor } from './cuts/_editor';
 import { gestureForKey, isTap, turnFor, type Gesture } from './_gestures';
 import type { FrameSlot } from './_spread';
-import type { ToolChoice } from './_toolbar';
 import type { Press, Tool, ToolHost, ToolName, ToolPointer } from './tools/_tool';
 
 /** What a press goes to, from what is known of it as it goes down. */
@@ -37,7 +36,7 @@ const SELECT_MARGIN_PX = 12;
 /** What pointer and key handling needs from the reader, besides what the tools need. */
 export interface InputHost extends ToolHost {
   editor: CutEditor;
-  tool(): ToolChoice;
+  tool(): ToolName;
   /** The stylus's eraser button lends `tool` for the length of the press. */
   lendForPress(tool: ToolName): void;
   /** The press that lent a tool ended: it goes. */

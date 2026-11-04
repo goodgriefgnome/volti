@@ -47,12 +47,6 @@ export function turnIcon(dir: 'prev' | 'next'): SVGSVGElement {
   return svg;
 }
 
-/** The tool selected in the toolbar, if any. */
-export type ToolChoice = ToolName;
-
-/** The tools that place markings whole: a symbol, or text. */
-export const placesMarkings = (tool: ToolChoice) => tool === 'symbol' || tool === 'text';
-
 export interface ToolbarActions {
   close(): void;
   /** The menu under the title: what can be read next to what is read. */
@@ -73,7 +67,7 @@ export interface ToolbarActions {
 export interface ToolbarView {
   /** The score is open; a score that can't be opened can't be written on or edited. */
   open: boolean;
-  tool: ToolChoice;
+  tool: ToolName;
   /** The cuts show. */
   cuts: boolean;
   canUndo: boolean;
