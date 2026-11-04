@@ -7,7 +7,7 @@ export const keys = {
   original: (id: string) => 'original:' + id,
   /** The linked scores folder: { handle, linked }, kept after unlinking to tell a folder linked later is the same (originals/device-score-fs.ts). */
   folder: 'folder',
-  /** The library's subfolder lists closed by hand, by path (library/store.ts). */
+  /** The library's subfolder lists closed by hand, by path (library/_store.ts). */
   closedFolders: 'closed-folders',
   /** What was last read and where in it: the score, excerpt or setlist, and the first cut on the screen (reader/_store.ts). */
   lastRead: 'last-read',

@@ -1,7 +1,7 @@
 // Files coming into the library, from Add PDFs, shared from other apps (the inbox), put back from
 // Recently removed, or left in the app's own folder when a folder is linked: each a source file held
 // outside the library (a MemoryFile), known by its id, which moving puts at the path chosen for it in
-// the library's root (arrivals.ts says what happens to each there).
+// the library's root (`arrivals` in path-utils.ts says what happens to each there).
 
 import { hashBytes } from './_filesystem-utils';
 import { _needAccess } from './device-score-fs';

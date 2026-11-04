@@ -74,7 +74,7 @@ Other rules, the first also tested:
 
 - `_reading.ts`: *what* is read (a score, an excerpt or a setlist's items) and the setlists; an edit
   to a score goes through `Reading.edited`, which carries it to the score's named excerpts and to
-  every setlist's entries. No DOM: tested in `reading.test.ts`.
+  every setlist's entries. No DOM: tested in `_reading.test.ts`.
 - `_view.ts`: `ReaderView`, the reader as every part sees it (the current score's state, page
   shapes and pages, the frames and slots, the zoom), each read afresh. The cut editor
   (`cuts/_host.ts`), the tools (`tools/_tool.ts`), pointer input (`_input.ts`) and the close-up
@@ -93,7 +93,7 @@ Other rules, the first also tested:
 - A long press on a tool's button (`ui/long-press.ts`) opens that tool's panel when it has one (`showPanel`; `reader/_tool-panels.ts`, with rows from `reader/_swatches.ts`); a tap still picks the tool.
 - `_toolbar.ts` builds the toolbar; `_toolbar-menus.ts` holds what its menus and dialogs do; `_title-menu.ts` the menu under the title, with the controls that change a setlist's entries and a score's named excerpts.
 - `_open-scores.ts` reads each score's file and opens its pages when it is near the one read, `_saver.ts` saves
-  scores and setlists together, `_history.ts` keeps undo.
+  scores and setlists together (a change stays to be saved until a write of it succeeds), `_history.ts` keeps undo.
 - An edit is a function from `State` to `State` (`scores/edits.ts`); whatever makes it calls
   `commit(state, focus)`, which records undo, carries the edit through `Reading`, saves and
   redraws.
