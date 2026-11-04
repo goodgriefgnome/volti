@@ -1,13 +1,14 @@
-// Start-up: registering the service worker, taking a new version of the app, keeping dialogs above
-// the on-screen keyboard, asking for lasting storage, importing shared files and showing the
-// library, plus importing the styles. Nothing that belongs to one screen goes here.
+// Start-up: registering the service worker, taking a new version of the app, bringing the stored
+// data up to its version, keeping dialogs above the on-screen keyboard, asking for lasting storage,
+// importing shared files and showing the library, plus importing the styles. Nothing that belongs to one screen goes here.
 
 import { registerSW } from 'virtual:pwa-register';
 import { Library } from './library/library';
 import { loadMarkColors } from './markings/store';
 import { tidyStorage } from './originals/library-files';
 import { purgeRemoved } from './originals/trash-fs';
-import { el } from './ui/dom';
+import { upgradeStoredData } from './stored-data';
+import { button, el } from './ui/dom';
 import { followVisibleArea } from './ui/overlay';
 import { takeUpdate, watchForUpdates } from './updates';
 // In this order: later files build on the earlier ones.
@@ -29,6 +30,7 @@ async function start() {
   splash.append(el('p', 'brand', 'Volti'), note);
   document.body.append(splash);
   await takeUpdate(() => { note.textContent = 'Updating Volti…'; });
+  if (!(await upgradeOnSplash(splash, note))) return;
   splash.remove();
 
   // Keep the scores added to the app, and markings, from being cleared when the tablet runs low on space.
@@ -43,6 +45,29 @@ async function start() {
   if (location.search.includes('shared')) history.replaceState(null, '', location.pathname);
   await loadMarkColors().catch((e) => console.warn('Could not load the marking colours:', e));
   await library.refresh();
+}
+
+/**
+ * Bring the stored data up to the app's version, on the start screen: nothing else can be done until
+ * it is. On failure, a Try again button runs it again, as often as needed. False when the data is
+ * from a newer version of Volti: the start screen stays.
+ */
+async function upgradeOnSplash(splash: HTMLElement, note: HTMLElement): Promise<boolean> {
+  for (;;) {
+    try {
+      const result = await upgradeStoredData(() => { note.textContent = 'Updating your scores…'; });
+      if (result === 'done') return true;
+      note.textContent = 'These scores were saved by a newer version of Volti. Open Volti again to update it.';
+      return false;
+    } catch (e) {
+      console.error('Could not update the stored data:', e);
+      note.textContent = 'Could not update your scores.';
+      await new Promise<void>((resolve) => {
+        const retry = button('Try again', () => { retry.remove(); resolve(); });
+        splash.append(retry);
+      });
+    }
+  }
 }
 
 void start();

@@ -1,0 +1,46 @@
+// Bringing the stored data up to the app's version at start-up: the version kept in the kv store,
+// and the steps from each version to the next. A change to what is stored adds a step here and
+// raises DATA_VERSION.
+
+import { keys } from './storage/keys';
+import { kv } from './storage/kv';
+
+/** The version of the stored data this app reads and writes. */
+export const DATA_VERSION = 1;
+
+/** A step brings the whole store from one version to the next. Run again after failing partway, it finishes what is left. */
+export type Step = () => Promise<void>;
+
+/** Each step, by the version it starts from. */
+const STEPS: Record<number, Step> = {};
+
+/** Where the version is kept: the kv store, or a stand-in in tests. */
+export interface VersionStore { get(): Promise<number | undefined>; set(version: number): Promise<void> }
+
+/** The kv store's version; none stored is version 1. */
+const kvVersion: VersionStore = {
+  get: async () => (await kv.get<number>(keys.dataVersion)) ?? 1,
+  set: (version) => kv.set(keys.dataVersion, version),
+};
+
+/**
+ * Run each step from the stored version up to `target`, in order, raising the stored version after
+ * each; `starting` is called once, before the first step, when there is one. 'newer' when the
+ * stored version is above `target`: nothing runs. A step's error is thrown on, after the versions
+ * of the steps before it are stored.
+ */
+export async function _upgrade(store: VersionStore, steps: Record<number, Step>, target: number, starting: () => void): Promise<'done' | 'newer'> {
+  let version = (await store.get()) ?? 1;
+  if (version > target) return 'newer';
+  if (version < target) starting();
+  for (; version < target; version++) {
+    const step = steps[version];
+    if (!step) throw new Error(`No step from version ${version} of the stored data`);
+    await step();
+    await store.set(version + 1);
+  }
+  return 'done';
+}
+
+/** _upgrade on the kv store, with STEPS, to DATA_VERSION. */
+export const upgradeStoredData = (starting: () => void) => _upgrade(kvVersion, STEPS, DATA_VERSION, starting);

@@ -1,6 +1,6 @@
 // Every key in the kv store, what it holds, and the module that reads and writes it: add a key here
 // before storing anything new. Renaming one loses what is stored under it. Only the modules named
-// here use the kv store: the */store.ts files, and originals/.
+// here use the kv store: the */store.ts files, originals/, and stored-data.ts.
 
 export const keys = {
   /** An OriginalRecord, by the original's id: where its bytes are, and what reading it found (originals/_record-store.ts; STORAGE.md). */
@@ -11,6 +11,8 @@ export const keys = {
   closedFolders: 'closed-folders',
   /** What was last read and where in it: the score, excerpt or setlist, and the first cut on the screen (reader/_store.ts). */
   lastRead: 'last-read',
+  /** The version of the stored data, a number; none is version 1 (src/stored-data.ts). */
+  dataVersion: 'data-version',
 
   /*
    * Scores (scores/store.ts), by their original's id (the SHA-256 of its contents). A score and its ink are always written
