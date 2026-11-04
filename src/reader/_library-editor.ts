@@ -17,7 +17,7 @@ import { makeSymbol } from './_symbols';
 
 export interface LibraryEditorHost {
   library(): SymbolLibrary;
-  /** Save a changed library (Reader.setLibrary). */
+  /** Save a changed library (the Symbols tool's library). */
   change(lib: SymbolLibrary): void;
 }
 

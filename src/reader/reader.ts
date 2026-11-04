@@ -5,7 +5,6 @@
 
 import type { FileChange } from '../dialogs/score-files';
 import { ends } from '../scores/excerpts';
-import { addAdhoc, findSymbol, moveGroup, moveSymbol, replaceSymbol, symbolsOf, type LibrarySymbol, type SymbolAt, type SymbolLibrary } from '../markings/library';
 import { type Marking } from '../markings/model';
 import { unlockFolder } from '../originals/device-score-fs';
 import { knownTitles } from '../originals/library-files';
@@ -19,16 +18,14 @@ import { pageWidths, screenAt } from '../render/screen';
 import { type Hatches } from '../render/paint';
 import { replaceMarking } from '../scores/edits';
 import { type Selected } from '../scores/placing';
-import { markColors, type Background, type PlacedMark } from '../markings/placed';
 import { A4, type Aspects, type Cut, type NamedExcerpt, type State } from '../scores/model';
 import { frameOf, pack, type Frame } from '../scores/frames';
 import { loadScore } from '../scores/store';
 import { loadSetlists } from '../setlists/store';
 import { type Setlist } from '../setlists/model';
-import { closeOverlay, showDialog } from '../ui/overlay';
-import { BRAVURA } from '../fonts/fonts';
-import { loadToolSettings, saveLibrary, saveToolSettings } from '../markings/store';
-import { backgroundOf, type BackgroundChoice, type ColorChoice, DEFAULT_TOOL_SETTINGS, ownColor, type ToolSettings } from '../markings/tool-settings';
+import { closeOverlay } from '../ui/overlay';
+import { loadToolSettings, saveToolSettings } from '../markings/store';
+import { DEFAULT_TOOL_SETTINGS, type ToolSettings } from '../markings/tool-settings';
 import { dpr, el } from '../ui/dom';
 import { Toast } from '../ui/toast';
 import { CutEditor } from './cuts/_editor';
@@ -40,16 +37,10 @@ import { OpenScores, openPages, type DrawPage, type DrawProgressive, type Item, 
 import { Reading, setlistItems, type ReadingKind, type ReadingSnapshot } from './_reading';
 import { Saver } from './_saver';
 import { LendStack, type StackChange } from './_lending';
-import { lastSymbol, makeSymbol, reorderedCurrents, savedLibrary, symbolLibrary } from './_symbols';
-import { glyphPicker } from './_glyph-picker';
-import { editLibrary } from './_library-editor';
 import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
 import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_spread';
 import { Loupe } from './_loupe';
-import { showSymbolPanel } from './_symbol-panel';
-import type { SymbolSettingsView } from './_tool-panels';
 import { backIcon, Toolbar, turnIcon, type ToolChoice } from './_toolbar';
-import { symbolFace, type Look } from './tools/_faces';
 import { ReaderMenus } from './_toolbar-menus';
 import { offerScore, turnFrom, type Offer } from './_turning';
 import { makeTools } from './tools/_tools';
@@ -166,16 +157,6 @@ class Reader {
   private get tool(): ToolChoice { return this.stack.active; }
   /** Each tool's settings for new markings; kept across restarts. */
   private settings: ToolSettings = DEFAULT_TOOL_SETTINGS;
-  /** The symbol library, once it has been made. */
-  private symbolLib: SymbolLibrary | undefined;
-  /** The group whose current symbol is the tool, while a symbol is; -1 for the ad-hoc group. */
-  private group = 0;
-  /** Each group's current symbol, an index into it, while the app runs. */
-  private currents: number[] = [];
-  /** The ad-hoc group's current symbol. */
-  private adhocCurrent = 0;
-  /** The font last used in the glyph picker, while the app runs. */
-  private pickerFont = BRAVURA;
   /** The placed marking showing its box, while a symbol is the tool. */
   private selected: Selected | undefined;
   private loupe: Loupe;
@@ -241,9 +222,6 @@ class Reader {
       ...view,
       editor: this.editor,
       tool: () => this.tool,
-      symbolColor: () => ownColor(this.settings.symbol.color),
-      placing: () => this.symbolLib && symbolsOf(this.symbolLib, this.group)[this.currentOf(this.group)],
-      library: () => this.symbolLib,
       paintState: (slot, s) => this.paintInk(slot, s),
       selected: () => this.selected,
       select: (s) => this.select(s),
@@ -251,8 +229,6 @@ class Reader {
       settings: () => this.settings,
       setSettings: (change) => this.setSettings(change),
       say: (t) => this.say(t),
-      symbolPanel: () => void this.symbolPanel(),
-      cycled: (sym) => this.cycledTo(sym),
       setZoom: (z) => this.setZoom(z),
       view: () => this.view(),
       minScale: () => this.minScale,
@@ -283,7 +259,7 @@ class Reader {
       close: () => history.back(),
       titleMenu: () => this.menus.titleMenu(),
       more: () => void this.menus.more(),
-      tool: (t) => (t === 'symbol' ? void this.symbols() : this.setTool(t)),
+      tool: (t) => this.setTool(t),
       panel: (t) => this.panel(t),
       undo: () => this.undo(),
       redo: () => this.redo(),
@@ -327,7 +303,6 @@ class Reader {
     });
     this.syncBar();
     void loadToolSettings().then((s) => { this.settings = s; this.syncBar(); }, () => {});
-    void savedLibrary().then((lib) => { if (lib && !this.symbolLib) { this.symbolLib = lib; this.syncBar(); } }, () => {});
     this.stage.append(this.spreadEl);
     this.scope.hidden = true;
     // While the toolbar is hidden, a small back arrow at the top left still leads to the library.
@@ -465,9 +440,9 @@ class Reader {
     this.syncBar();
   }
 
-  /** A long press on a tool's button: it becomes the tool (Symbols does that itself), and its panel shows under the button. */
+  /** A long press on a tool's button: it becomes the tool, and its panel shows under the button. */
   private panel(tool: Exclude<ToolName, 'hand'>) {
-    if (tool !== 'symbol') this.chooseOnLongPress(tool);
+    this.chooseOnLongPress(tool);
     this.tools[tool].showPanel?.(this.toolbar.anchor(tool));
   }
 
@@ -507,93 +482,6 @@ class Reader {
     this.syncBar();
   }
 
-  /** The selected marking, when it is a symbol. */
-  private selectedSymbol(): Selected | undefined {
-    return this.selected?.mark.kind === 'symbol' ? this.selected : undefined;
-  }
-
-  /** What the Symbols button shows: the selected symbol's look, else the settings for the next one. */
-  private lookOf(): Look {
-    const m = this.selectedSymbol()?.mark;
-    if (m) return { color: m.color ?? markColors().color, ...(m.background ? { background: m.background } : {}) };
-    const background = this.pickedSymbol()?.background;
-    return { color: ownColor(this.settings.symbol.color) ?? markColors().color, ...(background ? { background } : {}) };
-  }
-
-  /** A colour from the Symbols panel: the selected symbol takes it, and so do new ones. */
-  private panelColor(c: ColorChoice) {
-    const sel = this.selectedSymbol();
-    if (sel && sel.mark.color !== ownColor(c)) {
-      const { color: _, ...rest } = sel.mark, own = ownColor(c);
-      const marked: PlacedMark = own ? { ...rest, color: own } : rest;
-      this.commit(replaceMarking(this.state, sel.cut, sel.mark, marked), sel.cut, { cut: sel.cut, mark: marked });
-    }
-    this.setSettings((s) => ({ ...s, symbol: { color: c } }));
-  }
-
-  /**
-   * A background shape or colour from the Symbols panel: the selected symbol takes it, and so does
-   * the library symbol (the selected symbol's, or with none selected the tool's), which the next
-   * marking of it is a copy of.
-   */
-  private panelBackground(change: { shape?: BackgroundChoice; color?: ColorChoice }) {
-    const sel = this.selectedSymbol();
-    const resolve = (was: Background | undefined) => backgroundOf(change.shape ?? was?.shape ?? 'none', change.color ?? was?.color ?? 'default');
-    let next: Background | undefined;
-    if (sel) {
-      next = resolve(sel.mark.background);
-      if (JSON.stringify(next) !== JSON.stringify(sel.mark.background)) {
-        const { background: _, ...rest } = sel.mark;
-        const marked: PlacedMark = next ? { ...rest, background: next } : rest;
-        this.commit(replaceMarking(this.state, sel.cut, sel.mark, marked), sel.cut, { cut: sel.cut, mark: marked });
-      }
-    }
-    const lib = this.symbolLib;
-    const at = lib && sel && findSymbol(lib, sel.mark.font, sel.mark.text);
-    const sym = sel ? lib && at && symbolsOf(lib, at.group)[at.index] : this.pickedSymbol();
-    if (lib && sym) {
-      const { background: _, ...rest } = sym, was = sel ? next : resolve(sym.background);
-      this.setLibrary(replaceSymbol(lib, sym, was ? { ...rest, background: was } : rest));
-    } else this.syncBar();
-  }
-
-  /** The library, made the first time; undefined, having said so, when that fails. */
-  private async ensureLibrary(): Promise<SymbolLibrary | undefined> {
-    if (!this.symbolLib) {
-      try { this.symbolLib = await symbolLibrary(); } catch (e) { console.error(e); this.say('Could not load the symbols.'); }
-    }
-    return this.symbolLib;
-  }
-
-  /** The Symbols button's long press: the last symbol picked becomes the tool, and the library and the symbols' settings show, or the selected symbol's. */
-  private async symbolPanel() {
-    if (!await this.ensureLibrary()) return;
-    // Not the tool yet: the last symbol picked becomes it, as a tap on the button does.
-    if (this.tool !== 'symbol') {
-      const at = lastSymbol(this.symbolLib!, this.group, this.currents, this.adhocCurrent);
-      if (at) this.chooseSymbol(at.group, at.index);
-    }
-    const sel = this.selectedSymbol()?.mark, was = sel ? sel.background : this.pickedSymbol()?.background;
-    const v: SymbolSettingsView = {
-      color: sel ? sel.color ?? 'default' : this.settings.symbol.color,
-      background: was?.shape ?? 'none',
-      backgroundColor: was?.color ?? 'default',
-    };
-    showSymbolPanel(this.toolbar.anchor('symbol'), {
-      library: () => this.symbolLib!,
-      tool: () => { const lib = this.symbolLib, s = this.pickedSymbol(); return lib && s && this.tool === 'symbol' ? findSymbol(lib, s.font, s.text) : undefined; },
-      pick: (at) => this.chooseSymbol(at.group, at.index),
-      move: (from, to) => this.moveSymbolTo(from, to),
-      moveGroup: (from, to) => this.moveGroupTo(from, to),
-      add: () => this.addSymbol(),
-      edit: () => { if (this.symbolLib) editLibrary({ library: () => this.symbolLib!, change: (lib) => this.setLibrary(lib) }); },
-    }, v, {
-      color: (c) => this.panelColor(c),
-      background: (b) => this.panelBackground({ shape: b }),
-      backgroundColor: (c) => this.panelBackground({ color: c }),
-    });
-  }
-
   /* ---------- the selection ---------- */
 
   private select(s: Selected | undefined) {
@@ -619,138 +507,8 @@ class Reader {
     if (cur) this.syncBar();
   }
 
-  /**
-   * The Symbols button: the last symbol picked becomes the tool, or, when a symbol is the tool,
-   * the tool is put away. The library is made the first time.
-   */
-  private async symbols() {
-    if (this.tool === 'symbol') { this.useTool('hand'); this.syncBar(); return; }
-    if (!await this.ensureLibrary()) return;
-    const at = lastSymbol(this.symbolLib!, this.group, this.currents, this.adhocCurrent);
-    if (at) this.chooseSymbol(at.group, at.index);
-    else this.syncBar();
-  }
-
-  private currentOf(group: number): number {
-    return group < 0 ? this.adhocCurrent : this.currents[group] ?? 0;
-  }
-
-  private setCurrent(group: number, index: number) {
-    if (group < 0) this.adhocCurrent = index;
-    else this.currents[group] = index;
-  }
-
-  /** A selected symbol was cycled to `sym`: with Symbols as the tool (not lent by the selection), it is the tool's symbol now. */
-  private cycledTo(sym: LibrarySymbol) {
-    const at = this.tool === 'symbol' && !this.stack.has('selection') && this.symbolLib && findSymbol(this.symbolLib, sym.font, sym.text);
-    if (!at) return;
-    this.group = at.group;
-    this.setCurrent(at.group, at.index);
-    this.syncBar();
-  }
-
-  /** A symbol picked in the Symbols panel, or placed through +: current, and the tool. */
-  private chooseSymbol(i: number, j: number) {
-    this.setCurrent(i, j);
-    this.useTool('symbol');
-    this.group = i;
-    this.syncBar();
-  }
-
-  /**
-   * Change the library: saved, kept, and shown. Every change goes through here. Each group's current
-   * symbol stays in its group (the first when its place is gone), and the last group used, when it
-   * is gone or empty, falls to the first group with symbols; the symbol tool goes if there is none.
-   */
-  setLibrary(lib: SymbolLibrary) {
-    this.symbolLib = lib;
-    void saveLibrary(lib).catch((e) => { console.error(e); this.say('Could not save the symbols.'); });
-    const clamp = (n: number, size: number) => (n < size ? n : 0);
-    this.currents = lib.groups.map((g, i) => clamp(this.currents[i] ?? 0, g.symbols.length));
-    this.adhocCurrent = clamp(this.adhocCurrent, lib.adhoc.length);
-    if (!symbolsOf(lib, this.group).length) {
-      const first = [...lib.groups.keys(), -1].find((g) => symbolsOf(lib, g).length);
-      if (first === undefined) { if (this.tool === 'symbol') this.tell(this.stack.equip('hand')); }
-      else { this.group = first; this.setCurrent(first, 0); }
-    }
-    this.syncBar();
-  }
-
-  /** + in the second row: pick glyphs, and make them the tool, among the ad-hoc symbols unless the library has them. */
-  private addSymbol() {
-    const dialog = showDialog('Place a symbol', 'glyph-picker');
-    glyphPicker(dialog, {
-      font: this.pickerFont,
-      text: '',
-      okLabel: 'Place',
-      cancel: () => closeOverlay(),
-      done: (font, text) => {
-        closeOverlay();
-        this.pickerFont = font;
-        void (async () => {
-          try {
-            const sym = await makeSymbol(font, text, 1);
-            const lib = this.symbolLib;
-            if (!lib) return;
-            const at = findSymbol(lib, font, text);
-            if (at && at.group >= 0) this.chooseSymbol(at.group, at.index);
-            else {
-              this.setLibrary(addAdhoc(lib, sym));
-              this.chooseSymbol(-1, 0);
-            }
-          } catch (e) { console.error(e); this.say('Could not make the symbol.'); }
-        })();
-      },
-    });
-  }
-
-  /**
-   * A symbol dragged in the Symbols panel. The tool's symbol stays the tool wherever it goes, and
-   * each group's current symbol stays current in whichever group it is in now.
-   */
-  private moveSymbolTo(from: SymbolAt, to: SymbolAt | 'new') {
-    const lib = this.symbolLib;
-    if (!lib) return;
-    const key = (s: LibrarySymbol) => `${s.font}|${s.text}`;
-    const tool = this.pickedSymbol();
-    const currentKeys = new Set([...lib.groups.keys(), -1].flatMap((g) => { const s = symbolsOf(lib, g)[this.currentOf(g)]; return s ? [key(s)] : []; }));
-    const next = moveSymbol(lib, from, to);
-    const currentIn = (g: number) => Math.max(0, symbolsOf(next, g).findIndex((s) => currentKeys.has(key(s))));
-    this.currents = next.groups.map((_, g) => currentIn(g));
-    this.adhocCurrent = currentIn(-1);
-    const at = tool && findSymbol(next, tool.font, tool.text);
-    if (at) this.group = at.group;
-    this.setLibrary(next);
-  }
-
-  /** A group of the Symbols panel moved to `to`: each group keeps its current symbol, and the tool its group. */
-  private moveGroupTo(from: number, to: number) {
-    const lib = this.symbolLib;
-    if (!lib || !lib.groups[from] || to < 0 || to >= lib.groups.length) return;
-    const r = reorderedCurrents(this.currents, this.group, from, to);
-    this.currents = r.currents;
-    this.group = r.group;
-    this.setLibrary(moveGroup(lib, from, to));
-  }
-
-  /** The symbol the Symbols button pictures: the selected symbol's, else the last one picked. */
-  private buttonSymbol(): LibrarySymbol | undefined {
-    const m = this.selectedSymbol()?.mark;
-    if (!m) return this.pickedSymbol();
-    const lib = this.symbolLib, at = lib && findSymbol(lib, m.font, m.text);
-    return lib && at ? symbolsOf(lib, at.group)[at.index] : { font: m.font, text: m.text, scale: 1, glyphs: m.glyphs.map((g) => [...g]) };
-  }
-
-  /** The last symbol picked; none before the library has symbols. */
-  private pickedSymbol(): LibrarySymbol | undefined {
-    const lib = this.symbolLib, at = lib && lastSymbol(lib, this.group, this.currents, this.adhocCurrent);
-    return lib && at ? symbolsOf(lib, at.group)[at.index] : undefined;
-  }
-
   private syncBar() {
     const cur = this.current;
-    // Until Symbols sets its own, the reader sets its face.
-    this.setFace('symbol', symbolFace(this.buttonSymbol(), this.lookOf()));
     for (const t of Object.values(this.tools ?? {})) t.onSettingsChanged?.();
     this.showLayers();
     this.toolbar.sync({

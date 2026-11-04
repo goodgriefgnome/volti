@@ -1,7 +1,6 @@
 // What every tool is: the Tool interface, and what a tool may ask of the reader. A tool acts on the
 // frames with a pointer; each tool has its own file here, and _tools.ts makes them.
 
-import type { SymbolLibrary, LibrarySymbol } from '../../markings/library';
 import type { Marking, Point } from '../../markings/model';
 import type { ToolSettings } from '../../markings/tool-settings';
 import type { Zoom, View } from '../../render/zoom';
@@ -13,18 +12,11 @@ import type { ReaderView } from '../_view';
 
 /** What a tool needs from the reader. */
 export interface ToolHost extends ReaderView {
-  /** The colour new symbols get; undefined: the app's marking colour. */
-  symbolColor(): string | undefined;
-  /** The symbol the symbol tool places: the current one of its group. */
-  placing(): LibrarySymbol | undefined;
-  library(): SymbolLibrary | undefined;
   /** The placed marking showing its box, if any. */
   selected(): Selected | undefined;
   select(s: Selected | undefined): void;
   /** Take the selected marking away, as one undo step; the selection ends. */
   delete(): void;
-  /** A selected symbol was changed to the next of its group: with Symbols as the tool, that symbol is the tool's now. */
-  cycled(sym: LibrarySymbol): void;
   /** The loupe shown while a marking is dragged. */
   loupe(): Loupe;
   /** Draw a frame's ink again; `extra` is a marking still being made. */
@@ -44,8 +36,6 @@ export interface ToolHost extends ReaderView {
   setButtonFace(face: ButtonFace): void;
   settings(): ToolSettings;
   setSettings(change: (s: ToolSettings) => ToolSettings): void;
-  /** The Symbols panel, under its button (until Symbols owns it). */
-  symbolPanel(): void;
   say(text: string): void;
   /** Unequip it: the hand tool is equipped. */
   unequip(): void;

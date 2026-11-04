@@ -1,11 +1,9 @@
-// The tools that place markings whole, symbols and text: tapping selects, the selected marking's
-// second tap cycles or edits it, dragging moves it or resizes it from a corner. What a tap on empty
-// music does is what tells the tools apart.
+// What the tools that place markings whole, symbols and text, share: a press selected by the reader
+// is moved or resized from the first pixel, the selected marking's second tap cycles or edits it,
+// and a press on empty music shows a ghost and places. What differs is what a tool gives (`Placing`).
 
-import { type LibrarySymbol, nextSymbol, scaleOf } from '../../markings/library';
-import { compactMarking, type Marking, type Point } from '../../markings/model';
+import type { Marking, Point } from '../../markings/model';
 import { markExtent, type PlacedMark } from '../../markings/placed';
-import { replaceMarking, setSymbolSize } from '../../scores/edits';
 import type { Placed } from '../../scores/frames';
 import { symbolSizeOf, type Cut, type State } from '../../scores/model';
 import { centreOnFrame, extentOnFrame, handleRadius, MIN_BOX_PX, movedTo, pressOnSelection, resizedFrom, selectionBox, type Selected } from '../../scores/placing';
@@ -25,26 +23,6 @@ function selectionOn(item: Placed, sel: Selected, aspect: number, px: number): {
   if (!ext) return undefined;
   const box = selectionBox(ext, MIN_BOX_PX / px);
   return { box, r: handleRadius(Math.min(box[2] - box[0], box[3] - box[1]) * px) / px };
-}
-
-/** A placed symbol made from a library symbol, centred at `at` of its frame. */
-export const placed = (sym: LibrarySymbol, at: [number, number], size: number): PlacedMark => ({
-  kind: 'symbol', text: sym.text, font: sym.font, glyphs: sym.glyphs.map((g) => [...g]), at, size,
-  ...(sym.background && { background: { ...sym.background } }),
-});
-
-/** Replace the selected symbol with the next of its group, and make the size it implies the score's symbol size. */
-export function cycle(host: ToolHost, cut: string, mark: PlacedMark) {
-  const lib = host.library();
-  const next = lib && nextSymbol(lib, mark.font, mark.text);
-  if (!lib || !next) return;
-  const size = (mark.size / scaleOf(lib, mark.font, mark.text)) * next.scale;
-  // It keeps its own colour and background, not the next symbol's.
-  const { background: _, ...fresh } = placed(next, mark.at, size);
-  const replacement = compactMarking({ ...fresh, ...(mark.color ? { color: mark.color } : {}), ...(mark.background ? { background: { ...mark.background } } : {}) }) as PlacedMark;
-  host.commit(setSymbolSize(replaceMarking(host.state(), cut, mark, replacement), size / next.scale), cut, { cut, mark: replacement });
-  host.select({ cut, mark: replacement });
-  host.cycled(next);
 }
 
 /** What a tap does, from what was selected before the press and the marking it grabbed (undefined: empty music). */
@@ -132,6 +110,8 @@ export function placingTool(host: ToolHost, spec: Placing): Tool {
       const itemOf = (cut: string) => slot.frame.items.find((i) => i.cut.id === cut);
 
       // A press on a handle of the selected marking's box resizes it; on the box, moves it (and a tap acts on it); on a marking the reader selected for it, moves that.
+      // What was selected before this press, read before anything else tells the tool of a change.
+      const priorMark = on?.what === 'chrome' ? host.selected()?.mark : before?.mark;
       let grab: Grab | undefined;
       let hit: { cut: Cut; mark: PlacedMark } | undefined;
       const sel = host.selected(), selItem = sel && itemOf(sel.cut);
@@ -168,7 +148,7 @@ export function placingTool(host: ToolHost, spec: Placing): Tool {
       const tap = (target?: Selected) => {
         if (grab?.kind === 'resize') return; // a tap on a handle does nothing
         const marked = target ?? (hit && { cut: hit.cut.id, mark: hit.mark });
-        switch (_tapAction(on?.what === 'chrome' ? sel?.mark : before?.mark, hit?.mark)) {
+        switch (_tapAction(priorMark, hit?.mark)) {
           case 'select': host.select(marked!); break;
           case 'again': spec.again(marked!); break;
           case 'place': {
