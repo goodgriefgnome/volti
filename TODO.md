@@ -168,6 +168,12 @@ scores.
   (`.selection-delete`, `styles/reader.css`) inside the zoomed spread, so it grows with the zoom
   (84 px at 3×), while the box's line and handles keep their size (`SelectionBox.zoomed`,
   `reader/_selection.ts`). It should be scaled by `1 / s` there too, as they are.
+- **What the tools' painting calls are for** [deferred]: to be explained, then perhaps merged.
+  `ToolHost` has `paintInk(slot, extra)` (the frame's ink as it is, plus a marking still being
+  made: a stroke, a ghost), `paintState(slot, s)` (the frame's ink as it would be in `s`, not taken:
+  a marking being moved or resized), and `erased(s, slot)` (`s` taken, without an undo step yet:
+  the eraser's sweep) (`reader/tools/_tool.ts`, `reader/reader.ts`). Perhaps one
+  `paint(slot, { state?, extra? })` for the first two.
 
 ## Speculative future ideas
 
