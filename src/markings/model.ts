@@ -39,8 +39,11 @@ export interface _KindBehaviour<M> {
   anchor(m: M): Point;
   /** The same marking with each of its points moved by f, as from frame to page coordinates. */
   map(m: M, f: (p: Point) => Point): M;
-  /** Whether an eraser of `radius` at p touches it. */
-  hits(m: M, p: Point, aspect: number, radius: number): boolean;
+  /**
+   * How far `p` is from it, in page widths, when within `radius` of it (0 on it); undefined when
+   * further. `aspect` is its page's height / width.
+   */
+  hitDistance(m: M, p: Point, radius: number, aspect: number): number | undefined;
   draw(t: DrawTarget, m: M): void;
   /** What its PDF annotation says besides its appearance (which `draw` makes), placed on `t`. */
   annotation(t: DrawTarget, m: M): _Annotation;
@@ -56,7 +59,7 @@ const behaviour = (m: Marking): _KindBehaviour<Marking> => ('kind' in m ? _place
 export const shareOf = (m: Marking, lo: number, hi: number, aspect: number) => behaviour(m).share(m, lo, hi, aspect);
 export const anchorOf = (m: Marking) => behaviour(m).anchor(m);
 export const mapMarking = (m: Marking, f: (p: Point) => Point) => behaviour(m).map(m, f);
-export const hits = (m: Marking, p: Point, aspect: number, radius: number) => behaviour(m).hits(m, p, aspect, radius);
+export const hitDistance = (m: Marking, p: Point, radius: number, aspect: number) => behaviour(m).hitDistance(m, p, radius, aspect);
 export const compactMarking = (m: Marking) => behaviour(m).compact(m);
 export const copyMarking = (m: Marking) => behaviour(m).copy(m);
 

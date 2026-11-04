@@ -177,11 +177,12 @@ export const _placed: _KindBehaviour<PlacedMark> = {
     const [x, y] = f([m.at[0], m.at[1], 0]);
     return { ...m, at: [x, y] };
   },
-  hits: (m, p, aspect, radius) => {
+  hitDistance: (m, p, radius, aspect) => {
     const e = markExtent(m);
-    if (!e) return false;
+    if (!e) return undefined;
     const dx = p[0] - m.at[0], dy = (p[1] - m.at[1]) * aspect;
-    return dx >= e[0] * m.size - radius && dx <= e[2] * m.size + radius && dy >= e[1] * m.size - radius && dy <= e[3] * m.size + radius;
+    const d = Math.hypot(Math.max(e[0] * m.size - dx, 0, dx - e[2] * m.size), Math.max(e[1] * m.size - dy, 0, dy - e[3] * m.size));
+    return d <= radius ? d : undefined;
   },
   draw: drawPlaced,
   annotation: (_t, m) =>

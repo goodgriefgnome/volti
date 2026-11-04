@@ -1,24 +1,29 @@
 import { describe, expect, it } from 'vitest';
-import { compact, _touches, _widthPx, type Stroke } from './stroke';
+import { compact, _hitDistance, _widthPx, type Stroke } from './stroke';
 
 const line: Stroke = { tool: 'pen', color: '#000', size: 0.002, points: [[0.1, 0.5, 0.5], [0.5, 0.5, 0.5]] };
 
-describe('touches', () => {
+describe('hitDistance', () => {
   it('finds a stroke under the eraser', () => {
-    expect(_touches(line, [0.3, 0.505, 0.5], 1.4, 0.012)).toBe(true);
+    expect(_hitDistance(line, [0.3, 0.505, 0.5], 0.012, 1.4)).toBeDefined();
   });
   it('misses a stroke out of reach', () => {
-    expect(_touches(line, [0.3, 0.55, 0.5], 1.4, 0.012)).toBe(false);
-    expect(_touches(line, [0.6, 0.5, 0.5], 1.4, 0.012)).toBe(false);
+    expect(_hitDistance(line, [0.3, 0.55, 0.5], 0.012, 1.4)).toBeUndefined();
+    expect(_hitDistance(line, [0.6, 0.5, 0.5], 0.012, 1.4)).toBeUndefined();
   });
   it('measures vertical distance in page widths', () => {
     // 0.008 of the page height is 0.0112 page widths on an A4-ish page: inside on a square page, outside on a tall one.
-    expect(_touches(line, [0.3, 0.508, 0.5], 1, 0.008)).toBe(true);
-    expect(_touches(line, [0.3, 0.508, 0.5], 1.5, 0.008)).toBe(false);
+    expect(_hitDistance(line, [0.3, 0.508, 0.5], 0.008, 1)).toBeDefined();
+    expect(_hitDistance(line, [0.3, 0.508, 0.5], 0.008, 1.5)).toBeUndefined();
   });
   it('handles a single dot', () => {
     const dot: Stroke = { ...line, points: [[0.2, 0.2, 0.5]] };
-    expect(_touches(dot, [0.205, 0.2, 0.5], 1.4, 0.012)).toBe(true);
+    expect(_hitDistance(dot, [0.205, 0.2, 0.5], 0.012, 1.4)).toBeDefined();
+  });
+  it('is 0 on the line, and measured from its edge', () => {
+    const wide: Stroke = { ...line, size: 0.004 };
+    expect(_hitDistance(wide, [0.3, 0.5, 0.5], 0.05, 1)).toBe(0);
+    expect(_hitDistance(wide, [0.3, 0.51, 0.5], 0.05, 1)).toBeCloseTo(0.008);
   });
 });
 

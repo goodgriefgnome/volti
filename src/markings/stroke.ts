@@ -42,18 +42,20 @@ function segDist(px: number, py: number, ax: number, ay: number, bx: number, by:
 }
 
 /**
- * Whether the eraser at `p` touches the stroke. Works in page-width units, so `aspect`
- * (page height / width) is needed to measure vertical distance correctly.
+ * How far `p` is from the stroke's edge (0 on it), when within `radius`; undefined when further.
+ * Works in page-width units, so `aspect` (page height / width) is needed to measure vertical
+ * distance correctly.
  */
-export function _touches(stroke: Stroke, p: Point, aspect: number, radius: number): boolean {
-  const reach = radius + stroke.size / 2;
+export function _hitDistance(stroke: Stroke, p: Point, radius: number, aspect: number): number | undefined {
   const pts = stroke.points;
-  if (pts.length === 1) return Math.hypot(pts[0][0] - p[0], (pts[0][1] - p[1]) * aspect) <= reach;
+  let d = Infinity;
+  if (pts.length === 1) d = Math.hypot(pts[0][0] - p[0], (pts[0][1] - p[1]) * aspect);
   for (let i = 1; i < pts.length; i++) {
     const [ax, ay] = pts[i - 1], [bx, by] = pts[i];
-    if (segDist(p[0], p[1] * aspect, ax, ay * aspect, bx, by * aspect) <= reach) return true;
+    d = Math.min(d, segDist(p[0], p[1] * aspect, ax, ay * aspect, bx, by * aspect));
   }
-  return false;
+  d = Math.max(0, d - stroke.size / 2);
+  return d <= radius ? d : undefined;
 }
 
 /**
@@ -105,7 +107,7 @@ export const _strokes: _KindBehaviour<Stroke> = {
   share: (s, lo, hi, aspect) => share(s.points, lo, hi, aspect),
   anchor: (s) => s.points[0],
   map: (s, f) => ({ ...s, points: s.points.map(f) }),
-  hits: _touches,
+  hitDistance: _hitDistance,
   draw: drawStroke,
   annotation: (t, s) => ({ subtype: 'Ink', paths: [s.points.map((p) => at(t, p))], color: s.color, width: _widthPx(s, 0.5, t.w) }),
   compact: (s) => ({ ...s, points: compact(s.points) }),

@@ -65,12 +65,19 @@ describe('placed markings', () => {
   });
   it('are hit within their extent, grown by the radius, in page widths', () => {
     // 0.45..0.75 across, 0.45..0.55 down (in page widths from y 0.5 × aspect).
-    expect(_placed.hits(mark, [0.5, 0.5, 0], 1.4, 0)).toBe(true);
-    expect(_placed.hits(mark, [0.9, 0.5, 0], 1.4, 0)).toBe(false);
-    expect(_placed.hits(mark, [0.77, 0.5, 0], 1.4, 0)).toBe(false);
-    expect(_placed.hits(mark, [0.77, 0.5, 0], 1.4, 0.03)).toBe(true);
-    expect(_placed.hits(mark, [0.5, 0.54, 0], 1, 0)).toBe(true);
-    expect(_placed.hits(mark, [0.5, 0.54, 0], 1.4, 0)).toBe(false);
+    expect(_placed.hitDistance(mark, [0.5, 0.5, 0], 0, 1.4)).toBeDefined();
+    expect(_placed.hitDistance(mark, [0.9, 0.5, 0], 0, 1.4)).toBeUndefined();
+    expect(_placed.hitDistance(mark, [0.77, 0.5, 0], 0, 1.4)).toBeUndefined();
+    expect(_placed.hitDistance(mark, [0.77, 0.5, 0], 0.03, 1.4)).toBeDefined();
+    expect(_placed.hitDistance(mark, [0.5, 0.54, 0], 0, 1)).toBeDefined();
+    expect(_placed.hitDistance(mark, [0.5, 0.54, 0], 0, 1.4)).toBeUndefined();
+  });
+  it('are 0 inside their extent, and as far from it as the nearest edge or corner outside', () => {
+    expect(_placed.hitDistance(mark, [0.5, 0.5, 0], 1, 1)).toBe(0);
+    expect(_placed.hitDistance(mark, [0.8, 0.5, 0], 1, 1)).toBeCloseTo(0.05);
+    // Diagonally off the corner (0.75, 0.55): 0.03 right, 0.04 down.
+    expect(_placed.hitDistance(mark, [0.78, 0.59, 0], 1, 1)).toBeCloseTo(0.05);
+    expect(_placed.hitDistance(mark, [0.78, 0.59, 0], 0.04, 1)).toBeUndefined();
   });
   it('are rounded to 1/10000, and copied apart', () => {
     const c = _placed.compact({ ...mark, at: [0.123456, 0.654321], size: 0.0351234 });
@@ -160,8 +167,8 @@ describe('backgrounds', () => {
   it('are hit by a point in their padding only when there is one', () => {
     // 0.06 em beyond the ink, to the right: 0.006 page widths.
     const p: [number, number, number] = [0.5 + ink[2] * 0.1 + 0.006, 0.5, 0];
-    expect(_placed.hits(boxed('box'), p, 1.4, 0)).toBe(true);
-    expect(_placed.hits(mark, p, 1.4, 0)).toBe(false);
+    expect(_placed.hitDistance(boxed('box'), p, 0, 1.4)).toBeDefined();
+    expect(_placed.hitDistance(mark, p, 0, 1.4)).toBeUndefined();
   });
   it('are drawn first, filled in the default background colour and darkening only', () => {
     const shapes: [readonly PathCmd[], Paint][] = [];
