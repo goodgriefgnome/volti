@@ -14,8 +14,6 @@ export interface EditorHost extends ReaderView {
   preview(s: State | null, frames: Frame[] | null, hatches?: Hatches): void;
   /** A page thumbnail `width` CSS pixels wide: stand-ins first, then the page itself. */
   thumbs(page: number, width: number): AsyncIterable<HTMLCanvasElement>;
-  /** An ink tool is selected, so a long press on the music draws instead of opening a menu. */
-  inking(): boolean;
   /** Forget the tap or swipe that started with this pointer. */
   cancelGesture(): void;
   say(text: string): void;

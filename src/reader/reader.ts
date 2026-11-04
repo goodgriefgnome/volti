@@ -159,7 +159,7 @@ class Reader {
   private detail: Detail;
 
   /** The tool equipped by its button, with the tools a selection has lent on top of it. */
-  private stack = new LendStack<ToolChoice>('none');
+  private stack = new LendStack<ToolChoice>('hand');
   /** The tool in use: the one on top of the stack. */
   private get tool(): ToolChoice { return this.stack.active; }
   /** Each tool's settings for new markings; kept across restarts. */
@@ -233,7 +233,6 @@ class Reader {
       commit: (s, focus) => this.commit(s, focus),
       preview: (s, frames, hatches) => this.preview(s, frames, hatches),
       thumbs: (page, w) => canvasesOf(this.drawProgressive(page + 1, Math.round(w * dpr()))),
-      inking: () => this.tool !== 'none',
       cancelGesture: () => this.input.cancelGesture(),
       say: (t) => this.say(t),
       changed: () => this.syncBar(),
@@ -331,11 +330,12 @@ class Reader {
       show: (s, slot) => this.showState(s, slot),
       undoTo: (before, slot) => this.undoTo(before, slot),
       setButtonFace: () => {},
-      unequip: () => { this.useTool('none'); this.syncBar(); },
+      unequip: () => { this.useTool('hand'); this.syncBar(); },
       layer: () => document.createElement('div'),
       lift: () => {},
       toggleToolbar: () => this.act('toggleChrome'),
-      cutMenu: () => {},
+      cutsOn: () => this.editor.enabled,
+      cutMenu: (p) => this.editor.menuAt(p.x, p.y),
       loupe: () => this.loupe,
       textGhost: (at) => this.textGhost(at),
       newText: (slot, at) => this.newText(slot, at),
@@ -416,7 +416,7 @@ class Reader {
 
   /** Tapping the active tool again puts it away. */
   private setTool(t: ToolName) {
-    this.useTool(this.tool === t ? 'none' : t);
+    this.useTool(this.tool === t ? 'hand' : t);
     this.syncBar();
   }
 
@@ -733,7 +733,7 @@ class Reader {
   /** Show the selected marking's box, or none: a selection ends when its marking is gone from the state, or the tool isn't one that places markings (or none). */
   private refreshSelection() {
     const sel = this.selected, cur = this.current;
-    if (sel && (!cur || !(placesMarkings(this.tool) || this.tool === 'none') || !cur.state.ink[sel.cut]?.includes(sel.mark))) this.deselect();
+    if (sel && (!cur || !(placesMarkings(this.tool) || this.tool === 'hand') || !cur.state.ink[sel.cut]?.includes(sel.mark))) this.deselect();
     const now = this.selected;
     const slot = now && this.slots.find((sl) => sl.frame.items.some((i) => i.cut.id === now.cut));
     const item = slot && slot.frame.items.find((i) => i.cut.id === now!.cut);
@@ -746,7 +746,7 @@ class Reader {
    * the tool is put away. The library is made the first time.
    */
   private async symbols() {
-    if (this.tool === 'symbol') { this.useTool('none'); this.syncBar(); return; }
+    if (this.tool === 'symbol') { this.useTool('hand'); this.syncBar(); return; }
     if (!await this.ensureLibrary()) return;
     const at = lastSymbol(this.symbolLib!, this.group, this.currents, this.adhocCurrent);
     if (at) this.chooseSymbol(at.group, at.index);
@@ -792,7 +792,7 @@ class Reader {
     this.adhocCurrent = clamp(this.adhocCurrent, lib.adhoc.length);
     if (!symbolsOf(lib, this.group).length) {
       const first = [...lib.groups.keys(), -1].find((g) => symbolsOf(lib, g).length);
-      if (first === undefined) { if (this.tool === 'symbol') this.stack.equip('none'); }
+      if (first === undefined) { if (this.tool === 'symbol') this.stack.equip('hand'); }
       else { this.group = first; this.setCurrent(first, 0); }
     }
     this.syncBar();
@@ -872,7 +872,7 @@ class Reader {
   private syncBar() {
     const cur = this.current;
     if (this.tool === 'text') this.prepareGhost();
-    if (this.selected && !(placesMarkings(this.tool) || this.tool === 'none')) this.deselect();
+    if (this.selected && !(placesMarkings(this.tool) || this.tool === 'hand')) this.deselect();
     this.toolbar.sync({
       open: !!cur,
       tool: this.tool,
@@ -886,7 +886,7 @@ class Reader {
       canRedo: this.undos.canRedo,
     });
     this.scope.hidden = this.reading.what.kind === 'score' || !this.editor.enabled;
-    this.root.classList.toggle('writing', this.tool !== 'none');
+    this.root.classList.toggle('writing', this.tool !== 'hand');
     this.root.classList.toggle('editing', this.editor.enabled);
     this.root.style.setProperty('--bar-h', this.toolbar.el.offsetHeight + 'px');
     // The toolbar growing lowers the smallest zoom; shrinking it leaves the smallest zoom be.

@@ -36,10 +36,10 @@ export function icon(d: string): SVGSVGElement {
 }
 
 /** The tools with an icon on their button: Symbols shows a symbol. */
-const TOOL_NAMES = TOOLBAR.flat().filter((t): t is Exclude<ToolName, 'symbol'> => t !== 'symbol');
+const TOOL_NAMES = TOOLBAR.flat().filter((t): t is Exclude<ToolName, 'hand' | 'symbol'> => t !== 'symbol');
 
 /** Each tool's icon: a new tool needs one here. */
-export const TOOL_ICONS: Record<Exclude<ToolName, 'symbol'>, string> = {
+export const TOOL_ICONS: Record<Exclude<ToolName, 'hand' | 'symbol'>, string> = {
   pen: 'M4 20l4-1 11-11-3-3L5 16z',
   highlighter: 'M5 20h7M7 16l9-9 3 3-9 9H7z',
   eraser: 'M8 20h12M5 15l8-8 5 5-6 6H9z',
@@ -75,7 +75,7 @@ export function turnIcon(dir: 'prev' | 'next'): SVGSVGElement {
 }
 
 /** The tool selected in the toolbar, if any. */
-export type ToolChoice = 'none' | ToolName;
+export type ToolChoice = ToolName;
 
 /** The tools that place markings whole: a symbol, or text. */
 export const placesMarkings = (tool: ToolChoice) => tool === 'symbol' || tool === 'text';
@@ -87,7 +87,7 @@ export interface ToolbarActions {
   /** The menu of what is read, as its ⋯ menu in the library. */
   more(): void;
   /** Tapping the active tool again puts it away. */
-  tool(t: ToolName): void;
+  tool(t: Exclude<ToolName, 'hand'>): void;
   /** The Symbols tool: the last symbol picked becomes the tool, or the tool is put away. */
   symbols(): void;
   /** A long press on Text, or on Symbols: its panel. */

@@ -62,15 +62,17 @@ export interface HandHost extends ToolHost {
   view(): View;
   minScale(): number;
   toggleToolbar(): void;
-  /** The cut menu at a point on the screen, while Cuts is on. */
+  /** Cuts is on: a long press on the music opens the cut menu. */
+  cutsOn(): boolean;
+  /** The cut menu at a point on the screen. */
   cutMenu(screenPoint: { x: number; y: number }): void;
 }
 
-/** The tools that have a button, by the name the toolbar selects them by. */
-export type ToolName = 'pen' | 'highlighter' | 'eraser' | 'text' | 'symbol';
+/** The tools, by the name the toolbar selects them by; the hand tool has no button. */
+export type ToolName = 'hand' | 'pen' | 'highlighter' | 'eraser' | 'text' | 'symbol';
 
 /** Each tool's name on its button. */
-export const TOOL_LABELS: Record<ToolName, string> = { pen: 'Pen', highlighter: 'Highlight', eraser: 'Erase', text: 'Text', symbol: 'Symbols' };
+export const TOOL_LABELS: Record<ToolName, string> = { hand: 'Hand', pen: 'Pen', highlighter: 'Highlight', eraser: 'Erase', text: 'Text', symbol: 'Symbols' };
 
 /** What a tool's toolbar button shows: `key` changes when the picture does, so the toolbar draws it again only then. */
 export interface ButtonFace { key: string; draw(): Node }

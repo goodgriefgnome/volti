@@ -134,12 +134,6 @@ export class CutEditor {
       });
       return true;
     }
-    if (!this.host.inking()) {
-      this.startPress(e, () => {
-        this.host.cancelGesture();
-        openContext(this.host, e.clientX, e.clientY);
-      });
-    }
     return false;
   }
 
@@ -181,6 +175,11 @@ export class CutEditor {
     this.host.commit(after, d.id);
     if (after.score.archived.length > d.before.score.archived.length) sayArchived(this.host);
     return true;
+  }
+
+  /** The context menu at a point on the screen, while Cuts is on. */
+  menuAt(x: number, y: number) {
+    if (this.enabled) openContext(this.host, x, y);
   }
 
   onContext(e: MouseEvent) {

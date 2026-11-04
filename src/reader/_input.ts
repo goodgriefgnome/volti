@@ -3,7 +3,7 @@
 // is in tools/.
 
 import type { Point } from '../markings/model';
-import { drag, pinch, type Pt, type View, type Zoom } from '../render/zoom';
+import { pinch, type Pt, type View, type Zoom } from '../render/zoom';
 import { closeOverlay, overlayOpen } from '../ui/overlay';
 import type { CutEditor } from './cuts/_editor';
 import { gestureForKey, isTap, turnFor, type Gesture } from './_gestures';
@@ -51,12 +51,11 @@ export class Input {
   /** Pointers to disregard until they lift: palms, and the finger left over after a pinch. */
   private ignored = new Set<number>();
   /** The pointer using a tool, and the frame it started on. */
-  private active: { id: number; type: string; slot: FrameSlot; rect: DOMRect; tool: Tool; use: ToolPointer } | null = null;
+  private active: { id: number; type: string; slot?: FrameSlot; rect?: DOMRect; tool: Tool; use: ToolPointer } | null = null;
   /** What a press on a placed marking goes to when no tool is equipped. */
   private selecting: Tool;
   private gesture: { id: number; x: number; y: number; t: number } | null = null;
   private pinching: { ids: [number, number]; start: Zoom; c0: Pt; d0: number } | null = null;
-  private panning: { id: number; start: Zoom; x0: number; y0: number; t: number } | null = null;
   private lastPen = 0;
   /** Pens on the screen, by pointer id. */
   private pens = new Set<number>();
@@ -91,13 +90,14 @@ export class Input {
   }
 
   /** A press on `hit`'s frame, as a tool gets it. */
-  private press(e: PointerEvent, hit: { slot: FrameSlot; rect: DOMRect }): Press {
-    return { slot: hit.slot, framePoint: this.point(e, hit.rect), screenPoint: { x: e.clientX, y: e.clientY } };
+  private press(e: PointerEvent, hit: { slot: FrameSlot; rect: DOMRect } | null): Press {
+    return { slot: hit?.slot, framePoint: this.point(e, hit?.rect), screenPoint: { x: e.clientX, y: e.clientY } };
   }
 
   /** A point on a frame: x as a fraction of its width, y in frame widths from its top. */
-  private point(e: PointerEvent, rect: DOMRect): Point {
-    return [(e.clientX - rect.left) / rect.width, (e.clientY - rect.top) / rect.width, e.pointerType === 'pen' ? e.pressure : 0.5];
+  private point(e: PointerEvent, rect?: DOMRect): Point {
+    const pressure = e.pointerType === 'pen' ? e.pressure : 0.5;
+    return rect ? [(e.clientX - rect.left) / rect.width, (e.clientY - rect.top) / rect.width, pressure] : [0, 0, pressure];
   }
 
   private stagePoint(x: number, y: number): Pt {
@@ -134,10 +134,9 @@ export class Input {
       this.pens.add(e.pointerId);
       // A palm often lands just before the pen tip; drop whatever it started.
       if (this.active?.type === 'touch') this.dropActive();
-      const fingersBusy = this.pinching || (this.panning && this.fingers.has(this.panning.id));
-      if (fingersBusy) {
+      if (this.pinching) {
         for (const id of this.fingers.keys()) this.ignored.add(id);
-        this.pinching = this.panning = null;
+        this.pinching = null;
       }
       this.gesture = null;
     }
@@ -152,7 +151,7 @@ export class Input {
         const fromMiddle = !!this.gesture && this.fingers.has(this.gesture.id);
         this.dropActive();
         host.editor.cancel();
-        this.gesture = this.panning = null;
+        this.gesture = null;
         if (this.fingers.size === 2 && (host.annotating() || fromMiddle)) {
           if (!host.annotating()) host.act('toggleChrome');
           this.startPinch();
@@ -170,7 +169,7 @@ export class Input {
     const tool = eraserButton ? 'eraser' : host.tool();
     const toolbar = host.annotating();
     // With a symbol or text as the tool the pen acts as a finger: it taps and drags, and turns pages at the sides.
-    const penWrites = toolbar && tool !== 'none' && !placesMarkings(tool) && e.pointerType === 'pen';
+    const penWrites = toolbar && tool !== 'hand' && !placesMarkings(tool) && e.pointerType === 'pen';
     const turn = penWrites ? null : turnFor(this.stagePoint(e.clientX, e.clientY).x, host.stage.clientWidth, toolbar);
     if (turn) {
       host.editor.cancel(); // no long press on the page it turned from
@@ -181,24 +180,13 @@ export class Input {
       this.gesture = { id: e.pointerId, x: e.clientX, y: e.clientY, t: now };
       return;
     }
-    if (tool !== 'none') {
-      const hit = this.slotAt(e.clientX, e.clientY);
-      if (!hit) return;
-      const t = this.tools[tool], use = t.start(this.press(e, hit));
-      if (use) this.active = { id: e.pointerId, type: e.pointerType, ...hit, tool: t, use };
-      return;
-    }
-    // With no tool, a press on a placed marking or the selected one's box selects and moves it, as with Text or Symbols; elsewhere it pans.
-    const onMarking = this.slotAt(e.clientX, e.clientY);
-    if (onMarking) {
-      const p = this.point(e, onMarking.rect);
-      if (pressesMarking(host, onMarking.slot, p)) {
-        const use = this.selecting.start(this.press(e, onMarking));
-        if (use) this.active = { id: e.pointerId, type: e.pointerType, ...onMarking, tool: this.selecting, use };
-        return;
-      }
-    }
-    this.panning = { id: e.pointerId, start: host.zoom(), x0: e.clientX, y0: e.clientY, t: now };
+    // With the hand tool, a press on a placed marking or the selected one's box selects and moves it, as with Text or Symbols; elsewhere it pans.
+    const hit = this.slotAt(e.clientX, e.clientY);
+    let t = this.tools[tool];
+    if (tool === 'hand' && hit && pressesMarking(host, hit.slot, this.point(e, hit.rect))) t = this.selecting;
+    else if (tool !== 'hand' && !hit) return;
+    const use = t.start(this.press(e, hit));
+    if (use) this.active = { id: e.pointerId, type: e.pointerType, slot: hit?.slot, rect: hit?.rect, tool: t, use };
   };
 
   private onMove = (e: PointerEvent) => {
@@ -213,11 +201,6 @@ export class Input {
       if (!a || !b) return;
       const c = this.stagePoint((a.x + b.x) / 2, (a.y + b.y) / 2);
       host.setZoom(pinch(pz.start, pz.c0, pz.d0, c, Math.hypot(a.x - b.x, a.y - b.y), host.view(), host.minScale()));
-      return;
-    }
-    const pn = this.panning;
-    if (pn && pn.id === e.pointerId) {
-      host.setZoom(drag(pn.start, e.clientX - pn.x0, e.clientY - pn.y0, host.view()));
       return;
     }
 
@@ -244,13 +227,6 @@ export class Input {
     // A tap on the page, when it doesn't write or edit cuts, hides the toolbar.
     const tapped = (x: number, y: number, t: number) =>
       !cancelled && isTap({ x0: x, y0: y, x1: e.clientX, y1: e.clientY, ms: performance.now() - t });
-    const pn = this.panning;
-    if (pn?.id === e.pointerId) {
-      this.panning = null;
-      // A tap on empty music with a marking selected only deselects.
-      if (tapped(pn.x0, pn.y0, pn.t)) { if (host.selected()) host.select(undefined); else host.act('toggleChrome'); }
-      return;
-    }
     const g = this.gesture;
     if (g && e.pointerId === g.id) {
       this.gesture = null;
