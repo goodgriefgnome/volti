@@ -29,8 +29,6 @@ may hold things JSON can't, such as a `FileSystemDirectoryHandle`.
 `src/storage/kv.ts` is the only code that talks to IndexedDB. `src/storage/keys.ts` lists every key
 and the module that owns it.
 
-The old database **`volti`**, from before scores, is deleted at start-up.
-
 The **version of the stored data** is kept under `data-version` (none stored is version 1). At
 start-up, before anything else reads the store, `src/stored-data.ts` runs each step from the stored
 version up to the app's, raising the stored version after each; the library opens only once they
@@ -40,6 +38,12 @@ are done. Data from a newer version than the app's is not opened.
   archived cuts went. Each score's markings, archived cuts' included, went on their cut's page with
   no pass; exact duplicates on a page were kept once; ink under a cut id no cut had, archived cuts
   and `ownInk` were dropped (`scoresToVersion2` in `scores/store.ts`).
+- **Version 2 to 3:** what earlier versions left went: the old database **`volti`**, from before
+  scores; the keys `folder-files`, `hashes`, `internal-ids`, `titles`, `removed`, `inbox`,
+  `pos:<id>`, `aspects:<id>` and `password:<id>`, whose contents were not carried over; a score's
+  `id`, `title` and `names` (the named excerpts before `excerpts`, not carried over); and a bare
+  handle under `folder`, from before records, which became `{ handle, linked: true }`
+  (`toVersion3` in `stored-data.ts`).
 
 ### Every key
 
@@ -60,9 +64,7 @@ are done. Data from a newer version than the app's is not opened.
 | `last-added-to` | `string`, a setlist id | `setlists/store.ts` |
 | `closed-folders` | `string[]`, library folder paths | `library/_store.ts` |
 
-No other key is written. Keys from earlier versions (`folder-files`, `hashes`, `internal-ids`,
-`titles`, `removed`, `inbox`, `pos:<id>`, `aspects:<id>`, `password:<id>`) are deleted at
-start-up. What they held is not carried over.
+No other key is written.
 
 ### `original:<id>`: one per original Volti knows
 
@@ -158,8 +160,7 @@ interface FolderLink {
 }
 ```
 
-Missing until a folder is first linked. Before records, this key held the linked folder's bare
-handle. That still reads as `{ handle, linked: true }`, so a folder linked then stays linked.
+Missing until a folder is first linked.
 
 - **Linking** a folder that is the same as the stored handle (`handle.isSameEntry`) keeps every
   `folder` record, so nothing is hashed again.
@@ -187,9 +188,7 @@ interface Cut { id: string; page: number; y0: number; y1: number; pad?: number; 
 interface NamedExcerpt { first?: string; last?: string; name: string }
 ```
 
-`Score` has no `title`: a score's title is always its original's (`titleOf(record.path)`). Loading
-ignores a `title` or `id` a stored score has from an earlier version, and drops a `names` field (the
-named excerpts of an earlier version, now `excerpts`) without carrying it over.
+`Score` has no `title`: a score's title is always its original's (`titleOf(record.path)`).
 
 ### `ink:<id>`
 

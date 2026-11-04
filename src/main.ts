@@ -38,7 +38,7 @@ async function start() {
 
   const library = new Library();
   void watchForUpdates((take) => library.offerUpdate(take));
-  await tidyStorage().catch((e) => console.warn('Could not tidy the old storage:', e));
+  await tidyStorage().catch((e) => console.warn('Could not tidy the storage:', e));
   // Files removed a week ago or more are deleted for good.
   await purgeRemoved().catch((e) => console.warn('Could not clear out Recently removed:', e));
   await library.addShared();

@@ -14,14 +14,8 @@ type StoredScore = Omit<Score, 'id'>;
 /** A score as stored, without its id. */
 const stored = ({ id: _, ...rest }: Score): StoredScore => rest;
 
-/**
- * A score as loaded: its id from the key, and no `id`, `title` or `names` an earlier version stored
- * in it. The `names` (now `excerpts`) are dropped, not migrated, and go at the next save.
- */
-const loaded = (id: string, s: StoredScore): Score => {
-  const { id: _, title: __, names: ___, ...rest } = s as StoredScore & { id?: string; title?: string; names?: unknown };
-  return { ...rest, id };
-};
+/** A score as loaded: its id from the key. */
+const loaded = (id: string, s: StoredScore): Score => ({ ...s, id });
 
 /** A score as saved, or a new one for an original opened the first time, with the page shapes it is given. */
 export async function loadScore(id: string, aspects: Aspects): Promise<{ state: State }> {
@@ -58,5 +52,20 @@ export async function scoresToVersion2(): Promise<void> {
     if (!_isVersion1(score, ink)) continue;
     const next = _fromVersion1(score, ink);
     await kv.setMany([[keys.score(id), next.score], [keys.ink(id), next.ink]]);
+  }
+}
+
+/** What a score stored by version 2 of the stored data is in version 3: without the `id`, `title` and `names` (the named excerpts before `excerpts`, not carried over) of earlier versions. */
+export function _scoreToVersion3(s: StoredScore & { id?: unknown; title?: unknown; names?: unknown }): StoredScore {
+  const { id: _, title: __, names: ___, ...rest } = s;
+  return rest;
+}
+
+/** Part of the step from version 2 to 3 of the stored data: every score without the fields of earlier versions. */
+export async function scoresToVersion3(): Promise<void> {
+  const prefix = keys.score('');
+  for (const [key, score] of await kv.entries<Record<string, unknown>>(prefix)) {
+    if (!('id' in score || 'title' in score || 'names' in score)) continue;
+    await kv.update<StoredScore>(key, (s) => s && _scoreToVersion3(s));
   }
 }

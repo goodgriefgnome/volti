@@ -4,7 +4,6 @@
 // into another folder) and removed (into Recently removed), asking for the access that needs. Also
 // listing the root's files, known by the hash of their contents, and tidying storage at start-up.
 
-import { kv } from '../storage/kv';
 import { _canRead, _linked, _needAccess } from './device-score-fs';
 import { hashFile, inTurns, walk } from './_filesystem-utils';
 import { _dropInboxBytes } from './inbox-fs';
@@ -349,26 +348,15 @@ export async function _listInternal(): Promise<{ id: string; path: string; file:
   return (await listing('internal', entries, true)).files.map((f) => ({ ...f, file: files.get(f.path)! }));
 }
 
-/** The keys earlier versions wrote that are not in the format of STORAGE.md; what they held is not carried over. */
-const OLD_KEYS = ['folder-files', 'hashes', 'internal-ids', 'titles', 'removed', 'inbox'];
-const OLD_PREFIXES = ['pos:', 'aspects:', 'password:'];
 /** How old a file no record points to must be before it is deleted: a share may be being written. */
 const ORPHAN_MS = 10 * 60 * 1000;
 
 /**
- * Start-up tidying, once, before anything is listed: delete the old database `volti` and the keys
- * earlier versions wrote, and the files in `inbox/` and `removed/` that no record points to and
- * that were last modified more than ten minutes ago. Can be removed in a later version, once
- * nothing is left to tidy.
+ * Start-up tidying, once, before anything is listed: delete the files in `inbox/` and `removed/`
+ * that no record points to (left by a crash between writing the bytes and the record) and that
+ * were last modified more than ten minutes ago.
  */
 export async function tidyStorage(now = Date.now()): Promise<void> {
-  await new Promise<void>((resolve) => {
-    const req = indexedDB.deleteDatabase('volti');
-    req.onsuccess = req.onerror = req.onblocked = () => resolve();
-  });
-  const old = (await Promise.all(OLD_PREFIXES.map((p) => kv.entries(p)))).flat().map(([key]) => key);
-  await Promise.all([...OLD_KEYS, ...old].map((key) => kv.del(key)));
-
   const records = await _loadRecords();
   const pointedTo = (name: 'inbox' | 'removed') => new Set([...records].flatMap(([id, r]) => (r.where.kind === name ? [_bytesName(id, r.where)] : [])));
   for (const name of ['inbox', 'removed'] as const) {

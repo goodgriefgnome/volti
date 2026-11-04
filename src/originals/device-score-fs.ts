@@ -21,18 +21,19 @@ export async function _linked(): Promise<FileSystemDirectoryHandle | undefined> 
   return dir;
 }
 
+const storedLink = () => kv.get<FolderLink>(keys.folder);
+
 /**
- * What is stored under `folder`, as a FolderLink. Before records, it held the bare handle of the
- * linked folder: that reads as linked.
+ * What a `folder` stored by version 2 of the stored data is in version 3: before records, it held
+ * the bare handle of the linked folder, which becomes a linked FolderLink; anything else stays.
  */
-export function _asLink(v: unknown): FolderLink | undefined {
-  if (!v || typeof v !== 'object') return undefined;
-  if ('handle' in v) return v as FolderLink;
-  if ((v as { kind?: unknown }).kind === 'directory') return { handle: v as FileSystemDirectoryHandle, linked: true };
-  return undefined;
+export function _linkToVersion3(v: unknown): unknown {
+  const bare = !!v && typeof v === 'object' && !('handle' in v) && (v as { kind?: unknown }).kind === 'directory';
+  return bare ? { handle: v as FileSystemDirectoryHandle, linked: true } satisfies FolderLink : v;
 }
 
-const storedLink = async () => _asLink(await kv.get<unknown>(keys.folder));
+/** Part of the step from version 2 to 3 of the stored data: a bare handle under `folder` becomes a FolderLink. */
+export const folderToVersion3 = () => kv.update<unknown>(keys.folder, _linkToVersion3);
 
 /** Whether a folder is linked, read afresh from storage: for the service worker, which has no state. */
 export const _isLinked = async () => (await storedLink())?.linked === true;
