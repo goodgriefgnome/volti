@@ -1,6 +1,6 @@
 // Placed markings on a frame: where they are, which one is at a point, and moving them. Pure.
 
-import { compactMarking } from '../markings/model';
+import { compactMarking, hitDistance, type Marking, type Point } from '../markings/model';
 import { markExtent, type PlacedMark } from '../markings/placed';
 import { replaceMarking, setInk } from './edits';
 import type { Frame, Placed } from './frames';
@@ -58,21 +58,21 @@ export function pressOnSelection(box: Box, r: number, p: readonly [number, numbe
 }
 
 /**
- * Among the placed markings shown on the frame whose extent, grown by `margin`, holds p (frame
- * coordinates), the one whose centre is closest; the one drawn last where two are as close.
+ * The marking shown on the frame with the least `hitDistance` from p (frame coordinates) within
+ * `radius` (frame widths), among those `owned`; of those as near, the one drawn last.
  */
-export function placedAt(frame: Frame, ink: ScoreInk, aspects: Aspects, p: readonly [number, number], margin: number): { cut: Cut; mark: PlacedMark } | undefined {
-  let best: { cut: Cut; mark: PlacedMark } | undefined, nearest = Infinity;
-  for (const item of [...frame.items].reverse()) {
-    const aspect = aspects[item.cut.page];
-    const list = ink[item.cut.id] ?? [];
-    for (let i = list.length - 1; i >= 0; i--) {
-      const m = list[i];
-      if (!('kind' in m) || !visible(m, item.cut, aspect)) continue;
-      const e = extentOnFrame(item, m, aspect);
-      if (!e || p[0] < e[0] - margin || p[0] > e[2] + margin || p[1] < e[1] - margin || p[1] > e[3] + margin) continue;
-      const d = Math.hypot((e[0] + e[2]) / 2 - p[0], (e[1] + e[3]) / 2 - p[1]);
-      if (d < nearest) { nearest = d; best = { cut: item.cut, mark: m }; }
+export function markingAt(
+  frame: Frame, ink: ScoreInk, aspects: Aspects, p: readonly [number, number], radius: number, owned: (m: Marking) => boolean,
+): { cut: Cut; mark: Marking } | undefined {
+  let best: { cut: Cut; mark: Marking } | undefined, nearest = Infinity;
+  for (const item of frame.items) {
+    const { cut } = item, aspect = aspects[cut.page];
+    // The point on this cut's page; a frame is a page wide, so frame widths are page widths.
+    const q: Point = [p[0], cut.y0 + (p[1] - item.top) / aspect, 0];
+    for (const m of ink[cut.id] ?? []) {
+      if (!visible(m, cut, aspect) || !owned(m)) continue;
+      const d = hitDistance(m, q, radius, aspect);
+      if (d !== undefined && d <= nearest) { nearest = d; best = { cut, mark: m }; }
     }
   }
   return best;

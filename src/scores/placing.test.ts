@@ -1,8 +1,10 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { addGlyph } from '../markings/glyphs';
+import type { Marking } from '../markings/model';
 import type { PlacedMark } from '../markings/placed';
+import type { ScoreInk } from './model';
 import { pack } from './frames';
-import { extentOnFrame, handleRadius, movedTo, placedAt, pressOnSelection, resizedFrom, selectionBox } from './placing';
+import { extentOnFrame, handleRadius, markingAt, movedTo, pressOnSelection, resizedFrom, selectionBox } from './placing';
 import { A4, aspects, cut, state } from './testing';
 
 beforeAll(() => {
@@ -31,42 +33,47 @@ describe('extentOnFrame', () => {
   });
 });
 
-describe('placedAt', () => {
+describe('markingAt', () => {
   const c = cut(0);
   const [frame] = pack([c], aspects);
-  const below = mark(0.5, 0.5), above = mark(0.52, 0.5);
-  const ink = { [c.id]: [below, above] };
   const y = A4 * 0.5;
-  it('finds the one drawn last where two overlap', () => {
-    expect(placedAt(frame, ink, aspects, [0.51, y], 0)?.mark).toBe(above);
-    expect(placedAt(frame, ink, aspects, [0.46, y], 0)?.mark).toBe(below);
-  });
-  it('finds one by a tap on its background beyond its ink', () => {
-    const boxed = { ...mark(0.5, 0.5), background: { shape: 'box' as const } };
-    const list = { [c.id]: [boxed] };
-    // The ink ends at 0.55; the background's padding (0.12 em of 0.1) takes it to 0.562.
-    expect(placedAt(frame, list, aspects, [0.555, y], 0)?.mark).toBe(boxed);
-    expect(placedAt(frame, list, aspects, [0.57, y], 0)).toBeUndefined();
-    expect(placedAt(frame, { [c.id]: [mark(0.5, 0.5)] }, aspects, [0.555, y], 0)).toBeUndefined();
-  });
-  it('finds one within the margin, and misses outside it', () => {
-    expect(placedAt(frame, ink, aspects, [0.6, y], 0)).toBeUndefined();
-    expect(placedAt(frame, ink, aspects, [0.58, y], 0.02)?.mark).toBe(above);
-    expect(placedAt(frame, ink, aspects, [0.3, y], 0.02)).toBeUndefined();
-  });
-});
+  const any = () => true;
+  const at = (ink: ScoreInk, x: number, radius: number, owned: (m: Marking) => boolean = any, py = y) => markingAt(frame, ink, aspects, [x, py], radius, owned)?.mark;
+  const left = mark(0.5, 0.5), right = mark(0.52, 0.5);
 
-describe('placedAt: the closest centre', () => {
-  const c = cut(0);
-  const [frame] = pack([c], aspects);
-  const first = mark(0.5, 0.5), second = mark(0.52, 0.5);
-  const y = A4 * 0.5;
-  it('picks the one drawn first when the press is nearer its centre', () => {
-    expect(placedAt(frame, { [c.id]: [first, second] }, aspects, [0.505, y], 0)?.mark).toBe(first);
-    expect(placedAt(frame, { [c.id]: [first, second] }, aspects, [0.515, y], 0)?.mark).toBe(second);
+  it('finds the one drawn last where two are both under the press', () => {
+    expect(at({ [c.id]: [left, right] }, 0.51, 0)).toBe(right);
+    expect(at({ [c.id]: [right, left] }, 0.51, 0)).toBe(left);
   });
-  it('picks the one drawn last where they are as close', () => {
-    expect(placedAt(frame, { [c.id]: [first, second] }, aspects, [0.51, y], 0)?.mark).toBe(second);
+  it('finds the nearest by its edge, not its centre: a small marking beside a big one', () => {
+    const big = mark(0.5, 0.5, 0.2), small = mark(0.66, 0.5, 0.02);
+    // At 0.59 the press is under big's ink (0.4..0.6) near its edge, 0.09 from its centre; small's ink starts at 0.65 and its centre is 0.07 away.
+    expect(at({ [c.id]: [big, small] }, 0.59, 0.1)).toBe(big);
+    // At 0.63 big's edge is 0.03 away and small's 0.02.
+    expect(at({ [c.id]: [big, small] }, 0.63, 0.1)).toBe(small);
+  });
+  it('finds one by a press on its background beyond its ink', () => {
+    const boxed = { ...mark(0.5, 0.5), background: { shape: 'box' as const } };
+    // The ink ends at 0.55; the background's padding (0.12 em of 0.1) takes it to 0.562.
+    expect(at({ [c.id]: [boxed] }, 0.555, 0)).toBe(boxed);
+    expect(at({ [c.id]: [boxed] }, 0.57, 0)).toBeUndefined();
+    expect(at({ [c.id]: [mark(0.5, 0.5)] }, 0.555, 0)).toBeUndefined();
+  });
+  it('finds one within the radius, and misses outside it', () => {
+    const ink = { [c.id]: [left, right] };
+    expect(at(ink, 0.6, 0)).toBeUndefined();
+    expect(at(ink, 0.58, 0.02)).toBe(right);
+    expect(at(ink, 0.3, 0.02)).toBeUndefined();
+  });
+  it('skips a marking that is not owned', () => {
+    expect(at({ [c.id]: [left, right] }, 0.51, 0, (m) => m === left)).toBe(left);
+    expect(at({ [c.id]: [left] }, 0.5, 0, () => false)).toBeUndefined();
+  });
+  it('prefers one in a later cut at the same distance', () => {
+    const c2 = cut(1);
+    const both = { items: [{ cut: c, index: 0, top: 0, h: A4 }, { cut: c2, index: 1, top: 0, h: A4 }], fill: 1, aspect: A4 };
+    const a = mark(0.5, 0.5), b = mark(0.5, 0.5);
+    expect(markingAt(both, { [c.id]: [a], [c2.id]: [b] }, aspects, [0.5, y], 0, any)?.mark).toBe(b);
   });
 });
 

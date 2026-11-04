@@ -8,7 +8,7 @@ import { markExtent, type PlacedMark } from '../../markings/placed';
 import { replaceMarking, setSymbolSize, textResized } from '../../scores/edits';
 import type { Placed } from '../../scores/frames';
 import { symbolSizeOf, type Cut, type State } from '../../scores/model';
-import { centreOnFrame, extentOnFrame, handleRadius, MIN_BOX_PX, movedTo, placedAt, pressOnSelection, resizedFrom, selectionBox, type Selected } from '../../scores/placing';
+import { centreOnFrame, extentOnFrame, handleRadius, MIN_BOX_PX, markingAt, movedTo, pressOnSelection, resizedFrom, selectionBox, type Selected } from '../../scores/placing';
 import { isTap } from '../_gestures';
 import { loupeTarget, type SharpInk } from '../_loupe';
 import { slotUnder, type FrameSlot } from '../_spread';
@@ -26,6 +26,11 @@ function selectionOn(item: Placed, sel: Selected, aspect: number, px: number): {
   if (!ext) return undefined;
   const box = selectionBox(ext, MIN_BOX_PX / px);
   return { box, r: handleRadius(Math.min(box[2] - box[0], box[3] - box[1]) * px) / px };
+}
+
+/** The placed marking a press at `p` is on: the nearest within the tap margin (`px` CSS pixels in a frame width). */
+function placedAt(host: ToolHost, slot: FrameSlot, p: readonly [number, number], px: number): { cut: Cut; mark: PlacedMark } | undefined {
+  return markingAt(slot.frame, host.state().ink, host.aspects(), p, TAP_MARGIN_PX / px, (m) => 'kind' in m) as { cut: Cut; mark: PlacedMark } | undefined;
 }
 
 /** A placed symbol made from a library symbol, centred at `at` of its frame. */
@@ -60,7 +65,7 @@ export function _tapAction(selected: PlacedMark | undefined, hit: PlacedMark | u
  */
 export function pressesMarking(host: ToolHost, slot: FrameSlot, press: Point): boolean {
   const p: [number, number] = [press[0], press[1]], px = slot.w * host.zoom().s, aspects = host.aspects();
-  if (placedAt(slot.frame, host.state().ink, aspects, p, TAP_MARGIN_PX / px)) return true;
+  if (placedAt(host, slot, p, px)) return true;
   const sel = host.selected(), item = sel && slot.frame.items.find((i) => i.cut.id === sel.cut);
   const on = sel && item && selectionOn(item, sel, aspects[item.cut.page], px);
   return !!on && !!pressOnSelection(on.box, on.r, p);
@@ -111,7 +116,7 @@ export function placingTool(
         if (pressed.kind === 'handle') grab = { kind: 'resize', from: sel, corner: pressed.corner, ext: on.box, centre };
         else { grab = { kind: 'move', from: sel, centre }; hit = { cut: selItem.cut, mark: sel.mark }; }
       } else {
-        hit = placedAt(slot.frame, host.state().ink, aspects, at0, TAP_MARGIN_PX / px);
+        hit = placedAt(host, slot, at0, px);
         if (hit) {
           const item = itemOf(hit.cut.id)!;
           grab = { kind: 'move', from: { cut: hit.cut.id, mark: hit.mark }, centre: centreOnFrame(item, hit.mark, aspects[item.cut.page]) };
