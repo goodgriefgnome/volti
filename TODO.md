@@ -206,6 +206,18 @@ scores.
   removed, renamed or changed in the scores folder (recursively) as it happens, and update the
   list quietly, reading only what changed. Feature-detected (`'FileSystemObserver' in self`),
   with reading the folder again as the fallback. Waiting for it to be standardised.
+- **A Google client of your own, past the 100-user cap:** Volti's Google OAuth app is unverified
+  (`docs/drive-root-spec.md`), so at most 100 accounts can ever sign in with it. Past that, a user
+  would make their own client and give Volti its client ID and secret, which Volti keeps in a new
+  kv key (`drive-client: { clientId, clientSecret }`) and uses in place of the built-in one.
+  - Making one, about ten minutes in the Cloud Console: a project with the Drive API on; its
+    consent screen in production, unverified (in Testing, its tokens would last 7 days); a Web
+    application client with Volti's URL (`https://goodgriefgnome.github.io/volti/`) as its
+    redirect URI.
+  - A refresh token works only with the client that issued it: changing client signs out.
+  - A build with no client of its own (a fork) could then offer Drive through the user's.
+  - To decide: where the setting lives (the library's ⋯ menu, or the "Link scores folder" dialog
+    when there's no built-in client), and whether Volti shows the steps or links to a page.
 - **Read only the parts of a PDF that are needed:** open originals through a range transport
   (`PDFDataRangeTransport`, slices of the File) instead of copying the whole file to pdf.js;
   saves some of the ~0.65 s pdf.js spends copying and parsing a 42 MB scan.
