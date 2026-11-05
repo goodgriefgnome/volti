@@ -3,7 +3,7 @@
 // Reading's, and the reader shows and saves it.
 
 import { askSetlistName, chooseSetlist } from '../dialogs/setlists';
-import { moveToFolder, renameFile, type FileChange, type ScoreFileHost } from '../dialogs/score-files';
+import { moveToFolder, renameFile, type ScoreFileHost } from '../dialogs/score-files';
 import { openExportPdf } from '../dialogs/export-pdf';
 import { type Excerpt, namedExcerptOf } from '../scores/excerpts';
 import type { ExportPart } from '../export/pdf';
@@ -55,8 +55,6 @@ export interface MenusHost {
   leave(): void;
   /** Ask for access to the scores folder, from a tap, when what is read needs it; false when not allowed. */
   access(): Promise<boolean>;
-  /** A score's file changed (renamed, moved or removed): the library shows it on going back. */
-  filesChanged(change: FileChange): void;
 }
 
 export class ReaderMenus {
@@ -112,12 +110,11 @@ export class ReaderMenus {
     ];
   }
 
-  /** The score's file dialogs, from here: what changes is shown here, and told to the library. */
+  /** The score's file dialogs, from here: what changes is shown here (the library follows the records). */
   private files(): ScoreFileHost {
     return {
       say: (t) => this.h.say(t),
       changed: (change) => {
-        this.h.filesChanged(change);
         if (!('now' in change)) return;
         const cur = this.h.open(this.h.k());
         this.h.reading.renamed(change.now);
@@ -136,7 +133,6 @@ export class ReaderMenus {
       this.h.say(e instanceof NoAccess ? 'Volti needs permission to change files in the scores folder to remove one.' : `Could not remove it (${(e as Error).name}).`);
       return;
     }
-    this.h.filesChanged({ gone: o.id });
     this.h.leave();
   }
 

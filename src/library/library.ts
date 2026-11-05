@@ -8,10 +8,9 @@ import { openExportPdf } from '../dialogs/export-pdf';
 import { openScore, type LibraryScore } from '../dialogs/open-score';
 import { type ExcerptHost } from '../dialogs/excerpts';
 import { type ExcerptSource } from '../dialogs/thumb-strip';
-import { type FileChange } from '../dialogs/score-files';
 import type { Excerpt } from '../scores/excerpts';
 import type { ExportPart } from '../export/pdf';
-import { arrivals, byFolder, byTitle, titleOf } from '../originals/path-utils';
+import { arrivals, byFolder, titleOf } from '../originals/path-utils';
 import { folderState, linkFolder, unlinkFolder, unlockFolder } from '../originals/device-score-fs';
 import { knownTitles, libraryFiles, scanRoot } from '../originals/library-files';
 import { inboxFiles, leftInApp } from '../originals/misc-files';
@@ -135,16 +134,6 @@ export class Library implements LibraryHost {
     this.toast.say(found ? `Found ${plural(found, 'new score')}.` : 'No new scores.');
   }
 
-  filesChanged(changes: readonly FileChange[]) {
-    if (!changes.length) return;
-    const now = new Map(changes.flatMap((c) => ('now' in c ? [[c.now.id, c.now] as const] : [])));
-    const gone = new Set(changes.flatMap((c) => ('gone' in c ? [c.gone] : [])));
-    this.originals = this.originals.filter((o) => !gone.has(o.id)).map((o) => now.get(o.id) ?? o).sort(byTitle);
-    this.render();
-    // Then read them again, in case anything else changed or went wrong.
-    void this.refresh();
-  }
-
   /**
    * Show the library's files for as long as the library lives: they follow the records, which every
    * scan and every change Volti makes writes. Drawn at most once a frame.
@@ -225,18 +214,25 @@ export class Library implements LibraryHost {
       return;
     }
     await this.refresh();
-    await this.moveLeftIn();
+    await this.moveLeftIn(false);
   }
 
   /**
    * Move the scores in Volti's own folder into the linked folder, at their paths, overwriting
    * nothing: one the folder has already is dropped, and those whose paths the folder has for
-   * different files open in the screen for incoming files. One left out there stays in Volti's
-   * folder, out of the library, until this is done again from the library's ⋯ menu.
+   * different files open in the screen for incoming files, from the ⋯ menu (`asked`); on linking,
+   * the status line says how many clash, and points to the ⋯ menu. One left out stays in Volti's
+   * folder, out of the library, until this is done again from the ⋯ menu. It acts on the whole
+   * scan of the linked folder: from the ⋯ menu it asks for access first (the tap counts), then scans.
    */
-  async moveLeftIn() {
+  async moveLeftIn(asked: boolean) {
+    if (asked) {
+      if (this.folder.kind === 'locked' && !(await unlockFolder())) { this.say(NO_ACCESS); return; }
+      this.say('Checking the scores folder…');
+      await this.refresh();
+    }
     const left = await leftInApp();
-    if (!left.length) return;
+    if (!left.length) { if (asked) this.say(''); return this.countLeftIn(); }
     const what = arrivals(left, this.originals);
     const taken: SourceFile[] = [];
     let moved = 0;
@@ -254,19 +250,25 @@ export class Library implements LibraryHost {
     } catch (e) {
       if (!(e instanceof NoAccess)) console.error(e);
       this.say(e instanceof NoAccess ? 'Volti needs permission to write in the scores folder to move its scores there.' : 'Could not move all the scores into the scores folder.');
-      await this.refresh();
-      return;
+      return this.countLeftIn();
     }
-    this.say(moved ? `Moved ${plural(moved, 'score')} into the scores folder.` : '');
-    await this.refresh();
-    if (!taken.length) return;
+    const movedSaid = moved ? `Moved ${plural(moved, 'score')} into the scores folder.` : '';
+    if (asked || !taken.length) this.say(movedSaid);
+    else this.say(`${movedSaid ? movedSaid + ' ' : ''}${taken.length} ${taken.length === 1 ? 'has' : 'have'} the same name as files there: see the ⋯ menu.`);
+    await this.countLeftIn();
     // Moving one in drops it from Volti's folder.
-    void openIncoming(this, taken);
+    if (asked && taken.length) void openIncoming(this, taken);
+  }
+
+  /** How many scores are left in Volti's own folder, counted again, and the banner drawn. */
+  private async countLeftIn() {
+    this.leftIn = (await leftInApp().catch(() => [])).length;
+    this.banner.render();
   }
 
   async unlock(): Promise<boolean> {
     const ok = await unlockFolder();
-    if (ok) { await this.refresh(); await this.addShared(); } else this.say(NO_ACCESS);
+    if (ok) { void this.refresh(); await this.addShared(); } else this.say(NO_ACCESS);
     return ok;
   }
 
@@ -385,7 +387,6 @@ export class Library implements LibraryHost {
       toFolder: this.folder.kind !== 'none',
       saved: (name) => {
         this.toast.say(`Saved “${name}.pdf” in Exports, in the scores folder.`);
-        void this.refresh();
       },
     });
   }
@@ -487,16 +488,14 @@ export class Library implements LibraryHost {
     // Hidden, the library leaves nothing to scroll and its place is lost: note it, to go back to.
     const scrolled = window.scrollY;
     this.root.hidden = true;
-    const back = (fileChanges: FileChange[]) => {
+    const back = () => {
       this.root.hidden = false;
       // Access allowed in the reader: read the scores folder now it can be.
       void folderState().then((f) => { if (f.kind !== this.folder.kind) void this.refresh(); });
       this.scoresSection.search.blur();
       window.scrollTo(0, scrolled);
-      // A score renamed, moved or removed in the reader: show it, then read the scores again.
-      if (fileChanges.length) { this.filesChanged(fileChanges); window.scrollTo(0, scrolled); }
-      // Redrawn with what may have changed in the reader, then back where it was.
-      else void this.loadSetlists().then(() => { this.scoresSection.render(); window.scrollTo(0, scrolled); });
+      // Redrawn with what may have changed in the reader (a score renamed, moved or removed is in the records), then back where it was.
+      void this.loadSetlists().then(() => { this.scoresSection.render(); window.scrollTo(0, scrolled); });
     };
     try {
       // Opening is a tap, so a score's original can ask for access to the scores folder for this

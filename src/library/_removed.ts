@@ -59,7 +59,6 @@ export async function openRecentlyRemoved(lib: LibraryHost) {
       if (why) { error.textContent = why; restore.disabled = false; return; }
       li.remove();
       lib.say(`Put back “${titleOf(r.path)}”.`);
-      void lib.refresh();
       if (!list.childElementCount) closeOverlay();
     };
     return li;

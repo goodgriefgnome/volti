@@ -3,7 +3,6 @@
 // read, and how edits carry to setlists, is _reading.ts; the toolbar's menus and dialogs are
 // _toolbar-menus.ts. Code that can stand on its own goes in one of them.
 
-import type { FileChange } from '../dialogs/score-files';
 import { ends } from '../scores/excerpts';
 import { type Marking } from '../markings/model';
 import { unlockFolder } from '../originals/device-score-fs';
@@ -72,7 +71,7 @@ const sameLayout = (a: readonly Cut[], b: readonly Cut[]) =>
 
 
 /** Open a score, or a setlist as one continuous score. A score that can't be opened throws; a setlist carries on past it. */
-export async function openReader(what: ToRead, onClose: (fileChanges: FileChange[]) => void, fullscreen?: Promise<void>): Promise<void> {
+export async function openReader(what: ToRead, onClose: () => void, fullscreen?: Promise<void>): Promise<void> {
   const setlists = await loadSetlists();
   if (what.kind !== 'setlist') {
     const { original } = what;
@@ -178,7 +177,6 @@ class Reader {
   /** The toast asking for access to the scores folder shows, until a page is drawn. */
   private askingAccess = false;
   /** Scores' files renamed, moved or removed here, for the library to show on going back. */
-  private fileChanges: FileChange[] = [];
   /** The score offered by turning past this one's end: turning that way again while it is offered opens it. */
   private offered: Offer | null = null;
 
@@ -189,7 +187,7 @@ class Reader {
     first: OpenScore | null,
     k: number,
     position: string | undefined,
-    private onClose: (fileChanges: FileChange[]) => void,
+    private onClose: () => void,
     /** The library's scores; in a score's own reader, in the library's order, to turn to. */
     private library: readonly SourceFile[] = [],
     /** Full screen already asked for at the tap, if it was; the first screen is drawn once it settles. */
@@ -301,7 +299,6 @@ class Reader {
       },
       leave: () => history.back(),
       access: () => this.allowAccess(),
-      filesChanged: (change) => { this.fileChanges.push(change); },
     });
     this.syncBar();
     void loadToolSettings().then((s) => { this.settings = s; this.syncBar(); }, (e) => console.warn("Could not load the tools' settings:", e));
@@ -1001,7 +998,7 @@ class Reader {
     document.body.classList.remove('reading');
     if (this.themeBefore === undefined) delete document.documentElement.dataset.theme;
     else document.documentElement.dataset.theme = this.themeBefore;
-    this.onClose(this.fileChanges);
+    this.onClose();
   }
 
   /**

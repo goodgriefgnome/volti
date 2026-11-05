@@ -12,8 +12,8 @@ export type FileChange = { now: SourceFile } | { gone: string };
 /** What the dialogs need from the screen that opens them. */
 export interface ScoreFileHost {
   say(text: string): void;
-  /** The file changed: show the change at once (the scores can be read again after). */
-  changed(change: FileChange): void;
+  /** The file changed: show the change, where the screen shows the score apart from the library. */
+  changed?(change: FileChange): void;
 }
 
 /** Rename a score's PDF. Its cuts, markings and setlists stay with it, as its contents don't change. */
@@ -38,7 +38,7 @@ export function renameFile(h: ScoreFileHost, o: SourceFile) {
     },
     done: async (title) => {
       h.say(`Renamed to “${title.trim()}”.`);
-      h.changed({ now: o });
+      h.changed?.({ now: o });
     },
   });
 }
@@ -72,7 +72,7 @@ export function moveToFolder(h: ScoreFileHost, o: SourceFile, folders: readonly 
     done: async () => {
       const to = folderOf(o.path);
       h.say(to ? `Moved “${titleOf(o.path)}” to ${to.split('/').join(' / ')}.` : `Moved “${titleOf(o.path)}” to the top of the list.`);
-      h.changed({ now: o });
+      h.changed?.({ now: o });
     },
   });
 }

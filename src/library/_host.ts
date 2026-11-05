@@ -4,7 +4,6 @@
 
 import type { ExcerptHost } from '../dialogs/excerpts';
 import type { ExcerptSource } from '../dialogs/thumb-strip';
-import type { FileChange } from '../dialogs/score-files';
 import type { LibraryScore } from '../dialogs/open-score';
 import type { Excerpt } from '../scores/excerpts';
 import type { FolderState, SourceFile } from '../originals/types';
@@ -51,14 +50,12 @@ export interface LibraryHost {
   refresh(): Promise<void>;
   /** Read the scores folder again when asked to, asking for access first if need be, and say what was found. */
   checkFolder(): Promise<void>;
-  /** Scores' files changed here or in the reader: show the changes at once, then read the scores again. */
-  filesChanged(changes: readonly FileChange[]): void;
   /** Show the setlists and the scores again. */
   render(): void;
 
   link(): Promise<void>;
   /** Move the scores left in Volti's own folder into the linked folder, asking about those whose paths it has. */
-  moveLeftIn(): Promise<void>;
+  moveLeftIn(asked: boolean): Promise<void>;
   /** Allow access to the linked folder this session; false, having said why, when it isn't. */
   unlock(): Promise<boolean>;
   unlink(): Promise<void>;

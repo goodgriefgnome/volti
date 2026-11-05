@@ -191,7 +191,6 @@ export async function openIncoming(lib: LibraryHost, files: readonly Arriving[],
         r.status.textContent = why;
         r.status.classList.add('error');
         error.textContent = why;
-        if (added.length) void lib.refresh();
         add.disabled = false;
         return;
       }
@@ -201,7 +200,6 @@ export async function openIncoming(lib: LibraryHost, files: readonly Arriving[],
     }
     closeOverlay();
     lib.say(added.length ? `Added ${plural(added.length, 'file')}.` : 'They are all in the library already.');
-    await lib.refresh();
   }
 }
 

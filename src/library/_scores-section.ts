@@ -27,7 +27,7 @@ export class ScoresSection {
   /** For giving each subfolder list an id. */
   private rowSeq = 0;
   /** For the dialogs about a score's file. */
-  private files: ScoreFileHost = { say: (t) => this.lib.toast.say(t), changed: (c) => this.lib.filesChanged([c]) };
+  private files: ScoreFileHost = { say: (t) => this.lib.toast.say(t) };
 
   constructor(private lib: LibraryHost) {
     this.search.type = 'search';
@@ -149,7 +149,6 @@ export class ScoresSection {
           return;
         }
         lib.say(`Removed “${titleOf(s.path)}”. It is in Recently removed for a week.`);
-        lib.filesChanged([{ gone: s.id }]);
       } },
     ]));
 
