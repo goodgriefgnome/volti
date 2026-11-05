@@ -196,7 +196,7 @@ what it lists, or its changes since it last looked, against `known`, and says th
 
 `library-files.ts` makes `known` from the records in this root: each `folder` record's id, path
 and stamp. A record in the root is `where: { kind: 'folder', ...stamp }`, the stamp's fields
-spread into `where`, so the linked folder.s records are `{ kind: 'folder', size, modified }`, as stored
+spread into `where`, so the linked folder's records are `{ kind: 'folder', size, modified }`, as stored
 today; the stamp read back is every field of `where` but `kind`.
 
 Each batch is written in one transaction, change by change, by one pure rule in `_record-model.ts`
@@ -286,7 +286,7 @@ library; the reader keeps `FileChange` for its own open scores.
 
 - `_applyUpdate` and the list worked out from the records: unit tested in `_record-model.test.ts`:
   each row of the rule, with each place of record, and stamps carried into `where` as given.
-- The linked folder root.s duplicate rules, unit tested beside it: sticky, the copy sorting first taking
+- The linked folder root's duplicate rules, unit tested beside it: sticky, the copy sorting first taking
   over, a new id at its first copy hashed, an id said gone only when no copy is left.
 - The directory handle roots' file operations, against an in-memory stand-in for the handle API: `exists`, `write` (and
   one failing part way), `move` (moved, copied, copied and left behind, case only), and
@@ -301,7 +301,7 @@ library; the reader keeps `FileChange` for its own open scores.
 ## Docs
 
 - `STORAGE.md`: `Where`'s `folder` (`kind`, plus the root's stamp, which never has a `kind`; the
-  linked folder root.s is `size` and `modified`, as now), "The hash cache" (it is the linked folder root.s scan,
+  linked folder root's is `size` and `modified`, as now), "The hash cache" (it is the linked folder root's scan,
   going by stamps), "Duplicates in the linked folder" (kept by the linked folder root; a new id at the
   first copy hashed in a scan), "Writing safely" (start-up records files in `library/` no
   record points to), and "What happens, by operation" (the listing rows: records written as each
@@ -312,6 +312,6 @@ library; the reader keeps `FileChange` for its own open scores.
 
 ## Data
 
-Nothing stored changes shape, and nothing is dropped: the linked folder root.s stamp is the `size` and
+Nothing stored changes shape, and nothing is dropped: the linked folder root's stamp is the `size` and
 `modified` a `folder` record holds today, so every stamp already stored stays good. Files in Volti's folder without a record
 (left by a crash) are recorded at start-up rather than by the next listing.
