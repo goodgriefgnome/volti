@@ -23,3 +23,46 @@ export interface Content {
   pages(): Promise<OpenPages>;
   pdf(): Promise<RenderedPdf>;
 }
+
+/**
+ * What a root notes about a file to tell later whether it has changed, without reading it: a
+ * handle root's size and modified time, say, or a crc32. Only its root reads what is in it. Flat,
+ * so it can be stored as it is and compared field by field; never has a field called `kind`.
+ */
+export type Stamp = Readonly<Record<string, string | number>>;
+
+/** Where an id is in a root: its path (the canonical one, if it is there more than once), and its root's stamp. */
+export interface Found { path: string; stamp?: Stamp }
+
+/** What the records hold for a root: each id's place there. */
+export type Known = ReadonlyMap<string, Found>;
+
+/** A change a scan found: `id` is at `found` now (new, moved, or restamped), or, without `found`, nowhere in the root any more. */
+export interface Update { id: string; found?: Found }
+
+/** One batch of what a scan says: its changes, in order, and how many new files are still to be hashed. */
+export interface Updates { changes: Update[]; left: number }
+
+/** Where a moved file is now, as the root spells its folder, with its stamp; or why it couldn't move. */
+export type Moved =
+  | { path: string; file: File; stamp?: Stamp; leftBehind?: true }  // leftBehind: copied, but the file at `from` couldn't be deleted
+  | { caseOnly: true };                                               // only the case changes, and this root can't do that
+
+/** A library root: files by path. */
+export interface ScoreRoot {
+  /** Whether it can be read now without asking. Never asks. */
+  access(): Promise<'ready' | 'locked'>;
+  /** Make sure it can be read, or changed too, asking where it isn't allowed yet (from a tap); throws NoAccess. */
+  needAccess(mode: 'read' | 'readwrite'): Promise<void>;
+  /** How what is in it differs from `known`, as it finds out: see "Scanning". */
+  getUpdates(known: Known, signal: AbortSignal): AsyncIterable<Updates>;
+  /** The file at `path`. */
+  read(path: string): Promise<File>;
+  /** Whether there is a file at `path` (as the root finds names: a folder that ignores case finds one in any case). */
+  exists(path: string): Promise<boolean>;
+  /** Write `data` at `path`, over a file there, making the folders on it; one that fails part way leaves nothing. Gives the file as written, and its stamp. */
+  write(path: string, data: Blob): Promise<{ file: File; stamp?: Stamp }>;
+  /** Move the file at `from` to `to`, making the folders on it. */
+  move(from: string, to: string): Promise<Moved>;
+  remove(path: string): Promise<void>;
+}

@@ -246,7 +246,8 @@ async function listing(kind: 'folder' | 'internal', entries: Entry[], linked: bo
   for (const [id, r] of records) if (r.where.kind === kind) at.set(r.path, { id, where: r.where });
   const trusted = (e: Entry): _Found | undefined => {
     const r = at.get(e.path);
-    if (r) return { path: e.path, id: r.id, size: r.where.kind === 'folder' ? r.where.size : e.file?.size ?? 0, modified: r.where.kind === 'folder' ? r.where.modified : e.file?.lastModified ?? 0 };
+    // The casts go in stage 6 of the score roots work: a stamp isn't read in here then.
+    if (r) return { path: e.path, id: r.id, size: r.where.kind === 'folder' ? r.where.size as number : e.file?.size ?? 0, modified: r.where.kind === 'folder' ? r.where.modified as number : e.file?.lastModified ?? 0 };
     const copy = hidden[kind].get(e.path);
     return copy && { ...copy, path: e.path };
   };
