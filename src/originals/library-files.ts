@@ -30,8 +30,8 @@ class LibraryFile implements Readable {
 
   async file(): Promise<File> {
     const r = await _root();
-    await r.needAccess('read');
-    return r.read(this.path);
+    if (!(await r.kept(this.id))) await r.needAccess('read');
+    return r.read(this.path, this.id);
   }
 
   read(ask?: AskPassword): Promise<Original> {
@@ -39,7 +39,8 @@ class LibraryFile implements Readable {
   }
 
   async canReadNow(): Promise<boolean> {
-    return (await (await _root()).access()) === 'ready';
+    const r = await _root();
+    return (await r.access()) === 'ready' || r.kept(this.id);
   }
 
   async move(path: string): Promise<string | null> {

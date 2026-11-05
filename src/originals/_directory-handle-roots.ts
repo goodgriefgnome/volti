@@ -22,6 +22,9 @@ abstract class DirectoryHandleRoot implements ScoreRoot {
   /** This root's stamp for a file it has written or moved; none for Volti's own folder. */
   protected abstract stampOf(file: File): Stamp | undefined;
 
+  /** A folder keeps nothing of its own: its files are read where they are. */
+  async kept(): Promise<boolean> { return false; }
+
   async read(path: string): Promise<File> {
     const [d, name] = await this.placeOf(path);
     return (await d.getFileHandle(name)).getFile();

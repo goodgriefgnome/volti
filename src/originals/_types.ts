@@ -56,8 +56,10 @@ export interface ScoreRoot {
   needAccess(mode: 'read' | 'readwrite'): Promise<void>;
   /** How what is in it differs from `known`, as it finds out: see "Scanning". */
   getUpdates(known: Known, signal: AbortSignal): AsyncIterable<Updates>;
-  /** The file at `path`. */
-  read(path: string): Promise<File>;
+  /** The file at `path`; `id`, when the caller knows it, lets a root that keeps copies by id read one without finding the path. */
+  read(path: string, id?: string): Promise<File>;
+  /** Whether the root keeps a copy of `id` it can read without access or a network. */
+  kept(id: string): Promise<boolean>;
   /** Whether there is a file at `path` (as the root finds names: a folder that ignores case finds one in any case). */
   exists(path: string): Promise<boolean>;
   /** Write `data` at `path`, over a file there, making the folders on it; one that fails part way leaves nothing. Gives the file as written, and its stamp. */
