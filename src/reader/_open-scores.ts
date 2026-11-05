@@ -3,7 +3,7 @@
 
 import { askPassword } from '../dialogs/passwords';
 import { savedPages } from '../originals/original';
-import { NoAccess, PasswordNotGiven, type DrawOptions, type Pages, type SourceFile } from '../originals/types';
+import { NoAccess, PasswordNotGiven, Unreachable, type DrawOptions, type Pages, type SourceFile } from '../originals/types';
 import type { Drawn } from '../page-cache/types';
 import { loadScore } from '../scores/store';
 import { type Aspects, type State } from '../scores/model';
@@ -46,7 +46,7 @@ export async function openPages(id: string, o: SourceFile | undefined, ask: bool
         throw e;
       }
     } catch (e) {
-      if (!(e instanceof NoAccess || e instanceof PasswordNotGiven)) throw e;
+      if (!(e instanceof NoAccess || e instanceof Unreachable || e instanceof PasswordNotGiven)) throw e;
       failure = e;
     }
   }

@@ -3,7 +3,7 @@
 // gathers the pages, and _setlists-section.ts shows the result.
 
 /** Why a score's pages can't be saved now. */
-export type Blocked = 'access' | 'password' | 'missing';
+export type Blocked = 'access' | 'password' | 'offline' | 'missing';
 
 export type OfflineStatus =
   | { kind: 'saving'; done: number; of: number }
@@ -52,5 +52,6 @@ export function offlineText(s: OfflineStatus): string {
   if (s.kind === 'ready') return 'Ready to play offline.';
   if (s.why === 'access') return `Volti needs access to the scores folder to save the rest (${s.of - s.done} pages).`;
   if (s.why === 'password') return `“${s.title}” needs its password before its pages can be saved.`;
+  if (s.why === 'offline') return `“${s.title}” isn’t on this tablet yet: connect to keep it.`;
   return s.left ? `“${s.title}” can’t be found, so ${s.left} of its pages can’t be saved.` : `“${s.title}” can’t be found, so its pages can’t be saved.`;
 }

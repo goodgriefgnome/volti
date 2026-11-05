@@ -7,7 +7,7 @@ import { excerptCuts } from '../scores/excerpts';
 import { knownAspects, savePageOffline } from '../originals/original';
 import { knownTitles } from '../originals/library-files';
 import { titleOf } from '../originals/path-utils';
-import { NoAccess, PasswordNotGiven, type Original, type SourceFile } from '../originals/types';
+import { NoAccess, PasswordNotGiven, Unreachable, type Original, type SourceFile } from '../originals/types';
 import { pinOffline } from '../page-cache/cache';
 import type { PinnedKey, PinnedPage } from '../page-cache/types';
 import { offlinePageWidths } from '../render/screen';
@@ -60,7 +60,7 @@ async function make(signal: AbortSignal, originals: readonly SourceFile[], setli
     const file = byId.get(id);
     if (!file) return undefined;
     try { return await file.read(); } catch (e) {
-      blocked.set(id, { ...blocked.get(id)!, why: e instanceof NoAccess ? 'access' : e instanceof PasswordNotGiven ? 'password' : 'missing' });
+      blocked.set(id, { ...blocked.get(id)!, why: e instanceof NoAccess ? 'access' : e instanceof PasswordNotGiven ? 'password' : e instanceof Unreachable ? 'offline' : 'missing' });
       return undefined;
     }
   };

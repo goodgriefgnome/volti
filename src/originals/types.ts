@@ -98,6 +98,11 @@ export class NoAccess extends Error {
   name = 'NoAccess';
 }
 
+/** The file is in the linked folder, but the folder can't be reached now: no network. */
+export class Unreachable extends Error {
+  name = 'Unreachable';
+}
+
 /** The folder picker wouldn't give the folder chosen, as Android does for Download itself and the top of internal storage. */
 export class FolderRefused extends Error {
   name = 'FolderRefused';

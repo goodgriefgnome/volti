@@ -45,6 +45,7 @@ describe('offlineText', () => {
     expect(say({ kind: 'ready' })).toBe('Ready to play offline.');
     expect(say({ kind: 'blocked', done: 18, of: 40, left: 22, why: 'access', title: 'Mass' })).toBe('Volti needs access to the scores folder to save the rest (22 pages).');
     expect(say({ kind: 'blocked', done: 0, of: 4, left: 4, why: 'password', title: 'Mass' })).toBe('“Mass” needs its password before its pages can be saved.');
+    expect(say({ kind: 'blocked', done: 0, of: 4, left: 4, why: 'offline', title: 'Mass' })).toBe('“Mass” isn’t on this tablet yet: connect to keep it.');
     expect(say({ kind: 'blocked', done: 0, of: 6, left: 6, why: 'missing', title: 'Mass' })).toBe('“Mass” can’t be found, so 6 of its pages can’t be saved.');
   });
 });
