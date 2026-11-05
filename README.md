@@ -210,3 +210,9 @@ where to start on the usual changes) is in [ARCHITECTURE.md](ARCHITECTURE.md).
 pdf.js comes from its legacy build, which carries fallbacks for JavaScript features newer than some
 Android Chrome versions. Its fonts and image decoders are copied into `public/pdfjs/` before each
 build (`scripts/copy-pdfjs.mjs`), so scanned scores also open offline.
+
+## Licence
+
+Volti is free software under the GNU Affero General Public License, version 3 only: see
+[LICENSE](LICENSE). The libraries it ships with keep their own licences (MIT, Apache-2.0, 0BSD and
+Zlib).
