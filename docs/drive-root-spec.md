@@ -21,7 +21,7 @@ markings and their setlists. And a refresh token keeps Volti signed in between s
 What the test page (`public/drive-test.html`) found, which this spec builds on:
 
 - Google's token endpoint needs the client secret, with PKCE or without. A browser app has nowhere
-  to hide one, so it ships in Volti's code.
+  to hide one, so it ships in Volti's built code (but not in the repository: see "Signing in").
 - Refresh tokens work from the browser.
 - With `drive.file`, a folder picked in the Google Picker can't be listed: its files aren't the
   app's. With `drive.readonly`, it can. Volti also renames, moves, removes and writes files, so it
@@ -56,8 +56,31 @@ What the test page (`public/drive-test.html`) found, which this spec builds on:
 does it.
 
 - **The client** is a Google Cloud OAuth client of type Web application. Its client ID and secret
-  are constants in `originals/_drive-config.ts`, committed: the secret is in the built code anyway.
-  With no client ID there, Drive isn't offered.
+  aren't in the repository: they come in at build time, as `VITE_DRIVE_CLIENT_ID` and
+  `VITE_DRIVE_CLIENT_SECRET`, and Vite writes them into the built code.
+  `originals/_drive-config.ts` reads them:
+
+  ```ts
+  export const clientId: string = import.meta.env.VITE_DRIVE_CLIENT_ID ?? '';
+  export const clientSecret: string = import.meta.env.VITE_DRIVE_CLIENT_SECRET ?? '';
+  ```
+
+  (the two typed in a new `src/types/drive-env.d.ts`, extending Vite's `ImportMetaEnv`, beside
+  `version.d.ts`). With no client ID,
+  Drive isn't offered, so a build without them (a fork, a test run) is Volti without Drive.
+- **Where they come from:** the deploy workflow (`.github/workflows/deploy.yml`) passes them to its
+  `npm run build` step from the repository's Actions secrets `DRIVE_CLIENT_ID` and
+  `DRIVE_CLIENT_SECRET`:
+
+  ```yaml
+      - run: npm run build
+        env:
+          VITE_DRIVE_CLIENT_ID: ${{ secrets.DRIVE_CLIENT_ID }}
+          VITE_DRIVE_CLIENT_SECRET: ${{ secrets.DRIVE_CLIENT_SECRET }}
+  ```
+
+  On a development machine they go in `.env.local`, which Vite reads; `.gitignore` gains
+  `.env*.local` so it is never committed. The tests don't need them: they stand in for Google.
 - **The redirect URI** is Volti's own URL (`https://goodgriefgnome.github.io/volti/`). Signing in
   navigates there with `?code=…&state=…`; at start-up, before the library is made, `main.ts` hands
   those to `_drive-auth.ts`, which exchanges the code, stores the refresh token, and takes them off
@@ -235,14 +258,15 @@ scores kept on this tablet still open."
   folder and for its scans.
 - `ARCHITECTURE.md`: the `originals/` row (the new files, in order), and the folder chooser in
   `dialogs/`.
-- `README.md`: linking a Google Drive folder, and signing in again about once a week.
+- `README.md`: linking a Google Drive folder, and signing in again about once a week; under
+  Development, the two Actions secrets the deployed build needs and `.env.local` for a local one.
 - Each new module starts with a comment saying what belongs in it.
 
 ## Data
 
 Nothing stored changes shape, and nothing is dropped: `drive` and `drive-auth` are new keys, and
-OPFS `bytes/` a new directory. The test page `public/drive-test.html` and its exception in
-`src/sw.ts` are removed.
+OPFS `bytes/` a new directory. The test page `public/drive-test.html` and its entry in the
+service worker's denylist (`src/sw.ts`) are removed.
 
 ## Open
 
