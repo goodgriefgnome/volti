@@ -4,11 +4,11 @@
 // into another folder) and removed (into Recently removed), asking for the access that needs. Also
 // listing the root's files, known by the hash of their contents, and tidying storage at start-up.
 
-import { _linked, _linkedRoot } from './device-score-fs';
+import { _isLinked, _linked, _linkedRoot } from './device-score-fs';
 import { hashFile, inTurns, walk } from './_filesystem-utils';
 import { _dropInboxBytes } from './inbox-fs';
 import { _internalFiles, _internalRoot, _opfsRoot, _removeInternalFile } from './internal-score-fs';
-import { _bytesName, _folderWhere, _resolveListing, type _Found, type OriginalRecord, type Where } from './_record-model';
+import { _bytesName, _folderWhere, _rank, _resolveListing, type _Found, type OriginalRecord, type Where } from './_record-model';
 import { _loadRecords, _record, _records, _updateRecord, _updateRecords } from './_record-store';
 import type { Readable, ScoreRoot, Stamp } from './_types';
 import { _readOriginal } from './original';
@@ -340,7 +340,10 @@ const ORPHAN_MS = 10 * 60 * 1000;
 /**
  * Start-up tidying, once, before anything is listed: delete the files in `inbox/` and `removed/`
  * that no record points to (left by a crash between writing the bytes and the record) and that
- * were last modified more than ten minutes ago.
+ * were last modified more than ten minutes ago. Files in `library/` that no `internal` record
+ * points to, and that old, are recorded: hashed, at their paths, as `internal`, unless their id has
+ * a better place, when the file is deleted. (One whose id is already `internal` at another path
+ * is left alone.)
  */
 export async function tidyStorage(now = Date.now()): Promise<void> {
   const records = await _loadRecords();
@@ -351,6 +354,31 @@ export async function tidyStorage(now = Date.now()): Promise<void> {
     for await (const [file, h] of dir.entries()) {
       if (kept.has(file) || h.kind !== 'file') continue;
       if (now - (await (h as FileSystemFileHandle).getFile()).lastModified > ORPHAN_MS) await dir.removeEntry(file).catch(() => {});
+    }
+  }
+  await recordOrphans(records, now);
+}
+
+/** Record the files in Volti's own folder that no `internal` record points to: see `tidyStorage`. */
+async function recordOrphans(records: ReadonlyMap<string, OriginalRecord>, now: number): Promise<void> {
+  const linked = await _isLinked();
+  const internal: Where = { kind: 'internal' };
+  const recorded = new Set([...records.values()].flatMap((r) => (r.where.kind === 'internal' ? [r.path] : [])));
+  for (const { path, file } of await _internalFiles()) {
+    if (recorded.has(path) || now - file.lastModified <= ORPHAN_MS) continue;
+    const id = await hashFile(file);
+    const rank = (r: OriginalRecord | undefined) => (r ? _rank(r.where, linked) : -1);
+    if (rank(_record(id)) > _rank(internal, linked)) {
+      await _removeInternalFile(path).catch((e) => console.warn('Could not delete a file a better place has:', e));
+    } else if (_record(id)?.where.kind !== 'internal') {
+      const before: { record?: OriginalRecord } = {};
+      // Unless a better place has it by now.
+      await _updateRecord(id, (r) => {
+        before.record = r;
+        return rank(r) > _rank(internal, linked) ? r : { ...r, path, where: internal };
+      });
+      const old = before.record;
+      if (old && rank(old) <= _rank(internal, linked)) await _dropBytes({ id, path: old.path, where: old.where }, linked);
     }
   }
 }
