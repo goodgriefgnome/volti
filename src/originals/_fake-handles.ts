@@ -46,6 +46,8 @@ class FakeFile {
   }
 
   async getFile(): Promise<File> {
+    // A handle to a file deleted since can't get it.
+    if (this.parent.children.get(this.name) !== this) throw notFound(this.name);
     this.ctx.reads.set(this.path, (this.ctx.reads.get(this.path) ?? 0) + 1);
     return new File([this.bytes as BlobPart], this.name, { lastModified: this.modified });
   }
