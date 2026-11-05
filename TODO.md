@@ -25,6 +25,33 @@ scores.
     run of the job (any setlist change, or start-up) tries again. A device folder does nothing.
   - Test (`drive-score-fs` or `_drive-root` tests, over the fake Drive): pinned and not kept is
     downloaded; kept is not downloaded again; down stops without throwing.
+- **Errors say what went wrong themselves; every failure shows the error's message:** about a
+  dozen catch blocks turn an error into a sentence of their own, by `instanceof`, so each new
+  error has to be taught to all of them. `Unreachable` isn't: offline, renaming or removing a
+  Drive file says "Could not remove it (Unreachable)", and opening a score never kept on the
+  tablet says "It may have been moved or renamed". And `NoAccess` from Drive (signed out) says
+  "Volti needs permission…", which is wrong there.
+  - Where they're thrown, Volti's errors carry a sentence for a person: `NoAccess` from a device
+    folder "Volti has no access to the scores folder." (`_directory-handle-roots.ts`,
+    `reader/_open-scores.ts:40`, which now say `(${mode})` and `for ${id}`); from Drive
+    (`_drive-auth.ts`, `_drive-api.ts`, `_drive-root.ts`) "Not signed in to Google Drive.";
+    `Unreachable` "Google Drive can't be reached." (`_drive-auth.ts`, `_drive-api.ts`, without
+    the browser's text after it). `PasswordNotGiven` stays.
+  - Every catch that shows a failure says `Could not <do it> “<title>”: <the error's message>`
+    (without a title where there's none), whatever the error, and logs it (`console.error`) unless
+    it is `NoAccess`, `Unreachable` or `PasswordNotGiven`. A browser's or Drive's own message
+    shows as it is. The places: `library/library.ts` (opening, at both places; moving scores
+    into the folder), `library/_scores-section.ts`, `library/_removed.ts`,
+    `library/_incoming.ts`, `reader/reader.ts` (opening a score in a setlist),
+    `reader/_title-menu.ts`, `reader/_toolbar-menus.ts`, `dialogs/score-files.ts`,
+    `dialogs/export-pdf.ts`, `library/_drive-folders.ts`. The `NO_ACCESS` constants
+    (`library.ts`, `export-pdf.ts`) go.
+  - `instanceof` stays only where the code does something different, not only says something:
+    the reader's fall back to saved pages (`_open-scores.ts`), asking for a password, the reader's
+    page that can't be shown (`showUnread`), and the offline job's reasons
+    (`_offline-pages.ts`, whose texts in `_offline-status.ts` stay).
+  - The sentences read a little mechanically, and an unexpected error shows the browser's text:
+    both accepted.
 
 ## Confirmed features which require more thought
 
