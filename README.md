@@ -215,4 +215,6 @@ build (`scripts/copy-pdfjs.mjs`), so scanned scores also open offline.
 
 Volti is free software under the GNU Affero General Public License, version 3 only: see
 [LICENSE](LICENSE). The libraries it ships with keep their own licences (MIT, Apache-2.0, 0BSD and
-Zlib).
+Zlib). The build writes their notices to `licenses.txt` beside the app, which **Licences** in the
+library's ⋯ menu opens (`scripts/licenses.ts`); it fails if a library has no licence file and none
+is written out for it there.

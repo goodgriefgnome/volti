@@ -1,6 +1,7 @@
 // The tools at the top of the library, beside the name: the scores folder's buttons (Link scores
 // folder, Allow access), the library's ⋯ menu (the scores folder, Recently removed, Marking
-// colours, the storage used, and the version running), and Update when a new version of the app is ready.
+// colours, the storage used, the version running, and the licences), and Update when a new version
+// of the app is ready.
 
 import { canLinkFolder } from '../originals/device-score-fs';
 import { button, el } from '../ui/dom';
@@ -41,6 +42,8 @@ export class FolderBanner {
       'Storage used on this tablet',
       storageView(),
       `Version ${__VERSION__}`,
+      // Written by the build (scripts/licenses.ts): Volti's own and every library's in it.
+      { label: 'Licences', run: () => void window.open(`${import.meta.env.BASE_URL}licenses.txt`, '_blank') },
     ]), 'More'));
   }
 

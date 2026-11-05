@@ -27,5 +27,6 @@ self.addEventListener('fetch', (e) => {
 });
 
 precacheAndRoute(self.__WB_MANIFEST);
-// drive-test.html is a throwaway test page, reached with ?code=… after signing in: not the app.
-registerRoute(new NavigationRoute(createHandlerBoundToURL('index.html'), { denylist: [/\/drive-test\.html/] }));
+// Pages that aren't the app: licenses.txt, which the library's menu opens, and drive-test.html, a
+// throwaway test page reached with ?code=… after signing in.
+registerRoute(new NavigationRoute(createHandlerBoundToURL('index.html'), { denylist: [/\/licenses\.txt/, /\/drive-test\.html/] }));

@@ -1,6 +1,7 @@
 import { execSync } from 'node:child_process';
 import { defineConfig } from 'vitest/config';
 import { VitePWA } from 'vite-plugin-pwa';
+import { licenses } from './scripts/licenses';
 
 /** The commit this build is made from: its short hash and date, and (dev) when the tree has changes; `unknown` without git. */
 function version(): string {
@@ -17,6 +18,7 @@ export default defineConfig({
   // Served from https://goodgriefgnome.github.io/volti/
   base: '/volti/',
   plugins: [
+    licenses(),
     VitePWA({
       strategies: 'injectManifest',
       srcDir: 'src',
@@ -27,6 +29,8 @@ export default defineConfig({
       injectManifest: {
         globPatterns: ['**/*.{html,js,mjs,css,png,svg,webmanifest,wasm,pfb,ttf,woff2,bcmap,icc}'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        // The service worker is built apart, so it needs its own: its workbox code is listed too.
+        buildPlugins: { vite: [licenses()] },
       },
       manifest: {
         name: 'Volti',
