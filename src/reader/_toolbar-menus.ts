@@ -7,7 +7,7 @@ import { moveToFolder, renameFile, type ScoreFileHost } from '../dialogs/score-f
 import { openExportPdf } from '../dialogs/export-pdf';
 import { type Excerpt, namedExcerptOf } from '../scores/excerpts';
 import type { ExportPart } from '../export/pdf';
-import { folderState } from '../originals/device-score-fs';
+import { folderState } from '../originals/linked-folder';
 import { NoAccess, type SourceFile } from '../originals/types';
 import { subfolders } from '../originals/path-utils';
 import { defaultSetlist, duplicate, withSetlist, type Setlist } from '../setlists/model';

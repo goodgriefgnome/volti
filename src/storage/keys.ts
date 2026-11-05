@@ -5,7 +5,7 @@
 export const keys = {
   /** An OriginalRecord, by the original's id: where its bytes are, and what reading it found (originals/_record-store.ts; STORAGE.md). */
   original: (id: string) => 'original:' + id,
-  /** The linked scores folder: { handle, linked }, kept after unlinking to tell a folder linked later is the same (originals/device-score-fs.ts). */
+  /** The linked scores folder, on the device or in Google Drive: a FolderLink, kept after unlinking to tell a folder linked later is the same (originals/_folder-link.ts). */
   folder: 'folder',
   /** The library's subfolder lists closed by hand, by path (library/_store.ts). */
   closedFolders: 'closed-folders',

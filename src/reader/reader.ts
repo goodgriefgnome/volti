@@ -5,7 +5,7 @@
 
 import { ends } from '../scores/excerpts';
 import { type Marking } from '../markings/model';
-import { unlockFolder } from '../originals/device-score-fs';
+import { unlockFolder } from '../originals/linked-folder';
 import { knownTitles } from '../originals/library-files';
 import { NoAccess, PasswordNotGiven, type SourceFile } from '../originals/types';
 import { canvasesOf } from '../page-cache/cache';

@@ -3,7 +3,7 @@
 // the page and the service worker use it, so no DOM and no pdf.js.
 
 import { hashBytes, writeFile } from './_filesystem-utils';
-import { _isLinked } from './device-score-fs';
+import { _isLinked } from './_folder-link';
 import { _bytesName, _rank, type Where } from './_record-model';
 import { _updateRecord } from './_record-store';
 import { _importName } from './path-utils';

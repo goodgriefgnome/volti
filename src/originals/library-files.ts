@@ -1,10 +1,11 @@
-// Source files over the library's root: the linked scores folder (device-score-fs.ts) when there is
+// Source files over the library's root: the linked scores folder (linked-folder.ts) when there is
 // one, and Volti's own folder in OPFS (internal-score-fs.ts) when there isn't. Both are folders with
 // true paths, read the same way. A file in the root is a source file that can be moved (renamed, or
 // into another folder) and removed (into Recently removed), asking for the access that needs. Also
 // listing the root's files, known by the hash of their contents, and tidying storage at start-up.
 
-import { _isLinked, _linked, _linkedRoot } from './device-score-fs';
+import { _isLinked } from './_folder-link';
+import { _linkedRoot } from './linked-folder';
 import { hashFile } from './_filesystem-utils';
 import { _dropInboxBytes } from './inbox-fs';
 import { _internalFiles, _internalRoot, _removeInternalFile } from './internal-score-fs';
@@ -136,7 +137,7 @@ export const knownTitles = async () => Object.fromEntries([..._records()].map(([
 
 /** Where a file just written into the root is: the linked folder, as it is now, or Volti's own. */
 async function rootWhere(stamp?: Stamp): Promise<Where> {
-  return (await _linked()) ? _folderWhere(stamp) : { kind: 'internal' };
+  return (await _linkedRoot()) ? _folderWhere(stamp) : { kind: 'internal' };
 }
 
 /**

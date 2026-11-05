@@ -5,7 +5,7 @@
 
 import { hashBytes } from './_filesystem-utils';
 import { _dropInboxBytes, _inboxFile } from './inbox-fs';
-import { _isLinked } from './device-score-fs';
+import { _isLinked } from './_folder-link';
 import { _internalRoot } from './internal-score-fs';
 import { _placed, _root, _sourceFileOf } from './library-files';
 import { folderOf, _importName, _nameOf, _shownFolder, _tidyPath, _unfoundName } from './path-utils';

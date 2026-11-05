@@ -8,13 +8,13 @@ import { keys } from './storage/keys';
 import { kv } from './storage/kv';
 
 /** The version of the stored data this app reads and writes. */
-export const DATA_VERSION = 3;
+export const DATA_VERSION = 4;
 
 /** A step brings the whole store from one version to the next. Run again after failing partway, it finishes what is left. */
 export type Step = () => Promise<void>;
 
 /** Each step, by the version it starts from. */
-const STEPS: Record<number, Step> = { 1: scoresToVersion2, 2: toVersion3 };
+const STEPS: Record<number, Step> = { 1: scoresToVersion2, 2: toVersion3, 3: toVersion4 };
 
 /** The keys earlier versions wrote that are not in the format of STORAGE.md; what they held is not carried over. */
 const OLD_KEYS = ['folder-files', 'hashes', 'internal-ids', 'titles', 'removed', 'inbox'];
@@ -34,6 +34,14 @@ async function toVersion3(): Promise<void> {
   await Promise.all([...OLD_KEYS, ...old].map((key) => kv.del(key)));
   await scoresToVersion3();
   await folderToVersion3();
+}
+
+/**
+ * The step from version 3 to 4: the link under `folder` changed shape (it gains `kind`, for a
+ * folder in Google Drive too), so the stored one is dropped, and the folder is linked again.
+ */
+async function toVersion4(): Promise<void> {
+  await kv.del(keys.folder);
 }
 
 /** Where the version is kept: the kv store, or a stand-in in tests. */

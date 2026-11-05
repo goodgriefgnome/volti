@@ -11,7 +11,7 @@ import { type ExcerptSource } from '../dialogs/thumb-strip';
 import type { Excerpt } from '../scores/excerpts';
 import type { ExportPart } from '../export/pdf';
 import { arrivals, byFolder, titleOf } from '../originals/path-utils';
-import { folderState, linkFolder, unlinkFolder, unlockFolder } from '../originals/device-score-fs';
+import { folderState, linkDeviceFolder, unlinkFolder, unlockFolder } from '../originals/linked-folder';
 import { knownTitles, libraryFiles, scanRoot } from '../originals/library-files';
 import { inboxFiles, leftInApp } from '../originals/misc-files';
 import { FolderRefused, NoAccess, PasswordNotGiven, type FolderState, type SourceFile } from '../originals/types';
@@ -205,7 +205,7 @@ export class Library implements LibraryHost {
 
   async link() {
     try {
-      if (!(await linkFolder())) return;
+      if (!(await linkDeviceFolder())) return;
     } catch (e) {
       this.say(e instanceof FolderRefused
         ? 'That folder cannot be linked. Android blocks the Download folder itself and the top of internal storage; pick a folder inside them, such as Download/Scores.'

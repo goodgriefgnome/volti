@@ -67,8 +67,8 @@ export interface Original extends SourceFile, Pages {
 /** Whether a scores folder is linked, and whether this session may read it. */
 export type FolderState =
   | { kind: 'none' }
-  | { kind: 'ready'; name: string }
-  | { kind: 'locked'; name: string }; // linked, but needs a tap to allow access this session
+  | { kind: 'ready'; name: string; place: 'device' | 'drive' }
+  | { kind: 'locked'; name: string; place: 'device' | 'drive' }; // linked, but needs a tap to allow access this session
 
 /** Ask for a PDF's password, saying whether the last one tried was wrong; null when it isn't given. */
 export type AskPassword = (title: string, wrong: boolean) => Promise<string | null>;
