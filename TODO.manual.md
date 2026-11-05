@@ -428,4 +428,10 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     these happen on the music.
   - Pinch with every tool; not while moving or resizing a marking; a second finger while placing
     drops the ghost and zooms.
-
+- **Setlist scores downloaded from Google Drive:**
+  - With a Drive folder linked and a setlist whose pages were all saved from a folder on the device
+    (same ids), go online and wait for the offline job (a few seconds after a setlist change or
+    start-up): the Storage screen's Drive copies grow by those scores' sizes.
+  - Go offline (airplane mode) and open each of those scores: they open on their own.
+  - Clear the copies (unlink and link again), go offline before the job runs: nothing is shown or
+    thrown; go online, and the next run downloads them.

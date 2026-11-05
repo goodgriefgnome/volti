@@ -7,6 +7,9 @@ import { _httpDriveApi } from './_drive-api';
 import { _authUrl, _challenge, _driveAuth, _newVerifier } from './_drive-auth';
 import { _clientId, _redirectUri } from './_drive-config';
 import { DriveRoot } from './_drive-root';
+import { _storedLink } from './_folder-link';
+import { _record } from './_record-store';
+import { NoAccess, Unreachable } from './types';
 
 /** What the page was doing when it left for Google's sign-in page. */
 type Intent = 'link' | 'unlock';
@@ -87,8 +90,38 @@ export async function _forgetDrive(): Promise<void> {
   await _byteCache.clear();
 }
 
-/** Keep these originals' bytes on the tablet for good (the offline job's setlist scores). */
-export const keepOriginalsOffline = (ids: readonly string[]): Promise<void> => _byteCache.pin(ids);
+/**
+ * Download each of `ids` that has no bytes kept yet, one at a time, from `root` at the path
+ * `pathOf` gives (none: skipped). Stops quietly when Drive can't be reached or there is no sign-in:
+ * the next run of the offline job tries again. A file that can't be read otherwise is left.
+ */
+export async function _downloadMissing(
+  ids: readonly string[], pathOf: (id: string) => string | undefined,
+  root: { read(path: string, id?: string): Promise<File> }, cache: { has(id: string): Promise<boolean> },
+): Promise<void> {
+  for (const id of ids) {
+    const path = pathOf(id);
+    if (path === undefined || await cache.has(id)) continue;
+    try { await root.read(path, id); } catch (e) {
+      if (e instanceof NoAccess || e instanceof Unreachable) return;
+      console.warn(`Keeping ${path} offline: could not download it:`, e);
+    }
+  }
+}
+
+/**
+ * Keep these originals' bytes on the tablet for good (the offline job's setlist scores): pinned,
+ * and, in a Drive folder, downloaded when not kept yet. A device folder has its files already.
+ */
+export async function keepOriginalsOffline(ids: readonly string[]): Promise<void> {
+  await _byteCache.pin(ids);
+  const link = await _storedLink();
+  if (link?.kind !== 'drive' || !link.linked) return;
+  await _downloadMissing(ids, (id) => {
+    const r = _record(id);
+    return r?.where.kind === 'folder' ? r.path : undefined;
+  }, _driveRoot(link.folderId), _byteCache);
+}
 
 /** How many bytes of Drive files are kept on the tablet, for the storage screen. */
 export const keptFromDriveBytes = (): Promise<number> => _byteCache.size();
