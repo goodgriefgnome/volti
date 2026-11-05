@@ -4,6 +4,7 @@
 // of the app is ready.
 
 import { canLinkFolder } from '../originals/device-score-fs';
+import { driveOffered } from '../originals/drive-score-fs';
 import { button, el } from '../ui/dom';
 import { showMenu } from '../ui/overlay';
 import type { LibraryHost } from './_host';
@@ -29,8 +30,8 @@ export class FolderBanner {
   render() {
     const { lib } = this, p = this.folderTools, f = lib.folder;
     p.replaceChildren();
-    if (f.kind === 'none' && canLinkFolder()) p.append(button('Link scores folder', () => void lib.link(), 'primary'));
-    if (f.kind === 'locked') p.append(button('Allow access', () => void lib.unlock(), 'primary'));
+    if (f.kind === 'none' && (canLinkFolder() || driveOffered())) p.append(button('Link scores folder', () => void lib.link(), 'primary'));
+    if (f.kind === 'locked') p.append(button(f.place === 'drive' ? 'Sign in to Google Drive' : 'Allow access', () => void lib.unlock(), 'primary'));
     p.append(moreButton('Volti', (at) => showMenu(at, 'Volti', [
       f.kind !== 'none' && `Scores folder: ${f.name}`,
       f.kind !== 'none' && { label: 'Check for new scores', run: () => void lib.checkFolder() },

@@ -11,17 +11,20 @@ import { type ExcerptSource } from '../dialogs/thumb-strip';
 import type { Excerpt } from '../scores/excerpts';
 import type { ExportPart } from '../export/pdf';
 import { arrivals, byFolder, titleOf } from '../originals/path-utils';
-import { folderState, linkDeviceFolder, unlinkFolder, unlockFolder } from '../originals/linked-folder';
+import { canLinkFolder } from '../originals/device-score-fs';
+import { driveOffered, driveSignedIn, signInToDrive } from '../originals/drive-score-fs';
+import { folderState, linkDeviceFolder, linkDriveFolder, unlinkFolder, unlockFolder } from '../originals/linked-folder';
+import { chooseDriveFolder } from './_drive-folders';
 import { knownTitles, libraryFiles, scanRoot } from '../originals/library-files';
 import { inboxFiles, leftInApp } from '../originals/misc-files';
-import { FolderRefused, NoAccess, PasswordNotGiven, type FolderState, type SourceFile } from '../originals/types';
+import { FolderRefused, NoAccess, PasswordNotGiven, Unreachable, type FolderState, type SourceFile } from '../originals/types';
 import { openReader, type ToRead } from '../reader/reader';
 import { knownAspects } from '../originals/original';
 import { loadSavedScore, scoreEntry } from '../scores/store';
 import { type Aspects, type NamedExcerpt, type Score } from '../scores/model';
 import { addEntries, defaultSetlist, withSetlist, type Setlist } from '../setlists/model';
 import { deleteSetlist, loadLastAddedTo, loadSetlists, saveChanged, saveLastAddedTo } from '../setlists/store';
-import { closeOverlay, whenOverlayCloses, type MenuItem } from '../ui/overlay';
+import { closeOverlay, showMenu, whenOverlayCloses, type MenuItem } from '../ui/overlay';
 import { el, plural } from '../ui/dom';
 import { Toast } from '../ui/toast';
 import { FolderBanner } from './_folder-banner';
@@ -182,7 +185,9 @@ export class Library implements LibraryHost {
     } catch (e) {
       // The folder may have been moved or deleted since it was linked.
       console.error(e);
-      this.say('Could not read the scores folder. Link it again if it has moved.');
+      this.say(e instanceof Unreachable
+        ? 'Could not reach Google Drive. The scores kept on this tablet still open.'
+        : 'Could not read the scores folder. Link it again if it has moved.');
     }
     this.originals = await this.currentFiles();
     await this.loadSetlists();
@@ -203,7 +208,40 @@ export class Library implements LibraryHost {
 
   /* ---------- the scores folder ---------- */
 
+  /** Link a scores folder: on the tablet or in Google Drive, whichever there is; a menu when both. */
   async link() {
+    const device = canLinkFolder(), drive = driveOffered();
+    if (device && drive) {
+      showMenu(this.banner.el, 'Link scores folder', [
+        { label: 'A folder on this tablet', run: () => void this.linkOnDevice() },
+        { label: 'A folder in Google Drive', run: () => void this.linkInDrive() },
+      ]);
+    } else if (drive) await this.linkInDrive();
+    else if (device) await this.linkOnDevice();
+  }
+
+  /** From a tap: sign in to Google if need be (which leaves the page, coming back to the chooser), then choose the folder. */
+  private async linkInDrive() {
+    if (!(await driveSignedIn())) { await signInToDrive('link'); return; }
+    await this.chooseDriveFolder();
+  }
+
+  /** The folder chooser, then linking what is chosen and reading it. */
+  async chooseDriveFolder() {
+    const picked = await chooseDriveFolder();
+    if (!picked) return;
+    try {
+      await linkDriveFolder(picked.id, picked.name);
+    } catch (e) {
+      this.say(`Could not link the folder (${(e as Error).name}).`);
+      console.error(e);
+      return;
+    }
+    await this.refresh();
+    await this.moveLeftIn(false);
+  }
+
+  private async linkOnDevice() {
     try {
       if (!(await linkDeviceFolder())) return;
     } catch (e) {
@@ -267,6 +305,8 @@ export class Library implements LibraryHost {
   }
 
   async unlock(): Promise<boolean> {
+    // A folder in Google Drive is unlocked by signing in, which leaves the page.
+    if (this.folder.kind === 'locked' && this.folder.place === 'drive') { await signInToDrive('unlock'); return false; }
     const ok = await unlockFolder();
     if (ok) { void this.refresh(); await this.addShared(); } else this.say(NO_ACCESS);
     return ok;

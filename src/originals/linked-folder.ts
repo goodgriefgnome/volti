@@ -6,6 +6,7 @@ import { _storedLink, _storeLink, type FolderLink } from './_folder-link';
 import { _loadRecords, _records, _updateRecords } from './_record-store';
 import type { ScoreRoot } from './_types';
 import { _deviceRoot, _pickFolder, _unlockDevice } from './device-score-fs';
+import { _driveRoot, _forgetDrive } from './drive-score-fs';
 import type { FolderState } from './types';
 
 /** The link, read once; undefined before it is read (`read` tells), and when there is none. */
@@ -21,6 +22,7 @@ async function current(): Promise<FolderLink | undefined> {
 export async function _linkedRoot(): Promise<ScoreRoot | undefined> {
   const l = await current();
   if (l?.kind === 'device') return _deviceRoot(l.handle);
+  if (l?.kind === 'drive') return _driveRoot(l.folderId);
   return undefined;
 }
 
@@ -53,8 +55,16 @@ export async function linkDeviceFolder(): Promise<boolean> {
   if (!picked) return false;
   const old = await _storedLink();
   const same = old?.kind === 'device' && (await old.handle.isSameEntry(picked).catch(() => false));
+  // A folder on the device replaces one in Drive: its sign-in and kept copies have no use now.
+  if (old?.kind === 'drive' && old.linked) await _forgetDrive();
   await switchTo({ kind: 'device', handle: picked, linked: true }, same);
   return true;
+}
+
+/** Link a folder in Google Drive, chosen after signing in. The same folder as before keeps its records. */
+export async function linkDriveFolder(folderId: string, name: string): Promise<void> {
+  const old = await _storedLink();
+  await switchTo({ kind: 'drive', folderId, name, linked: true }, old?.kind === 'drive' && old.folderId === folderId);
 }
 
 /** From a tap: asks for access to a device folder. Never signs in to Drive (that leaves the page): false for one. */
@@ -68,4 +78,5 @@ export async function unlinkFolder(): Promise<void> {
   link = undefined;
   read = true;
   if (old) await _storeLink({ ...old, linked: false });
+  if (old?.kind === 'drive') await _forgetDrive();
 }

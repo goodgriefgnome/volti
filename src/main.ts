@@ -5,6 +5,7 @@
 import { registerSW } from 'virtual:pwa-register';
 import { Library } from './library/library';
 import { loadMarkColors } from './markings/store';
+import { finishSignIn } from './originals/drive-score-fs';
 import { tidyStorage } from './originals/library-files';
 import { purgeRemoved } from './originals/trash-fs';
 import { upgradeStoredData } from './stored-data';
@@ -36,6 +37,9 @@ async function start() {
   // Keep the scores added to the app, and markings, from being cleared when the tablet runs low on space.
   void navigator.storage?.persist?.().catch(() => {});
 
+  // Back from Google's sign-in page, finish it before the library reads the folder.
+  let signedIn: Awaited<ReturnType<typeof finishSignIn>>, signInFailed = false;
+  try { signedIn = await finishSignIn(); } catch (e) { console.error('Could not sign in to Google Drive:', e); signInFailed = true; }
   const library = new Library();
   void watchForUpdates((take) => library.offerUpdate(take));
   await tidyStorage().catch((e) => console.warn('Could not tidy the storage:', e));
@@ -45,6 +49,9 @@ async function start() {
   if (location.search.includes('shared')) history.replaceState(null, '', location.pathname);
   await loadMarkColors().catch((e) => console.warn('Could not load the marking colours:', e));
   await library.refresh();
+  if (signInFailed) library.say('Could not sign in to Google Drive.');
+  // Signing in to link a folder goes on to choose it; signing in again was scanned by the refresh.
+  else if (signedIn === 'link') await library.chooseDriveFolder();
 }
 
 /**

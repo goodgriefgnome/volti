@@ -141,3 +141,7 @@
 @media (max-width: 600px) { .incoming-row { grid-template-columns: minmax(0, 1fr); } }
 .mark-colors-row { display: flex; align-items: center; gap: 12px; padding: 6px 0; }
 .mark-colors-row .name { flex: 1; }
+
+/* The folder chooser for a Google Drive folder. */
+.drive-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; margin-bottom: 8px; }
+.drive-folders .removed-row > button { flex: 1; text-align: left; }

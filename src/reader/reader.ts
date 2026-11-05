@@ -5,7 +5,7 @@
 
 import { ends } from '../scores/excerpts';
 import { type Marking } from '../markings/model';
-import { unlockFolder } from '../originals/linked-folder';
+import { folderState, unlockFolder } from '../originals/linked-folder';
 import { knownTitles } from '../originals/library-files';
 import { NoAccess, PasswordNotGiven, type SourceFile } from '../originals/types';
 import { canvasesOf } from '../page-cache/cache';
@@ -717,7 +717,13 @@ class Reader {
     await unlockFolder().catch(() => false);
     this.scores.accessAllowed();
     await this.scores.ensure(this.k, true);
-    if (!(await this.readable())) { this.say('Volti can’t read the scores folder without access.'); return false; }
+    if (!(await this.readable())) {
+      const folder = await folderState();
+      this.say(folder.kind !== 'none' && folder.place === 'drive'
+        ? 'Sign in to Google Drive from the library to read this score.'
+        : 'Volti can’t read the scores folder without access.');
+      return false;
+    }
     this.toast.hide();
     void this.goTo(this.k, at);
     return true;
