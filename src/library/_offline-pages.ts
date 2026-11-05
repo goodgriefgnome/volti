@@ -4,6 +4,7 @@
 // telling how much of each setlist is saved. An original is read only while it is used.
 
 import { excerptCuts } from '../scores/excerpts';
+import { keepOriginalsOffline } from '../originals/drive-score-fs';
 import { knownAspects, savePageOffline } from '../originals/original';
 import { knownTitles } from '../originals/library-files';
 import { titleOf } from '../originals/path-utils';
@@ -44,6 +45,8 @@ async function make(signal: AbortSignal, originals: readonly SourceFile[], setli
   const titles = await knownTitles();
   const live = setlists.filter((s) => !s.archived);
   const entries = live.flatMap((s) => s.entries);
+  // The originals of these scores are kept on the tablet for good, as their pages are (only a Drive folder keeps copies; a device folder has its files).
+  await keepOriginalsOffline([...new Set(entries.map((e) => e.scoreId))]);
   // The screen's size, not the library's window: the reader fills the screen (status bar and address
   // bar included), which the library doesn't, and a saved page only serves a request of about its width.
   // Either way up, as Android swaps the two with the orientation.

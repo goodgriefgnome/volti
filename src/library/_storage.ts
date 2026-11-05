@@ -1,13 +1,14 @@
 // How much room Volti takes on the tablet, for the library's ⋯ menu: its parts worked out from the
 // files' sizes and the browser's estimate, and shown as one stacked bar with each part's size.
 
+import { keptFromDriveBytes } from '../originals/drive-score-fs';
 import { internalBytes } from '../originals/internal-score-fs';
 import { removedBytes } from '../originals/trash-fs';
 import { savedBytes } from '../page-cache/cache';
 import { el } from '../ui/dom';
 
 /** One part of the room Volti takes: `key` names its colour. */
-export interface StoragePart { key: 'meta' | 'added' | 'setlists' | 'cache' | 'trash' | 'app' | 'other'; name: string; bytes: number }
+export interface StoragePart { key: 'meta' | 'added' | 'drive' | 'setlists' | 'cache' | 'trash' | 'app' | 'other'; name: string; bytes: number }
 
 /**
  * What the browser says Volti takes: in all, and (in Chrome) by store, which leaves out a store
@@ -17,18 +18,20 @@ export interface Estimate { usage: number; details?: { indexedDB?: number; cache
 
 /**
  * The parts, from the browser's estimate and the sizes of the scores added to the app's own folder,
- * the saved pages (those kept for setlists, and the rest), and the files in Recently removed (all in the origin private file system).
+ * the saved pages (those kept for setlists, and the rest), the files in Recently removed, and the copies kept of Google Drive's files (all in the origin private file system).
  * Without the estimate's details, metadata and the offline binary are one part, the rest of the
  * total. Pure.
  */
-export function storageParts(e: Estimate, added: number, setlists: number, cache: number, trash: number): StoragePart[] {
+export function storageParts(e: Estimate, added: number, setlists: number, cache: number, trash: number, drive = 0): StoragePart[] {
   const known: StoragePart[] = [
     { key: 'added', name: 'Added scores', bytes: added },
+    // Only while there are copies of Google Drive's files on the tablet.
+    ...(drive > 0 ? [{ key: 'drive' as const, name: 'Scores kept from Google Drive', bytes: drive }] : []),
     { key: 'setlists', name: 'Setlist pages', bytes: setlists },
     { key: 'cache', name: 'Page cache', bytes: cache },
     { key: 'trash', name: 'Trash', bytes: trash },
   ];
-  if (!e.details) return [{ key: 'other', name: 'Metadata and offline binary', bytes: Math.max(0, e.usage - added - setlists - cache - trash) }, ...known];
+  if (!e.details) return [{ key: 'other', name: 'Metadata and offline binary', bytes: Math.max(0, e.usage - added - setlists - cache - trash - drive) }, ...known];
   return [{ key: 'meta', name: 'Metadata', bytes: e.details.indexedDB ?? 0 }, ...known, { key: 'app', name: 'Offline binary', bytes: e.details.caches ?? 0 }];
 }
 
@@ -41,10 +44,10 @@ export function formatBytes(b: number): string {
 }
 
 async function measure(): Promise<StoragePart[]> {
-  const [estimate, added, saved, trash] = await Promise.all([navigator.storage.estimate(), internalBytes(), savedBytes(), removedBytes()]);
+  const [estimate, added, saved, trash, drive] = await Promise.all([navigator.storage.estimate(), internalBytes(), savedBytes(), removedBytes(), keptFromDriveBytes()]);
   // Chrome's breakdown by store; other browsers give the total only.
   const details = (estimate as StorageEstimate & { usageDetails?: { indexedDB?: number; caches?: number } }).usageDetails;
-  return storageParts({ usage: estimate.usage ?? 0, details }, added, saved.setlists, saved.other, trash);
+  return storageParts({ usage: estimate.usage ?? 0, details }, added, saved.setlists, saved.other, trash, drive);
 }
 
 /** The storage view for the menu: "Working out…" until the sizes are known. */
