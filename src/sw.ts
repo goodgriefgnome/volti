@@ -27,4 +27,5 @@ self.addEventListener('fetch', (e) => {
 });
 
 precacheAndRoute(self.__WB_MANIFEST);
-registerRoute(new NavigationRoute(createHandlerBoundToURL('index.html')));
+// drive-test.html is a throwaway test page, reached with ?code=… after signing in: not the app.
+registerRoute(new NavigationRoute(createHandlerBoundToURL('index.html'), { denylist: [/\/drive-test\.html/] }));
