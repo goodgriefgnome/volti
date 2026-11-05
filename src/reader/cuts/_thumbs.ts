@@ -2,6 +2,7 @@
 
 import { dpr, el } from '../../ui/dom';
 import type { EditorHost } from './_host';
+import { failedOnce } from '../../ui/failure';
 
 export const THUMB_W = 84;
 
@@ -20,6 +21,6 @@ export function thumbCanvas(host: EditorHost, dialog: HTMLElement, page: number,
       if (!dialog.isConnected) return;
       c.getContext('2d')!.drawImage(src, 0, y0 * src.height, src.width, (y1 - y0) * src.height, 0, 0, c.width, c.height);
     }
-  })().catch((e) => console.warn('Could not draw a thumbnail:', e));
+  })().catch((e) => failedOnce('draw a thumbnail', e));
   return c;
 }

@@ -5,7 +5,7 @@ import { addExcerpt, changeExcerptCuts, deleteExcerpt, renameExcerpt } from '../
 import { moveToFolder, renameFile, type ScoreFileHost } from '../dialogs/score-files';
 import { sortedExcerpts, excerptLabel } from '../scores/excerpts';
 import { byFolder, folderOf, subfolders, titleOf } from '../originals/path-utils';
-import { NoAccess, type SourceFile } from '../originals/types';
+import { type SourceFile } from '../originals/types';
 import type { NamedExcerpt, Score } from '../scores/model';
 import { setlistsWith } from '../setlists/model';
 import { button, el, plural } from '../ui/dom';
@@ -14,6 +14,7 @@ import type { LibraryHost } from './_host';
 import { openIncoming } from './_incoming';
 import { expandableRow, moreButton } from './_rows';
 import { loadClosedFolders, saveClosedFolders } from './_store';
+import { failed, failedOnce } from '../ui/failure';
 
 export class ScoresSection {
   /** Searching, and Add PDFs. */
@@ -102,7 +103,7 @@ export class ScoresSection {
       // A search opens lists for the while; what is closed by hand is remembered.
       if (searching) return;
       if (now) closed.delete(folder); else closed.add(folder);
-      void saveClosedFolders([...closed]).catch((e) => console.warn('Could not save the closed folders:', e));
+      void saveClosedFolders([...closed]).catch((e) => failedOnce('save the closed folders', e));
     }, 'folder-head');
     head.append(el('span', 'chev'), el('span', '', folder.split('/').join(' / ')));
     head.setAttribute('aria-expanded', String(open));
@@ -144,8 +145,7 @@ export class ScoresSection {
         try {
           await s.remove();
         } catch (e) {
-          if (!(e instanceof NoAccess)) console.error(e);
-          lib.say(e instanceof NoAccess ? 'Volti needs permission to change files in the scores folder to remove one.' : `Could not remove it (${(e as Error).name}).`);
+          lib.say(failed('remove', e, titleOf(s.path)));
           return;
         }
         lib.say(`Removed “${titleOf(s.path)}”. It is in Recently removed for a week.`);

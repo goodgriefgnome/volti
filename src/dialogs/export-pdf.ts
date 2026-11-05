@@ -5,10 +5,10 @@
 import { drawnOriginals, exportPdf, type ExportPart } from '../export/pdf';
 import { exportExists, EXPORTS, saveExport } from '../originals/library-files';
 import { fileNameProblem, titleOf } from '../originals/path-utils';
-import { NoAccess } from '../originals/types';
 import { button, el, focusHighlighted } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog } from '../ui/overlay';
 import { askPassword } from './passwords';
+import { failed } from '../ui/failure';
 
 export interface _ExportHost {
   /** What is exported, and the file's first name (characters a file name can't have become dashes). */
@@ -21,9 +21,6 @@ export interface _ExportHost {
   /** The file was written into the folder, as `name`.pdf. */
   saved(name: string): void;
 }
-
-/** Said when access to write in the scores folder isn't allowed. */
-const NO_ACCESS = 'Volti needs permission to write in the scores folder to export there.';
 
 /** Ask for a file name, then export. */
 export function openExportPdf(h: _ExportHost) {
@@ -43,7 +40,7 @@ export function openExportPdf(h: _ExportHost) {
     const enc = titles('encryption'), bad = titles('unreadable');
     quality.textContent = !drawn.length ? 'Original quality.'
       : [enc && `Rasterized (unsupported encryption): ${enc}.`, bad && `Rasterized (could not be read as it is): ${bad}.`].filter(Boolean).join(' ');
-  }, (e) => { console.error(e); quality.textContent = ''; });
+  }, (e) => { quality.textContent = failed('check the quality', e); });
   const error = el('p', 'hint error');
   error.setAttribute('aria-live', 'polite');
   const go = button('Export', () => void ok(), 'primary');
@@ -57,11 +54,13 @@ export function openExportPdf(h: _ExportHost) {
     const name = input.value.trim(), why = fileNameProblem(name);
     if (why) { error.textContent = why; return; }
     // Asked from this tap, which a request for access to the scores folder needs.
-    const exists = h.toFolder && replace !== name && (await exportExists(name).catch((e) => {
-      if (e instanceof NoAccess) return null;
-      throw e;
-    }));
-    if (exists === null) { error.textContent = NO_ACCESS; return; }
+    let exists: boolean;
+    try {
+      exists = !!h.toFolder && replace !== name && await exportExists(name);
+    } catch (e) {
+      error.textContent = failed(`look in ${EXPORTS}`, e);
+      return;
+    }
     if (exists) {
       replace = name;
       go.textContent = 'Replace';
@@ -75,8 +74,7 @@ export function openExportPdf(h: _ExportHost) {
     try {
       bytes = await exportPdf(h.parts, name, askPassword, (done, of) => { if (of > 1) go.textContent = `Exporting ${done} of ${of}…`; });
     } catch (e) {
-      console.error(e);
-      error.textContent = 'Could not export it. A score may have been moved or renamed.';
+      error.textContent = failed('export', e, name);
       go.disabled = input.disabled = false;
       go.textContent = 'Export';
       return;
@@ -87,8 +85,7 @@ export function openExportPdf(h: _ExportHost) {
       try {
         await saveExport(name, file);
       } catch (e) {
-        if (!(e instanceof NoAccess)) console.error(e);
-        error.textContent = e instanceof NoAccess ? NO_ACCESS : `Could not write it into ${EXPORTS}.`;
+        error.textContent = failed(`write it into ${EXPORTS}`, e);
         go.disabled = input.disabled = false;
         go.textContent = 'Export';
         return;

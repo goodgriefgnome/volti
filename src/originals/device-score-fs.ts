@@ -23,7 +23,7 @@ export async function _pickFolder(): Promise<FileSystemDirectoryHandle | null> {
     return await window.showDirectoryPicker({ id: 'volti-scores', mode: 'readwrite' });
   } catch (e) {
     if ((e as DOMException).name === 'AbortError') return null;
-    throw new FolderRefused(`The folder picker failed: ${(e as Error).message}`);
+    throw new FolderRefused('Android blocks the Download folder itself and the top of internal storage; pick a folder inside them, such as Download/Scores.', { cause: e });
   }
 }
 

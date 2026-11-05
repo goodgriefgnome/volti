@@ -3,13 +3,14 @@
 // for incoming files when another file is there now.
 
 import { folderOf, titleOf } from '../originals/path-utils';
-import { NoAccess, type Removed } from '../originals/types';
+import { type Removed } from '../originals/types';
 import { recentlyRemoved } from '../originals/trash-fs';
 import { removedSource } from '../originals/misc-files';
 import { button, el } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog } from '../ui/overlay';
 import type { LibraryHost } from './_host';
 import { openIncoming } from './_incoming';
+import { failed } from '../ui/failure';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -53,8 +54,7 @@ export async function openRecentlyRemoved(lib: LibraryHost) {
         }
         why = null;
       } catch (e) {
-        if (!(e instanceof NoAccess)) console.error(e);
-        why = e instanceof NoAccess ? 'Volti needs permission to change files in the scores folder to put one back.' : `Could not put it back (${(e as Error).name}).`;
+        why = failed('put back', e, titleOf(r.path));
       }
       if (why) { error.textContent = why; restore.disabled = false; return; }
       li.remove();

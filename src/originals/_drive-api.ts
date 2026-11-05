@@ -42,10 +42,10 @@ export function _httpDriveApi(auth: _DriveAuth): _DriveApi {
         res = await fetch(url, { ...init, headers: { ...init.headers, Authorization: `Bearer ${token}` } });
       } catch (e) {
         if (init.signal?.aborted) throw e;
-        throw new Unreachable(`Could not reach Google Drive: ${(e as Error).message}`);
+        throw new Unreachable("Google Drive can't be reached.", { cause: e });
       }
       if (res.status === 401) {
-        if (force) { await auth.drop(); throw new NoAccess('Google Drive refused the sign-in'); }
+        if (force) { await auth.drop(); throw new NoAccess('Not signed in to Google Drive.'); }
         continue;
       }
       if (!res.ok) {

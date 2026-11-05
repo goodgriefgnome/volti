@@ -18,6 +18,7 @@ import { textFace, type Look } from './_faces';
 import { placingTool } from './_placing';
 import type { Tool, ToolHost } from './_tool';
 import { TypingField } from './_typing';
+import { failed, failedOnce } from '../../ui/failure';
 
 export const textTool = (host: ToolHost): Tool => {
   const typing = new TypingField((px) => host.lift(px));
@@ -62,7 +63,7 @@ export const textTool = (host: ToolHost): Tool => {
         const [shaped, { capHeight }] = await Promise.all([shapeWith(font, 'Ag'), fontMetrics(font)]);
         await saveGlyphs(font, shaped.paths);
         if (ghostFont === font) ghostText = { font, glyphs: shaped.glyphs, capHeight };
-      } catch (e) { console.error(e); }
+      } catch (e) { failedOnce('draw the preview', e); }
     })();
   };
 
@@ -86,8 +87,7 @@ export const textTool = (host: ToolHost): Tool => {
       await saveGlyphs(font, s.paths);
       return s;
     } catch (e) {
-      console.error(e);
-      host.say('Could not place the text.');
+      host.say(failed('place the text', e));
       return undefined;
     }
   };
@@ -119,7 +119,7 @@ export const textTool = (host: ToolHost): Tool => {
           done: (text, typed) => void placeText(slot, typed, size, text, start),
           cancel: () => {},
         });
-      } catch (e) { console.error(e); host.say('Could not place the text.'); }
+      } catch (e) { host.say(failed('place the text', e)); }
     })();
   };
 
@@ -168,8 +168,7 @@ export const textTool = (host: ToolHost): Tool => {
         });
         placing.drawChrome?.(); // hides the box while the field is open
       } catch (e) {
-        console.error(e);
-        host.say('Could not place the text.');
+        host.say(failed('place the text', e));
         host.paintInk(slot);
         host.select(sel);
       }
@@ -208,7 +207,7 @@ export const textTool = (host: ToolHost): Tool => {
   const setFont = (id: string) => {
     host.setSettings((s) => ({ ...s, text: { ...s.text, font: id } }));
     // The field takes the font once it has loaded, and the panel shows the field's.
-    if (typing.open) void typing.setFont(id).then(setFace, (e) => { console.error(e); host.say('Could not change the font.'); });
+    if (typing.open) void typing.setFont(id).then(setFace, (e) => host.say(failed('change the font', e)));
     else {
       const sel = selectedText();
       if (sel && sel.mark.font !== id) void retext(sel, id, sel.mark.text);

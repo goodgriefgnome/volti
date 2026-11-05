@@ -9,7 +9,6 @@ import { openAddScores } from '../dialogs/add-scores';
 import { openExcerptPicker } from '../dialogs/excerpt-picker';
 import { openScore } from '../dialogs/open-score';
 import type { ExcerptSource } from '../dialogs/thumb-strip';
-import { PasswordNotGiven } from '../originals/types';
 import { titleOf } from '../originals/path-utils';
 import { ends, sameExcerpt, sortedExcerpts } from '../scores/excerpts';
 import type { NamedExcerpt, Score } from '../scores/model';
@@ -21,6 +20,7 @@ import { dragToReorder } from '../ui/drag-reorder';
 import { buttonRow, closeOverlay, overlayOpen, showDialog, showMenu, whenOverlayCloses } from '../ui/overlay';
 import type { OpenScore } from './_open-scores';
 import type { MenusHost } from './_toolbar-menus';
+import { failed, failedOnce } from '../ui/failure';
 
 /** One row of the title menu. */
 export interface TitleRow {
@@ -232,19 +232,18 @@ async function addScores(h: MenusHost) {
     setlist: s,
     originals,
     saved: new Map(saved.filter((x): x is Score => !!x).map((x) => [x.id, x])),
-    givePassword: (o) => givePassword(o).catch((e) => { console.error(e); h.say(`Could not open “${titleOf(o.path)}”.`); return false; }),
+    givePassword: (o) => givePassword(o).catch((e) => { h.say(failed('open', e, titleOf(o.path))); return false; }),
     open: (o) => openScore(o).catch((e) => {
-      console.error(e);
-      h.say(e instanceof PasswordNotGiven ? `“${titleOf(o.path)}” needs its password to open.` : `Could not open “${titleOf(o.path)}”.`);
+      h.say(failed('open', e, titleOf(o.path)));
       return null;
     }),
     add: (entries, scores) => {
       const now = reading.setlist;
       if (!now) return;
       // The scores excerpts were chosen from too, so the excerpts and the cuts they name agree.
-      for (const x of scores) void saveScore(x.state).catch((e) => { console.error('Could not save a score:', e); h.say('Could not save the excerpts chosen.'); });
+      for (const x of scores) void saveScore(x.state).catch((e) => h.say(failed('save the excerpts chosen', e)));
       reading.setlists = withSetlist(reading.setlists, addEntries(now, entries));
-      void saveLastAddedTo(now.id).catch((e) => console.warn('Could not save the setlist last added to:', e));
+      void saveLastAddedTo(now.id).catch((e) => failedOnce('save the setlist last added to', e));
       h.saver.soon();
       void h.relisted(reading.items[h.k()]?.entryId);
       h.say(`Added ${plural(entries.length, 'score')} to “${now.title}”.`);

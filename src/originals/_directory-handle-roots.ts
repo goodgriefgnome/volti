@@ -121,7 +121,7 @@ export class LinkedDirectoryHandleRoot extends DirectoryHandleRoot {
   /** Asking works only from a tap: elsewhere, or when it is refused, throws NoAccess. */
   async needAccess(mode: 'read' | 'readwrite'): Promise<void> {
     if ((await this.dir.queryPermission({ mode })) === 'granted') return;
-    if ((await this.dir.requestPermission({ mode }).catch(() => 'denied')) !== 'granted') throw new NoAccess(`No access to the scores folder (${mode})`);
+    if ((await this.dir.requestPermission({ mode }).catch(() => 'denied')) !== 'granted') throw new NoAccess('Volti has no access to the scores folder.');
   }
 
   protected stampOf(file: File): Stamp {

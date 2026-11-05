@@ -36,7 +36,7 @@ export class DriveRoot implements ScoreRoot {
 
   /** Never signs in, as that leaves the page; both modes are the same, as the scope allows both. */
   async needAccess(): Promise<void> {
-    if (!(await this.auth.signedIn())) throw new NoAccess('Not signed in to Google Drive');
+    if (!(await this.auth.signedIn())) throw new NoAccess('Not signed in to Google Drive.');
   }
 
   kept(id: string): Promise<boolean> {

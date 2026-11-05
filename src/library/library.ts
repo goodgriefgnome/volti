@@ -17,7 +17,7 @@ import { folderState, linkDeviceFolder, linkDriveFolder, unlinkFolder, unlockFol
 import { chooseDriveFolder } from './_drive-folders';
 import { knownTitles, libraryFiles, scanRoot } from '../originals/library-files';
 import { inboxFiles, leftInApp } from '../originals/misc-files';
-import { FolderRefused, NoAccess, PasswordNotGiven, Unreachable, type FolderState, type SourceFile } from '../originals/types';
+import { type FolderState, type SourceFile } from '../originals/types';
 import { openReader, type ToRead } from '../reader/reader';
 import { knownAspects } from '../originals/original';
 import { loadSavedScore, scoreEntry } from '../scores/store';
@@ -27,6 +27,7 @@ import { deleteSetlist, loadLastAddedTo, loadSetlists, saveChanged, saveLastAdde
 import { closeOverlay, showMenu, whenOverlayCloses, type MenuItem } from '../ui/overlay';
 import { el, plural } from '../ui/dom';
 import { Toast } from '../ui/toast';
+import { failed, failedOnce, showFailuresWith } from '../ui/failure';
 import { FolderBanner } from './_folder-banner';
 import type { LibraryHost } from './_host';
 import { openIncoming } from './_incoming';
@@ -34,11 +35,10 @@ import { ScoresSection } from './_scores-section';
 import { keepSetlistPagesOffline } from './_offline-pages';
 import type { OfflineStatus } from './_offline-status';
 import { SetlistsSection } from './_setlists-section';
+import { hearPageCacheTrouble } from '../page-cache/cache';
 
 /** How long Volti has to be out of view before the scores folder is read again on coming back. */
 const AWAY_MS = 30_000;
-/** Said when access to the scores folder isn't allowed, so a score in it can't be opened. */
-const NO_ACCESS = 'Volti needs access to the folder to open its scores.';
 
 /** The Library screen: setlists, the scores in its root (the scores folder, or the app's own), and the list to open them from. */
 export class Library implements LibraryHost {
@@ -91,6 +91,9 @@ export class Library implements LibraryHost {
     document.body.append(this.root, this.toast.el);
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !this.root.hidden) closeOverlay(); });
     document.addEventListener('visibilitychange', this.onVisible);
+    // Failures of what happens in the background show on the status line (while the reader isn't open).
+    showFailuresWith((t) => this.say(t));
+    hearPageCacheTrouble((what, e) => failedOnce(what, e));
     void this.follow();
   }
 
@@ -153,7 +156,7 @@ export class Library implements LibraryHost {
         this.draw();
       }
     } catch (e) {
-      console.error('Could not follow the library\'s files:', e);
+      failedOnce('follow the library\'s files', e);
     }
   }
 
@@ -184,10 +187,7 @@ export class Library implements LibraryHost {
       await scanRoot();
     } catch (e) {
       // The folder may have been moved or deleted since it was linked.
-      console.error(e);
-      this.say(e instanceof Unreachable
-        ? 'Could not reach Google Drive. The scores kept on this tablet still open.'
-        : 'Could not read the scores folder. Link it again if it has moved.');
+      this.say(failed('read the scores folder', e));
     }
     this.originals = await this.currentFiles();
     await this.loadSetlists();
@@ -233,8 +233,7 @@ export class Library implements LibraryHost {
     try {
       await linkDriveFolder(picked.id, picked.name);
     } catch (e) {
-      this.say(`Could not link the folder (${(e as Error).name}).`);
-      console.error(e);
+      this.say(failed('link the folder', e));
       return;
     }
     await this.refresh();
@@ -245,10 +244,7 @@ export class Library implements LibraryHost {
     try {
       if (!(await linkDeviceFolder())) return;
     } catch (e) {
-      this.say(e instanceof FolderRefused
-        ? 'That folder cannot be linked. Android blocks the Download folder itself and the top of internal storage; pick a folder inside them, such as Download/Scores.'
-        : `Could not link the folder (${(e as Error).name}).`);
-      console.error(e);
+      this.say(failed('link the folder', e));
       return;
     }
     await this.refresh();
@@ -265,7 +261,7 @@ export class Library implements LibraryHost {
    */
   async moveLeftIn(asked: boolean) {
     if (asked) {
-      if (this.folder.kind === 'locked' && !(await unlockFolder())) { this.say(NO_ACCESS); return; }
+      if (this.folder.kind === 'locked' && !(await unlockFolder())) { this.say('Volti has no access to the scores folder.'); return; }
       this.say('Checking the scores folder…');
       await this.refresh();
     }
@@ -286,8 +282,7 @@ export class Library implements LibraryHost {
         moved++;
       }
     } catch (e) {
-      if (!(e instanceof NoAccess)) console.error(e);
-      this.say(e instanceof NoAccess ? 'Volti needs permission to write in the scores folder to move its scores there.' : 'Could not move all the scores into the scores folder.');
+      this.say(failed('move the scores into the scores folder', e));
       return this.countLeftIn();
     }
     const movedSaid = moved ? `Moved ${plural(moved, 'score')} into the scores folder.` : '';
@@ -308,7 +303,7 @@ export class Library implements LibraryHost {
     // A folder in Google Drive is unlocked by signing in, which leaves the page.
     if (this.folder.kind === 'locked' && this.folder.place === 'drive') { await signInToDrive('unlock'); return false; }
     const ok = await unlockFolder();
-    if (ok) { void this.refresh(); await this.addShared(); } else this.say(NO_ACCESS);
+    if (ok) { void this.refresh(); await this.addShared(); } else this.say('Volti has no access to the scores folder.');
     return ok;
   }
 
@@ -363,8 +358,7 @@ export class Library implements LibraryHost {
     try {
       await saveChanged(next, before, also);
     } catch (e) {
-      console.error('Could not save the setlists:', e);
-      this.say('Could not save that change.');
+      this.say(failed('save the change', e));
       await this.loadSetlists().then(() => this.render(), () => {});
     }
   }
@@ -377,8 +371,7 @@ export class Library implements LibraryHost {
     try {
       await deleteSetlist(this.setlists, s.id);
     } catch (e) {
-      console.error('Could not delete the setlist:', e);
-      this.say(`Could not delete “${s.title}”.`);
+      this.say(failed('delete', e, s.title));
       return false;
     }
     this.setlists = this.setlists.filter((x) => x.id !== s.id);
@@ -388,7 +381,7 @@ export class Library implements LibraryHost {
 
   addedTo(id: string) {
     this.lastAddedTo = id;
-    void saveLastAddedTo(id).catch((e) => console.warn('Could not save the setlist last added to:', e));
+    void saveLastAddedTo(id).catch((e) => failedOnce('save the setlist last added to', e));
   }
 
   /**
@@ -471,9 +464,7 @@ export class Library implements LibraryHost {
       this.accessAllowed();
       return sc;
     } catch (e) {
-      if (e instanceof NoAccess) { this.toast.say(NO_ACCESS); return null; }
-      console.error(e);
-      this.toast.say(e instanceof PasswordNotGiven ? `“${titleOf(o.path)}” needs its password to open.` : `Could not open “${titleOf(o.path)}”. It may have been moved or renamed.`);
+      this.toast.say(failed('open', e, titleOf(o.path)));
       return null;
     }
   }
@@ -482,8 +473,7 @@ export class Library implements LibraryHost {
     try {
       if (!(await givePassword(o))) return false;
     } catch (e) {
-      console.error(e);
-      this.toast.say(`Could not open “${titleOf(o.path)}”. It may have been moved or renamed.`);
+      this.toast.say(failed('open', e, titleOf(o.path)));
       return false;
     }
     this.accessAllowed();
@@ -502,20 +492,20 @@ export class Library implements LibraryHost {
   open(s: SourceFile) {
     // In the library's order, to turn on to the next score from this one's end.
     const library = byFolder(this.originals).flatMap((l) => l.originals);
-    void this.read({ kind: 'score', original: s, library }, `Could not open “${titleOf(s.path)}”. It may have been moved or renamed.`);
+    void this.read({ kind: 'score', original: s, library }, titleOf(s.path));
   }
 
   /** Read a named excerpt, as a setlist entry playing it is read: only its cuts, always from its start. */
   readExcerpt(o: SourceFile, named: NamedExcerpt) {
-    void this.read({ kind: 'excerpt', original: o, excerpt: named }, `Could not open “${titleOf(o.path)}”. It may have been moved or renamed.`);
+    void this.read({ kind: 'excerpt', original: o, excerpt: named }, titleOf(o.path));
   }
 
   play(s: Setlist, startEntry?: string) {
     this.openRows.add(s.id);
-    void this.read({ kind: 'setlist', setlistId: s.id, originals: this.originals, startEntry }, `Could not open “${s.title}”.`);
+    void this.read({ kind: 'setlist', setlistId: s.id, originals: this.originals, startEntry }, s.title);
   }
 
-  private async read(what: ToRead, failed: string) {
+  private async read(what: ToRead, title: string) {
     // Asked for first, as the tap is handled. Full screen uses up the tap, which asking for access
     // to a locked scores folder needs: then the reader asks for full screen itself, after. A
     // setlist with all its pages saved plays from them without asking; one without asks here.
@@ -547,9 +537,7 @@ export class Library implements LibraryHost {
       // Leave full screen first, as `Reader.close()` does, so the library's scroll isn't undone.
       if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
       this.root.hidden = false;
-      if (e instanceof NoAccess) { this.say(NO_ACCESS); return; }
-      console.error(e);
-      this.say(e instanceof PasswordNotGiven ? `${e.message} to open.` : failed);
+      this.say(failed('open', e, title));
     }
   }
 }

@@ -13,50 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **Errors say what went wrong themselves; every failure shows the error's message:** about a
-  dozen catch blocks turn an error into a sentence of their own, by `instanceof`, so each new
-  error has to be taught to all of them. `Unreachable` isn't: offline, renaming or removing a
-  Drive file says "Could not remove it (Unreachable)", and opening a score never kept on the
-  tablet says "It may have been moved or renamed". And `NoAccess` from Drive (signed out) says
-  "Volti needs permission…", which is wrong there.
-  - Where they're thrown, Volti's errors carry a sentence for a person: `NoAccess` from a device
-    folder "Volti has no access to the scores folder." (`_directory-handle-roots.ts`,
-    `reader/_open-scores.ts:40`, which now say `(${mode})` and `for ${id}`); from Drive
-    (`_drive-auth.ts`, `_drive-api.ts`, `_drive-root.ts`) "Not signed in to Google Drive.";
-    `Unreachable` "Google Drive can't be reached." (`_drive-auth.ts`, `_drive-api.ts`, without
-    the browser's text after it). `PasswordNotGiven` stays.
-  - Every catch that shows a failure says `Could not <do it> “<title>”: <the error's message>`
-    (without a title where there's none), whatever the error, and logs it (`console.error`) unless
-    it is `NoAccess`, `Unreachable` or `PasswordNotGiven`. A browser's or Drive's own message
-    shows as it is. The places: `library/library.ts` (opening, at both places; moving scores
-    into the folder), `library/_scores-section.ts`, `library/_removed.ts`,
-    `library/_incoming.ts`, `reader/reader.ts` (opening a score in a setlist),
-    `reader/_title-menu.ts`, `reader/_toolbar-menus.ts`, `dialogs/score-files.ts`,
-    `dialogs/export-pdf.ts`, `library/_drive-folders.ts`. The `NO_ACCESS` constants
-    (`library.ts`, `export-pdf.ts`) go.
-  - `instanceof` stays only where the code does something different, not only says something:
-    the reader's fall back to saved pages (`_open-scores.ts`), asking for a password, the reader's
-    page that can't be shown (`showUnread`), and the offline job's reasons
-    (`_offline-pages.ts`, whose texts in `_offline-status.ts` stay).
-  - The sentences read a little mechanically, and an unexpected error shows the browser's text:
-    both accepted.
-  - Failures that today go only to the console show too, wherever something didn't happen: in
-    the library on its status line, in the reader through `say`, each once a session for the same
-    failure (a full disk would otherwise say it for every page). The places: following the
-    library's files (`library/library.ts:156`); the offline job stopping, and drawing a page to
-    keep offline (`library/_offline-pages.ts:40`, `:133`); saving and reading saved pages
-    (`page-cache/_disk.ts`: page-cache can't show anything, so it reports through a callback the
-    library sets, or rethrows to its callers); tidying storage, clearing out Recently removed,
-    loading the marking colours (`main.ts`); saving the closed folders, the marking colours, the
-    setlist last added to, where this was read, loading the tools' settings
-    (`_scores-section.ts:105`, `_mark-colors.ts:23`, `library.ts:391`, `reader.ts:744`,
-    `reader.ts:304`); drawing the close-up, the loupe, thumbnails, glyph previews, the text tool's
-    preview, and switching tools (`_detail.ts`, `_loupe.ts`, `cuts/_thumbs.ts`,
-    `_glyph-picker.ts:86`, `_library-editor.ts:226`, `tools/_text.ts:65`, `reader.ts:413`).
-  - What worked another way stays in the console only: drawing a PDF's pages when pdf-lib can't
-    read it (`_pdf-source.ts`), moving by copying (`_directory-handle-roots.ts`), SMuFL names not
-    loading, and the byte cache (never a reason a file can't be read).
-
 ## Confirmed features which require more thought
 
 - **The cache giving room back when the origin runs short of quota**: pinned

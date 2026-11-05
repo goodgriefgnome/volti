@@ -14,6 +14,11 @@ const INDEX = 'index.json';
 const OLD_DIR = 'page-pictures';
 const SAVE_DELAY_MS = 5000;
 
+/** Told what storage failed to do (`what` reads after "Could not"), as the page cache can't show anything itself: the library sets it. */
+type Trouble = (what: string, e: unknown) => void;
+let trouble: Trouble = (what, e) => console.warn(`Could not ${what}:`, e);
+export const _hearTrouble = (hear: Trouble): void => { trouble = hear; };
+
 interface Entry { id: string; page: number; w: number; bytes: number; pinned: boolean; used: number }
 
 const nameOf = (id: string, page: number, w: number) => `${id}-${page}-${w}.webp`;
@@ -45,7 +50,7 @@ export class Saved {
         for await (const name of dir.keys()) if (name !== INDEX && !index.has(name)) await dir.removeEntry(name).catch(() => {});
         return { dir, index };
       } catch (e) {
-        console.warn('No saved pages:', e);
+        trouble('keep saved pages', e);
         return null;
       }
     })());
@@ -65,7 +70,7 @@ export class Saved {
           await w.write(JSON.stringify([...l.index.values()]));
           await w.close();
         } catch (e) {
-          console.warn('Could not save the index of saved pages:', e);
+          trouble('save the index of saved pages', e);
         }
       });
     };
@@ -93,7 +98,7 @@ export class Saved {
       this.persist(false);
       return canvas;
     } catch (err) {
-      console.warn('Could not read a saved page:', err);
+      trouble('read a saved page', err);
       l.index.delete(name);
       void l.dir.removeEntry(name).catch(() => {});
       this.persist(false);
@@ -126,7 +131,7 @@ export class Saved {
         l.index.set(name, { id, page, w: pxWidth, bytes: blob.size, pinned, used: Date.now() });
         this.persist(true);
       } catch (e) {
-        console.warn('Could not save a page:', e);
+        trouble('save a page', e);
         void l.dir.removeEntry(name).catch(() => {});
       }
     })();

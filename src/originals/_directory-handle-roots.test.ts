@@ -112,7 +112,7 @@ describe('stamps and access', () => {
     const root = new LinkedDirectoryHandleRoot(as(f));
     expect(await root.access()).toBe('locked');
     f.requestAnswer = 'denied';
-    await expect(root.needAccess('read')).rejects.toThrow('No access');
+    await expect(root.needAccess('read')).rejects.toThrow('Volti has no access to the scores folder.');
     f.requestAnswer = 'granted';
     await expect(root.needAccess('readwrite')).resolves.toBeUndefined();
     expect(await new LinkedDirectoryHandleRoot(as(_fakeFolder({}))).access()).toBe('ready');

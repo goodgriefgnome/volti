@@ -2,6 +2,7 @@
 // opened when first needed and dropped when far from the score being read.
 
 import { askPassword } from '../dialogs/passwords';
+import { folderState } from '../originals/linked-folder';
 import { savedPages } from '../originals/original';
 import { NoAccess, PasswordNotGiven, Unreachable, type DrawOptions, type Pages, type SourceFile } from '../originals/types';
 import type { Drawn } from '../page-cache/types';
@@ -37,7 +38,10 @@ export async function openPages(id: string, o: SourceFile | undefined, ask: bool
   });
   if (o) {
     try {
-      if (!askAccess && !(await o.canReadNow())) throw new NoAccess(`No access to the scores folder for ${id}`);
+      if (!askAccess && !(await o.canReadNow())) {
+        const f = await folderState();
+        throw new NoAccess(f.kind !== 'none' && f.place === 'drive' ? 'Not signed in to Google Drive.' : 'Volti has no access to the scores folder.');
+      };
       const original = await o.read(ask ? askPassword : undefined);
       try {
         return await from(original, () => original.close());

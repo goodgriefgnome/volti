@@ -23,8 +23,8 @@ export class FakeDrive implements _DriveApi {
 
   private gate(what: string) {
     this.requests.push(what);
-    if (this.down) throw new Unreachable('Google Drive is unreachable');
-    if (this.revoked) throw new NoAccess('Signed out of Google Drive');
+    if (this.down) throw new Unreachable("Google Drive can't be reached.");
+    if (this.revoked) throw new NoAccess('Not signed in to Google Drive.');
   }
 
   private item(id: string): Item {

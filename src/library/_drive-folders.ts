@@ -3,9 +3,9 @@
 // Google Picker, so Volti loads no script from Google.
 
 import { driveFolders } from '../originals/drive-score-fs';
-import { Unreachable } from '../originals/types';
 import { button, el } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog, whenOverlayCloses } from '../ui/overlay';
+import { failed } from '../ui/failure';
 
 interface Place { id: string; name: string }
 
@@ -41,8 +41,7 @@ export function chooseDriveFolder(): Promise<Place | null> {
         folders = await driveFolders(here.id);
       } catch (e) {
         if (mine !== showing) return;
-        if (!(e instanceof Unreachable)) console.error(e);
-        note.textContent = e instanceof Unreachable ? 'Could not reach Google Drive.' : `Could not list the folders (${(e as Error).name}).`;
+        note.textContent = failed('list the folders', e);
         return;
       }
       if (mine !== showing) return;

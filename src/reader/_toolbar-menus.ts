@@ -8,8 +8,8 @@ import { openExportPdf } from '../dialogs/export-pdf';
 import { type Excerpt, namedExcerptOf } from '../scores/excerpts';
 import type { ExportPart } from '../export/pdf';
 import { folderState } from '../originals/linked-folder';
-import { NoAccess, type SourceFile } from '../originals/types';
-import { subfolders } from '../originals/path-utils';
+import type { SourceFile } from '../originals/types';
+import { subfolders, titleOf } from '../originals/path-utils';
 import { defaultSetlist, duplicate, withSetlist, type Setlist } from '../setlists/model';
 import { deleteSetlist, loadLastAddedTo, saveLastAddedTo } from '../setlists/store';
 import { button, el } from '../ui/dom';
@@ -19,6 +19,7 @@ import type { Reading } from './_reading';
 import type { Saver } from './_saver';
 import type { Toolbar } from './_toolbar';
 import { showTitleMenu } from './_title-menu';
+import { failed, failedOnce } from '../ui/failure';
 
 /** What the menus need from the reader. */
 export interface MenusHost {
@@ -99,7 +100,7 @@ export class ReaderMenus {
     const what = (cur && reading.excerptName(0, cur.state.score, cur.aspects)) ?? it.title;
     const add = (s: Setlist) => {
       reading.addTo(reading.setlists.find((x) => x.id === s.id) ?? s);
-      void saveLastAddedTo(s.id).catch((e) => console.warn('Could not save the setlist last added to:', e));
+      void saveLastAddedTo(s.id).catch((e) => failedOnce('save the setlist last added to', e));
       this.h.saver.soon();
       this.h.say(`Added “${what}” to “${s.title}”.`);
     };
@@ -129,8 +130,7 @@ export class ReaderMenus {
     try {
       await o.remove();
     } catch (e) {
-      if (!(e instanceof NoAccess)) console.error(e);
-      this.h.say(e instanceof NoAccess ? 'Volti needs permission to change files in the scores folder to remove one.' : `Could not remove it (${(e as Error).name}).`);
+      this.h.say(failed('remove', e, titleOf(o.path)));
       return;
     }
     this.h.leave();
@@ -171,8 +171,7 @@ export class ReaderMenus {
         try {
           await deleteSetlist(all, s.id);
         } catch (e) {
-          console.error('Could not delete the setlist:', e);
-          this.h.say(`Could not delete “${s.title}”.`);
+          this.h.say(failed('delete', e, s.title));
           return;
         }
         reading.setlists = all.filter((x) => x.id !== s.id);

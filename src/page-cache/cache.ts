@@ -8,7 +8,7 @@ import { bestExact, standIns } from './_match';
 import { diskBudget, worthSaving } from './_budget';
 import { Held } from './_memory';
 import { resetScheduler, schedule } from './_scheduler';
-import { Saved } from './_disk';
+import { Saved, _hearTrouble } from './_disk';
 import { NotSaved, type Crop, type DrawRequest, type Drawn, type PinnedKey } from './types';
 
 let held = new Held();
@@ -144,6 +144,9 @@ export async function saveOffline(req: DrawRequest): Promise<void> {
 }
 
 /** Whether any page of `id` is saved. */
+/** Hear what storage fails to do for the saved pages: `what` reads after "Could not". */
+export const hearPageCacheTrouble = _hearTrouble;
+
 export const hasSaved = (id: string): Promise<boolean> => saved.has(id);
 
 /** The room the saved pages take: those kept for setlists, and the rest. */

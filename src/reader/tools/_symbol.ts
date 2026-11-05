@@ -22,6 +22,7 @@ import type { SymbolSettingsView } from '../_tool-panels';
 import { symbolFace, type Look } from './_faces';
 import { placingTool } from './_placing';
 import type { Tool, ToolHost } from './_tool';
+import { failed } from '../../ui/failure';
 
 /** A placed symbol made from a library symbol, centred at `at` of its frame. */
 export const placed = (sym: LibrarySymbol, at: [number, number], size: number): PlacedMark => ({
@@ -91,7 +92,7 @@ export const symbolTool = (host: ToolHost): Tool => {
   /** The library, made the first time; undefined, having said so, when that fails. */
   const ensureLibrary = async (): Promise<SymbolLibrary | undefined> => {
     if (!lib) {
-      try { lib = await symbolLibrary(); } catch (e) { console.error(e); host.say('Could not load the symbols.'); }
+      try { lib = await symbolLibrary(); } catch (e) { host.say(failed('load the symbols', e)); }
     }
     return lib;
   };
@@ -103,7 +104,7 @@ export const symbolTool = (host: ToolHost): Tool => {
    */
   const setLibrary = (next: SymbolLibrary) => {
     lib = next;
-    void saveLibrary(next).catch((e) => { console.error(e); host.say('Could not save the symbols.'); });
+    void saveLibrary(next).catch((e) => host.say(failed('save the symbols', e)));
     const clamp = (n: number, size: number) => (n < size ? n : 0);
     currents = next.groups.map((g, i) => clamp(currents[i] ?? 0, g.symbols.length));
     adhocCurrent = clamp(adhocCurrent, next.adhoc.length);
@@ -174,7 +175,7 @@ export const symbolTool = (host: ToolHost): Tool => {
               at = { group: -1, index: 0 };
             }
             pick(at.group, at.index);
-          } catch (e) { console.error(e); host.say('Could not make the symbol.'); }
+          } catch (e) { host.say(failed('make the symbol', e)); }
         })();
       },
     });

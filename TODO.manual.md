@@ -435,3 +435,14 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - Go offline (airplane mode) and open each of those scores: they open on their own.
   - Clear the copies (unlink and link again), go offline before the job runs: nothing is shown or
     thrown; go online, and the next run downloads them.
+- **Failures say what went wrong, in the error's own words:**
+  - Offline (airplane mode), rename, move and remove a score in a Drive folder: each says
+    "Could not … “<title>”: Google Drive can't be reached." Signed out of Drive: "Not signed in to
+    Google Drive." Nothing says "permission" for Drive.
+  - Open a score in a Drive folder that was never kept on the tablet, offline: the same, not "moved or renamed".
+  - With a device folder not yet allowed: open a score, rename one: "Volti has no access to the scores folder."
+  - Open a password-protected PDF and cancel the password: "Could not open “…”: “…” needs its password".
+  - Link a folder and refuse the Download folder itself: "Could not link the folder: Android blocks the Download folder…".
+  - Failures that were only in the console now show once: fill the storage (or block site data) and
+    save markings, or leave the reader: the status line (library) or message (reader) says what
+    could not be saved, once, not for every page.

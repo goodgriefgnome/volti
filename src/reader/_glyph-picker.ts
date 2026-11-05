@@ -8,6 +8,7 @@ import { symbolFrom } from '../markings/library';
 import { button, el } from '../ui/dom';
 import { buttonRow } from '../ui/overlay';
 import { hasInk, symbolPicture } from './_symbol-picture';
+import { failed, failedOnce } from '../ui/failure';
 
 export interface GlyphPickerOptions {
   /** The font to start with, and the characters already picked. */
@@ -83,7 +84,7 @@ export function glyphPicker(into: HTMLElement, o: GlyphPickerOptions): void {
         const shaped = await shapeWith(font, text);
         for (const [gid, d] of shaped.paths) addGlyph(glyphKey(font, gid), d);
         sym = symbolFrom(font, text, 1, shaped.glyphs);
-      } catch (e) { console.error(e); }
+      } catch (e) { failedOnce('draw the preview', e); }
     }
     if (mine !== previewing) return;
     const inked = !!sym && hasInk(sym);
@@ -121,8 +122,7 @@ export function glyphPicker(into: HTMLElement, o: GlyphPickerOptions): void {
       view = await fontView(font);
       names ??= await smuflNames().catch((e) => { console.warn('SMuFL names not loaded', e); return undefined; });
     } catch (e) {
-      console.error(e);
-      caption.textContent = 'Could not read the font.';
+      caption.textContent = failed('read the font', e);
       return;
     }
     if (mine !== building) return;
@@ -173,7 +173,7 @@ export function glyphPicker(into: HTMLElement, o: GlyphPickerOptions): void {
     }));
     if (choices.some((c) => c.id === font)) select.value = font;
     select.hidden = choices.length < 2;
-  }, console.error);
+  }, (e) => failedOnce('list the fonts', e));
   void buildGrid();
   void drawPreview();
 }

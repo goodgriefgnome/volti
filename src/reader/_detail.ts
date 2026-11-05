@@ -4,6 +4,7 @@ import { drawFrameInk, regionBands } from '../render/paint';
 import { isZoomed, visiblePart } from '../render/zoom';
 import { dpr, el } from '../ui/dom';
 import type { ReaderView } from './_view';
+import { failedOnce } from '../ui/failure';
 
 /** Wait this long after a pinch or pan settles before drawing the sharp close-up. */
 const DETAIL_DELAY_MS = 150;
@@ -74,7 +75,7 @@ export class Detail {
         }
       } catch (e) {
         if (seq !== this.seq) return;
-        console.error(e);
+        failedOnce('draw the close-up', e);
         continue;
       }
       if (seq !== this.seq) return;

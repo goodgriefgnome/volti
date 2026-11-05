@@ -65,7 +65,7 @@ export class _DriveAuth {
         body: new URLSearchParams({ client_id: this.client.id, client_secret: this.client.secret, ...fields }),
       });
     } catch (e) {
-      throw new Unreachable(`Could not reach Google: ${(e as Error).message}`);
+      throw new Unreachable("Google Drive can't be reached.", { cause: e });
     }
     return { ok: res.ok, json: (await res.json().catch(() => ({}))) as TokenResponse };
   }
@@ -91,10 +91,10 @@ export class _DriveAuth {
   async token(force = false): Promise<string> {
     if (!force && this.access && this.access.until - this.now() >= 60_000) return this.access.token;
     const refreshToken = await this.store.get();
-    if (!refreshToken) throw new NoAccess('Not signed in to Google Drive');
+    if (!refreshToken) throw new NoAccess('Not signed in to Google Drive.');
     const { ok, json } = await this.post({ refresh_token: refreshToken, grant_type: 'refresh_token' });
     if (!ok || !json.access_token) {
-      if (json.error === 'invalid_grant') { await this.drop(); throw new NoAccess('Google Drive sign-in expired'); }
+      if (json.error === 'invalid_grant') { await this.drop(); throw new NoAccess('Not signed in to Google Drive.'); }
       throw new Error(`Google refused a new token: ${json.error ?? 'no token'} ${json.error_description ?? ''}`.trim());
     }
     this.keep(json);

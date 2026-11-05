@@ -8,12 +8,13 @@ import { canvasesOf } from '../page-cache/cache';
 import { askPassword } from '../dialogs/passwords';
 import { ThumbStrip } from '../dialogs/thumb-strip';
 import { arrivals, fileNameProblem, folderOf, pathInFolder, pathWithTitle, subfolders, titleOf, type Arrival } from '../originals/path-utils';
-import { NoAccess, PasswordNotGiven, type Original, type SourceFile } from '../originals/types';
+import { PasswordNotGiven, type Original, type SourceFile } from '../originals/types';
 import { readIncoming } from '../originals/misc-files';
 import { newScore } from '../scores/model';
 import { button, dpr, el, plural } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog, whenOverlayCloses } from '../ui/overlay';
 import type { LibraryHost } from './_host';
+import { failed } from '../ui/failure';
 
 /** A file coming in, and where it goes to start with (its own name at the top, by default); or one already read. */
 export type Arriving = { file: File; path?: string } | SourceFile;
@@ -57,8 +58,7 @@ export async function openIncoming(lib: LibraryHost, files: readonly Arriving[],
       const source = 'read' in a ? a : await readIncoming(a.file, a.path);
       if (!read.some((r) => r.id === source.id)) read.push(source);
     } catch (e) {
-      console.error(e);
-      lib.say(`Could not read “${'read' in a ? a.path : a.file.name}”.`);
+      lib.say(failed('read', e, titleOf('read' in a ? a.path : a.file.name)));
     }
   }
   if (!d.isConnected) return;
@@ -135,8 +135,7 @@ export async function openIncoming(lib: LibraryHost, files: readonly Arriving[],
         box.replaceChildren(button('Show: it has a password', () => void showPreview(r, box, true)));
         return;
       }
-      console.error(e);
-      box.replaceChildren(el('p', 'hint error', 'Volti can’t read this file.'));
+      box.replaceChildren(el('p', 'hint error', failed('show', e, titleOf(r.source.path))));
       return;
     }
     // Closed with the dialog, or at once if it has closed already.
@@ -183,8 +182,7 @@ export async function openIncoming(lib: LibraryHost, files: readonly Arriving[],
         if (a.kind === 'taken' && a.by) await a.by.remove();
         why = await r.source.move(pathOf(r));
       } catch (e) {
-        if (!(e instanceof NoAccess)) console.error(e);
-        why = e instanceof NoAccess ? 'Volti needs permission to write in the scores folder to add files.' : `Could not add it (${(e as Error).name}).`;
+        why = failed('add', e, titleOf(r.source.path));
       }
       if (why) {
         // Those added so far are in; this one and the rest stay, to try again.

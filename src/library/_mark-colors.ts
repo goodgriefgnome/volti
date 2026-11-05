@@ -5,6 +5,7 @@ import { BUILT_IN_COLORS, markColors, type MarkColors } from '../markings/placed
 import { saveMarkColors } from '../markings/store';
 import { button, el } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog } from '../ui/overlay';
+import { failedOnce } from '../ui/failure';
 
 const ROWS: [key: keyof MarkColors, name: string][] = [['color', 'Marking'], ['background', 'Background']];
 
@@ -20,7 +21,7 @@ export function openMarkColors(): void {
     const set = (color: string) => {
       input.value = color;
       builtIn.disabled = color === BUILT_IN_COLORS[key];
-      void saveMarkColors({ ...markColors(), [key]: color }).catch((e) => console.warn('Could not save the marking colours:', e));
+      void saveMarkColors({ ...markColors(), [key]: color }).catch((e) => failedOnce('save the marking colours', e));
     };
     builtIn.disabled = input.value === BUILT_IN_COLORS[key];
     input.addEventListener('input', () => set(input.value));

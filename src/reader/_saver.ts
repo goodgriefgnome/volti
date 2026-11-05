@@ -67,7 +67,6 @@ export class Saver {
     try {
       await saveChanged(setlists, before, [...states.values()].flatMap(scoreEntries));
     } catch (e) {
-      console.error('Could not save the changes:', e);
       if (!this.failing) this.failed(e);
       this.failing = true;
       this.later(_RETRY_MS);

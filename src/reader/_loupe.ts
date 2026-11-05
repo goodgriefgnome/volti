@@ -7,6 +7,7 @@ import { drawFrameInk, regionBands } from '../render/paint';
 import type { ScoreInk } from '../scores/model';
 import type { FrameSlot } from './_spread';
 import type { ReaderView } from './_view';
+import { failedOnce } from '../ui/failure';
 
 /** The loupe's diameter, and the height the score's staff (one em of a music font) is shown at in it, in CSS px. */
 export const LOUPE_PX = 128;
@@ -203,7 +204,7 @@ export class Loupe {
           ctx.drawImage(part.canvas, 0, band.destY, region.w, band.h);
         }
       } catch (e) {
-        if (!control.signal.aborted) { console.error(e); this.asking.delete(slot); }
+        if (!control.signal.aborted) { failedOnce('draw the loupe', e); this.asking.delete(slot); }
         return;
       }
       if (control.signal.aborted) return;

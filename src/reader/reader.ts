@@ -7,7 +7,7 @@ import { ends } from '../scores/excerpts';
 import { type Marking } from '../markings/model';
 import { folderState, unlockFolder } from '../originals/linked-folder';
 import { knownTitles } from '../originals/library-files';
-import { NoAccess, PasswordNotGiven, type SourceFile } from '../originals/types';
+import { NoAccess, type SourceFile } from '../originals/types';
 import { canvasesOf } from '../page-cache/cache';
 import { NotSaved, type Drawn } from '../page-cache/types';
 import { titleOf } from '../originals/path-utils';
@@ -48,6 +48,7 @@ import type { ButtonFace, HandHost, Tool, ToolName } from './tools/_tool';
 import { resumeAt, type LastRead } from './_last-read';
 import { loadLastRead, saveLastRead } from './_store';
 import type { ReaderView } from './_view';
+import { failed, failedOnce, showFailuresWith } from '../ui/failure';
 
 /**
  * Undo keeps whole states: each entry is a score's state before an edit, what was read with the
@@ -194,8 +195,9 @@ class Reader {
     fullscreen?: Promise<void>,
   ) {
     this.reading = new Reading(items, what, setlists);
+    this.stopShowingFailures = showFailuresWith((t) => this.say(t));
     this.scores = new OpenScores(items, first);
-    this.saver = new Saver(() => this.reading.setlists, setlists, () => this.say('Could not save your changes. Volti keeps trying.'));
+    this.saver = new Saver(() => this.reading.setlists, setlists, (e) => this.say(`${failed('save your changes', e)} Volti keeps trying.`));
     const view: ReaderView = {
       stage: this.stage,
       aspects: () => this.aspects,
@@ -301,7 +303,7 @@ class Reader {
       access: () => this.allowAccess(),
     });
     this.syncBar();
-    void loadToolSettings().then((s) => { this.settings = s; this.syncBar(); }, (e) => console.warn("Could not load the tools' settings:", e));
+    void loadToolSettings().then((s) => { this.settings = s; this.syncBar(); }, (e) => failedOnce("load the tools' settings", e));
     this.stage.append(this.spreadEl);
     this.scope.hidden = true;
     // While the toolbar is hidden, a small back arrow at the top left still leads to the library.
@@ -410,7 +412,7 @@ class Reader {
     this.told = this.told.then(async () => {
       for (const t of change.unequipped) await this.tools[t].onUnequipped?.();
       for (const t of change.equipped) { await this.tools[t].onEquipped?.(); this.tools[t].drawChrome?.(); }
-    }).catch((e) => console.error(e));
+    }).catch((e) => failedOnce('switch tools', e));
   }
 
   /** End the selection and hide its box; the tool its marking lent, if any, goes back to what it was. The caller shows the toolbar. */
@@ -477,7 +479,7 @@ class Reader {
   /** Change the tools' settings, save them, and show them. */
   private setSettings(change: (s: ToolSettings) => ToolSettings): void {
     this.settings = change(this.settings);
-    saveToolSettings(this.settings).catch((e) => { console.error(e); this.say("Could not save the tools' settings."); });
+    saveToolSettings(this.settings).catch((e) => this.say(failed("save the tools' settings", e)));
     this.syncBar();
   }
 
@@ -622,8 +624,7 @@ class Reader {
       if (seq !== this.seq) return;
       // A page not saved as a picture: of a PDF that can't be read until access is allowed, or of a file that is gone.
       if (e instanceof NoAccess || e instanceof NotSaved) { this.showUnread(it.title, it.fileGone ? 'unsaved' : 'access', W, H, turned, place); return; }
-      this.toolbar.info.textContent = 'Could not draw this page';
-      console.error(e);
+      this.toolbar.info.textContent = failed('draw this page', e);
       return;
     }
     if (seq !== this.seq) {
@@ -667,8 +668,7 @@ class Reader {
       }
     } catch (e) {
       if (seq !== this.seq) return;
-      console.error(e);
-      this.toolbar.info.textContent = 'Could not draw this page';
+      this.toolbar.info.textContent = failed('draw this page', e);
     }
   }
 
@@ -741,7 +741,7 @@ class Reader {
   private saveSpot(cut: string | undefined) {
     if (!cut) return;
     const what = this.reading.what, item = this.items[this.k];
-    const save = (last: LastRead) => void saveLastRead(last).catch((e) => console.warn('Could not save where this was read:', e));
+    const save = (last: LastRead) => void saveLastRead(last).catch((e) => failedOnce('save where this was read', e));
     if (what.kind === 'setlist') {
       if (item.entryId) save({ kind: 'setlist', id: what.id, entry: item.entryId, cut });
     } else save({ kind: 'excerpt', id: item.scoreId, ...(what.kind === 'excerpt' ? ends(what.excerpt) : {}), cut });
@@ -852,8 +852,7 @@ class Reader {
       this.loading = false;
       this.syncBar();
       void this.show({ place: 'keep' });
-      this.say(e instanceof PasswordNotGiven ? `“${titleOf(o.path)}” needs its password to open.` : `Could not open “${titleOf(o.path)}”. It may have been moved or renamed.`);
-      if (!(e instanceof PasswordNotGiven)) console.error(e);
+      this.say(failed('open', e, titleOf(o.path)));
       return;
     }
     this.scores.adopt(open);
@@ -975,6 +974,9 @@ class Reader {
     else void this.saver.flush().catch(() => {});
   };
 
+  /** Failures of what happens in the background show through `say` while the reader is open. */
+  private stopShowingFailures: () => void;
+
   private onPop = () => void this.close();
 
   /** Going back failed to save the changes: the next Back leaves without them. */
@@ -988,6 +990,7 @@ class Reader {
     this.editor.dismiss();
     if (!(await this.savedForClosing())) return;
     this.scores.closed = true;
+    this.stopShowingFailures();
     window.removeEventListener('popstate', this.onPop);
     this.input.detach();
     document.removeEventListener('visibilitychange', this.onVisible);

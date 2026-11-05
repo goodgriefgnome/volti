@@ -14,6 +14,7 @@ import { glyphPicker } from './_glyph-picker';
 import { BACKGROUNDS, backgroundPicture } from './_swatches';
 import { hasInk, symbolPicture } from './_symbol-picture';
 import { makeSymbol } from './_symbols';
+import { failed, failedOnce } from '../ui/failure';
 
 export interface LibraryEditorHost {
   library(): SymbolLibrary;
@@ -48,7 +49,7 @@ export function editLibrary(host: LibraryEditorHost): void {
   const body = el('div', 'editor-body');
   dialog.append(body);
   let choices: FontChoice[] = [];
-  const choicesLoaded = fontChoices().then((c) => { choices = c; }, console.error);
+  const choicesLoaded = fontChoices().then((c) => { choices = c; }, (e) => failedOnce('list the fonts', e));
   const color = () => getComputedStyle(dialog).color;
 
   function groupsView() {
@@ -223,7 +224,7 @@ export function editLibrary(host: LibraryEditorHost): void {
           const shaped = await shapeWith(draft.font, draft.text);
           for (const [gid, d] of shaped.paths) addGlyph(glyphKey(draft.font, gid), d);
           next = withBackground(symbolFrom(draft.font, draft.text, draft.scale, shaped.glyphs), draft.background);
-        } catch (e) { console.error(e); }
+        } catch (e) { failedOnce('draw the preview', e); }
       }
       if (mineSeq !== seq) return;
       sym = next;
@@ -266,7 +267,7 @@ export function editLibrary(host: LibraryEditorHost): void {
         if (now && now.group !== draft.group) next = putSymbol(next, made, draft.group);
         host.change(next);
         groupsView();
-      } catch (e) { console.error(e); hint.textContent = 'Could not make the symbol.'; ok.disabled = false; }
+      } catch (e) { hint.textContent = failed('make the symbol', e); ok.disabled = false; }
     }
 
     font.addEventListener('change', () => { draft.font = font.value; void refresh(); });
@@ -296,7 +297,7 @@ export function editLibrary(host: LibraryEditorHost): void {
     void shapeWith(BRAVURA, REFERENCE).then((shaped) => {
       for (const [gid, d] of shaped.paths) addGlyph(glyphKey(BRAVURA, gid), d);
       ref.replaceChildren(symbolPicture(symbolFrom(BRAVURA, REFERENCE, 1, shaped.glyphs), color(), PREVIEW_PX, PREVIEW_EM));
-    }, console.error);
+    }, (e) => failedOnce('draw the preview', e));
   }
 
   groupsView();

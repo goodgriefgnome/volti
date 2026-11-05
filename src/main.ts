@@ -12,6 +12,7 @@ import { upgradeStoredData } from './stored-data';
 import { button, el } from './ui/dom';
 import { followVisibleArea } from './ui/overlay';
 import { takeUpdate, watchForUpdates } from './updates';
+import { failed, failedOnce } from './ui/failure';
 // In this order: later files build on the earlier ones.
 import './styles/base.css';
 import './styles/library.css';
@@ -38,18 +39,18 @@ async function start() {
   void navigator.storage?.persist?.().catch(() => {});
 
   // Back from Google's sign-in page, finish it before the library reads the folder.
-  let signedIn: Awaited<ReturnType<typeof finishSignIn>>, signInFailed = false;
-  try { signedIn = await finishSignIn(); } catch (e) { console.error('Could not sign in to Google Drive:', e); signInFailed = true; }
+  let signedIn: Awaited<ReturnType<typeof finishSignIn>>, signInFailed: string | undefined;
+  try { signedIn = await finishSignIn(); } catch (e) { signInFailed = failed('sign in to Google Drive', e); }
   const library = new Library();
   void watchForUpdates((take) => library.offerUpdate(take));
-  await tidyStorage().catch((e) => console.warn('Could not tidy the storage:', e));
+  await tidyStorage().catch((e) => failedOnce('tidy the storage', e));
   // Files removed a week ago or more are deleted for good.
-  await purgeRemoved().catch((e) => console.warn('Could not clear out Recently removed:', e));
+  await purgeRemoved().catch((e) => failedOnce('clear out Recently removed', e));
   await library.addShared();
   if (location.search.includes('shared')) history.replaceState(null, '', location.pathname);
-  await loadMarkColors().catch((e) => console.warn('Could not load the marking colours:', e));
+  await loadMarkColors().catch((e) => failedOnce('load the marking colours', e));
   await library.refresh();
-  if (signInFailed) library.say('Could not sign in to Google Drive.');
+  if (signInFailed) library.say(signInFailed);
   // Signing in to link a folder goes on to choose it; signing in again was scanned by the refresh.
   else if (signedIn === 'link') await library.chooseDriveFolder();
 }

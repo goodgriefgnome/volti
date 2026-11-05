@@ -2,9 +2,10 @@
 // PDF (or image), and moving it to a subfolder.
 
 import { fileNameProblem, folderOf, pathInFolder, pathWithTitle, titleOf } from '../originals/path-utils';
-import { NoAccess, type SourceFile } from '../originals/types';
+import { type SourceFile } from '../originals/types';
 import { askText } from '../ui/ask-text';
 import { el } from '../ui/dom';
+import { failed } from '../ui/failure';
 
 /** A score's file changed: it is `now` that original (renamed or moved), or it is `gone`. */
 export type FileChange = { now: SourceFile } | { gone: string };
@@ -31,9 +32,7 @@ export function renameFile(h: ScoreFileHost, o: SourceFile) {
         // From this tap, which the original's request for access to the scores folder needs.
         return await o.move(pathWithTitle(o.path, title));
       } catch (e) {
-        if (e instanceof NoAccess) return 'Volti needs permission to change files in the scores folder to rename one.';
-        console.error(e);
-        return `Could not rename it (${(e as Error).name}). It may have been moved or renamed already.`;
+        return failed('rename', e, titleOf(o.path));
       }
     },
     done: async (title) => {
@@ -64,9 +63,7 @@ export function moveToFolder(h: ScoreFileHost, o: SourceFile, folders: readonly 
         // From this tap, which the original's request for access to the scores folder needs.
         return await o.move(pathInFolder(o.path, folder));
       } catch (e) {
-        if (e instanceof NoAccess) return 'Volti needs permission to change files in the scores folder to move one.';
-        console.error(e);
-        return `Could not move it (${(e as Error).name}). It may have been moved or renamed already.`;
+        return failed('move', e, titleOf(o.path));
       }
     },
     done: async () => {

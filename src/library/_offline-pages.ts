@@ -16,6 +16,7 @@ import { loadScore } from '../scores/store';
 import { pack } from '../scores/frames';
 import type { Entry, Setlist } from '../setlists/model';
 import { dpr } from '../ui/dom';
+import { failedOnce } from '../ui/failure';
 import { offlineStatus, pageKey, type Blocked, type OfflineStatus } from './_offline-status';
 
 /** How long to wait after a change, so a burst of them is worked out once. */
@@ -37,7 +38,7 @@ export function keepSetlistPagesOffline(originals: readonly SourceFile[], setlis
   clearTimeout(timer);
   running?.abort();
   const mine = running = new AbortController();
-  timer = setTimeout(() => void make(mine.signal, originals, setlists, heard).catch((e) => console.warn('Keeping pages offline stopped:', e)), SETTLE_MS);
+  timer = setTimeout(() => void make(mine.signal, originals, setlists, heard).catch((e) => failedOnce('keep pages offline', e)), SETTLE_MS);
 }
 
 async function make(signal: AbortSignal, originals: readonly SourceFile[], setlists: readonly Setlist[], heard: (s: Map<string, OfflineStatus>) => void) {
@@ -130,7 +131,7 @@ async function make(signal: AbortSignal, originals: readonly SourceFile[], setli
       for (const p of todo) {
         if (signal.aborted) return;
         try { await savePageOffline(original, p, signal); } catch (e) {
-          if (!signal.aborted) console.warn('Could not draw a page to keep offline:', e);
+          if (!signal.aborted) failedOnce('draw a page to keep offline', e);
           continue;
         }
         saved.add(pageKey(id, p.page, p.pxWidth));
