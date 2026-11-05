@@ -52,6 +52,22 @@ scores.
     (`_offline-pages.ts`, whose texts in `_offline-status.ts` stay).
   - The sentences read a little mechanically, and an unexpected error shows the browser's text:
     both accepted.
+  - Failures that today go only to the console show too, wherever something didn't happen: in
+    the library on its status line, in the reader through `say`, each once a session for the same
+    failure (a full disk would otherwise say it for every page). The places: following the
+    library's files (`library/library.ts:156`); the offline job stopping, and drawing a page to
+    keep offline (`library/_offline-pages.ts:40`, `:133`); saving and reading saved pages
+    (`page-cache/_disk.ts`: page-cache can't show anything, so it reports through a callback the
+    library sets, or rethrows to its callers); tidying storage, clearing out Recently removed,
+    loading the marking colours (`main.ts`); saving the closed folders, the marking colours, the
+    setlist last added to, where this was read, loading the tools' settings
+    (`_scores-section.ts:105`, `_mark-colors.ts:23`, `library.ts:391`, `reader.ts:744`,
+    `reader.ts:304`); drawing the close-up, the loupe, thumbnails, glyph previews, the text tool's
+    preview, and switching tools (`_detail.ts`, `_loupe.ts`, `cuts/_thumbs.ts`,
+    `_glyph-picker.ts:86`, `_library-editor.ts:226`, `tools/_text.ts:65`, `reader.ts:413`).
+  - What worked another way stays in the console only: drawing a PDF's pages when pdf-lib can't
+    read it (`_pdf-source.ts`), moving by copying (`_directory-handle-roots.ts`), SMuFL names not
+    loading, and the byte cache (never a reason a file can't be read).
 
 ## Confirmed features which require more thought
 
