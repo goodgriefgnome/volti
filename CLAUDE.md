@@ -32,6 +32,11 @@ When asked for a plan:
   "Work for the immediate future" in `TODO.md` as a whole: it does every item there, in order, as
   the file says. Don't name or pick items.
 
+## TODOs
+
+- Don't tag items in `TODO.md` with a status in brackets ("[needs thought]", "[deferred]" and the
+  like): the section an item is in says that.
+
 ## Reviewing
 
 - Whenever I'm to review a Markdown file (a spec, a plan, docs), send it to me as a file, so I get a

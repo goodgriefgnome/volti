@@ -28,11 +28,11 @@ scores.
 
 ## Confirmed features which require more thought
 
-- **The cache giving room back when the origin runs short of quota** [needs thought]: pinned
+- **The cache giving room back when the origin runs short of quota**: pinned
   pages are never evicted, and the others only to stay within 30% of the quota (`diskBudget`,
   `page-cache/_budget.ts`); nothing shrinks the cache when the origin as a whole (scores added,
   records) runs out of room.
-- **Exporting works out each PDF's music twice, and draws a drawn one twice** [needs refinement]:
+- **Exporting works out each PDF's music twice, and draws a drawn one twice**:
   exporting a score or a setlist as a PDF (`dialogs/export-pdf.ts`, `export/pdf.ts`) needs each
   original's music as a PDF pdf-lib can read: `Original.pdf()`, for a PDF `pdfOf`
   (`originals/_pdf-source.ts`). It reads the whole file, decrypts it if it is encrypted, and
@@ -52,7 +52,7 @@ scores.
   - To work out: whether "needs no drawing" is stored too (`''`, as for the password), so a file
     checked once isn't parsed again; and whether the reason is worked out as files arrive (see
     "The first open of a PDF still lags").
-- **How the pages kept offline are worked out** [needs thought]: the offline job works out the
+- **How the pages kept offline are worked out**: the offline job works out the
   widths each setlist's pages are drawn at from the screen's size, in both orientations, and pins
   exactly those (`library/_offline-pages.ts`). Open:
   - A score whose aspects were never measured and whose file can't be read now (folder locked, no
@@ -72,7 +72,7 @@ scores.
   could say whether it is (`navigator.storage.persisted()`), and where it isn't, suggest
   installing Volti (Add to home screen). Where it is, the page cache's 30% of the quota is room
   only Volti gives back (see the item on the cache giving room back).
-- **Purging a removed score's data** [needs discussion]: once a removed file is deleted for good
+- **Purging a removed score's data**: once a removed file is deleted for good
   (its record then says `gone`), its score (cuts, markings, named excerpts) is still kept by its
   id, as for any score whose file is missing. Eventually there should be a way to purge it.
 - **What metadata holds, in the storage bar:** tapping the Metadata line opens what it holds, as a
@@ -132,7 +132,7 @@ scores.
 - **Page-turn strategies** (half-page turns and the like): to be discussed separately.
 - **Exporting the library** (scores, setlists, markings, reading positions) as files, for backup
   and for moving to another device; probably written into the linked scores folder.
-- **The first open of a PDF still lags** [needs thought]: the first time a PDF is opened since
+- **The first open of a PDF still lags**: the first time a PDF is opened since
   PDFs skipped pdf-lib is still noticeably slow, even for one opened before, whose aspects are
   stored. What only that open does is `readPdf`'s check (`originals/_pdf-source.ts`): `f.file()`,
   then `encrypted`, which reads the file's first and last 64 KB (and for an encrypted one, a
@@ -156,44 +156,44 @@ scores.
     library or the reader's draws.
   - If the end of the file is what is slow, whether the check can do without it: a linearized PDF
     names `/Encrypt` near its start too, but an ordinary one only at its end.
-- **The reader shows its first screen twice** [needs thought]: a `ResizeObserver` reports the
+- **The reader shows its first screen twice**: a `ResizeObserver` reports the
   stage's size as soon as it starts watching, which `Reader` does once full screen has settled,
   just after starting `goTo` (`reader/reader.ts`). 150 ms later its report runs `show()` again,
   for the same widths, which the cache now holds: it costs little, but it redraws the screen for
   nothing. To work out: whether to skip the observer's first report, or only show again when the
   size differs from the one last shown.
-- **Opening scores faster still: a small first page kept for each score** [needs thought]: keep
+- **Opening scores faster still: a small first page kept for each score**: keep
   each score's first screen, at a low resolution, so opening one shows it at once and sharpens
   after, as turning does now. To work out: how it sits with the page cache and the offline pages
   (`page-cache/`), which first pages (a score's start, or where it was last read), and the room
   they take.
-- **A file put back appears in the library at once** [needs thought]: after **Put back**
+- **A file put back appears in the library at once**: after **Put back**
   (`library/_removed.ts`) the file shows only after `lib.refresh()` has read the scores folder
   again; it should show at once, as a renamed file does.
-- **Tapping low on the page for text** [needs thought]: with a finger, the music sometimes moves
+- **Tapping low on the page for text**: with a finger, the music sometimes moves
   up too far, leaving a gap between the page and the keyboard (`lift`, `reader/tools/_typing.ts`); with
   the pen, the keyboard shows and hides at once, so the field likely loses the focus as the pen
   lifts (its `blur` finishes the typing).
-- **Typing text keeps the zoom** [needs thought]: when the keyboard goes away the zoom resets. The
+- **Typing text keeps the zoom**: when the keyboard goes away the zoom resets. The
   suspicion: `close` (`reader/tools/_typing.ts`) turns `overlaysContent` off, the stage resizes, and
   `show()` sets `NO_ZOOM` (`reader/reader.ts`).
-- **The selected marking's delete button keeps its size on screen** [deferred]: it is 28 px in CSS
+- **The selected marking's delete button keeps its size on screen**: it is 28 px in CSS
   (`.selection-delete`, `styles/reader.css`) inside the zoomed spread, so it grows with the zoom
   (84 px at 3×), while the box's line and handles keep their size (`SelectionBox.zoomed`,
   `reader/tools/_selection.ts`). It should be scaled by `1 / s` there too, as they are.
-- **What the tools' painting calls are for** [deferred]: to be explained, then perhaps merged.
+- **What the tools' painting calls are for**: to be explained, then perhaps merged.
   `ToolHost` has `paintInk(slot, extra)` (the frame's ink as it is, plus a marking still being
   made: a stroke, a ghost), `paintState(slot, s)` (the frame's ink as it would be in `s`, not taken:
   a marking being moved or resized), and `erased(s, slot)` (`s` taken, without an undo step yet:
   the eraser's sweep) (`reader/tools/_tool.ts`, `reader/reader.ts`). Perhaps one
   `paint(slot, { state?, extra? })` for the first two.
 
-- **Removing from a Drive folder keeps no copy: Recently removed points at Drive's bin**
-  [needs decisions]: removing a score reads its bytes (downloading them when not cached) and keeps
-  them in OPFS `removed/` (`LibraryFile.remove`, `originals/library-files.ts`; `_keepRemoved`,
-  `trash-fs.ts`), then moves the Drive file to Drive's trash. For a Drive folder that copy is
-  redundant: Drive's bin keeps the file for 30 days, and removing needs a network anyway (the
-  trashing). "Put back" then uploads the copy as a new file, beside the trashed one.
+- **Removing from a Drive folder keeps no copy: Recently removed points at Drive's bin**:
+  removing a score reads its bytes (downloading them when not cached) and keeps them in OPFS
+  `removed/` (`LibraryFile.remove`, `originals/library-files.ts`; `_keepRemoved`, `trash-fs.ts`),
+  then moves the Drive file to Drive's trash. For a Drive folder that copy is redundant: Drive's
+  bin keeps the file for 30 days, and removing needs a network anyway (the trashing). "Put back"
+  then uploads the copy as a new file, beside the trashed one.
   - Instead, for a Drive folder: removing trashes the file and marks the record `removed`,
     noting its Drive file id, downloading and writing nothing. Put back untrashes it
     (`files.update`, `trashed: false`): back at its path, with its own Drive id. `purgeRemoved`
