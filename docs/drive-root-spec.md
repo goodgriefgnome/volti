@@ -142,7 +142,9 @@ export type FolderState =
   | { kind: 'locked'; name: string; place: 'device' | 'drive' };
 ```
 
-and `unlockFolder()` for Drive starts signing in (it leaves the page).
+`unlockFolder()` never signs in, so the reader and opening a setlist, which call it, never leave
+the page: for a Drive folder it gives false. The library's own unlocking (the banner's button,
+Check for new scores while locked) signs in instead.
 
 Records: a Drive folder's files are `folder` records, as a device folder's are: `folder` means
 "in the linked folder", wherever it is. Linking another folder than the one linked before (another
@@ -155,7 +157,7 @@ ids in the new folder by their checksums, with nothing downloaded.
 
 ## The folder chooser
 
-`dialogs/drive-folders.ts`: a dialog listing the folders in a Drive folder, starting at My Drive,
+`library/_drive-folders.ts` (only the library opens it): a dialog listing the folders in a Drive folder, starting at My Drive,
 by name; tapping one opens it; a path of the folders above to go back; "Use this folder"; Cancel.
 It lists through the Drive API (`files.list`, folders only, not trashed). No Google Picker: Volti
 loads no script from Google.
@@ -176,12 +178,15 @@ Drive file id, and each folder path's Drive folder id.
   only PDFs and images by name (`_isOriginalName`), one request per folder (more for over 1000
   entries), not trashed. Each file is seen with its id from `sha256Checksum`, through the same
   `_FolderScan` the device folder uses: its duplicate rules and its canonical paths, with the
-  hidden copies kept in this root's memory. Then `finish()`: ids not found are gone. Batches as
-  the listing goes, folder by folder; `left` is always 0. No stamps: a file changed in Drive has
+  hidden copies kept in this root's memory. The whole tree is listed first, then the files at
+  known paths are seen first and said as one batch, the rest as a second, then `finish()`: ids not
+  found are gone. (Seeing a second copy before the known one would say a move, then undo it.)
+  `left` is always 0. No stamps: a file changed in Drive has
   a new checksum, so a new id at its path.
-- **`read(path)`**: the file's bytes, from the byte cache (below) by its id when there, else
+- **`read(path, id?)`**: the file's bytes, from the byte cache (below) by its id when there, else
   downloaded (`files.get` with `alt=media`) and put in the cache. Offline and not in the cache:
   throws `Unreachable`.
+- **`kept(id)`**: whether the byte cache has `id`.
 - **`exists(path)`**: asks Drive (a file of that name in that folder, not trashed); Drive names
   are case-sensitive.
 - **`write(path, data)`**: makes the folders on the path that aren't there; uploads the file, as a
@@ -201,6 +206,11 @@ Names Drive allows that paths can't hold:
 A Drive request that fails for want of a network throws `Unreachable`; one Google refuses for the
 token (401 after a refresh) signs out and throws `NoAccess`; any other failure throws as it is.
 
+`ScoreRoot` gains, for this: `read(path, id?)`, where `id`, when the caller knows it, lets a root
+that keeps copies by id read one without finding the path (a cached score opens offline before any
+listing this session); and `kept(id)`, whether the root keeps a copy it can read without access or
+a network. The directory roots ignore `id` and keep nothing.
+
 ## The byte cache
 
 `originals/_byte-cache.ts`: copies of originals' bytes in OPFS, `bytes/<id>`, with an index
@@ -208,16 +218,9 @@ token (401 after a refresh) signs out and throws `NoAccess`; any other failure t
 uses it: a folder on the device has its files on the device (Drive's provider keeps its own copies
 for a Drive folder picked on Android).
 
-```ts
-/** The bytes kept for `id`, if any; noted as used. */
-export function _cachedBytes(id: string): Promise<File | undefined>;
-/** Keep `bytes` as `id`'s, then keep the cache within its budget. */
-export function _cacheBytes(id: string, bytes: Blob): Promise<void>;
-/** Keep exactly these ids' bytes for good (never evicted), and let go of the others pinned before. */
-export function _pinBytes(ids: readonly string[]): Promise<void>;
-/** How much room the bytes kept take, for the storage screen. */
-export function cachedBytesSize(): Promise<number>;
-```
+It can get bytes by id, keep them, pin a set of ids, give its size, and empty itself. Being a `_`
+file, the library reaches it through `drive-score-fs.ts`: `keepOriginalsOffline(ids)` (pinning)
+and `keptFromDriveBytes()` (the size).
 
 - **Budget:** 25% of the origin's quota (`navigator.storage.estimate()`); none when the browser
   won't say. Unpinned bytes go least recently used first; pinned ones never.
@@ -238,7 +241,8 @@ reached now (no network). `openPages` (`reader/_open-scores.ts:49`) falls back t
 on it, as on `NoAccess`. The offline job counts such a score as `blocked` with a new reason,
 `offline`, shown as "Not on this tablet yet: connect to keep it".
 
-`SourceFile.canReadNow()` for a Drive file is true when its bytes are cached, or when signed in.
+`SourceFile.canReadNow()` is true when the root is `ready`, or keeps the file (`kept`): for a Drive
+file, signed in or cached.
 That lets a cached score open with the folder locked, and the reader's tap for access (for a
 device folder) isn't asked for it. For a device folder it is as now.
 
@@ -260,7 +264,8 @@ scores kept on this tablet still open."
 - `_drive-auth.ts`'s pure parts: the authorization URL (PKCE challenge from the verifier, state,
   scope, offline access, consent), and reading the token response; with `fetch` stubbed, the
   exchange, a refresh, and `invalid_grant` signing out.
-- `DriveRoot`, against an in-memory stand-in for the Drive API (`fetch` stubbed): the listing
+- `DriveRoot`, against an in-memory stand-in for Volti's Drive requests (`_fake-drive.ts`); the
+  requests themselves with `fetch` stubbed: the listing
   (four deep, PDFs and images only, trashed left out, a `/` in a name left out, two files at one
   path, two folders of one name, paging), `getUpdates` over it (new, moved, gone, duplicates),
   `read` (cached, downloaded and cached, offline `Unreachable`), `exists`, `write` (new folders,
@@ -275,7 +280,7 @@ scores kept on this tablet still open."
   linked folder, on the device or in Drive; OPFS `bytes/`; "What happens, by operation" for linking a Drive
   folder and for its scans.
 - `ARCHITECTURE.md`: the `originals/` row (the new files, in order), and the folder chooser in
-  `dialogs/`.
+  `library/`.
 - `README.md`: linking a Google Drive folder (and Google's unverified-app warning); under
   Development, the two Actions secrets the deployed build needs and `.env.local` for a local one.
 - Each new module starts with a comment saying what belongs in it.
@@ -290,8 +295,8 @@ id. `drive-auth` is a new key, and OPFS `bytes/` a new directory.
 
 ## Open
 
-- **That refresh tokens last** now that the app is in production: the test page, signed in again
-  after the switch, should still refresh after more than 7 days. Tokens issued while the app was
+- **That refresh tokens last** now that the app is in production: once signing in is built, a
+  sign-in should still refresh after more than 7 days. Tokens issued while the app was
   in Testing still expire after 7 days. If Google expires them anyway, signing in is weekly, and
   nothing else changes.
 - **The 100-user cap** of an unverified app counts every account that ever signs in. Sharing Volti
