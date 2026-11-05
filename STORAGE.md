@@ -81,8 +81,13 @@ interface OriginalRecord {
 }
 
 type Where =
-  /** In the linked folder at `path`; the file's size and modified time when its id was worked out. */
-  | { kind: 'folder'; size: number; modified: number }
+  /**
+   * In the linked folder at `path`, with its root's stamp: what the root notes about a file to tell
+   * later whether it has changed, without reading it. A flat set of fields that never has one
+   * called `kind`. The linked folder's is `size` and `modified`: the file's size and modified time
+   * when its id was worked out.
+   */
+  | ({ kind: 'folder' } & Readonly<Record<string, string | number>>)
   /** In Volti's own folder, at OPFS library/<path>. */
   | { kind: 'internal' }
   /** Shared to Volti and not added yet, at OPFS inbox/<id>; `path` is the name it would go at. */
@@ -128,27 +133,31 @@ For example:
 
 Other apps can put the same bytes at two paths in the linked folder. Only one of them is the
 original's: the **canonical** path, the one in the record. The others are hidden in the library and
-not stored. Volti keeps them in memory, path → `{ id, size, modified }`, for as long as the app
-runs, so they aren't hashed again in that session.
+not stored. The linked folder's root (`LinkedDirectoryHandleRoot`) keeps them in memory, path →
+`{ id, stamp }`, for as long as it lives, so they aren't hashed again; linking a folder makes a new
+root, so one folder's copies are never trusted in another.
 
 The canonical path is **sticky**. The record's path stays canonical while a file with that id is
 still at it. Only when it isn't does another copy take over: the one whose path sorts first by
-plain string comparison. A copy found for the first time is chosen the same way.
+plain string comparison. An id that is new in a scan goes to the first of its copies to be hashed,
+and stays there by the same stickiness. The rules are `_placeOf` in `_folder-scan.ts`.
 
 Volti never writes the same id into its own folder twice. If it finds duplicates there anyway, they
 are treated the same way.
 
 #### The hash cache
 
-A scan of the linked folder goes by names first: a file at a `folder` record's path is trusted to
-have the record's id without reading it, and only names no record has are hashed. The library is
-shown then. A pass in the background follows, getting the trusted files one at a time and hashing
-one whose size or modified time differs from the record's `size` and `modified`; so a file changed
-in place is noticed a little after the library shows. Files in Volti's own folder are trusted by
-path alone, because only Volti changes them.
+A scan of the linked folder (the linked folder root's `getUpdates`) goes by names first: a file at
+a `folder` record's path, or at a hidden copy's, is trusted to have that id and stamp without
+reading it, and only the other names are hashed, eight at a time. Each is said, and its record
+written, as it is hashed. A pass in the background follows, getting the trusted files one at a
+time and hashing one whose stamp differs from the one trusted (`size` and `modified`) or that has
+none; so a file changed in place is noticed a little after the library shows. A scan cut short
+keeps what it hashed: those files are in the records already. Volti's own folder isn't scanned:
+only Volti changes what is in it, and every write records the file's id with it.
 
-There is no separate path → id record. The app builds that map in memory from the
-`original:` records whenever it lists the library.
+There is no separate path → id record. The scan is given the map in memory, built from the
+`original:` records.
 
 ### `folder`: the linked folder
 
@@ -328,24 +337,25 @@ Two contexts write: the page, and the service worker (sharing). So:
 
 - **Records are only changed by read-modify-write in one transaction** (`kv.update`, or
   `kv.updateMany` for several). The record is read inside the transaction, never from a copy read
-  earlier. A listing that took a minute to hash must not overwrite a record the service worker
+  earlier. A scan that took a minute to hash must not overwrite a record the service worker
   wrote meanwhile.
 - **Bytes are written before the record that points to them, and deleted after the record stops
   pointing to them.** A crash then leaves at worst a file no record points to, never a record
   pointing at nothing.
 - **At start-up**, files in `inbox/` and `removed/` that no record points to are deleted, if they
   were last modified more than ten minutes ago. That leaves alone a share the service worker is
-  writing at that moment.
+  writing at that moment. Files in `library/` that no `internal` record points to, and that old,
+  are recorded: hashed, at their paths, as `internal`, unless their id has a better place, when the
+  file is deleted (a crash between writing the file and its record is the only way to get one).
 
 ## What happens, by operation
 
 | Operation | Records | Bytes |
 | --- | --- | --- |
-| **Listing a readable linked folder** | Each id found: `folder` at its canonical path, with its size and modified time (those recorded, for a file trusted by its name; a changed one is noticed a little after, and its record rewritten then); any lower place gives way. Each `folder` record whose id wasn't found: `gone`. | Lower places' bytes deleted. |
-| **Listing while locked** | None changed. The library is the `folder` records. | |
-| **Listing Volti's own folder** | Each id found that ranks above its record: `internal`, and lower places give way. A file whose id has a better place is dropped. Each `internal` record whose id wasn't found: `gone`. | Lower places' bytes deleted, and dropped files deleted. |
+| **Scanning the linked folder** | Written as each change is found (`_applyUpdate`): an id at a place with no record: `folder` there, with its stamp. A record in a lower place: `folder` there, and the lower place gives way. A `folder` record: its path and stamp become those found. An id gone from the folder (once every new file is hashed): its `folder` record becomes `gone`. | Lower places' bytes deleted. |
+| **Locked folder** | None changed. The library is the `folder` records. | |
 | **Adding a file** (Add PDFs, a share, putting back, moving one left in Volti's folder) | `folder` or `internal` at the chosen path. | Written into the root, then the old place's bytes deleted. |
-| **Renaming or moving a file** | `path` (and `size`, `modified` if the file was copied rather than moved). | Moved in the root. |
+| **Renaming or moving a file** | `path` and the root's stamp. | Moved in the root. |
 | **Removing a file** | `removed`, with `removedAt` now; `path` unchanged. | Copied to `removed/`, then deleted from the root. |
 | **Sharing a file** (service worker) | No record, `removed` or `gone`: `inbox` at `_importName(name)`, with `inboxAt` now. A better place already: unchanged. | Written to `inbox/<id>` first; a `removed` copy deleted. A file with a better place is dropped. |
 | **Leaving a shared file out**, or cancelling | `removed`, with `removedAt` now. | Moved from `inbox/` to `removed/`. |
