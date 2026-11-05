@@ -1,16 +1,20 @@
 // The device score filesystem: the linked scores folder (File System Access). Its handle (the only
-// code that holds it), linking and unlinking it, asking for access to it, and the Exports folder
-// inside it that exported PDFs are written to. What it holds is in the records (_record-store.ts).
+// code that holds it), linking and unlinking it, and its root (_directory-handle-roots.ts), which
+// everything else works on its files through. What it holds is in the records (_record-store.ts).
 
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
+import { LinkedDirectoryHandleRoot } from './_directory-handle-roots';
 import { _loadRecords, _records, _updateRecords } from './_record-store';
-import { FolderRefused, NoAccess, type FolderState } from './types';
+import type { ScoreRoot } from './_types';
+import { FolderRefused, type FolderState } from './types';
 
 /** What is stored under `folder`: the handle, kept after unlinking to tell whether a folder linked later is the same one. */
 interface FolderLink { handle: FileSystemDirectoryHandle; linked: boolean }
 
 let dir: FileSystemDirectoryHandle | undefined;
+/** The root over `dir`: made again when another folder is linked, so one folder's hidden copies are never trusted in another. */
+let root: LinkedDirectoryHandleRoot | undefined;
 
 /** The linked folder, if there is one. */
 export async function _linked(): Promise<FileSystemDirectoryHandle | undefined> {
@@ -19,6 +23,13 @@ export async function _linked(): Promise<FileSystemDirectoryHandle | undefined> 
     if (link?.linked) dir = link.handle;
   }
   return dir;
+}
+
+/** The linked folder's root, if there is one. */
+export async function _linkedRoot(): Promise<ScoreRoot | undefined> {
+  const d = await _linked();
+  if (!d) return undefined;
+  return (root ??= new LinkedDirectoryHandleRoot(d));
 }
 
 const storedLink = () => kv.get<FolderLink>(keys.folder);
@@ -43,8 +54,7 @@ export const canLinkFolder = () => 'showDirectoryPicker' in window;
 export async function folderState(): Promise<FolderState> {
   const dir = await _linked();
   if (!dir) return { kind: 'none' };
-  const perm = await dir.queryPermission({ mode: 'read' });
-  return perm === 'granted' ? { kind: 'ready', name: dir.name } : { kind: 'locked', name: dir.name };
+  return (await (await _linkedRoot())!.access()) === 'ready' ? { kind: 'ready', name: dir.name } : { kind: 'locked', name: dir.name };
 }
 
 /** Must be called from a tap. Asks to change files too (renaming, exports), so that's asked once. */
@@ -65,6 +75,7 @@ export async function linkFolder(): Promise<boolean> {
   }
   await kv.set(keys.folder, { handle: picked, linked: true } satisfies FolderLink);
   dir = picked;
+  root = undefined;
   return true;
 }
 
@@ -79,54 +90,9 @@ export async function unlockFolder(): Promise<boolean> {
   return (await dir.requestPermission({ mode: 'read' })) === 'granted';
 }
 
-/** Whether the root can be read without asking: always the app's own, a linked folder once access is allowed. */
-export async function _canRead(): Promise<boolean> {
-  const dir = await _linked();
-  return !dir || (await dir.queryPermission({ mode: 'read' })) === 'granted';
-}
-
-/**
- * Make sure the root can be read (`read`) or changed too (`readwrite`), asking for access to a
- * linked folder where it isn't allowed yet (the app's own needs none). Asking works only from a
- * tap: elsewhere, or when it is refused, throws NoAccess.
- */
-export async function _needAccess(mode: 'read' | 'readwrite'): Promise<void> {
-  const dir = await _linked();
-  if (!dir) return;
-  if ((await dir.queryPermission({ mode })) === 'granted') return;
-  if ((await dir.requestPermission({ mode }).catch(() => 'denied')) !== 'granted') throw new NoAccess(`No access to the scores folder (${mode})`);
-}
-
 export async function unlinkFolder(): Promise<void> {
   dir = undefined;
+  root = undefined;
   const old = await storedLink();
   if (old) await kv.set(keys.folder, { handle: old.handle, linked: false } satisfies FolderLink);
-}
-
-/* ---------- exports ---------- */
-
-/** The folder inside the linked folder that exported PDFs are written to. */
-export const EXPORTS = 'Exports';
-
-/** The exports folder, made if it isn't there yet; asks for write access (from a tap), or throws NoAccess. */
-const exportsDir = async () => {
-  const dir = await _linked();
-  if (!dir) throw new Error('No folder linked');
-  await _needAccess('readwrite');
-  return dir.getDirectoryHandle(EXPORTS, { create: true });
-};
-
-/** Whether `name`.pdf is in the exports folder. Asks for write access (from a tap), or throws NoAccess. */
-export async function exportExists(name: string): Promise<boolean> {
-  return (await exportsDir()).getFileHandle(name.trim() + '.pdf').then(() => true, () => false);
-}
-
-/**
- * Write `name`.pdf into the exports folder, replacing one of that name. Asks for write access
- * (from a tap: exportExists is asked first), or throws NoAccess.
- */
-export async function saveExport(name: string, data: Blob): Promise<void> {
-  const w = await (await (await exportsDir()).getFileHandle(name.trim() + '.pdf', { create: true })).createWritable();
-  await w.write(data);
-  await w.close();
 }

@@ -2,10 +2,19 @@
 // folder is linked (library-files.ts) and keeps the files left in it when one is. Which file is
 // which original is in the records (_record-store.ts).
 
+import { InternalDirectoryHandleRoot } from './_directory-handle-roots';
 import { walk } from './_filesystem-utils';
+import type { ScoreRoot } from './_types';
 
 /** Volti's own folder in OPFS: the library's root while no folder is linked. */
 export const _opfsRoot = async () => (await navigator.storage.getDirectory()).getDirectoryHandle('library', { create: true });
+
+let root: Promise<ScoreRoot> | undefined;
+
+/** Volti's own folder as a root, made once. */
+export function _internalRoot(): Promise<ScoreRoot> {
+  return (root ??= _opfsRoot().then((d) => new InternalDirectoryHandleRoot(d)));
+}
 
 /**
  * The PDFs and images in Volti's own folder, by path, whether or not it is the root now: those

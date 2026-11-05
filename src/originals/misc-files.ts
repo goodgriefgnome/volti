@@ -4,13 +4,11 @@
 // the library's root (`arrivals` in path-utils.ts says what happens to each there).
 
 import { hashBytes } from './_filesystem-utils';
-import { _needAccess } from './device-score-fs';
 import { _dropInboxBytes, _inboxFile } from './inbox-fs';
 import { _removeInternalFile } from './internal-score-fs';
-import { _listInternal, _makeFolder, _placed, _sourceFileOf } from './library-files';
+import { _listInternal, _placed, _root, _sourceFileOf } from './library-files';
 import { folderOf, _importName, _nameOf, _shownFolder, _tidyPath, _unfoundName } from './path-utils';
 import { _loadRecords, _record, _records, _updateRecord } from './_record-store';
-import { writeFile } from './_filesystem-utils';
 import type { Readable } from './_types';
 import { _readOriginal } from './original';
 import { _keepRemoved, _removedFile } from './trash-fs';
@@ -38,12 +36,12 @@ class MemoryFile implements Readable {
     const to = _tidyPath(path), folder = folderOf(to), name = _nameOf(to);
     const unfound = _unfoundName(to);
     if (unfound) return unfound;
-    await _needAccess('readwrite');
-    const d = await _makeFolder(folder);
-    if (await d.getFileHandle(name).then(() => true, () => false)) return `There is already a file called “${name}” in ${_shownFolder(folder)}.`;
-    await writeFile(d, name, this.bytes);
+    const r = await _root();
+    await r.needAccess('readwrite');
+    if (await r.exists(to)) return `There is already a file called “${name}” in ${_shownFolder(folder)}.`;
+    const { stamp } = await r.write(to, this.bytes);
     // Its record is there now, and the bytes of where it was are deleted.
-    await _placed(this.id, to, await (await d.getFileHandle(name)).getFile());
+    await _placed(this.id, to, stamp);
     this.moved = _sourceFileOf(this.id, to);
     return null;
   }

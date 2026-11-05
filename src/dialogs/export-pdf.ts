@@ -3,7 +3,7 @@
 // folder, or sharing it when no folder is linked.
 
 import { drawnOriginals, exportPdf, type ExportPart } from '../export/pdf';
-import { exportExists, EXPORTS, saveExport } from '../originals/device-score-fs';
+import { exportExists, EXPORTS, saveExport } from '../originals/library-files';
 import { fileNameProblem, titleOf } from '../originals/path-utils';
 import { NoAccess } from '../originals/types';
 import { button, el, focusHighlighted } from '../ui/dom';

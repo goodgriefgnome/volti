@@ -4,51 +4,27 @@
 // into another folder) and removed (into Recently removed), asking for the access that needs. Also
 // listing the root's files, known by the hash of their contents, and tidying storage at start-up.
 
-import { _canRead, _linked, _needAccess } from './device-score-fs';
+import { _linked, _linkedRoot } from './device-score-fs';
 import { hashFile, inTurns, walk } from './_filesystem-utils';
 import { _dropInboxBytes } from './inbox-fs';
-import { _internalFiles, _opfsRoot, _removeInternalFile } from './internal-score-fs';
-import { _bytesName, _resolveListing, type _Found, type OriginalRecord, type Where } from './_record-model';
+import { _internalFiles, _internalRoot, _opfsRoot, _removeInternalFile } from './internal-score-fs';
+import { _bytesName, _folderWhere, _resolveListing, type _Found, type OriginalRecord, type Where } from './_record-model';
 import { _loadRecords, _record, _records, _updateRecord, _updateRecords } from './_record-store';
-import type { Readable } from './_types';
+import type { Readable, ScoreRoot, Stamp } from './_types';
 import { _readOriginal } from './original';
 import { byTitle, folderOf, _nameOf, _shownFolder, _tidyPath, titleOf, _unfoundName } from './path-utils';
 import { _forgetRemovedBytes, _keepRemoved } from './trash-fs';
 import type { AskPassword, FolderState, Original, SourceFile } from './types';
 
 /** The library's root: the linked folder, or the app's own. Access to a linked one must be allowed. */
-async function root(): Promise<FileSystemDirectoryHandle> {
-  return (await _linked()) ?? _opfsRoot();
-}
-
-/** The file at `path` in the root. Access must be allowed. */
-async function fileAt(path: string): Promise<File> {
-  const [d, name] = await placeOf(path);
-  return (await d.getFileHandle(name)).getFile();
-}
-
-/** The folder a path in the root is in, and the file's name. */
-async function placeOf(path: string): Promise<[FileSystemDirectoryHandle, string]> {
-  const parts = path.split('/');
-  let d = await root();
-  for (const p of parts.slice(0, -1)) d = await d.getDirectoryHandle(p);
-  return [d, parts.at(-1)!];
-}
-
-/**
- * The subfolder `path` of the root ('' for the root itself), making the folders on it that aren't
- * there yet. Write access must have been allowed.
- */
-export async function _makeFolder(path: string): Promise<FileSystemDirectoryHandle> {
-  let d = await root();
-  for (const p of path ? path.split('/') : []) d = await d.getDirectoryHandle(p, { create: true });
-  return d;
+export async function _root(): Promise<ScoreRoot> {
+  return (await _linkedRoot()) ?? _internalRoot();
 }
 
 /** The PDFs and images in the root, by path, as handles: no file is got. Access must be granted. */
 export async function _folderFiles(): Promise<{ path: string; handle: FileSystemFileHandle }[]> {
   const found: [string, FileSystemFileHandle][] = [];
-  await walk(await root(), '', 0, found);
+  await walk((await _linked()) ?? (await _opfsRoot()), '', 0, found);
   return found.map(([path, handle]) => ({ path, handle }));
 }
 
@@ -59,16 +35,17 @@ class LibraryFile implements Readable {
   constructor(readonly id: string, public path: string) {}
 
   async file(): Promise<File> {
-    await _needAccess('read');
-    return fileAt(this.path);
+    const r = await _root();
+    await r.needAccess('read');
+    return r.read(this.path);
   }
 
   read(ask?: AskPassword): Promise<Original> {
     return _readOriginal(this, ask);
   }
 
-  canReadNow(): Promise<boolean> {
-    return _canRead();
+  async canReadNow(): Promise<boolean> {
+    return (await (await _root()).access()) === 'ready';
   }
 
   async move(path: string): Promise<string | null> {
@@ -85,54 +62,34 @@ class LibraryFile implements Readable {
   }
 
   private async moveInRoot(to: string): Promise<string | null> {
-    await _needAccess('readwrite');
-    const [from, old] = await placeOf(this.path);
+    const r = await _root();
+    await r.needAccess('readwrite');
     const folder = folderOf(to), name = _nameOf(to);
-    const into = folder === folderOf(this.path) ? from : await _makeFolder(folder);
-    // The same folder, even when written differently (as a folder that ignores case can be).
-    const same = into === from || (await into.isSameEntry(from));
-    const now = same ? (folderOf(this.path) ? folderOf(this.path) + '/' : '') + name : to;
-    if (same && name === old) return null;
     // Changing only the case finds the file itself where the file system ignores case.
-    const caseOnly = same && name.toLowerCase() === old.toLowerCase();
-    if (!caseOnly && (await into.getFileHandle(name).then(() => true, () => false))) return this.taken(name, folder);
-    const h = await from.getFileHandle(old);
-    // Where it can't be moved (as in some of Android's folders), copy it there, then delete it here.
-    const moved = h.move
-      ? await (same ? h.move(name) : h.move(into, name)).then(() => true, (e) => { console.warn('Moving by copying, as moving failed:', e); return false; })
-      : false;
-    if (!moved) {
-      if (caseOnly) return 'Only the case changes, and this folder can\'t do that. Change another letter too.';
-      const copy = await into.getFileHandle(name, { create: true });
-      try {
-        const w = await copy.createWritable();
-        await w.write(await h.getFile());
-        await w.close();
-      } catch (e) {
-        await into.removeEntry(name).catch(() => {});
-        throw e;
-      }
-      // Both are the same score now, so one left behind only shows twice in the Files app.
-      if (!(await from.removeEntry(old).then(() => true, () => false))) {
-        return same ? `Copied it as “${name}”, but couldn't delete “${old}”. Delete it in the Files app.`
-          : `Copied it into ${_shownFolder(folder)}, but couldn't delete it here. Delete it in the Files app.`;
-      }
-    }
-    // The same contents, so the same id: no need to read it again.
-    const file = await (await into.getFileHandle(name)).getFile(), where = await rootWhere(file);
-    await _updateRecord(this.id, (r) => r && { ...r, path: now, where });
-    this.path = now;
-    return null;
+    const caseOnly = to.toLowerCase() === this.path.toLowerCase();
+    if (!caseOnly && (await r.exists(to))) return this.taken(name, folder);
+    const moved = await r.move(this.path, to);
+    if ('caseOnly' in moved) return 'Only the case changes, and this folder can\'t do that. Change another letter too.';
+    const same = folder === folderOf(this.path);
+    const left = moved.leftBehind
+      ? (same ? `Copied it as “${name}”, but couldn't delete “${_nameOf(this.path)}”. Delete it in the Files app.`
+        : `Copied it into ${_shownFolder(folder)}, but couldn't delete it here. Delete it in the Files app.`)
+      : null;
+    // The same contents, so the same id: no need to read it again. A file with no record yet gets one.
+    const where = await rootWhere(moved.stamp);
+    await _updateRecord(this.id, (rec) => ({ ...rec, path: moved.path, where }));
+    this.path = moved.path;
+    return left;
   }
 
   async remove(): Promise<void> {
-    await _needAccess('readwrite');
-    const [d, name] = await placeOf(this.path);
+    const r = await _root();
+    await r.needAccess('readwrite');
     const before = _record(this.id);
-    await _keepRemoved(this.id, this.path, await (await d.getFileHandle(name)).getFile());
+    await _keepRemoved(this.id, this.path, await r.read(this.path));
     const kept = _record(this.id)?.where;
     try {
-      await d.removeEntry(name);
+      await r.remove(this.path);
     } catch (e) {
       // Still in the library: not removed after all.
       await _updateRecord(this.id, () => before);
@@ -153,12 +110,40 @@ export function _sourceFileOf(id: string, path: string): SourceFile {
   return o;
 }
 
+/* ---------- exports ---------- */
+
+/** The folder inside the linked folder that exported PDFs are written to. */
+export const EXPORTS = 'Exports';
+
+/** The linked root, asking for write access (from a tap), or throws NoAccess; throws when no folder is linked. */
+async function exportsRoot(): Promise<ScoreRoot> {
+  const r = await _linkedRoot();
+  if (!r) throw new Error('No folder linked');
+  await r.needAccess('readwrite');
+  return r;
+}
+
+/** Whether `name`.pdf is in the exports folder. Asks for write access (from a tap), or throws NoAccess. */
+export async function exportExists(name: string): Promise<boolean> {
+  return (await exportsRoot()).exists(`${EXPORTS}/${name.trim()}.pdf`);
+}
+
+/**
+ * Write `name`.pdf into the exports folder, replacing one of that name, and record it as a score
+ * of the library. Asks for write access (from a tap: exportExists is asked first), or throws NoAccess.
+ */
+export async function saveExport(name: string, data: Blob): Promise<void> {
+  const path = `${EXPORTS}/${name.trim()}.pdf`;
+  const { file, stamp } = await (await exportsRoot()).write(path, data);
+  await _placed(await hashFile(file), path, stamp);
+}
+
 /** Every score's title, by id, from its original's record, whether or not its file can be found. */
 export const knownTitles = async () => Object.fromEntries([..._records()].map(([id, r]) => [id, titleOf(r.path)]));
 
 /** Where a file just written into the root is: the linked folder, as it is now, or Volti's own. */
-async function rootWhere(file: File): Promise<Where> {
-  return (await _linked()) ? { kind: 'folder', size: file.size, modified: file.lastModified } : { kind: 'internal' };
+async function rootWhere(stamp?: Stamp): Promise<Where> {
+  return (await _linked()) ? _folderWhere(stamp) : { kind: 'internal' };
 }
 
 /**
@@ -166,8 +151,8 @@ async function rootWhere(file: File): Promise<Where> {
  * place it was in before (the inbox, Recently removed, or Volti's own folder while a folder is
  * linked) are deleted.
  */
-export async function _placed(id: string, path: string, file: File): Promise<void> {
-  const where = await rootWhere(file);
+export async function _placed(id: string, path: string, stamp?: Stamp): Promise<void> {
+  const where = await rootWhere(stamp);
   const before: { record?: OriginalRecord } = {};
   await _updateRecord(id, (r) => {
     before.record = r;
