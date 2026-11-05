@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 /** The files of originals/, each importing only from those before it. */
 const ORDER = [
-  '_fake-handles', 'path-utils', '_filesystem-utils', 'types', '_types', '_record-model', '_record-store', '_folder-scan', '_directory-handle-roots', '_drive-config', '_pdf-source', '_image-source', '_sources', 'original',
+  '_fake-handles', 'path-utils', '_filesystem-utils', 'types', '_types', '_record-model', '_record-store', '_folder-scan', '_directory-handle-roots', '_drive-config', '_byte-cache', '_pdf-source', '_image-source', '_sources', 'original',
   '_folder-link', 'device-score-fs', 'linked-folder', 'internal-score-fs', 'inbox-fs', 'trash-fs', 'library-files', 'misc-files',
 ];
 
