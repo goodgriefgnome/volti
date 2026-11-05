@@ -7,6 +7,8 @@ export const keys = {
   original: (id: string) => 'original:' + id,
   /** The linked scores folder, on the device or in Google Drive: a FolderLink, kept after unlinking to tell a folder linked later is the same (originals/_folder-link.ts). */
   folder: 'folder',
+  /** The Google Drive sign-in: { refreshToken }, deleted when Google refuses it or Volti signs out (originals/_drive-auth.ts). */
+  driveAuth: 'drive-auth',
   /** The library's subfolder lists closed by hand, by path (library/_store.ts). */
   closedFolders: 'closed-folders',
   /** What was last read and where in it: the score, excerpt or setlist, and the first cut on the screen (reader/_store.ts). */
