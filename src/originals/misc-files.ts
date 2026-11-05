@@ -5,8 +5,9 @@
 
 import { hashBytes } from './_filesystem-utils';
 import { _dropInboxBytes, _inboxFile } from './inbox-fs';
-import { _removeInternalFile } from './internal-score-fs';
-import { _listInternal, _placed, _root, _sourceFileOf } from './library-files';
+import { _isLinked } from './device-score-fs';
+import { _internalRoot } from './internal-score-fs';
+import { _placed, _root, _sourceFileOf } from './library-files';
 import { folderOf, _importName, _nameOf, _shownFolder, _tidyPath, _unfoundName } from './path-utils';
 import { _loadRecords, _record, _records, _updateRecord } from './_record-store';
 import type { Readable } from './_types';
@@ -95,14 +96,29 @@ export async function inboxFiles(): Promise<SourceFile[]> {
 /**
  * The files in the app's own folder while a folder is linked: those not moved into it yet, each at
  * its path there, which moving it into the linked folder deletes, and removing it deletes with its
- * record. Each is known by its record, hashed and recorded where it has none.
+ * record. They are the `internal` records, each with its bytes read from the folder.
  */
 export async function leftInApp(): Promise<SourceFile[]> {
-  return (await _listInternal()).map(({ id, path, file }) => heldFile(id, path, file, async () => {
-    await _removeInternalFile(path);
-    // Not if the record has moved on, as when the linked folder has it.
-    await _updateRecord(id, (r) => (r?.where.kind === 'internal' ? { ...r, where: { kind: 'gone' } } : r));
-  }));
+  if (!(await _isLinked())) return [];
+  const root = await _internalRoot();
+  const out: SourceFile[] = [];
+  for (const [id, r] of _records()) {
+    if (r.where.kind !== 'internal') continue;
+    const path = r.path;
+    let file: File;
+    try {
+      file = await root.read(path);
+    } catch (e) {
+      console.warn('A file left in Volti\'s folder can\'t be read:', e);
+      continue;
+    }
+    out.push(heldFile(id, path, file, async () => {
+      await root.remove(path);
+      // Not if the record has moved on, as when the linked folder has it.
+      await _updateRecord(id, (rec) => (rec?.where.kind === 'internal' ? { ...rec, where: { kind: 'gone' } } : rec));
+    }));
+  }
+  return out;
 }
 
 /** A file in Recently removed, at the path it had: moving it puts it back, and forgets it there. */

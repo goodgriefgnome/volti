@@ -17,10 +17,21 @@ const noted = new Map<string, Contents>();
 
 const PREFIX = keys.original('');
 
+const listeners = new Set<() => void>();
+
+/** Hear each change this page makes to the records, and each load of them. Gives a function that stops hearing. */
+export function _onRecords(heard: () => void): () => void {
+  listeners.add(heard);
+  return () => { listeners.delete(heard); };
+}
+
+const tell = () => listeners.forEach((heard) => heard());
+
 /** Read every record afresh from IndexedDB into memory. Call before each listing, and when the app opens with ?shared. */
 export async function _loadRecords(): Promise<ReadonlyMap<string, OriginalRecord>> {
   const entries = await kv.entries<OriginalRecord>(PREFIX);
   loaded = new Map(entries.map(([key, record]) => [key.slice(PREFIX.length), record]));
+  tell();
   return loaded;
 }
 
@@ -70,6 +81,7 @@ export async function _updateRecords(changes: [string, Change][]): Promise<void>
     return record;
   }]));
   for (const [id, record] of written) wrote(id, record);
+  tell();
 }
 
 /**
@@ -81,8 +93,10 @@ export async function _noteContents(id: string, contents: Contents): Promise<voi
   if ((contents.aspects === undefined || sameAspects(contents.aspects, now.aspects)) && (contents.password === undefined || contents.password === now.password)) return;
   let written: OriginalRecord | undefined;
   await kv.update<OriginalRecord>(keys.original(id), (old) => (written = old && { ...old, ...defined(contents) }));
-  if (written) loaded.set(id, written);
-  else noted.set(id, { ...noted.get(id), ...defined(contents) });
+  if (written) {
+    loaded.set(id, written);
+    tell();
+  } else noted.set(id, { ...noted.get(id), ...defined(contents) });
 }
 
 const defined = (c: Contents): Contents => Object.fromEntries(Object.entries(c).filter(([, v]) => v !== undefined));

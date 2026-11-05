@@ -5,27 +5,20 @@
 // listing the root's files, known by the hash of their contents, and tidying storage at start-up.
 
 import { _isLinked, _linked, _linkedRoot } from './device-score-fs';
-import { hashFile, inTurns, walk } from './_filesystem-utils';
+import { hashFile } from './_filesystem-utils';
 import { _dropInboxBytes } from './inbox-fs';
-import { _internalFiles, _internalRoot, _opfsRoot, _removeInternalFile } from './internal-score-fs';
-import { _bytesName, _folderWhere, _rank, _resolveListing, type _Found, type OriginalRecord, type Where } from './_record-model';
-import { _loadRecords, _record, _records, _updateRecord, _updateRecords } from './_record-store';
+import { _internalFiles, _internalRoot, _removeInternalFile } from './internal-score-fs';
+import { _applyUpdate, _bytesName, _folderWhere, _inRoot, _knownOf, _rank, type OriginalRecord, type Where } from './_record-model';
+import { _loadRecords, _onRecords, _record, _records, _updateRecord, _updateRecords } from './_record-store';
 import type { Readable, ScoreRoot, Stamp } from './_types';
 import { _readOriginal } from './original';
 import { byTitle, folderOf, _nameOf, _shownFolder, _tidyPath, titleOf, _unfoundName } from './path-utils';
 import { _forgetRemovedBytes, _keepRemoved } from './trash-fs';
-import type { AskPassword, FolderState, Original, SourceFile } from './types';
+import type { AskPassword, Original, SourceFile } from './types';
 
 /** The library's root: the linked folder, or the app's own. Access to a linked one must be allowed. */
 export async function _root(): Promise<ScoreRoot> {
   return (await _linkedRoot()) ?? _internalRoot();
-}
-
-/** The PDFs and images in the root, by path, as handles: no file is got. Access must be granted. */
-export async function _folderFiles(): Promise<{ path: string; handle: FileSystemFileHandle }[]> {
-  const found: [string, FileSystemFileHandle][] = [];
-  await walk((await _linked()) ?? (await _opfsRoot()), '', 0, found);
-  return found.map(([path, handle]) => ({ path, handle }));
 }
 
 /* ---------- its files ---------- */
@@ -176,162 +169,86 @@ async function _dropBytes(d: { id: string; where: Where; path: string }, linked:
 /** Whether two records are the same, as stored. */
 const same = (a: OriginalRecord | undefined, b: OriginalRecord | undefined) => JSON.stringify(a) === JSON.stringify(b);
 
-/** The ids of files in the linked folder found more than once, as last listed: path → the copy. */
-const hidden: Record<'folder' | 'internal', Map<string, _Found>> = { folder: new Map(), internal: new Map() };
+/* ---------- scanning, and the library's files ---------- */
+
+/** How many new files the running scan has left to hash: 0 when none is running. */
+let left = 0;
+/** The running scan, stopped by a new one. */
+let scanning: AbortController | undefined;
+/** Who hears that `left` changed (a change to the records is heard from the store). */
+const leftHeard = new Set<() => void>();
 
 /**
- * Hears the files known so far while new or changed files are read, and how many are `left`
- * to read.
+ * Scan the root (the linked folder, readable), writing the records; ends when the scan does. A
+ * scan started stops one running, and the older one writes nothing after. Each batch of changes is
+ * written in one transaction, each to a record unchanged since the scan read it (a record Volti or
+ * the service worker changed meanwhile wins), and the bytes of places given up are deleted after.
  */
-type Progress = (originals: SourceFile[], left: number) => void;
-
-/** New files are few and wanted soon, so their hashing goes this many at once. */
-const NEW_FILES_AT_ONCE = 8;
-/**
- * Known files are checked in the background, behind whatever else reads the folder (such as a score
- * being opened): each `getFile()` is a request to Android's storage framework, so one at a time.
- */
-const KNOWN_FILES_AT_ONCE = 1;
-
-/** An entry of a listing: a file's path, and its handle (the linked folder) or the file itself (Volti's own). */
-interface Entry { path: string; handle?: FileSystemFileHandle; file?: File }
-
-/** A file trusted to be the one recorded, to be checked in pass 2. */
-interface Known { path: string; handle: FileSystemFileHandle; found: _Found }
-
-/**
- * Write what a listing means for the records, with each record written only if it is still as the
- * `records` snapshot saw it (a share made meanwhile wins), and delete the bytes of places given
- * up. Gives the files that win, each at its canonical path.
- */
-async function settle(kind: 'folder' | 'internal', records: ReadonlyMap<string, OriginalRecord>, found: readonly _Found[], linked: boolean): Promise<{ id: string; path: string }[]> {
-  const result = _resolveListing(kind, records, found, linked);
-  await _updateRecords([...result.changed].map(([id, next]) => [id, (stored) => (same(stored as OriginalRecord | undefined, records.get(id)) ? next : stored)]));
-  for (const d of result.drop) {
-    // A place given up is deleted only if the record did move.
-    if (result.changed.has(d.id) && !same(_record(d.id), result.changed.get(d.id))) continue;
-    await _dropBytes(d, linked);
-  }
-  hidden[kind] = result.duplicates;
-  return result.files;
-}
-
-/**
- * List the `entries` of a root of `kind` (the linked folder, or Volti's own folder), after the
- * records are loaded: work out each file's id by names only. A path the records have (or, in the
- * linked folder, a hidden copy) is trusted to be the file recorded, without getting it; the others
- * are got and hashed, `NEW_FILES_AT_ONCE` at a time. Then write what the listing means for the
- * records and delete the bytes of places given up. Gives the files that win, each at its canonical
- * path, and the trusted files with what was trusted of them, for pass 2 to check.
- */
-async function listing(kind: 'folder' | 'internal', entries: Entry[], linked: boolean, progress?: Progress): Promise<{ files: { id: string; path: string }[]; known: Known[]; found: _Found[] }> {
-  // A snapshot: the copy in memory changes as records are written meanwhile.
-  const records = new Map(_records());
-  const at = new Map<string, { id: string; where: Where }>();
-  for (const [id, r] of records) if (r.where.kind === kind) at.set(r.path, { id, where: r.where });
-  const trusted = (e: Entry): _Found | undefined => {
-    const r = at.get(e.path);
-    // The casts go in stage 6 of the score roots work: a stamp isn't read in here then.
-    if (r) return { path: e.path, id: r.id, size: r.where.kind === 'folder' ? r.where.size as number : e.file?.size ?? 0, modified: r.where.kind === 'folder' ? r.where.modified as number : e.file?.lastModified ?? 0 };
-    const copy = hidden[kind].get(e.path);
-    return copy && { ...copy, path: e.path };
-  };
-  const found: _Found[] = [];
-  const known: Known[] = [];
-  const fresh: Entry[] = [];
-  for (const e of entries) {
-    const f = trusted(e);
-    if (!f) fresh.push(e);
-    else {
-      found.push(f);
-      if (e.handle) known.push({ path: e.path, handle: e.handle, found: f });
-    }
-  }
-  const hashed: _Found[] = [];
-  const shown = () => _resolveListing(kind, records, [...found, ...hashed], linked).files.map((f) => _sourceFileOf(f.id, f.path)).sort(byTitle);
-  if (fresh.length) progress?.(shown(), fresh.length);
-  const results = await inTurns(fresh, NEW_FILES_AT_ONCE, async (e) => {
-    const file = e.file ?? (await e.handle!.getFile());
-    const f = { path: e.path, id: await hashFile(file), size: file.size, modified: file.lastModified };
-    hashed.push(f);
-    progress?.(shown(), fresh.length - hashed.length);
-    return f;
-  });
-  found.push(...results);
-  return { files: await settle(kind, records, found, linked), known, found };
-}
-
-/**
- * Pass 2 of a scan of the linked folder: get the `known` files, `KNOWN_FILES_AT_ONCE` at a time,
- * and hash one whose size or modified time differs from what was trusted, replacing its `_Found`
- * in `all` (every file found, which the listing is resolved from). After each one that changed,
- * the listing is resolved again from a fresh snapshot of the records and written, and `changed`
- * hears the files. A file gone meanwhile is skipped: the next scan sees it missing.
- */
-async function checkKnown(known: Known[], all: _Found[], signal: AbortSignal, changed: (originals: SourceFile[]) => void): Promise<void> {
-  await inTurns(known, KNOWN_FILES_AT_ONCE, async (k) => {
-    let file: File;
-    try {
-      file = await k.handle.getFile();
-    } catch (e) {
-      if (e instanceof DOMException && e.name === 'NotFoundError') return;
-      throw e;
-    }
-    if (file.size === k.found.size && file.lastModified === k.found.modified) return;
-    const now = { path: k.path, id: await hashFile(file), size: file.size, modified: file.lastModified };
-    // A newer scan has taken over: what it wrote is not to be written over.
-    if (signal.aborted) return;
-    all[all.indexOf(k.found)] = now;
-    k.found = now;
-    const files = await settle('folder', new Map(_records()), all, true);
-    if (!signal.aborted) changed(files.map((f) => _sourceFileOf(f.id, f.path)).sort(byTitle));
-  }, signal);
-}
-
-/** The pass 2 still running, if any. */
-let checking: AbortController | undefined;
-
-/**
- * The library's files, sorted by title: the same SourceFile for an id as before; two of the same
- * file show the first. A scan of the linked folder has two passes. Pass 1 goes by names: only names
- * no record has are got and hashed (which reads them whole), a few at a time, and `progress` hears
- * the files known so far before the first and after each; a name the records have is trusted to be
- * the file recorded. Pass 2 then runs in the background, without being waited for, getting the
- * trusted files one at a time and hashing one whose size or modified time differs from its record;
- * `changed` hears the library's files each time it finds one. A new scan stops a pass 2 still
- * running. While the linked folder is locked, its files are the ones its records say.
- */
-export async function libraryFiles(state: FolderState, progress?: Progress, changed?: (originals: SourceFile[]) => void): Promise<SourceFile[]> {
-  checking?.abort();
-  const mine = (checking = new AbortController());
+export async function scanRoot(): Promise<void> {
+  scanning?.abort();
+  const mine = (scanning = new AbortController());
   await _loadRecords();
-  let files: { id: string; path: string }[];
-  if (state.kind === 'locked') files = [..._records()].flatMap(([id, r]) => (r.where.kind === 'folder' ? [{ id, path: r.path }] : []));
-  else if (state.kind === 'ready') {
-    const listed = await listing('folder', await _folderFiles(), true, progress);
-    files = listed.files;
-    // Unless a newer scan began meanwhile, which has taken over.
-    if (changed && listed.known.length && checking === mine) {
-      void checkKnown(listed.known, listed.found, mine.signal, changed).catch((e) => {
-        if (e?.name !== 'AbortError') console.warn('Checking the known files stopped:', e);
-      });
+  const root = await _linkedRoot();
+  if (!root || (await root.access()) !== 'ready' || mine.signal.aborted) return;
+  // What the scan has read of each record: its own writes count.
+  const seen = new Map(_records());
+  try {
+    for await (const batch of root.getUpdates(_knownOf(seen), mine.signal)) {
+      if (mine.signal.aborted) return;
+      left = batch.left;
+      // A later change for an id replaces an earlier one.
+      const latest = new Map(batch.changes.map((u) => [u.id, u.found] as const));
+      const wrote = new Map<string, OriginalRecord>();
+      const drops: { id: string; where: Where; path: string }[] = [];
+      await _updateRecords([...latest].map(([id, found]) => [id, (stored) => {
+        if (!same(stored, seen.get(id))) return stored;
+        const applied = _applyUpdate(stored, found, true);
+        if (!applied) return stored;
+        wrote.set(id, applied.next);
+        if (applied.drop) drops.push({ ...applied.drop, id });
+        return applied.next;
+      }]));
+      for (const [id, record] of wrote) seen.set(id, record);
+      for (const d of drops) await _dropBytes(d, true);
+      leftHeard.forEach((heard) => heard());
     }
-  } else {
-    const entries = await _internalFiles();
-    files = (await listing('internal', entries, false, progress)).files;
+  } finally {
+    if (scanning === mine) {
+      left = 0;
+      leftHeard.forEach((heard) => heard());
+    }
   }
-  return files.map((f) => _sourceFileOf(f.id, f.path)).sort(byTitle);
 }
 
 /**
- * The files in Volti's own folder while a folder is linked: those not moved into it yet, listed as
- * the root is. A file whose id the linked folder has is deleted.
+ * The library's files, sorted by title: the records in the current root (the linked folder's,
+ * linked or locked, else Volti's own). Yields at once, again after every change to the records
+ * this page makes, and with how many new files a running scan has left to hash. Ends when `signal`
+ * aborts.
  */
-export async function _listInternal(): Promise<{ id: string; path: string; file: File }[]> {
-  await _loadRecords();
-  const entries = await _internalFiles();
-  const files = new Map(entries.map((e) => [e.path, e.file]));
-  return (await listing('internal', entries, true)).files.map((f) => ({ ...f, file: files.get(f.path)! }));
+export async function* libraryFiles(signal: AbortSignal): AsyncIterable<{ files: SourceFile[]; left: number }> {
+  let changed = true;
+  let wake: (() => void) | undefined;
+  const heard = () => { changed = true; wake?.(); wake = undefined; };
+  const stop = _onRecords(heard);
+  leftHeard.add(heard);
+  signal.addEventListener('abort', heard);
+  try {
+    while (!signal.aborted) {
+      if (!changed) {
+        await new Promise<void>((resolve) => { wake = resolve; });
+        continue;
+      }
+      changed = false;
+      const linked = !!(await _linkedRoot());
+      const files = _inRoot(_records(), linked).map((f) => _sourceFileOf(f.id, f.path)).sort(byTitle);
+      if (!signal.aborted) yield { files, left };
+    }
+  } finally {
+    stop();
+    leftHeard.delete(heard);
+    signal.removeEventListener('abort', heard);
+  }
 }
 
 /** How old a file no record points to must be before it is deleted: a share may be being written. */

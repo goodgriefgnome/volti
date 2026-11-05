@@ -13,7 +13,7 @@ import type { Excerpt } from '../scores/excerpts';
 import type { ExportPart } from '../export/pdf';
 import { arrivals, byFolder, byTitle, titleOf } from '../originals/path-utils';
 import { folderState, linkFolder, unlinkFolder, unlockFolder } from '../originals/device-score-fs';
-import { knownTitles, libraryFiles } from '../originals/library-files';
+import { knownTitles, libraryFiles, scanRoot } from '../originals/library-files';
 import { inboxFiles, leftInApp } from '../originals/misc-files';
 import { FolderRefused, NoAccess, PasswordNotGiven, type FolderState, type SourceFile } from '../originals/types';
 import { openReader, type ToRead } from '../reader/reader';
@@ -58,6 +58,13 @@ export class Library implements LibraryHost {
   /** The refresh running, and whether another was asked for meanwhile. */
   private refreshing: Promise<void> | null = null;
   private refreshAgain = false;
+  /** Stops following the library's files: never, while the library lives. */
+  private following = new AbortController();
+  /** What the status line said before a scan began counting its new files. */
+  private saidBefore = '';
+  /** The ids the setlists were last loaded for: undefined before the first. */
+  private loadedFor: string | undefined;
+  private drawing = false;
 
   private root = el('main', 'library');
   private status = el('p', 'status');
@@ -82,6 +89,7 @@ export class Library implements LibraryHost {
     document.body.append(this.root, this.toast.el);
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !this.root.hidden) closeOverlay(); });
     document.addEventListener('visibilitychange', this.onVisible);
+    void this.follow();
   }
 
   /** A new version of the app is ready: offer it, beside the scores folder's tools. `take` switches to it. */
@@ -137,31 +145,57 @@ export class Library implements LibraryHost {
     void this.refresh();
   }
 
+  /**
+   * Show the library's files for as long as the library lives: they follow the records, which every
+   * scan and every change Volti makes writes. Drawn at most once a frame.
+   */
+  private async follow() {
+    try {
+      for await (const { files, left } of libraryFiles(this.following.signal)) {
+        this.originals = files;
+        if (left) {
+          if (!this.reading) this.saidBefore = this.status.textContent ?? '';
+          this.say(`Reading new scores: ${left} left…`);
+        } else if (this.reading && this.status.textContent?.startsWith('Reading new scores')) this.say(this.saidBefore);
+        this.reading = left > 0;
+        this.draw();
+      }
+    } catch (e) {
+      console.error('Could not follow the library\'s files:', e);
+    }
+  }
+
+  /** Draw the scores at the next frame; the setlists too, when the scores are not being read and their set changed. */
+  private draw() {
+    if (this.drawing) return;
+    this.drawing = true;
+    requestAnimationFrame(() => {
+      this.drawing = false;
+      const ids = this.originals.map((o) => o.id).join();
+      if (this.loadedFor === undefined || (!this.reading && ids !== this.loadedFor)) void this.loadSetlists().then(() => this.scoresSection.render());
+      else this.scoresSection.render();
+    });
+  }
+
+  /** The library's files as the records say now, for after a scan. */
+  private async currentFiles(): Promise<SourceFile[]> {
+    const stop = new AbortController();
+    for await (const { files } of libraryFiles(stop.signal)) { stop.abort(); return files; }
+    return [];
+  }
+
   private async readOriginals() {
     this.folder = await folderState();
     this.leftIn = this.folder.kind === 'none' ? 0 : (await leftInApp().catch(() => [])).length;
     this.banner.render();
-    const before = this.status.textContent;
-    let shown = false;
     try {
-      // New PDFs are read whole to know them: show the others meanwhile, and each as it is read.
-      const originals = await libraryFiles(this.folder, (originals, left) => {
-        this.originals = originals;
-        this.reading = left > 0;
-        this.say(left ? `Reading new scores: ${left} left…` : before ?? '');
-        if (!shown) { shown = true; void this.loadSetlists().then(() => this.scoresSection.render()); } else this.scoresSection.render();
-      }, (originals) => {
-        // Pass 2 found a file changed in place.
-        this.originals = originals;
-        void this.loadSetlists().then(() => this.scoresSection.render());
-      });
-      this.originals = originals;
+      await scanRoot();
     } catch (e) {
       // The folder may have been moved or deleted since it was linked.
       console.error(e);
       this.say('Could not read the scores folder. Link it again if it has moved.');
-      this.originals = [];
     }
+    this.originals = await this.currentFiles();
     await this.loadSetlists();
     this.scoresSection.render();
   }
@@ -169,6 +203,7 @@ export class Library implements LibraryHost {
   private async loadSetlists() {
     [this.setlists, this.titles, this.lastAddedTo] = await Promise.all([loadSetlists(), knownTitles(), loadLastAddedTo()]);
     await this.scoresSection.load();
+    this.loadedFor = this.originals.map((o) => o.id).join();
     // Every score's, for its named excerpts, and those of scores in setlists that are missing.
     const ids = [...new Set([...this.originals.map((o) => o.id), ...this.setlists.flatMap((s) => s.entries.map((e) => e.scoreId))])];
     const [saved, shapes] = await Promise.all([Promise.all(ids.map(loadSavedScore)), Promise.all(ids.map(knownAspects))]);
