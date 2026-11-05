@@ -21,6 +21,16 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   screen, it does at the next turn. Coming back to Volti after a
   while (say, from the Files app) reads the folder again, so PDFs added meanwhile appear. A PDF
   changed in place is noticed a little after the library shows.
+- **Link scores folder** also offers **A folder in Google Drive** (where this build has a Google
+  client; browsers that can't pick a folder on the device, such as on an iPad, go straight to it).
+  It signs in to Google on Google's own page, then shows Volti's folder chooser, from My Drive down.
+  Volti is not verified by Google, so the first sign-in shows "Google hasn't verified this app":
+  choose **Advanced**, then continue. Volti asks for the full Drive scope, as it renames, moves,
+  removes and writes files there; up to 100 accounts can sign in while it is unverified. Scans only
+  list the folder (nothing is downloaded); a score is downloaded the first time it is opened and
+  kept on the tablet, so it opens offline after that, and setlists' scores are kept for good.
+  Removing a score also puts its file in Drive's trash. When Google stops accepting the sign-in
+  (access removed, password changed, or long unused), the banner says **Sign in to Google Drive**.
 - Without a linked folder (before one is linked, or where the browser can't link one), the
   library is a folder of Volti's own, inside the app, read the same way. Linking a folder moves
   its scores into the folder at their paths, overwriting nothing: one the folder has already is
@@ -200,6 +210,13 @@ The installed app takes a new version only as it starts: it shows a start screen
 for up to 3 seconds, and if it finds one says "Updating Volti…" and reloads into it. A version
 published while the app is open waits for its next start, or for a tap on **Update**, which shows
 in the library's banner once it has downloaded (`src/updates.ts`).
+
+Linking a Google Drive folder needs a Google OAuth client (type Web application) whose ID and secret
+are given at build time, never committed: the deployed build takes them from the repository's
+Actions secrets `DRIVE_CLIENT_ID` and `DRIVE_CLIENT_SECRET`, and a local build from `.env.local`
+(`VITE_DRIVE_CLIENT_ID=…` and `VITE_DRIVE_CLIENT_SECRET=…`; Git ignores it). The client must list
+the app's address as a redirect URI: `https://goodgriefgnome.github.io/volti/`, and
+`http://localhost:5173/volti/` for signing in locally. A build without them has no Drive.
 
 Every push to `main` is tested, built and published to GitHub Pages by
 `.github/workflows/deploy.yml`.

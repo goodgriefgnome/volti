@@ -44,13 +44,18 @@ are done. Data from a newer version than the app's is not opened.
   `id`, `title` and `names` (the named excerpts before `excerpts`, not carried over); and a bare
   handle under `folder`, from before records, which became `{ handle, linked: true }`
   (`toVersion3` in `stored-data.ts`).
+- **Version 3 to 4:** the link under `folder` gained `kind` (a folder in Google Drive can be linked
+  too), so the stored link was dropped (`toVersion4` in `stored-data.ts`). The folder is linked
+  again once; as it isn't known to be the same, its `folder` records turn `gone` and its files are
+  read again to find their ids. Scores, cuts and markings are kept, by id.
 
 ### Every key
 
 | Key | Value | Owner |
 | --- | --- | --- |
 | `original:<id>` | `OriginalRecord` | `originals/` |
-| `folder` | `FolderLink` | `originals/device-score-fs.ts` |
+| `folder` | `FolderLink`, a folder on the device or in Google Drive | `originals/_folder-link.ts` |
+| `drive-auth` | `{ refreshToken: string }`, the Google Drive sign-in; missing when signed out | `originals/_drive-auth.ts` |
 | `data-version` | `number`, the version of the stored data; 1 when missing | `stored-data.ts` |
 | `score:<id>` | `StoredScore` | `scores/store.ts` |
 | `ink:<id>` | `ScoreInk` | `scores/store.ts` |
@@ -162,22 +167,30 @@ There is no separate path → id record. The scan is given the map in memory, bu
 ### `folder`: the linked folder
 
 ```ts
-interface FolderLink {
-  handle: FileSystemDirectoryHandle;
-  /** False once unlinked: the handle is kept only to tell whether a folder linked later is the same one. */
-  linked: boolean;
-}
+type FolderLink =
+  | { kind: 'device'; handle: FileSystemDirectoryHandle; linked: boolean }
+  | { kind: 'drive'; folderId: string; name: string; linked: boolean };
 ```
 
-Missing until a folder is first linked.
+`linked` is false once unlinked: the link is kept only to tell whether a folder linked later is the
+same one. Missing until a folder is first linked. `folder` records mean "in the linked folder",
+on the device or in Google Drive.
 
-- **Linking** a folder that is the same as the stored handle (`handle.isSameEntry`) keeps every
-  `folder` record, so nothing is hashed again.
-- **Linking a different folder** turns every `folder` record into `gone` first.
+- **Linking** a folder that is the same as the stored one (`handle.isSameEntry`; the same
+  `folderId`) keeps every `folder` record, so nothing is hashed again.
+- **Linking a different folder**, or one of the other kind, turns every `folder` record into
+  `gone` first. Linking a device folder after a Drive one signs out of Google and empties `bytes/`.
 - **Unlinking** sets `linked: false` and leaves the records alone. While unlinked, `folder`
   records rank with `gone`. They aren't listed and don't stop a copy elsewhere from taking over.
 - **While the folder is linked but locked** (access not yet allowed this session), the library
   lists the `folder` records as they are.
+
+### `drive-auth`: the Google Drive sign-in
+
+`{ refreshToken: string }`, kept while Volti is signed in to Google (`originals/_drive-auth.ts`).
+The access token is held in memory only. Google refusing the refresh token (`invalid_grant`) deletes
+it, and the folder shows as locked until the user signs in again. Unlinking a Drive folder revokes
+the token and deletes the key.
 
 ### `score:<id>`
 
@@ -327,6 +340,7 @@ is ignored.
 | `library/` | Volti's own folder: the root while no folder is linked. A file at library path `p` is at `library/p`. | `originals/internal-score-fs.ts` |
 | `inbox/` | Files shared to Volti, one per id, named by the id. | `originals/inbox-fs.ts` |
 | `removed/` | Recently removed, named `<removedAt>-<id>`. | `originals/trash-fs.ts` |
+| `bytes/` | Copies of the files of a Google Drive folder, named by id, with an index `bytes/index.json` (`{ [id]: { size, used, pinned } }`). Kept within a quarter of the storage quota, least recently used out first; those of setlists' scores are pinned. Emptied when the folder is unlinked. Belongs to no record: Drive's own checksums are the ids. | `originals/_byte-cache.ts` |
 | the page cache's directories | Drawn pages | `page-cache/` (not covered here) |
 
 Each file in `library/`, `inbox/` and `removed/` belongs to the `original:` record pointing at it.
@@ -353,6 +367,10 @@ Two contexts write: the page, and the service worker (sharing). So:
 | Operation | Records | Bytes |
 | --- | --- | --- |
 | **Scanning the linked folder** | Written as each change is found (`_applyUpdate`): an id at a place with no record: `folder` there, with its stamp. A record in a lower place: `folder` there, and the lower place gives way. A `folder` record: its path and stamp become those found. An id gone from the folder (once every new file is hashed): its `folder` record becomes `gone`. | Lower places' bytes deleted. |
+| **Scanning a Google Drive folder** | As for the linked folder, but the files are listed with Drive's SHA-256 checksums, so nothing is downloaded or hashed, and no stamps are kept: a file changed in Drive has a new checksum, so a new id at its path. The whole tree is listed first, then the files at known paths are seen, then the rest, then the ids gone. | None. |
+| **Linking a Google Drive folder** | Another folder than the last: every `folder` record becomes `gone` first. Then `folder` records come from the first scan, by checksum. | Sign-in: the refresh token under `drive-auth`. |
+| **Reading a file of a Drive folder** | None. | Downloaded once into `bytes/<id>` (the hash of the bytes), then read from there, online or not. |
+| **Unlinking a Google Drive folder** | As for any folder. | The refresh token is revoked and deleted, and `bytes/` is emptied. |
 | **Locked folder** | None changed. The library is the `folder` records. | |
 | **Adding a file** (Add PDFs, a share, putting back, moving one left in Volti's folder) | `folder` or `internal` at the chosen path. | Written into the root, then the old place's bytes deleted. |
 | **Renaming or moving a file** | `path` and the root's stamp. | Moved in the root. |
