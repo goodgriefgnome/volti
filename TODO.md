@@ -188,6 +188,27 @@ scores.
   the eraser's sweep) (`reader/tools/_tool.ts`, `reader/reader.ts`). Perhaps one
   `paint(slot, { state?, extra? })` for the first two.
 
+- **Removing from a Drive folder keeps no copy: Recently removed points at Drive's bin**
+  [needs decisions]: removing a score reads its bytes (downloading them when not cached) and keeps
+  them in OPFS `removed/` (`LibraryFile.remove`, `originals/library-files.ts`; `_keepRemoved`,
+  `trash-fs.ts`), then moves the Drive file to Drive's trash. For a Drive folder that copy is
+  redundant: Drive's bin keeps the file for 30 days, and removing needs a network anyway (the
+  trashing). "Put back" then uploads the copy as a new file, beside the trashed one.
+  - Instead, for a Drive folder: removing trashes the file and marks the record `removed`,
+    noting its Drive file id, downloading and writing nothing. Put back untrashes it
+    (`files.update`, `trashed: false`): back at its path, with its own Drive id. `purgeRemoved`
+    only turns the record `gone`; Drive empties its bin itself. A device folder keeps the copy, as
+    it has no bin.
+  - The cost: emptying Drive's bin within the week makes Put back fail.
+  - To decide:
+    - Where the Drive id goes: on the `removed` record (`driveFileId?`), or a new kind of
+      `Where` (`trashed`), which keeps "bytes in `removed/`" true of every `removed` record.
+    - Put back after the link has changed (another Drive folder, or a device folder): untrashing
+      puts the file in the old folder, out of the library. Not offered then, or untrash and say
+      where it went?
+    - Put back when Drive refuses (deleted for good): say it is no longer in Google Drive's bin,
+      and drop the entry?
+
 ## Speculative future ideas
 
 - **Zoom out with a multi-finger gesture:** a gesture (a two-finger double tap, say) that zooms
