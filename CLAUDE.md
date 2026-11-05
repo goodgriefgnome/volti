@@ -32,6 +32,11 @@ When asked for a plan:
   "Work for the immediate future" in `TODO.md` as a whole: it does every item there, in order, as
   the file says. Don't name or pick items.
 
+## Reviewing
+
+- Whenever I'm to review a Markdown file (a spec, a plan, docs), send it to me as a file, so I get a
+  link that opens it. Send it again each time it changes.
+
 ## Changing code
 
 - Never change code unless I ask you to in so many words ("implement", "code", "fix it" and the
