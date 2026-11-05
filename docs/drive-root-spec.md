@@ -109,20 +109,31 @@ pages, as for a locked folder now.
 
 ## The link
 
-A new kv key, `drive`, beside `folder`:
+The kv key `folder` keeps the linked folder, of either kind:
 
 ```ts
-/** What is stored under `drive`: the linked Drive folder, kept after unlinking to tell whether one linked later is the same. */
-interface DriveLink { folderId: string; name: string; linked: boolean }
+/** What is stored under `folder`: the linked folder, kept after unlinking to tell whether one linked later is the same. */
+type FolderLink =
+  | { kind: 'device'; handle: FileSystemDirectoryHandle; linked: boolean }
+  | { kind: 'drive'; folderId: string; name: string; linked: boolean };
 ```
 
-At most one of `folder` and `drive` is linked. Linking either unlinks the other first.
+As now, unlinking keeps it with `linked: false`, and linking the same folder again keeps every
+`folder` record (the same handle by `isSameEntry`; the same `folderId`). Linking a folder of the
+other kind writes over the last one of the first kind; its records are `gone` by then anyway
+(below), so nothing is lost by forgetting it.
 
-`device-score-fs.ts` keeps the device folder. A new `drive-score-fs.ts` keeps the Drive folder, as
-`device-score-fs.ts` does the device one: `linkDriveFolder(folderId, name)`, `unlinkDriveFolder()`,
-`driveFolderState()`, and `_driveRoot(): Promise<ScoreRoot | undefined>`. The functions the
-library calls (`folderState`, `unlockFolder`, `unlinkFolder`, and the root `_linkedRoot()`) answer
-for whichever is linked: `FolderState` gains where it is,
+A new `linked-folder.ts` owns the key, and the functions the library calls: `folderState`,
+`unlockFolder`, `unlinkFolder`, the root `_linkedRoot()`, and the turning of `folder` records into
+`gone` when another folder is linked (`linkFolder` does that now, `device-score-fs.ts:72-77`).
+Each asks the kind stored and goes to the module for it:
+
+- `device-score-fs.ts`, the device folder: `linkFolder` (the picker), unlocking by asking
+  permission, and its root, as now, but no longer reading or writing the key itself.
+- A new `drive-score-fs.ts`, the Drive folder: linking a chosen folder, unlocking by signing in,
+  and its root (`DriveRoot`, below).
+
+`FolderState` gains where the folder is:
 
 ```ts
 export type FolderState =
@@ -139,7 +150,8 @@ Records: a Drive folder's files are `folder` records, as a device folder's are: 
 into `gone` first, as linking another device folder does now; the first scan then finds the same
 ids in the new folder by their checksums, with nothing downloaded.
 
-`_isLinked()` (the service worker's) is true when either is linked.
+`_isLinked()` (the service worker's) reads the same key, so it covers both kinds.
+
 
 ## The folder chooser
 
@@ -259,8 +271,8 @@ scores kept on this tablet still open."
 
 ## Docs
 
-- `STORAGE.md`: the keys `drive` and `drive-auth`; `folder` records meaning the linked folder,
-  on the device or in Drive; OPFS `bytes/`; "What happens, by operation" for linking a Drive
+- `STORAGE.md`: `folder` holding either kind; the key `drive-auth`; `folder` records meaning the
+  linked folder, on the device or in Drive; OPFS `bytes/`; "What happens, by operation" for linking a Drive
   folder and for its scans.
 - `ARCHITECTURE.md`: the `originals/` row (the new files, in order), and the folder chooser in
   `dialogs/`.
@@ -270,8 +282,11 @@ scores kept on this tablet still open."
 
 ## Data
 
-Nothing stored changes shape, and nothing is dropped: `drive` and `drive-auth` are new keys, and
-OPFS `bytes/` a new directory.
+`folder` changes shape (it gains `kind`), so the link stored now is dropped: `DATA_VERSION` goes
+to 4, and the step from 3 deletes the key. The folder is then linked again once; as it isn't known
+to be the same, its records turn `gone` and its files are read again to find their ids (for a
+folder from Drive's Android app, downloading each once). Scores, cuts and markings are kept, by
+id. `drive-auth` is a new key, and OPFS `bytes/` a new directory.
 
 ## Open
 
