@@ -18,7 +18,8 @@ The Drive API gives each file's SHA-256 (`sha256Checksum`) with a listing, witho
 anything; it is the SHA-256 Volti uses for ids, so a Drive folder's scores keep their ids, their
 markings and their setlists. And a refresh token keeps Volti signed in between sessions.
 
-What the test page (`public/drive-test.html`) found, which this spec builds on:
+What a test page found (`public/drive-test.html`, since removed: it is in the history), which
+this spec builds on:
 
 - Google's token endpoint needs the client secret, with PKCE or without. A browser app has nowhere
   to hide one, so it ships in Volti's built code (but not in the repository: see "Signing in").
@@ -270,8 +271,7 @@ scores kept on this tablet still open."
 ## Data
 
 Nothing stored changes shape, and nothing is dropped: `drive` and `drive-auth` are new keys, and
-OPFS `bytes/` a new directory. The test page `public/drive-test.html` and its entry in the
-service worker's denylist (`src/sw.ts`) are removed.
+OPFS `bytes/` a new directory.
 
 ## Open
 
