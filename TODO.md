@@ -13,6 +13,19 @@ scores.
 
 ## Work for the immediate future
 
+- **Download the setlists' scores from Google Drive, not only pin them:** the offline job pins
+  the setlist scores' ids in the byte cache (`keepOriginalsOffline`, `library/_offline-pages.ts`),
+  but pinning keeps only bytes that arrive, and they arrive only when the job reads an original:
+  when its page shapes are unknown or a page still needs drawing. A setlist whose pages are all
+  saved (as when they were saved from a folder on the device, under the same ids) never has its
+  files downloaded, so its scores don't open on their own offline.
+  - `keepOriginalsOffline` (`originals/drive-score-fs.ts`) also downloads each pinned id that
+    has no bytes yet: its path from its `folder` record, then `read(path, id)` on the Drive root,
+    one at a time. Offline (`Unreachable`) or signed out (`NoAccess`), it stops quietly: the next
+    run of the job (any setlist change, or start-up) tries again. A device folder does nothing.
+  - Test (`drive-score-fs` or `_drive-root` tests, over the fake Drive): pinned and not kept is
+    downloaded; kept is not downloaded again; down stops without throwing.
+
 ## Confirmed features which require more thought
 
 - **The cache giving room back when the origin runs short of quota** [needs thought]: pinned
