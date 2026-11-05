@@ -25,8 +25,11 @@ What the test page (`public/drive-test.html`) found, which this spec builds on:
 - Refresh tokens work from the browser.
 - With `drive.file`, a folder picked in the Google Picker can't be listed: its files aren't the
   app's. With `drive.readonly`, it can. Volti also renames, moves, removes and writes files, so it
-  needs the full `drive` scope: a restricted scope, so the OAuth app stays in Testing, where a
-  refresh token lasts 7 days (to confirm: see "Open").
+  needs the full `drive` scope. That scope is restricted: Google verifies an app that uses it only
+  after a yearly security assessment. So the OAuth app is in production but unverified. Anyone can
+  sign in, past a "Google hasn't verified this app" warning, up to 100 users in all. Its refresh
+  tokens don't expire after 7 days, as they do while an app is in Testing (to confirm: see
+  "Open").
 - Drive's `sha256Checksum` is the SHA-256 of the bytes.
 
 ## What changes for the user
@@ -34,10 +37,12 @@ What the test page (`public/drive-test.html`) found, which this spec builds on:
 - **Link scores folder** offers two places: "A folder on this tablet" (as now) and "A folder in
   Google Drive". Where the browser can't pick a folder on the device (`canLinkFolder()` false:
   iPads, Firefox), it goes straight to Google Drive.
-- **Linking a Drive folder:** signing in to Google (Google's own page, then back to Volti), then
+- **Linking a Drive folder:** signing in to Google (Google's own page, then back to Volti; the
+  first time, past Google's "Google hasn't verified this app" warning, under Advanced), then
   choosing the folder in Volti's own folder chooser: My Drive's folders, opening one to see its
   folders, and "Use this folder".
-- **Signing in again** about once a week (while the refresh token lasts): the folder shows as
+- **Signing in again**, only when Google stops taking the refresh token: access removed from the
+  Google Account, the password changed, or about six months unused. The folder then shows as
   locked, and the banner's button is "Sign in to Google Drive" where it is "Allow access" for a
   folder on the device. Signing in leaves Volti for Google's page and comes back to the library.
 - **Scans download nothing.** A scan lists the folder's tree, a request or two per folder; no
@@ -258,7 +263,7 @@ scores kept on this tablet still open."
   folder and for its scans.
 - `ARCHITECTURE.md`: the `originals/` row (the new files, in order), and the folder chooser in
   `dialogs/`.
-- `README.md`: linking a Google Drive folder, and signing in again about once a week; under
+- `README.md`: linking a Google Drive folder (and Google's unverified-app warning); under
   Development, the two Actions secrets the deployed build needs and `.env.local` for a local one.
 - Each new module starts with a comment saying what belongs in it.
 
@@ -270,8 +275,13 @@ service worker's denylist (`src/sw.ts`) are removed.
 
 ## Open
 
-- **How long a refresh token lasts** while the OAuth app is in Testing: 7 days, by what Google's
-  forums say. If it is longer, signing in again is rarer; nothing else changes.
+- **That refresh tokens last** now that the app is in production: the test page, signed in again
+  after the switch, should still refresh after more than 7 days. Tokens issued while the app was
+  in Testing still expire after 7 days. If Google expires them anyway, signing in is weekly, and
+  nothing else changes.
+- **The 100-user cap** of an unverified app counts every account that ever signs in. Sharing Volti
+  beyond that needs verification and its yearly assessment, or a design around `drive.file`, which
+  can't see files a user adds to the folder outside Volti.
 - **The changes feed** (`changes.list`) would let a scan ask only what changed since the last one,
   instead of listing every folder. A listing downloads nothing, so it is left for later, if scans
   of a large tree turn out slow.
