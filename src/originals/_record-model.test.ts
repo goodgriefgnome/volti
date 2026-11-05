@@ -53,32 +53,32 @@ describe('_knownOf and _inRoot', () => {
 describe('_applyUpdate', () => {
   const at = { path: 'A.pdf', stamp: { size: 5, modified: 7 } };
   it('makes a record for a new id', () => {
-    expect(_applyUpdate(undefined, at, true)).toEqual({ next: folderRec('A.pdf', 5, 7) });
+    expect(_applyUpdate('x', undefined, at, true)).toEqual({ next: folderRec('A.pdf', 5, 7) });
   });
   it('moves a lower place to the folder, keeping aspects and password, dropping bytes it had', () => {
     for (const where of [{ kind: 'internal' }, { kind: 'inbox', inboxAt: 1 }, { kind: 'removed', removedAt: 2 }] as const) {
-      const r = _applyUpdate({ path: 'Old.pdf', where, aspects: [1.4], password: 'x' }, at, true);
+      const r = _applyUpdate('x', { path: 'Old.pdf', where, aspects: [1.4], password: 'x' }, at, true);
       expect(r?.next).toEqual({ path: 'A.pdf', where: { kind: 'folder', size: 5, modified: 7 }, aspects: [1.4], password: 'x' });
-      expect(r?.drop).toEqual({ id: '', where, path: 'Old.pdf' });
+      expect(r?.drop).toEqual({ id: 'x', where, path: 'Old.pdf' });
     }
   });
   it('moves a gone record without a drop', () => {
-    const r = _applyUpdate({ path: 'Old.pdf', where: { kind: 'gone' } }, at, true);
+    const r = _applyUpdate('x', { path: 'Old.pdf', where: { kind: 'gone' } }, at, true);
     expect(r?.next.where).toEqual({ kind: 'folder', size: 5, modified: 7 });
     expect(r?.drop).toBeUndefined();
   });
   it('changes nothing for a folder record as found', () => {
-    expect(_applyUpdate(folderRec('A.pdf', 5, 7), at, true)).toBeNull();
+    expect(_applyUpdate('x', folderRec('A.pdf', 5, 7), at, true)).toBeNull();
   });
   it('updates the path or stamp of a folder record, keeping the rest', () => {
     const rec = { ...folderRec('Old.pdf', 5, 7), aspects: [1] };
-    expect(_applyUpdate(rec, at, true)?.next).toEqual({ ...folderRec('A.pdf', 5, 7), aspects: [1] });
-    expect(_applyUpdate(folderRec('A.pdf', 1, 1), at, true)?.next).toEqual(folderRec('A.pdf', 5, 7));
-    expect(_applyUpdate(folderRec('A.pdf'), { path: 'A.pdf' }, true)?.next.where).toEqual({ kind: 'folder' });
+    expect(_applyUpdate('x', rec, at, true)?.next).toEqual({ ...folderRec('A.pdf', 5, 7), aspects: [1] });
+    expect(_applyUpdate('x', folderRec('A.pdf', 1, 1), at, true)?.next).toEqual(folderRec('A.pdf', 5, 7));
+    expect(_applyUpdate('x', folderRec('A.pdf'), { path: 'A.pdf' }, true)?.next.where).toEqual({ kind: 'folder' });
   });
   it('makes a folder record gone, and leaves others alone', () => {
-    expect(_applyUpdate({ ...folderRec('A.pdf'), password: 'p' }, undefined, true)?.next).toEqual({ path: 'A.pdf', where: { kind: 'gone' }, password: 'p' });
-    expect(_applyUpdate(internalRec('A.pdf'), undefined, true)).toBeNull();
-    expect(_applyUpdate(undefined, undefined, true)).toBeNull();
+    expect(_applyUpdate('x', { ...folderRec('A.pdf'), password: 'p' }, undefined, true)?.next).toEqual({ path: 'A.pdf', where: { kind: 'gone' }, password: 'p' });
+    expect(_applyUpdate('x', internalRec('A.pdf'), undefined, true)).toBeNull();
+    expect(_applyUpdate('x', undefined, undefined, true)).toBeNull();
   });
 });

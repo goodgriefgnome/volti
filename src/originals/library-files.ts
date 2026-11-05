@@ -202,10 +202,10 @@ export async function scanRoot(): Promise<void> {
       const drops: { id: string; where: Where; path: string }[] = [];
       await _updateRecords([...latest].map(([id, found]) => [id, (stored) => {
         if (!same(stored, seen.get(id))) return stored;
-        const applied = _applyUpdate(stored, found, true);
+        const applied = _applyUpdate(id, stored, found, true);
         if (!applied) return stored;
         wrote.set(id, applied.next);
-        if (applied.drop) drops.push({ ...applied.drop, id });
+        if (applied.drop) drops.push(applied.drop);
         return applied.next;
       }]));
       for (const [id, record] of wrote) seen.set(id, record);

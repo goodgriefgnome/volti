@@ -79,16 +79,16 @@ export function _inRoot(records: ReadonlyMap<string, OriginalRecord>, linked: bo
  * a place given up; null when nothing changes. `found` missing: the id is gone from the root.
  * STORAGE.md, "One place per original".
  */
-export function _applyUpdate(record: OriginalRecord | undefined, found: Found | undefined, linked: boolean): { next: OriginalRecord; drop?: { id: string; where: Where; path: string } } | null {
+export function _applyUpdate(id: string, record: OriginalRecord | undefined, found: Found | undefined, linked: boolean): { next: OriginalRecord; drop?: { id: string; where: Where; path: string } } | null {
   if (!found) return record?.where.kind === 'folder' ? { next: { ...record, where: { kind: 'gone' } } } : null;
   const where = _folderWhere(found.stamp);
   if (!record) return { next: { path: found.path, where } };
   if (record.where.kind === 'folder') {
     return record.path === found.path && _sameStamp(_stampOf(record.where), found.stamp) ? null : { next: { ...record, path: found.path, where } };
   }
-  // A lower place gives way to the folder. The id isn't known here: the caller fills in the drop's.
+  // A lower place gives way to the folder.
   if (_rank(record.where, linked) >= _rank(where, linked)) return null;
-  return { next: { ...record, path: found.path, where }, drop: hasBytes(record.where) ? { id: '', where: record.where, path: record.path } : undefined };
+  return { next: { ...record, path: found.path, where }, drop: hasBytes(record.where) ? { id, where: record.where, path: record.path } : undefined };
 }
 
 /** Whether a place has bytes of its own to delete when the record leaves it. */
