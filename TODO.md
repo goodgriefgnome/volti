@@ -207,7 +207,7 @@ scores.
   list quietly, reading only what changed. Feature-detected (`'FileSystemObserver' in self`),
   with reading the folder again as the fallback. Waiting for it to be standardised.
 - **A Google client of your own, past the 100-user cap:** Volti's Google OAuth app is unverified
-  (`docs/drive-root-spec.md`), so at most 100 accounts can ever sign in with it. Past that, a user
+  (README.md, "Using it"), so at most 100 accounts can ever sign in with it. Past that, a user
   would make their own client and give Volti its client ID and secret, which Volti keeps in a new
   kv key (`drive-client: { clientId, clientSecret }`) and uses in place of the built-in one.
   - Making one, about ten minutes in the Cloud Console: a project with the Drive API on; its
