@@ -6,7 +6,7 @@ import type { _ByteCache } from './_byte-cache';
 import type { _DriveApi, _DriveItem } from './_drive-api';
 import { hashBytes, inTurns } from './_filesystem-utils';
 import { _FolderScan } from './_folder-scan';
-import type { Known, Moved, ScoreRoot, Stamp, Update, Updates } from './_types';
+import type { Known, Moved, ScoreRoot, Stamp, UndeleteInfo, Update, Updates } from './_types';
 import { folderOf, _isOriginalName, _nameOf } from './path-utils';
 import { NoAccess } from './types';
 
@@ -179,10 +179,26 @@ export class DriveRoot implements ScoreRoot {
     return { path: to, file: new File([], _nameOf(to)) };
   }
 
-  async remove(path: string): Promise<void> {
+  /** Trashes the file, downloading and writing nothing: Drive's bin keeps it. `binned` says which file, and the folder it was in, to take it out again. */
+  async remove(path: string): Promise<UndeleteInfo> {
     const entry = await this.entryAt(path);
     if (!entry) throw missing(path);
     await this.api.trash(entry.fileId);
     this.files.delete(path);
+    return { binned: { fileId: entry.fileId, parent: entry.parent, folderId: this.folderId } };
+  }
+
+  /** In this root's bin when it was removed from this Drive folder. */
+  canUndelete(binned: Stamp): boolean {
+    return binned.folderId === this.folderId;
+  }
+
+  /** Untrashes the file and moves it to `to` in one request: back with its own Drive id. 'taken' when a file is at `to`. */
+  async undelete(binned: Stamp, to: string): Promise<Moved | 'taken'> {
+    if (await this.exists(to)) return 'taken';
+    const toFolder = (await this.folderIds(folderOf(to), true))[0];
+    await this.api.update(String(binned.fileId), { name: _nameOf(to), fromFolder: String(binned.parent), toFolder, untrash: true });
+    // Only the path matters to the library (the contents don't change), so no bytes are fetched for the file given.
+    return { path: to, file: new File([], _nameOf(to)) };
   }
 }

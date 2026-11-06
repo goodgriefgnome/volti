@@ -446,3 +446,19 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - Failures that were only in the console now show once: fill the storage (or block site data) and
     save markings, or leave the reader: the status line (library) or message (reader) says what
     could not be saved, once, not for every page.
+- **Removing from a Drive folder keeps no copy; Recently removed points at Drive's bin** (Drive
+  folder linked):
+  - Remove a score: it goes at once, with no wait for a download. On the Storage screen the Trash
+    figure doesn't grow, and the file is in Drive's bin (drive.google.com).
+  - Recently removed lists it with **Put back**. Tap it: it is back at its path, the same Drive
+    file (not a second one beside a trashed one) with its cuts and markings, and gone from Drive's bin.
+  - Remove a score, make a new file of the same name in Drive's website, Put back: the incoming
+    screen says the name is taken; a new name or folder puts the file back there; Replace puts it
+    there and the file it replaced is in the list, in Drive's bin.
+  - Remove a score from a Drive folder, then empty Drive's bin in the website, Put back: the
+    error shows and the entry stays.
+  - Remove a score from a Drive folder, link another folder (or none): Recently removed shows it
+    under "In another folder's bin", with no Put back. Link the first folder again: it is in the
+    main list again.
+  - Remove a score from a device folder and from Volti's own folder: both still show in the main
+    list and put back as before.

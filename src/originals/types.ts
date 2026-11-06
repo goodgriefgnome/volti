@@ -108,5 +108,8 @@ export class FolderRefused extends Error {
   name = 'FolderRefused';
 }
 
-/** A removed file: its id, where it was in the library, and when it was removed (ms since 1970). */
-export interface Removed { id: string; path: string; at: number }
+/**
+ * A removed file: its id, where it was in the library, and when it was removed (ms since 1970).
+ * `binned` is set for one in a root's own bin (Drive's), which Volti keeps no copy of.
+ */
+export interface Removed { id: string; path: string; at: number; binned?: Readonly<Record<string, string | number>> }

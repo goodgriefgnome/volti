@@ -48,6 +48,13 @@ export type Moved =
   | { path: string; file: File; stamp?: Stamp; leftBehind?: true }  // leftBehind: copied, but the file at `from` couldn't be deleted
   | { caseOnly: true };                                               // only the case changes, and this root can't do that
 
+/** How a removed file can be put back. */
+export type UndeleteInfo =
+  /** Its copy is in Volti's removed folder (OPFS removed/), kept at `copiedAt` (ms since 1970). */
+  | { copiedAt: number }
+  /** It is in a root's own bin; only that kind of root reads `binned`. */
+  | { binned: Stamp };
+
 /** A library root: files by path. */
 export interface ScoreRoot {
   /** Whether it can be read now without asking. Never asks. */
@@ -66,5 +73,14 @@ export interface ScoreRoot {
   write(path: string, data: Blob): Promise<{ file: File; stamp?: Stamp }>;
   /** Move the file at `from` to `to`, making the folders on it. */
   move(from: string, to: string): Promise<Moved>;
-  remove(path: string): Promise<void>;
+  /**
+   * Remove the file at `path`, whose id is `id`, from the root, and say how it can be put back: a
+   * root with a bin of its own (Drive) puts it there and writes nothing; the others first copy it
+   * into Volti's removed folder, so that failing part way loses nothing.
+   */
+  remove(path: string, id: string): Promise<UndeleteInfo>;
+  /** Whether `undelete` can take this file out of the bin: it is in this root's bin. Never asks, and needs no network. */
+  canUndelete(binned: Stamp): boolean;
+  /** Take a file out of the root's bin, to `to`, making the folders on it; 'taken' when a file is there now. */
+  undelete(binned: Stamp, to: string): Promise<Moved | 'taken'>;
 }

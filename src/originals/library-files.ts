@@ -14,7 +14,7 @@ import { _loadRecords, _onRecords, _record, _records, _updateRecord, _updateReco
 import type { Readable, ScoreRoot, Stamp } from './_types';
 import { _readOriginal } from './original';
 import { byTitle, folderOf, _nameOf, _shownFolder, _tidyPath, titleOf, _unfoundName } from './path-utils';
-import { _forgetRemovedBytes, _keepRemoved } from './trash-fs';
+import { _forgetRemovedBytes } from './trash-fs';
 import type { AskPassword, Original, SourceFile } from './types';
 
 /** The library's root: the linked folder, or the app's own. Access to a linked one must be allowed. */
@@ -80,15 +80,15 @@ class LibraryFile implements Readable {
   async remove(): Promise<void> {
     const r = await _root();
     await r.needAccess('readwrite');
-    const before = _record(this.id);
-    await _keepRemoved(this.id, this.path, await r.read(this.path));
-    const kept = _record(this.id)?.where;
+    // The root keeps what Volti needs to put it back (a copy, or a place in its own bin), or fails and leaves the file where it is.
+    const removed = await r.remove(this.path, this.id);
+    const removedAt = 'copiedAt' in removed ? removed.copiedAt : Date.now();
+    const where: Where = 'copiedAt' in removed ? { kind: 'removed', removedAt } : { kind: 'binned', removedAt, binned: removed.binned };
     try {
-      await r.remove(this.path);
+      await _updateRecord(this.id, (rec) => ({ ...rec, path: this.path, where }));
     } catch (e) {
-      // Still in the library: not removed after all.
-      await _updateRecord(this.id, () => before);
-      if (kept?.kind === 'removed') await _forgetRemovedBytes(this.id, kept.removedAt);
+      // Not recorded: the copy is no use to anyone.
+      if ('copiedAt' in removed) await _forgetRemovedBytes(this.id, removedAt);
       throw e;
     }
   }

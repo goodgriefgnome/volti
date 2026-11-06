@@ -11,6 +11,11 @@ describe('_toPurge', () => {
     expect(_toPurge(records({ a: rec(0) }), _KEEP_MS)).toEqual(['a']);
     expect(_toPurge(records({ a: rec(0) }), _KEEP_MS - 1)).toEqual([]);
   });
+  it('purges binned records at the same time, as removed ones', () => {
+    const binned = (removedAt: number): OriginalRecord => ({ path: 'A.pdf', where: { kind: 'binned', removedAt, binned: { fileId: 'f' } } });
+    expect(_toPurge(records({ a: binned(0) }), _KEEP_MS)).toEqual(['a']);
+    expect(_toPurge(records({ a: binned(0) }), _KEEP_MS - 1)).toEqual([]);
+  });
   it('only purges removed records', () => {
     expect(_toPurge(records({ a: internalRec('A.pdf'), b: { path: 'B.pdf', where: { kind: 'gone' } } }), 10 * _KEEP_MS)).toEqual([]);
   });

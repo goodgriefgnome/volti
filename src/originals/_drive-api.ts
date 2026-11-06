@@ -19,8 +19,8 @@ export interface _DriveApi {
   /** A new file in `folderId`, or new contents for `over`. Gives its id. */
   upload(folderId: string, name: string, data: Blob, over?: string): Promise<string>;
   createFolder(parentId: string, name: string): Promise<string>;
-  /** Rename and/or move a file (from `fromFolder` to `toFolder`). */
-  update(fileId: string, change: { name?: string; fromFolder?: string; toFolder?: string }): Promise<void>;
+  /** Rename and/or move a file (from `fromFolder` to `toFolder`), and/or take it out of the trash (`untrash`), in one request. */
+  update(fileId: string, change: { name?: string; fromFolder?: string; toFolder?: string; untrash?: boolean }): Promise<void>;
   trash(fileId: string): Promise<void>;
 }
 
@@ -94,9 +94,9 @@ export function _httpDriveApi(auth: _DriveAuth): _DriveApi {
       const res = await send(`${API}?fields=id`, { method: 'POST', headers: json, body: JSON.stringify({ name, mimeType: FOLDER, parents: [parentId] }) });
       return ((await res.json()) as { id: string }).id;
     },
-    async update(fileId, { name, fromFolder, toFolder }) {
+    async update(fileId, { name, fromFolder, toFolder, untrash }) {
       const params = new URLSearchParams({ fields: 'id', ...(toFolder && toFolder !== fromFolder ? { addParents: toFolder, removeParents: fromFolder ?? '' } : {}) });
-      await send(`${API}/${fileId}?${params}`, { method: 'PATCH', headers: json, body: JSON.stringify(name === undefined ? {} : { name }) });
+      await send(`${API}/${fileId}?${params}`, { method: 'PATCH', headers: json, body: JSON.stringify({ ...(name === undefined ? {} : { name }), ...(untrash ? { trashed: false } : {}) }) });
     },
     async trash(fileId) {
       await send(`${API}/${fileId}?fields=id`, { method: 'PATCH', headers: json, body: JSON.stringify({ trashed: true }) });

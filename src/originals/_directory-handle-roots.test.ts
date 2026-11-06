@@ -90,10 +90,43 @@ describe('file operations', () => {
     expect(f.paths()).toEqual(['A.pdf']);
   });
 
-  it('removes', async () => {
-    const f = _fakeFolder({ 'A/B.pdf': { bytes: 'a' } });
-    await new InternalDirectoryHandleRoot(as(f)).remove('A/B.pdf');
-    expect(f.paths()).toEqual([]);
+  describe('remove', () => {
+    const inBin = (bin: ReturnType<typeof _fakeFolder>) => bin.paths().map((p) => [p, bin.text(p)]);
+
+    it('moves a file of Volti\'s own folder into the removed folder', async () => {
+      const f = _fakeFolder({ 'A/B.pdf': { bytes: 'a' } }), bin = _fakeFolder({});
+      const { copiedAt } = await new InternalDirectoryHandleRoot(as(f), async () => as(bin)).remove('A/B.pdf', 'id1') as { copiedAt: number };
+      expect(f.paths()).toEqual([]);
+      expect(inBin(bin)).toEqual([[`${copiedAt}-id1`, 'a']]);
+    });
+
+    it('copies a file of the linked folder, then deletes it', async () => {
+      const f = _fakeFolder({ 'A/B.pdf': { bytes: 'a' } }), bin = _fakeFolder({});
+      const { copiedAt } = await new LinkedDirectoryHandleRoot(as(f), async () => as(bin)).remove('A/B.pdf', 'id1') as { copiedAt: number };
+      expect(f.paths()).toEqual([]);
+      expect(inBin(bin)).toEqual([[`${copiedAt}-id1`, 'a']]);
+    });
+
+    it('copies where the file system can\'t move', async () => {
+      const f = _fakeFolder({ 'B.pdf': { bytes: 'a' } }, { noMove: true }), bin = _fakeFolder({});
+      await new InternalDirectoryHandleRoot(as(f), async () => as(bin)).remove('B.pdf', 'id1');
+      expect(f.paths()).toEqual([]);
+      expect(bin.paths()).toHaveLength(1);
+    });
+
+    it('leaves the file, and no copy, when it can\'t be deleted', async () => {
+      const f = _fakeFolder({ 'B.pdf': { bytes: 'a' } }), bin = _fakeFolder({});
+      f.failRemove = true;
+      await expect(new LinkedDirectoryHandleRoot(as(f), async () => as(bin)).remove('B.pdf', 'id1')).rejects.toThrow('Remove failed');
+      expect(f.paths()).toEqual(['B.pdf']);
+      expect(bin.paths()).toEqual([]);
+    });
+
+    it('has no bin of its own to take a file out of', async () => {
+      const root = new LinkedDirectoryHandleRoot(as(_fakeFolder({})), async () => as(_fakeFolder({})));
+      expect(root.canUndelete()).toBe(false);
+      await expect(root.undelete()).rejects.toThrow();
+    });
   });
 });
 

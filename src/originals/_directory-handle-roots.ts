@@ -5,16 +5,18 @@
 
 import { hashFile, inTurns, walk, writeFile } from './_filesystem-utils';
 import { _FolderScan } from './_folder-scan';
-import { _sameStamp } from './_record-model';
-import type { Known, Moved, ScoreRoot, Stamp, Update, Updates } from './_types';
+import { _bytesName, _sameStamp } from './_record-model';
+import type { Known, Moved, ScoreRoot, Stamp, UndeleteInfo, Update, Updates } from './_types';
 import { folderOf, _nameOf } from './path-utils';
+import { _removedDir } from './trash-fs';
 import { NoAccess } from './types';
 
 /** New files are few and wanted soon, so their hashing goes this many at once. */
 const NEW_FILES_AT_ONCE = 8;
 
 abstract class DirectoryHandleRoot implements ScoreRoot {
-  constructor(protected dir: FileSystemDirectoryHandle) {}
+  /** `bin` is Volti's removed folder, where a removed file's copy goes. */
+  constructor(protected dir: FileSystemDirectoryHandle, protected bin: () => Promise<FileSystemDirectoryHandle> = _removedDir) {}
 
   abstract access(): Promise<'ready' | 'locked'>;
   abstract needAccess(mode: 'read' | 'readwrite'): Promise<void>;
@@ -77,13 +79,31 @@ abstract class DirectoryHandleRoot implements ScoreRoot {
     return { path: now, file, stamp: this.stampOf(file), ...(leftBehind ? { leftBehind: true as const } : {}) };
   }
 
-  async remove(path: string): Promise<void> {
+  /** The file is copied into Volti's removed folder first, so failing part way loses nothing; a copy left by a failed delete is deleted. */
+  async remove(path: string, id: string): Promise<UndeleteInfo> {
     const [d, name] = await this.placeOf(path);
-    await d.removeEntry(name);
+    const copiedAt = Date.now();
+    const bin = await this.bin();
+    const kept = _bytesName(id, { kind: 'removed', removedAt: copiedAt });
+    await writeFile(bin, kept, await (await d.getFileHandle(name)).getFile());
+    try {
+      await d.removeEntry(name);
+    } catch (e) {
+      await bin.removeEntry(kept).catch(() => {});
+      throw e;
+    }
+    return { copiedAt };
+  }
+
+  /** A folder has no bin of its own: a removed file is put back from the copy Volti keeps. */
+  canUndelete(): boolean { return false; }
+
+  async undelete(): Promise<Moved | 'taken'> {
+    throw new Error('A folder has no bin to take a file out of');
   }
 
   /** The folder a path in the root is in, and the file's name. */
-  private async placeOf(path: string): Promise<[FileSystemDirectoryHandle, string]> {
+  protected async placeOf(path: string): Promise<[FileSystemDirectoryHandle, string]> {
     const parts = path.split('/');
     let d = this.dir;
     for (const p of parts.slice(0, -1)) d = await d.getDirectoryHandle(p);
@@ -101,6 +121,18 @@ abstract class DirectoryHandleRoot implements ScoreRoot {
 /** Volti's own folder in OPFS: always ready, no stamps, and nothing changes in it but what Volti does. */
 export class InternalDirectoryHandleRoot extends DirectoryHandleRoot {
   async access() { return 'ready' as const; }
+
+  /** Moves the file into Volti's removed folder, where the file system can; else copies it, as any folder does. */
+  override async remove(path: string, id: string): Promise<UndeleteInfo> {
+    const [d, name] = await this.placeOf(path);
+    const h = await d.getFileHandle(name);
+    const copiedAt = Date.now();
+    const moved = h.move
+      ? await h.move(await this.bin(), _bytesName(id, { kind: 'removed', removedAt: copiedAt })).then(() => true, (e) => { console.warn('Removing by copying, as moving failed:', e); return false; })
+      : false;
+    return moved ? { copiedAt } : super.remove(path, id);
+  }
+
   async needAccess() {}
   async *getUpdates(): AsyncIterable<Updates> {}
   protected stampOf() { return undefined; }

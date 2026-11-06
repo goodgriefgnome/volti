@@ -71,9 +71,10 @@ export class FakeDrive implements _DriveApi {
     return this.add(parentId, name, new Uint8Array(), true);
   }
 
-  async update(fileId: string, change: { name?: string; fromFolder?: string; toFolder?: string }): Promise<void> {
+  async update(fileId: string, change: { name?: string; fromFolder?: string; toFolder?: string; untrash?: boolean }): Promise<void> {
     this.gate(`update ${fileId}`);
     const i = this.item(fileId);
+    if (change.untrash) i.trashed = false;
     if (change.name !== undefined) i.name = change.name;
     if (change.toFolder && change.toFolder !== change.fromFolder) {
       if (change.fromFolder !== i.parent) throw new Error('removeParents is not a parent');

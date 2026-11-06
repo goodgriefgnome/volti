@@ -24,6 +24,8 @@ export type Where =
   | { kind: 'inbox'; inboxAt: number }
   /** In Recently removed, at OPFS removed/<removedAt>-<id>; `path` is where it was. */
   | { kind: 'removed'; removedAt: number }
+  /** In a root's own bin (Drive's trash), removed at `removedAt`; Volti keeps no bytes. `path` is where it was. */
+  | { kind: 'binned'; removedAt: number; binned: Stamp }
   /** Nowhere Volti can find: deleted outside Volti, or purged from Recently removed. */
   | { kind: 'gone' };
 
@@ -38,7 +40,8 @@ export function _rank(where: Where, linked: boolean): number {
     case 'folder': return linked ? 4 : 0;
     case 'internal': return 3;
     case 'inbox': return 2;
-    case 'removed': return 1;
+    case 'removed':
+    case 'binned': return 1;
     case 'gone': return 0;
   }
 }
@@ -94,9 +97,9 @@ export function _applyUpdate(id: string, record: OriginalRecord | undefined, fou
 /** Whether a place has bytes of its own to delete when the record leaves it. */
 const hasBytes = (where: Where) => where.kind === 'internal' || where.kind === 'inbox' || where.kind === 'removed';
 
-/** The ids whose removed copy is due to be purged at `now`: removed 7 days ago or more. */
+/** The ids whose removal is due to be purged at `now`: removed 7 days ago or more, kept by Volti or in a bin. */
 export function _toPurge(records: ReadonlyMap<string, OriginalRecord>, now: number): string[] {
-  return [...records].filter(([, r]) => r.where.kind === 'removed' && now - r.where.removedAt >= _KEEP_MS).map(([id]) => id);
+  return [...records].filter(([, r]) => (r.where.kind === 'removed' || r.where.kind === 'binned') && now - r.where.removedAt >= _KEEP_MS).map(([id]) => id);
 }
 
 /** The name a record's bytes have in OPFS's inbox/ (the id) or removed/ ("<removedAt>-<id>"). */

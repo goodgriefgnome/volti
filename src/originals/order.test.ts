@@ -7,8 +7,8 @@ import { describe, expect, it } from 'vitest';
 
 /** The files of originals/, each importing only from those before it. */
 const ORDER = [
-  '_fake-handles', 'path-utils', '_filesystem-utils', 'types', '_types', '_record-model', '_record-store', '_folder-scan', '_directory-handle-roots', '_drive-config', '_drive-auth', '_drive-api', '_byte-cache', '_fake-drive', '_drive-root', '_pdf-source', '_image-source', '_sources', 'original',
-  '_folder-link', 'device-score-fs', 'drive-score-fs', 'linked-folder', 'internal-score-fs', 'inbox-fs', 'trash-fs', 'library-files', 'misc-files',
+  '_fake-handles', 'path-utils', '_filesystem-utils', 'types', '_types', '_record-model', '_record-store', 'trash-fs', '_folder-scan', '_directory-handle-roots', '_drive-config', '_drive-auth', '_drive-api', '_byte-cache', '_fake-drive', '_drive-root', '_pdf-source', '_image-source', '_sources', 'original',
+  '_folder-link', 'device-score-fs', 'drive-score-fs', 'linked-folder', 'internal-score-fs', 'inbox-fs', 'library-files', 'misc-files',
 ];
 
 const sources = import.meta.glob<string>(['./*.ts', '!./*.test.ts'], { query: '?raw', import: 'default', eager: true });

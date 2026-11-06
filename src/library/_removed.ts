@@ -1,11 +1,11 @@
 // Recently removed, from the library's ⋯ menu: the files removed in the last week, the latest
 // first, each with where it was and when, and a button that puts it back there, through the screen
-// for incoming files when another file is there now.
+// for incoming files when another file is there now. Files in another folder's bin (Drive's) are
+// listed apart, below, with no button: only that folder can give them back.
 
 import { folderOf, titleOf } from '../originals/path-utils';
 import { type Removed } from '../originals/types';
-import { recentlyRemoved } from '../originals/trash-fs';
-import { removedSource } from '../originals/misc-files';
+import { removedLists, removedSource } from '../originals/misc-files';
 import { button, el } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog } from '../ui/overlay';
 import type { LibraryHost } from './_host';
@@ -21,22 +21,27 @@ const removedWhen = (at: number, now = Date.now()) => {
 };
 
 export async function openRecentlyRemoved(lib: LibraryHost) {
-  const removed = await recentlyRemoved();
+  const { here, elsewhere } = await removedLists();
   const d = showDialog('Recently removed');
-  const hint = el('p', 'hint', removed.length
-    ? 'Removed files are kept here for a week, then deleted for good. Their cuts, markings and excerpts stay.'
+  const hint = el('p', 'hint', here.length || elsewhere.length
+    ? 'Removed files are kept for a week, then deleted for good. Their cuts, markings and excerpts stay.'
     : 'Nothing has been removed in the last week.');
   const error = el('p', 'hint error');
   error.setAttribute('aria-live', 'polite');
   const list = el('ul', 'removed-list');
-  for (const r of removed) list.append(row(r));
-  d.append(hint, ...(removed.length ? [list] : []), error, buttonRow(button('Close', closeOverlay, 'primary')));
+  for (const r of here) list.append(row(r, true));
+  const other = el('ul', 'removed-list');
+  for (const r of elsewhere) other.append(row(r, false));
+  d.append(hint, ...(here.length ? [list] : []), error,
+    ...(elsewhere.length ? [el('h3', '', 'In another folder\'s bin'), other] : []),
+    buttonRow(button('Close', closeOverlay, 'primary')));
 
-  function row(r: Removed): HTMLElement {
+  function row(r: Removed, canPutBack: boolean): HTMLElement {
     const li = el('li', 'removed-row');
     const text = el('span', 'pick-text');
     const folder = folderOf(r.path);
     text.append(el('span', 'name', titleOf(r.path)), el('span', 'meta', `${folder ? folder.split('/').join(' / ') + ' · ' : ''}removed ${removedWhen(r.at)}`));
+    if (!canPutBack) { li.append(text); return li; }
     const restore = button('Put back', () => void putBack(), 'quiet');
     restore.setAttribute('aria-label', `Put back “${titleOf(r.path)}”`);
     li.append(text, restore);
@@ -59,7 +64,7 @@ export async function openRecentlyRemoved(lib: LibraryHost) {
       if (why) { error.textContent = why; restore.disabled = false; return; }
       li.remove();
       lib.say(`Put back “${titleOf(r.path)}”.`);
-      if (!list.childElementCount) closeOverlay();
+      if (!list.childElementCount && !other.childElementCount) closeOverlay();
     };
     return li;
   }
