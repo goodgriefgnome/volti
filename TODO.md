@@ -181,20 +181,51 @@ scores.
   then moves the Drive file to Drive's trash. For a Drive folder that copy is redundant: Drive's
   bin keeps the file for 30 days, and removing needs a network anyway (the trashing). "Put back"
   then uploads the copy as a new file, beside the trashed one.
-  - Instead, for a Drive folder: removing trashes the file and marks the record `removed`,
-    noting its Drive file id, downloading and writing nothing. Put back untrashes it
-    (`files.update`, `trashed: false`): back at its path, with its own Drive id. `purgeRemoved`
-    only turns the record `gone`; Drive empties its bin itself. A device folder keeps the copy, as
-    it has no bin.
+  - Each root manages its own bin. In `originals/_types.ts`:
+
+    ```ts
+    /** How a removed file can be put back. */
+    type UndeleteInfo =
+      /** Its copy is in Volti's removed folder (OPFS removed/), kept at `copiedAt`. */
+      | { copiedAt: number }
+      /** It is in a root's own bin; only that kind of root reads `binned`. */
+      | { binned: Stamp };
+
+    interface ScoreRoot {
+      remove(path: string): Promise<UndeleteInfo>;
+      /** Whether `undelete` can take this file out of the bin: it is in this root's bin. Never asks, and needs no network. */
+      canUndelete(binned: Stamp): boolean;
+      /** Take a file out of the root's bin, to `to`, making the folders on it; 'taken' when a file is there now. */
+      undelete(binned: Stamp, to: string): Promise<Moved | 'taken'>;
+    }
+    ```
+
+    - Drive trashes the file and gives `{ binned: { fileId, folderId } }`, downloading and
+      writing nothing. `canUndelete` is true when `folderId` is its own. `undelete` untrashes it
+      and moves it to `to` (one `files.update`): back with its own Drive id.
+    - A device folder writes its copy into Volti's removed folder before it deletes the file, so
+      failing part way loses nothing, and gives `{ copiedAt }`. Volti's own folder moves
+      `library/<path>` into `removed/`. Both answer false to `canUndelete`; `undelete` throws.
+  - The records: `{ kind: 'removed'; removedAt }` stays as it is, its bytes in `removed/`. A new
+    kind, `{ kind: 'binned'; removedAt; binned }`, has no bytes in Volti. Start-up tidying,
+    `hasBytes` and `_bytesName` don't change.
+  - Put back:
+    - A `removed` entry works as now (`removedSource`, `misc-files.ts`): its copy is moved into
+      whatever is linked, Drive included, through the incoming screen when the path is taken.
+    - A `binned` entry goes through a source whose move calls `root.undelete(binned, to)`. When the
+      path is taken, it is the same incoming screen: a new name or folder undeletes it there;
+      replacing removes the file at the path first, which becomes an entry of its own.
+    - When Drive refuses (404: deleted for good, or another account signed in), the error shows
+      and the entry stays as it is.
+  - Recently removed lists every entry. The `removed` entries and the `binned` ones the current
+    root can undelete are in its list, with Put back. The other `binned` entries are in a section
+    below, "In another folder's bin", without Put back; it shows when no folder is linked too.
+    Each part is the latest first.
+  - The week: `purgeRemoved` (`trash-fs.ts`) deletes the `removed` copies as now, and turns
+    `binned` entries `gone` without calling anything; Drive empties its bin itself. Nothing on
+    `ScoreRoot` purges. `switchTo` (`linked-folder.ts`) doesn't touch `binned` entries: linking
+    another folder and then this one again within the week brings them back.
   - The cost: emptying Drive's bin within the week makes Put back fail.
-  - To decide:
-    - Where the Drive id goes: on the `removed` record (`driveFileId?`), or a new kind of
-      `Where` (`trashed`), which keeps "bytes in `removed/`" true of every `removed` record.
-    - Put back after the link has changed (another Drive folder, or a device folder): untrashing
-      puts the file in the old folder, out of the library. Not offered then, or untrash and say
-      where it went?
-    - Put back when Drive refuses (deleted for good): say it is no longer in Google Drive's bin,
-      and drop the entry?
 
 ## Speculative future ideas
 
