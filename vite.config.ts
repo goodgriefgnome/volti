@@ -58,5 +58,8 @@ export default defineConfig({
   ],
   test: {
     include: ['src/**/*.test.ts'],
+    // Off: it misses files new to an import.meta.glob (layers.test.ts, originals/order.test.ts), so
+    // they pass here on a stale list of files and fail in CI; it saves only about half a second.
+    fsModuleCache: false,
   },
 });
