@@ -213,7 +213,10 @@ again downloads the model once.
 `face/_landmarker.ts`:
 
 ```ts
-/** The landmarker, made on first use and kept: the model and WASM from mediapipe/ next to the app; GPU, else CPU. */
+/**
+ * The landmarker, made on first use and kept for the session: the model and WASM from mediapipe/
+ * next to the app; GPU, else CPU. A failed attempt isn't kept: the next call tries again.
+ */
 export async function landmarker(): Promise<FaceLandmarker>;
 /** One frame's scores, or null when no face is in it. */
 export function detect(l: FaceLandmarker, video: HTMLVideoElement, now: number): FaceFrame | null;
@@ -254,7 +257,15 @@ export class FaceWatcher {
   /** New settings: the detector starts afresh with them. */
   setSettings(s: FaceSettings): void;
 }
+
+/** Load MediaPipe and the model in the background, if any gesture is set; failures are dropped (starting tries again). */
+export async function warmUp(): Promise<void>;
 ```
+
+`warmUp` loads the settings (`loadFaceSettings`) and, when `hasGestures`, calls `landmarker()`,
+catching everything. In `library/library.ts`, the constructor's first `void this.refresh()` (now
+`library.ts:121`) becomes `void this.refresh().then(() => warmUp())`, so the loading starts once the
+library has read its scores, and never competes with that.
 
 - `start`: `getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } })`,
   the video `playsInline`, `muted`, `autoplay`; `landmarker()`; then the loop.
@@ -468,6 +479,8 @@ reload).
 - The precache limit goes to 16 MB for all files.
 - The landmarker is kept once loaded, for the rest of the session, so turning watching back on is
   quick.
+- A failure while loading MediaPipe in the background is dropped, not shown: starting the camera
+  tries again and says why it fails.
 - A wink's "other eye" level is set by calibration only; the dialog doesn't show it.
 - Settings are saved at every change, as the marking colours are.
 - The dialog starts the camera as soon as it opens.

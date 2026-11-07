@@ -131,8 +131,7 @@ From the top:
      threshold);
    - **Hold**: a slider, in ms.
 3. **Calibrate** (below).
-4. A hint: "To keep notifications away while you play, turn on Do Not Disturb."
-5. **Done**.
+4. **Done**.
 
 ### Calibration
 
@@ -161,8 +160,13 @@ the device's own, like the tool settings. No existing data changes.
 
 ## MediaPipe
 
-- `@mediapipe/tasks-vision`, pinned to an exact version, is a dependency. Its code is loaded only
-  when the camera starts (a dynamic `import`), so it doesn't slow the app's start.
+- `@mediapipe/tasks-vision`, pinned to an exact version, is a dependency. Its code is in a chunk of
+  its own (a dynamic `import`), so it doesn't slow the app's start.
+- Once the library has opened (its first reading of the scores), if any gesture is set to a
+  direction, MediaPipe and the model are loaded in the background, so tapping the button starts
+  watching quickly. Otherwise they load when the camera first starts. Once loaded, they stay loaded
+  for the session. A failure in the background is dropped: starting the camera tries again, and
+  says why if it fails.
 - Its WASM files (`vision_wasm_internal.js` and `.wasm`, the SIMD build only) and the face model
   (`face_landmarker.task`, float16, version 1) are served by Volti itself from `mediapipe/` next to
   the app. Nothing is fetched from anywhere else: the privacy policy stays true as it is.
