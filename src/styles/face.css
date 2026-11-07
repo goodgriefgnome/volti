@@ -40,3 +40,23 @@
   .face-button::after, .face-button::before, .face-glyph { animation: none !important; }
   .face-button[data-state="starting"]::after { border-color: var(--accent) transparent transparent; }
 }
+
+/* The Face gestures dialog (dialogs/face-gestures.ts). */
+.dialog.face-gestures { width: min(560px, calc(100vw - 32px)); }
+.face-stage { display: flex; gap: 14px; align-items: flex-start; }
+.face-video { width: 160px; border-radius: 8px; transform: scaleX(-1); background: #000; flex: none; }
+.face-preview-button { padding: 10px; flex: none; }
+.face-page { flex: 1; align-self: stretch; min-height: 88px; display: grid; place-items: center; font-size: 40px; border: 1px solid var(--line); border-radius: 8px; font-variant-numeric: tabular-nums; }
+.face-rows { display: grid; gap: 6px; }
+.face-row { display: grid; gap: 6px; padding: 8px 0; border-top: 1px solid var(--line); }
+.face-row-head { display: flex; align-items: center; gap: 12px; }
+.face-row-head .name { flex: 1; font-weight: 600; }
+.face-meter { position: relative; height: 10px; border-radius: 5px; background: var(--accent-soft); overflow: hidden; }
+.face-meter .fill { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--accent); }
+.face-meter .mark { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--fg); }
+.face-slider { display: grid; grid-template-columns: 6.5em minmax(0, 1fr) 5em; gap: 8px; align-items: center; min-height: 44px; }
+.face-slider input { width: 100%; accent-color: var(--accent); }
+.face-slider .value { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+.face-calibrating { display: grid; gap: 8px; }
+.face-calibrating .instruction { margin: 0; font-size: 18px; }
+@media (prefers-reduced-motion: reduce) { .face-video { transition: none; } }

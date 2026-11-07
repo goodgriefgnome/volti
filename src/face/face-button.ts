@@ -5,9 +5,10 @@
 import { LONG_PRESS_MS, onLongPress } from '../ui/long-press';
 import { el } from '../ui/dom';
 import type { Progress } from './_detector';
+import type { FaceButtonState } from './button-state';
 import type { TurnDir } from './gestures';
 
-export type FaceButtonState = 'unavailable' | 'off' | 'starting' | 'watching' | 'noFace' | 'paused';
+export type { FaceButtonState };
 
 export interface FaceButton {
   el: HTMLElement;

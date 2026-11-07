@@ -25,6 +25,8 @@ import { loadSetlists } from '../setlists/store';
 import { type Setlist } from '../setlists/model';
 import { closeOverlay } from '../ui/overlay';
 import { loadToolSettings, saveToolSettings } from '../markings/store';
+import { buttonState } from '../face/button-state';
+import { openFaceGestures } from '../dialogs/face-gestures';
 import { faceButton, type FaceButton } from '../face/face-button';
 import { DEFAULT_FACE_SETTINGS, hasGestures, type FaceSettings } from '../face/gestures';
 import { loadFaceSettings } from '../face/store';
@@ -48,7 +50,7 @@ import { backIcon, Toolbar, turnIcon } from './_toolbar';
 import { ReaderMenus } from './_toolbar-menus';
 import { offerScore, turnFrom, type Offer } from './_turning';
 import { gateTurn, type TurnGate } from './_turn-gate';
-import { buttonState, nextWatching, type WatchEvent, type Watching } from './_face-watch';
+import { nextWatching, type WatchEvent, type Watching } from './_face-watch';
 import { makeTools } from './tools/_tools';
 import type { ButtonFace, HandHost, Tool, ToolName } from './tools/_tool';
 import { resumeAt, type LastRead } from './_last-read';
@@ -611,6 +613,13 @@ class Reader {
   /** Open the Face gestures dialog; watching stops while it is open. */
   private openFaceSettings() {
     this.watchEvent({ kind: 'settingsOpened' });
+    openFaceGestures(() => {
+      void loadFaceSettings().then((s) => {
+        this.faceSettings = s;
+        this.face.setSettings(s);
+        this.watchEvent({ kind: 'gesturesChanged', available: hasGestures(s) });
+      }, (e) => failedOnce("load the face gestures' settings", e));
+    });
   }
 
   private say(text: string) {

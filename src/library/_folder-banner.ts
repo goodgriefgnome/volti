@@ -8,6 +8,7 @@ import { driveOffered } from '../originals/drive-score-fs';
 import { button, el } from '../ui/dom';
 import { showMenu } from '../ui/overlay';
 import type { LibraryHost } from './_host';
+import { openFaceGestures } from '../dialogs/face-gestures';
 import { openMarkColors } from './_mark-colors';
 import { openRecentlyRemoved } from './_removed';
 import { storageView } from './_storage';
@@ -40,6 +41,7 @@ export class FolderBanner {
       f.kind !== 'none' && lib.leftIn > 0 && { label: `Move ${lib.leftIn === 1 ? 'the score' : `${lib.leftIn} scores`} left in Volti…`, run: () => void lib.moveLeftIn(true) },
       { label: 'Recently removed…', run: () => void openRecentlyRemoved(lib) },
       { label: 'Marking colours…', run: openMarkColors },
+      { label: 'Face gestures…', run: () => openFaceGestures() },
       'Storage used on this tablet',
       storageView(),
       `Version ${__VERSION__}`,
