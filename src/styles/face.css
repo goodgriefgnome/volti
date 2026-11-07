@@ -1,10 +1,14 @@
 /* The face gestures' button (face/face-button.ts) and, with the dialog, its settings. */
-:root { --paused: #8b8f97; }
-
 .face-button {
   position: relative; width: 44px; height: 44px; min-height: 0; padding: 0; display: grid; place-items: center; border-radius: 50%;
   border: 0; background: rgba(255, 255, 255, 0.85); color: #1d2026; box-shadow: 0 0 0 1px var(--bar-line); opacity: 0.9;
 }
+/* On the reader: at the top right while the toolbar is hidden, opposite the back arrow, clear of the edges for its ring. */
+.reader > .face-button {
+  position: absolute; z-index: 6; display: none;
+  top: max(12px, env(safe-area-inset-top, 0px)); right: max(12px, env(safe-area-inset-right, 0px));
+}
+.reader.chrome-hidden > .face-button { display: grid; }
 .face-button.inert { pointer-events: none; }
 .face-glyph { width: 22px; height: 22px; display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transform-origin: 50% 50%; }
 /* The rings are 64 px square, centred on the 44 px button. */

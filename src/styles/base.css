@@ -10,6 +10,7 @@
   --accent-fg: #ffffff;
   --select: #1f6fe0;
   --warn: #a8461c;
+  --paused: #8b8f97;
   /* The parts of the storage used: metadata, added scores, setlist cache, offline binary. */
   --part-meta: #2f5fb3; --part-added: #8a5a12; --part-setlists: #3f8a6e; --part-cache: #6a5ab8; --part-trash: #a8455a; --part-drive: #1f8aa8; --part-app: #8a8f9c;
   --stage: #eef0f3;

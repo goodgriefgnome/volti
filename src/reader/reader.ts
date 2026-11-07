@@ -25,6 +25,10 @@ import { loadSetlists } from '../setlists/store';
 import { type Setlist } from '../setlists/model';
 import { closeOverlay } from '../ui/overlay';
 import { loadToolSettings, saveToolSettings } from '../markings/store';
+import { faceButton, type FaceButton } from '../face/face-button';
+import { DEFAULT_FACE_SETTINGS, hasGestures, type FaceSettings } from '../face/gestures';
+import { loadFaceSettings } from '../face/store';
+import { FaceWatcher, type CameraStatus } from '../face/watcher';
 import { DEFAULT_TOOL_SETTINGS, type ToolSettings } from '../markings/tool-settings';
 import { dpr, el } from '../ui/dom';
 import { Toast } from '../ui/toast';
@@ -44,6 +48,7 @@ import { backIcon, Toolbar, turnIcon } from './_toolbar';
 import { ReaderMenus } from './_toolbar-menus';
 import { offerScore, turnFrom, type Offer } from './_turning';
 import { gateTurn, type TurnGate } from './_turn-gate';
+import { buttonState, nextWatching, type WatchEvent, type Watching } from './_face-watch';
 import { makeTools } from './tools/_tools';
 import type { ButtonFace, HandHost, Tool, ToolName } from './tools/_tool';
 import { resumeAt, type LastRead } from './_last-read';
@@ -161,6 +166,13 @@ class Reader {
   private get tool(): ToolName { return this.stack.active; }
   /** Each tool's settings for new markings; kept across restarts. */
   private settings: ToolSettings = DEFAULT_TOOL_SETTINGS;
+  /** Face gestures: their settings, whether the camera is being watched, what it says, and the button. */
+  private faceSettings: FaceSettings = DEFAULT_FACE_SETTINGS;
+  private watching: Watching = 'off';
+  private camera: CameraStatus = 'stopped';
+  private faceSeen = false;
+  private face: FaceWatcher;
+  private faceButton: FaceButton;
   /** The placed marking showing its box, while a symbol is the tool. */
   private selected: Selected | undefined;
   private loupe: Loupe;
@@ -309,6 +321,30 @@ class Reader {
     void loadToolSettings().then((s) => { this.settings = s; this.syncBar(); }, (e) => failedOnce("load the tools' settings", e));
     this.stage.append(this.spreadEl);
     this.scope.hidden = true;
+    // While the toolbar is hidden, a button at the top right watches the front camera for face gestures.
+    this.faceButton = faceButton({
+      tap: () => {
+        if (hasGestures(this.faceSettings)) this.watchEvent({ kind: 'tap', available: true });
+        else this.openFaceSettings();
+      },
+      longPress: () => this.openFaceSettings(),
+    });
+    this.face = new FaceWatcher({
+      status: (s) => { this.camera = s; this.showFaceButton(); },
+      face: (seen) => { this.faceSeen = seen; this.showFaceButton(); },
+      progress: (p) => this.faceButton.progress(p),
+      turn: (dir) => { if (this.act(dir)) this.faceButton.pulse(); },
+      failed: (e) => {
+        this.watchEvent({ kind: 'cameraFailed' });
+        this.say(failed('start the camera', e));
+      },
+    }, this.faceSettings);
+    this.showFaceButton();
+    void loadFaceSettings().then((s) => {
+      this.faceSettings = s;
+      this.face.setSettings(s);
+      this.showFaceButton();
+    }, (e) => failedOnce("load the face gestures' settings", e));
     // While the toolbar is hidden, a small back arrow at the top left still leads to the library.
     const back = el('button', 'back');
     back.type = 'button';
@@ -319,7 +355,7 @@ class Reader {
     const bands = [el('div', 'turn-band left'), el('div', 'turn-band right')];
     bands[0].append(turnIcon('prev'));
     bands[1].append(turnIcon('next'));
-    this.root.append(this.stage, ...bands, back, this.toolbar.el, this.scope, this.toast.el);
+    this.root.append(this.stage, ...bands, back, this.faceButton.el, this.toolbar.el, this.scope, this.toast.el);
     document.body.append(this.root);
     document.body.classList.add('reading');
     document.documentElement.dataset.theme = 'light';
@@ -548,7 +584,33 @@ class Reader {
   private showChrome(show: boolean) {
     this.root.classList.toggle('chrome-hidden', !show);
     if (!show) { this.minScale = 1; this.setZoom(NO_ZOOM); }
-    else this.syncBar();
+    else {
+      this.watchEvent({ kind: 'toolbarShown' });
+      this.syncBar();
+    }
+  }
+
+  /** Tell the face watch what happened; start or stop the camera as it says, and show the button. */
+  private watchEvent(e: WatchEvent): void {
+    const was = this.watching;
+    this.watching = nextWatching(was, e);
+    if (this.watching !== was) {
+      if (this.watching === 'on') void this.face.start();
+      else {
+        this.face.stop();
+        this.faceButton.progress();
+      }
+    }
+    this.showFaceButton();
+  }
+
+  private showFaceButton() {
+    this.faceButton.show(buttonState({ available: hasGestures(this.faceSettings), watching: this.watching, camera: this.camera, faceSeen: this.faceSeen }));
+  }
+
+  /** Open the Face gestures dialog; watching stops while it is open. */
+  private openFaceSettings() {
+    this.watchEvent({ kind: 'settingsOpened' });
   }
 
   private say(text: string) {
@@ -864,15 +926,17 @@ class Reader {
     await this.goTo(0, dir > 0 ? 'first' : 'last');
   }
 
-  private act(g: Gesture) {
+  /** Do what a gesture asks; whether a page turn went through the gate (which drops one too soon after the last). */
+  private act(g: Gesture): boolean {
     if (g === 'next' || g === 'prev') {
       const { gate, pass } = gateTurn(this.turnGate, performance.now());
       this.turnGate = gate;
-      if (!pass) return;
+      if (!pass) return false;
+      this.turn(g === 'next' ? 1 : -1);
+      return true;
     }
-    if (g === 'next') this.turn(1);
-    else if (g === 'prev') this.turn(-1);
-    else this.showChrome(!this.annotating);
+    this.showChrome(!this.annotating);
+    return false;
   }
 
   /* ---------- editing ---------- */
@@ -979,7 +1043,10 @@ class Reader {
 
   private onVisible = () => {
     if (document.visibilityState === 'visible') void this.requestWake();
-    else void this.saver.flush().catch(() => {});
+    else {
+      this.watchEvent({ kind: 'pageHidden' });
+      void this.saver.flush().catch(() => {});
+    }
   };
 
   /** Failures of what happens in the background show through `say` while the reader is open. */
@@ -1000,6 +1067,8 @@ class Reader {
     this.scores.closed = true;
     this.stopShowingFailures();
     window.removeEventListener('popstate', this.onPop);
+    this.watchEvent({ kind: 'readerClosed' });
+    this.face.stop();
     this.input.detach();
     document.removeEventListener('visibilitychange', this.onVisible);
     this.observer.disconnect();
