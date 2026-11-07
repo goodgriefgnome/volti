@@ -1,0 +1,11 @@
+{
+  "id": "face-signals",
+  "name": "Face signals",
+  "short_name": "Face signals",
+  "start_url": "face-signals.html",
+  "scope": "face-signals.html",
+  "display": "standalone",
+  "background_color": "#15171c",
+  "theme_color": "#15171c",
+  "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+}

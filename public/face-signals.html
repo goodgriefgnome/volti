@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Face signals</title>
+<link rel="manifest" href="face-signals.webmanifest">
+<!--
+  A throwaway demo page: everything MediaPipe's Face Landmarker gives for each frame of the front
+  camera (the 52 blendshape scores and the head's pose), with each frame's timing. The library's
+  code comes from jsDelivr; its WASM and the face model are the app's own, from mediapipe/. It runs
+  on the device; nothing is sent anywhere. Not part of the app.
+-->
+<style>
+  :root { color-scheme: dark; --bg: #15171c; --fg: #e8e8ea; --dim: #9a9ca3; --line: #2c2f37; --track: #23262e; --bar: #4c8dff; --hot: #ffb347; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; background: var(--bg); color: var(--fg); font: 15px/1.4 system-ui, sans-serif; }
+  h1 { font-size: 20px; margin: 0 0 8px; }
+  h2 { font-size: 16px; margin: 20px 0 8px; }
+  button, select { font: inherit; color: inherit; background: var(--track); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+  button.primary { background: var(--bar); border-color: var(--bar); color: #fff; }
+  button:disabled { opacity: .5; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0; }
+  .dim { color: var(--dim); }
+  .top { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+  video { width: 200px; max-width: 100%; border-radius: 8px; transform: scaleX(-1); background: #000; }
+  table { border-collapse: collapse; font-size: 14px; }
+  td { border-bottom: 1px solid var(--line); padding: 3px 8px; }
+  td.n { text-align: right; font-variant-numeric: tabular-nums; min-width: 5.5em; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); column-gap: 24px; }
+  .bar { display: grid; grid-template-columns: 11em minmax(0, 1fr) 3em; gap: 8px; align-items: center; font-size: 13px; margin: 2px 0; }
+  .bar .v { text-align: right; font-variant-numeric: tabular-nums; }
+  .bar.hot .name, .bar.hot .v { color: var(--hot); }
+  .track { position: relative; height: 10px; background: var(--track); border-radius: 5px; overflow: hidden; }
+  .fill { position: absolute; top: 0; bottom: 0; left: 0; background: var(--bar); }
+  .hot .fill { background: var(--hot); }
+  .peak, .zero { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--dim); }
+  .zero { left: calc(50% - 1px); background: var(--line); }
+  .group { font-size: 12px; color: var(--dim); text-transform: uppercase; letter-spacing: .05em; margin: 10px 0 2px; }
+</style>
+</head>
+<body>
+<h1>Face signals</h1>
+<p class="dim">Everything MediaPipe gives for each camera frame. Left and right in the names are your
+own. The grey line on each bar is its highest since the last reset; a score over 0.5 shows orange.</p>
+
+<div class="row">
+  <button id="start" class="primary">Start camera</button>
+  <button id="stop" disabled>Stop</button>
+  <label>Run on <select id="delegate"><option>GPU</option><option>CPU</option></select></label>
+  <label>Detect <select id="rate"><option value="0" selected>every camera frame</option><option value="15">at most 15/s</option></select></label>
+  <label>Order <select id="order"><option value="group" selected>by area</option><option value="value">highest first</option></select></label>
+  <button id="peaks">Reset peaks</button>
+</div>
+<p id="status" class="dim">Not started.</p>
+
+<div class="top">
+  <video id="video" playsinline muted autoplay></video>
+  <section>
+    <table>
+      <tr><td>Clock</td><td class="n" id="clock">–</td></tr>
+      <tr><td>Camera frames/s</td><td class="n" id="camFps">–</td></tr>
+      <tr><td>Detections/s</td><td class="n" id="detFps">–</td></tr>
+      <tr><td>Interval, mean</td><td class="n" id="ivMean">–</td></tr>
+      <tr><td>Interval, spread (sd)</td><td class="n" id="ivSd">–</td></tr>
+      <tr><td>Interval, min–max</td><td class="n" id="ivRange">–</td></tr>
+      <tr><td>Capture to detected</td><td class="n" id="latency">–</td></tr>
+      <tr><td>Detection takes</td><td class="n" id="detMs">–</td></tr>
+      <tr><td>Camera frames skipped</td><td class="n" id="skipped">–</td></tr>
+      <tr><td>Face</td><td class="n" id="face">–</td></tr>
+    </table>
+    <p class="dim" style="max-width: 26em; font-size: 13px">Intervals are between the frames detected, by
+    the clock shown, over the last 2 seconds.</p>
+  </section>
+</div>
+
+<h2>Pose</h2>
+<p class="dim">From the face's transformation matrix: angles in degrees (bars ±45°), position in cm
+from the camera. Yaw and pitch are as the app computes them (yaw positive turned to your left, pitch
+positive tipped down); roll's sign hasn't been checked.</p>
+<div class="grid" id="pose"></div>
+
+<h2>Blendshapes</h2>
+<div class="grid" id="shapes"></div>
+
+<script type="module">
+const VERSION = '1.1.1';
+const CDN = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${VERSION}`;
+const LOCAL = new URL('mediapipe', location.href).href;
+const $ = (id) => document.getElementById(id);
+const video = $('video');
+
+/** The blendshapes by area, in MediaPipe's names. */
+const GROUPS = [
+  ['Eyes', ['eyeBlinkLeft', 'eyeBlinkRight', 'eyeSquintLeft', 'eyeSquintRight', 'eyeWideLeft', 'eyeWideRight']],
+  ['Gaze', ['eyeLookUpLeft', 'eyeLookUpRight', 'eyeLookDownLeft', 'eyeLookDownRight', 'eyeLookInLeft', 'eyeLookInRight', 'eyeLookOutLeft', 'eyeLookOutRight']],
+  ['Brows', ['browDownLeft', 'browDownRight', 'browInnerUp', 'browOuterUpLeft', 'browOuterUpRight']],
+  ['Cheeks and nose', ['cheekPuff', 'cheekSquintLeft', 'cheekSquintRight', 'noseSneerLeft', 'noseSneerRight']],
+  ['Jaw', ['jawOpen', 'jawForward', 'jawLeft', 'jawRight']],
+  ['Mouth', ['mouthClose', 'mouthFunnel', 'mouthPucker', 'mouthLeft', 'mouthRight', 'mouthSmileLeft', 'mouthSmileRight',
+    'mouthFrownLeft', 'mouthFrownRight', 'mouthDimpleLeft', 'mouthDimpleRight', 'mouthStretchLeft', 'mouthStretchRight',
+    'mouthPressLeft', 'mouthPressRight', 'mouthRollLower', 'mouthRollUpper', 'mouthShrugLower', 'mouthShrugUpper',
+    'mouthLowerDownLeft', 'mouthLowerDownRight', 'mouthUpperUpLeft', 'mouthUpperUpRight']],
+  ['Other', ['_neutral']],
+];
+
+/* ---------- bars ---------- */
+
+/** A bar: 0..1 from the left, or, when `centred`, -range..range from the middle. */
+function makeBar(name, { centred = false, range = 1 } = {}) {
+  const el = document.createElement('div');
+  el.className = 'bar';
+  el.innerHTML = `<span class="name"></span><div class="track">${centred ? '<div class="zero"></div>' : ''}<div class="fill"></div>${centred ? '' : '<div class="peak"></div>'}</div><span class="v"></span>`;
+  el.querySelector('.name').textContent = name;
+  const fill = el.querySelector('.fill');
+  const peakEl = el.querySelector('.peak');
+  const v = el.querySelector('.v');
+  const bar = { el, value: 0, peak: 0,
+    set(x, digits = 2) {
+      bar.value = x;
+      v.textContent = Number.isFinite(x) ? x.toFixed(digits) : '–';
+      if (!Number.isFinite(x)) { fill.style.width = '0'; return; }
+      if (centred) {
+        const f = Math.max(-1, Math.min(1, x / range)) / 2;
+        fill.style.left = `${50 + Math.min(0, f) * 100}%`;
+        fill.style.width = `${Math.abs(f) * 100}%`;
+      } else {
+        const f = Math.max(0, Math.min(1, x / range));
+        fill.style.width = `${f * 100}%`;
+        bar.peak = Math.max(bar.peak, f);
+        peakEl.style.left = `calc(${bar.peak * 100}% - 1px)`;
+        el.classList.toggle('hot', x > 0.5);
+      }
+    },
+    resetPeak() { bar.peak = 0; if (peakEl) peakEl.style.left = '-2px'; },
+  };
+  return bar;
+}
+
+const poseBars = {
+  yaw: makeBar('Yaw', { centred: true, range: 45 }),
+  pitch: makeBar('Pitch', { centred: true, range: 45 }),
+  roll: makeBar('Roll', { centred: true, range: 45 }),
+  x: makeBar('Position x', { centred: true, range: 30 }),
+  y: makeBar('Position y', { centred: true, range: 30 }),
+  z: makeBar('Position z', { centred: true, range: 100 }),
+};
+for (const b of Object.values(poseBars)) $('pose').append(b.el);
+
+const shapeBars = new Map();
+for (const [, names] of GROUPS) for (const n of names) shapeBars.set(n, makeBar(n));
+
+function layoutShapes() {
+  const box = $('shapes');
+  box.replaceChildren();
+  if ($('order').value === 'value') {
+    const col = document.createElement('div');
+    [...shapeBars.values()].sort((a, b) => b.value - a.value).forEach((b) => col.append(b.el));
+    box.append(col);
+    return;
+  }
+  for (const [title, names] of GROUPS) {
+    const col = document.createElement('div');
+    const h = document.createElement('div');
+    h.className = 'group';
+    h.textContent = title;
+    col.append(h, ...names.map((n) => shapeBars.get(n).el));
+    box.append(col);
+  }
+}
+layoutShapes();
+$('order').addEventListener('change', layoutShapes);
+$('peaks').addEventListener('click', () => shapeBars.forEach((b) => b.resetPeak()));
+
+/* ---------- pose ---------- */
+
+/** Yaw, pitch and roll in degrees, and the position, from the column-major 4×4 transform. */
+function poseOf(d) {
+  const deg = 180 / Math.PI;
+  return {
+    yaw: Math.asin(Math.max(-1, Math.min(1, -d[2]))) * deg,
+    pitch: Math.atan2(d[6], d[10]) * deg,
+    roll: Math.atan2(d[1], d[0]) * deg,
+    x: d[12], y: d[13], z: d[14],
+  };
+}
+
+/* ---------- timing ---------- */
+
+/** Recent detections: { at (the clock's ms), latency, took }. */
+let recent = [];
+let cameraFrames = [];
+let skipped = 0;
+let lastPresented;
+const clockName = { capture: 'camera capture time', media: 'video frame time', paint: 'page time (no frame timing here)' };
+let clock = 'paint';
+
+function showTiming(now) {
+  recent = recent.filter((r) => now - r.wall < 2000);
+  cameraFrames = cameraFrames.filter((t) => now - t < 2000);
+  $('clock').textContent = clockName[clock];
+  $('camFps').textContent = cameraFrames.length ? (cameraFrames.length / 2).toFixed(1) : '–';
+  $('detFps').textContent = (recent.length / 2).toFixed(1);
+  const iv = recent.slice(1).map((r, i) => r.at - recent[i].at);
+  if (iv.length) {
+    const mean = iv.reduce((a, b) => a + b, 0) / iv.length;
+    const sd = Math.sqrt(iv.reduce((a, b) => a + (b - mean) ** 2, 0) / iv.length);
+    $('ivMean').textContent = `${mean.toFixed(1)} ms`;
+    $('ivSd').textContent = `${sd.toFixed(1)} ms`;
+    $('ivRange').textContent = `${Math.min(...iv).toFixed(0)}–${Math.max(...iv).toFixed(0)} ms`;
+  }
+  const lat = recent.filter((r) => r.latency !== undefined);
+  $('latency').textContent = lat.length ? `${(lat.reduce((a, r) => a + r.latency, 0) / lat.length).toFixed(1)} ms` : '–';
+  if (recent.length) $('detMs').textContent = `${(recent.reduce((a, r) => a + r.took, 0) / recent.length).toFixed(1)} ms`;
+  $('skipped').textContent = String(skipped);
+}
+
+/* ---------- the camera and the loop ---------- */
+
+let landmarker, stream, running = false, lastDetect = -Infinity, lastTs = -1, frameHandle;
+
+async function makeLandmarker(delegate) {
+  const { FaceLandmarker, FilesetResolver } = await import(`${CDN}/vision_bundle.mjs`);
+  const fileset = await FilesetResolver.forVisionTasks(LOCAL);
+  return FaceLandmarker.createFromOptions(fileset, {
+    baseOptions: { modelAssetPath: `${LOCAL}/face_landmarker.task`, delegate },
+    runningMode: 'VIDEO', numFaces: 1, outputFaceBlendshapes: true, outputFacialTransformationMatrixes: true,
+  });
+}
+
+/** One camera frame (or, without requestVideoFrameCallback, one animation frame). */
+function onFrame(now, meta) {
+  if (!running) return;
+  schedule();
+  cameraFrames.push(now);
+  if (meta) {
+    if (lastPresented !== undefined && meta.presentedFrames > lastPresented + 1) skipped += meta.presentedFrames - lastPresented - 1;
+    lastPresented = meta.presentedFrames;
+  }
+  const rate = Number($('rate').value);
+  if (rate && now - lastDetect < 1000 / rate - 2) { showTiming(now); return; }
+  if (video.readyState < 2) return;
+  lastDetect = now;
+  // The frame's own time, where the browser gives it.
+  let at = now, latency;
+  if (meta?.captureTime) { clock = 'capture'; at = meta.captureTime; latency = performance.now() - meta.captureTime; }
+  else if (meta?.mediaTime !== undefined) { clock = 'media'; at = meta.mediaTime * 1000; }
+  else clock = 'paint';
+  // detectForVideo needs increasing timestamps.
+  const ts = Math.max(lastTs + 1, performance.now());
+  lastTs = ts;
+  const t0 = performance.now();
+  const r = landmarker.detectForVideo(video, ts);
+  const took = performance.now() - t0;
+  if (latency !== undefined) latency += took;
+  recent.push({ wall: now, at, latency, took });
+  const cats = r.faceBlendshapes?.[0]?.categories;
+  $('face').textContent = cats ? 'seen' : 'none';
+  if (cats) for (const c of cats) shapeBars.get(c.categoryName)?.set(c.score);
+  const m = r.facialTransformationMatrixes?.[0];
+  if (m) {
+    const p = poseOf(m.data);
+    for (const k of ['yaw', 'pitch', 'roll']) poseBars[k].set(p[k], 1);
+    for (const k of ['x', 'y', 'z']) poseBars[k].set(p[k], 1);
+  }
+  if ($('order').value === 'value' && cats) layoutShapes();
+  showTiming(now);
+}
+
+function schedule() {
+  frameHandle = 'requestVideoFrameCallback' in video
+    ? video.requestVideoFrameCallback(onFrame)
+    : requestAnimationFrame((t) => onFrame(t));
+}
+
+$('start').addEventListener('click', async () => {
+  $('start').disabled = true;
+  try {
+    $('status').textContent = 'Loading MediaPipe…';
+    landmarker?.close();
+    landmarker = await makeLandmarker($('delegate').value);
+    $('status').textContent = 'Starting the camera…';
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
+    video.srcObject = stream;
+    await video.play();
+    const s = stream.getVideoTracks()[0].getSettings();
+    $('status').textContent = `Running on the ${$('delegate').value}; camera ${s.width}×${s.height} at ${s.frameRate ?? '?'} frames/s; ${'requestVideoFrameCallback' in video ? 'timed per camera frame' : 'timed per animation frame'}.`;
+    running = true;
+    skipped = 0; lastPresented = undefined; recent = []; cameraFrames = [];
+    schedule();
+    $('stop').disabled = false;
+    $('delegate').disabled = true;
+  } catch (e) {
+    $('status').textContent = `Could not start: ${e?.message ?? e}`;
+    $('start').disabled = false;
+  }
+});
+
+function stop() {
+  running = false;
+  if (frameHandle !== undefined && 'cancelVideoFrameCallback' in video) video.cancelVideoFrameCallback(frameHandle);
+  stream?.getTracks().forEach((t) => t.stop());
+  stream = undefined;
+  video.srcObject = null;
+  $('start').disabled = false;
+  $('stop').disabled = true;
+  $('delegate').disabled = false;
+  $('status').textContent = 'Stopped.';
+}
+$('stop').addEventListener('click', stop);
+document.addEventListener('visibilitychange', () => { if (document.hidden && running) stop(); });
+</script>
+</body>
+</html>
