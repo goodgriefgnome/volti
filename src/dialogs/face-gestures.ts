@@ -1,11 +1,11 @@
 // The Face gestures dialog, from the library's ⋯ menu and the reader's face button: which gesture
-// turns which way, how sensitive and how long a hold, with the camera on so they can be tried in
+// turns which way, its on and release levels and how long a hold, with the camera on so they can be tried in
 // place, and calibration. Every change is saved at once.
 
 import { attempts, calibrated, restLevel, ATTEMPTS } from '../face/calibration';
 import { buttonState } from '../face/button-state';
 import { faceButton } from '../face/face-button';
-import { DEFAULT_FACE_SETTINGS, GESTURES, HOLD_RANGE, hasGestures, measure, thresholdRange, type FaceFrame, type FaceGesture, type FaceSettings, type TurnDir } from '../face/gestures';
+import { DEFAULT_FACE_SETTINGS, GESTURES, HOLD_RANGE, hasGestures, measure, thresholdRange, withLevels, type FaceFrame, type FaceGesture, type FaceSettings, type TurnDir } from '../face/gestures';
 import { loadFaceSettings, saveFaceSettings } from '../face/store';
 import { FaceWatcher, type CameraStatus } from '../face/watcher';
 import { button, el } from '../ui/dom';
@@ -72,16 +72,16 @@ export function openFaceGestures(closed?: () => void): void {
     void saveFaceSettings(settings).catch((e) => failedOnce('save the face gestures', e));
   };
 
-  /** A slider's row: its label, the slider and its value. */
-  const slider = (label: string, min: number, max: number, step: number, value: number, show: (v: number) => string, set: (v: number) => void) => {
+  /** A slider's row: its label, the slider and its value; `set` moves it to a value kept elsewhere. */
+  const slider = (label: string, min: number, max: number, step: number, value: number, show: (v: number) => string, onInput: (v: number) => void) => {
     const row = el('label', 'face-slider');
     const input = document.createElement('input');
     input.type = 'range';
     Object.assign(input, { min: String(min), max: String(max), step: String(step), value: String(value) });
     const text = el('span', 'value', show(value));
-    input.addEventListener('input', () => { text.textContent = show(Number(input.value)); set(Number(input.value)); });
+    input.addEventListener('input', () => { text.textContent = show(Number(input.value)); onInput(Number(input.value)); });
     row.append(el('span', '', label), input, text);
-    return row;
+    return { row, set: (v: number) => { input.value = String(v); text.textContent = show(v); } };
   };
 
   /** The rows, from `notes` (what calibration said of each gesture). */
@@ -103,16 +103,30 @@ export function openFaceGestures(closed?: () => void): void {
         const track = el('div', 'face-meter');
         const fill = el('div', 'fill');
         const mark = el('div', 'mark');
-        track.append(fill, mark);
-        const placeMark = () => { mark.style.left = `${(settings[id].threshold / scale) * 100}%`; };
-        placeMark();
+        const releaseMark = el('div', 'mark release');
+        track.append(fill, mark, releaseMark);
+        const placeMarks = () => {
+          mark.style.left = `${(settings[id].threshold / scale) * 100}%`;
+          releaseMark.style.left = `${(settings[id].release / scale) * 100}%`;
+        };
+        placeMarks();
         meters.set(id, (f) => { fill.style.width = `${f ? Math.max(0, Math.min(1, measure(id, f) / scale)) * 100 : 0}%`; });
-        // Left is less sensitive: a higher threshold, so the slider runs from the highest threshold to the lowest.
         const step = kind === 'angle' ? 1 : 0.01;
+        const show = (v: number) => (kind === 'angle' ? `${v}°` : v.toFixed(2));
+        // Moving either level can move the other (release stops at On, and follows it down).
+        const setLevels = (to: { threshold?: number; release?: number }) => {
+          change(id, withLevels(id, settings[id], to));
+          placeMarks();
+          on.set(settings[id].threshold);
+          release.set(settings[id].release);
+        };
+        const on = slider('On', range.min, range.max, step, settings[id].threshold, show, (v) => setLevels({ threshold: v }));
+        const release = slider('Release', range.min, range.max, step, settings[id].release, show, (v) => setLevels({ release: v }));
         row.append(
           track,
-          slider('Sensitivity', -range.max, -range.min, step, -settings[id].threshold, () => '', (v) => { change(id, { threshold: -v }); placeMark(); }),
-          slider('Hold', HOLD_RANGE.min, HOLD_RANGE.max, 50, settings[id].hold, (v) => `${v} ms`, (v) => change(id, { hold: v })),
+          on.row,
+          release.row,
+          slider('Hold', HOLD_RANGE.min, HOLD_RANGE.max, 50, settings[id].hold, (v) => `${v} ms`, (v) => change(id, { hold: v })).row,
         );
       }
       if (notes[id]) row.append(el('p', 'hint error', notes[id]));
