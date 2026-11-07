@@ -43,6 +43,7 @@ import { Loupe } from './_loupe';
 import { backIcon, Toolbar, turnIcon } from './_toolbar';
 import { ReaderMenus } from './_toolbar-menus';
 import { offerScore, turnFrom, type Offer } from './_turning';
+import { gateTurn, type TurnGate } from './_turn-gate';
 import { makeTools } from './tools/_tools';
 import type { ButtonFace, HandHost, Tool, ToolName } from './tools/_tool';
 import { resumeAt, type LastRead } from './_last-read';
@@ -120,6 +121,8 @@ class Reader {
   private spreadEl = el('div', 'spread');
   private scope = el('p', 'scope', 'Cuts changed here change the score, in every setlist');
   private toast = new Toast();
+  /** The gate every page turn goes through (_turn-gate.ts). */
+  private turnGate: TurnGate = {};
   private toolbar: Toolbar;
 
   /** How many frames the screen shows. */
@@ -862,6 +865,11 @@ class Reader {
   }
 
   private act(g: Gesture) {
+    if (g === 'next' || g === 'prev') {
+      const { gate, pass } = gateTurn(this.turnGate, performance.now());
+      this.turnGate = gate;
+      if (!pass) return;
+    }
     if (g === 'next') this.turn(1);
     else if (g === 'prev') this.turn(-1);
     else this.showChrome(!this.annotating);
