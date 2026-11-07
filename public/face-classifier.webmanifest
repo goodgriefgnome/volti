@@ -1,0 +1,11 @@
+{
+  "id": "face-classifier",
+  "name": "Face classifier",
+  "short_name": "Face classifier",
+  "start_url": "face-classifier.html",
+  "scope": "face-classifier.html",
+  "display": "standalone",
+  "background_color": "#15171c",
+  "theme_color": "#15171c",
+  "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+}

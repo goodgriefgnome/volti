@@ -1,0 +1,921 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Face classifier</title>
+<link rel="manifest" href="face-classifier.webmanifest">
+<!--
+  A throwaway prototype of docs/face-classifier-spec.md: record Playing and gestures of your own,
+  train the classifier, and try it live. The library's code comes from jsDelivr; its WASM and the
+  face model are the app's own, from mediapipe/. Recordings are kept in this page's own IndexedDB
+  database; nothing is sent anywhere. Not part of the app, and untested.
+-->
+<style>
+  :root { color-scheme: dark; --bg: #15171c; --fg: #e8e8ea; --dim: #9a9ca3; --line: #2c2f37; --track: #23262e; --bar: #4c8dff; --hot: #ffb347; --bad: #ff6b6b; --good: #5fd38d; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; background: var(--bg); color: var(--fg); font: 15px/1.4 system-ui, sans-serif; max-width: 960px; }
+  h1 { font-size: 20px; margin: 0 0 8px; }
+  h2 { font-size: 16px; margin: 24px 0 8px; }
+  button, select, input { font: inherit; color: inherit; background: var(--track); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+  button.primary { background: var(--bar); border-color: var(--bar); color: #fff; }
+  button:disabled, select:disabled { opacity: .5; }
+  input[type=number] { width: 5.5em; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0; }
+  .dim { color: var(--dim); }
+  .bad { color: var(--bad); }
+  .good { color: var(--good); }
+  .top { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+  video { width: 200px; max-width: 100%; border-radius: 8px; transform: scaleX(-1); background: #000; }
+  #prompt { font-size: 22px; font-weight: 600; min-height: 1.4em; margin: 8px 0; }
+  .card { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 8px 0; }
+  table { border-collapse: collapse; font-size: 14px; }
+  td, th { border-bottom: 1px solid var(--line); padding: 3px 8px; text-align: left; vertical-align: top; }
+  td.n { text-align: right; font-variant-numeric: tabular-nums; }
+  .meter { position: relative; height: 14px; background: var(--track); border-radius: 7px; overflow: hidden; min-width: 120px; flex: 1; }
+  .meter .fill { position: absolute; inset: 0 auto 0 0; background: var(--bar); }
+  .meter .mark { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--fg); }
+  .meter .mark.rel { opacity: .45; }
+  .live-row { display: grid; grid-template-columns: 9em minmax(0, 1fr); gap: 4px 10px; align-items: center; }
+  .live-row.on .name { color: var(--hot); }
+  .nums { font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; }
+  #page { font-size: 40px; font-weight: 600; min-width: 2.5em; text-align: center; border: 1px solid var(--line); border-radius: 8px; padding: 4px 12px; transition: background .15s; }
+  #page.flash { background: #3a3014; }
+</style>
+</head>
+<body>
+<h1>Face classifier</h1>
+<p class="dim">A prototype of <code>docs/face-classifier-spec.md</code>. Record some Playing first,
+then add gestures and record their trials (with a high tone, do the gesture and hold it; with a low
+tone, let go; keep playing throughout), then train, then try.</p>
+
+<div class="row">
+  <button id="camStart" class="primary">Start camera</button>
+  <button id="camStop" disabled>Stop camera</button>
+  <span id="camStatus" class="dim">Camera off.</span>
+</div>
+<div class="top">
+  <video id="video" playsinline muted autoplay></video>
+  <div>
+    <div id="prompt"></div>
+    <div id="recStatus" class="dim"></div>
+  </div>
+</div>
+
+<h2>1. Playing</h2>
+<p id="bgInfo" class="dim"></p>
+<div class="row">
+  <label>Length <select id="bgLen"><option value="30">30 s</option><option value="60" selected>60 s</option><option value="120">120 s</option></select></label>
+  <button id="bgRec">Record Playing</button>
+  <button id="bgClear">Clear Playing</button>
+</div>
+
+<h2>2. Gestures</h2>
+<div class="row">
+  <input id="gName" placeholder="Name, e.g. Wink">
+  <select id="gDir"><option value="next">Next</option><option value="prev">Back</option><option value="none">None</option></select>
+  <button id="gAdd">Add gesture</button>
+</div>
+<div id="gList"></div>
+
+<h2>3. Train</h2>
+<div class="row"><button id="train" class="primary">Train</button><span id="trainStatus" class="dim"></span></div>
+<div id="diag"></div>
+
+<h2>4. Try</h2>
+<div class="row"><button id="try">Start trying</button><span id="tryStatus" class="dim">Train first.</span></div>
+<div class="top">
+  <div id="page">1</div>
+  <table>
+    <tr><td>Face</td><td class="n" id="lFace">–</td></tr>
+    <tr><td>N<sub>eff</sub> (camera pose)</td><td class="n" id="lNeff">–</td></tr>
+    <tr><td>Novelty s<sub>0</sub></td><td class="n" id="lS0">–</td></tr>
+    <tr><td>Last turn</td><td class="n" id="lTurn">–</td></tr>
+  </table>
+</div>
+<p id="lWarn" class="bad"></p>
+<div id="live"></div>
+
+<h2>Data</h2>
+<div class="row">
+  <button id="dl">Download recordings (JSON)</button>
+  <label class="row">Load recordings <input type="file" id="ul" accept="application/json"></label>
+  <button id="wipe">Delete everything</button>
+</div>
+
+<script type="module">
+const CDN = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1';
+const LOCAL = new URL('mediapipe', location.href).href;
+const $ = (id) => document.getElementById(id);
+const video = $('video');
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const tick = () => new Promise((r) => setTimeout(r, 0));
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+/* ================= blendshapes and features (spec: stage 2) ================= */
+
+const MIRROR = ['eyeBlink', 'eyeSquint', 'eyeWide', 'eyeLookUp', 'eyeLookDown', 'eyeLookIn', 'eyeLookOut', 'browDown',
+  'browOuterUp', 'cheekSquint', 'noseSneer', 'mouthSmile', 'mouthFrown', 'mouthDimple', 'mouthStretch', 'mouthPress',
+  'mouthLowerDown', 'mouthUpperUp'];
+const PAIRS = [...MIRROR.map((m) => [`${m}Left`, `${m}Right`, m]), ['jawLeft', 'jawRight', 'jaw L−R'], ['mouthLeft', 'mouthRight', 'mouth L−R']];
+const MIDLINE = ['_neutral', 'browInnerUp', 'cheekPuff', 'jawOpen', 'jawForward', 'mouthClose', 'mouthFunnel', 'mouthPucker',
+  'mouthRollLower', 'mouthRollUpper', 'mouthShrugLower', 'mouthShrugUpper'];
+/** Storage order of the 52 scores: each pair's left then right, then the midline. */
+const NAMES = [...PAIRS.flatMap(([l, r]) => [l, r]), ...MIDLINE];
+const IDX = new Map(NAMES.map((n, i) => [n, i]));
+const NP = PAIRS.length; // 20
+const NX = 2 * NP + MIDLINE.length + 3; // 55
+const FEATURES = [...PAIRS.map((p) => `${p[2]} common`), ...PAIRS.map((p) => `${p[2]} diff`), ...MIDLINE, 'head rot x', 'head rot y', 'head rot z'];
+
+/* ================= stored frames ================= */
+
+// A bag's frames: t (ms from the bag's start), 52 scores, R (row-major 3×3), p (3).
+const STRIDE = 65, OB = 1, OR = 53, OP = 62;
+const frameAt = (bag, i) => {
+  const o = i * STRIDE, d = bag.data;
+  return { t: d[o], b: d.subarray(o + OB, o + OB + 52), R: d.subarray(o + OR, o + OR + 9), p: d.subarray(o + OP, o + OP + 3) };
+};
+
+/* ================= statistics ================= */
+
+function qSorted(a, q) {
+  if (!a.length) return NaN;
+  const pos = (a.length - 1) * q, lo = Math.floor(pos), hi = Math.ceil(pos);
+  return a[lo] + (a[hi] - a[lo]) * (pos - lo);
+}
+const quantile = (arr, q) => qSorted(Float64Array.from(arr).sort(), q);
+/** Per-dimension median and IQR over rows (each an array of D numbers). */
+function colStats(rows, D) {
+  const med = new Float64Array(D), iqr = new Float64Array(D), col = new Float64Array(rows.length);
+  for (let d = 0; d < D; d++) {
+    for (let i = 0; i < rows.length; i++) col[i] = rows[i][d];
+    col.sort();
+    med[d] = qSorted(col, 0.5);
+    iqr[d] = qSorted(col, 0.75) - qSorted(col, 0.25);
+  }
+  return { med, iqr };
+}
+/** Otsu's threshold over 64 bins. */
+function otsu(vals) {
+  let lo = Infinity, hi = -Infinity;
+  for (const v of vals) if (Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  if (!(hi - lo > 1e-12)) return hi;
+  const N = 64, hist = new Float64Array(N);
+  let n = 0;
+  for (const v of vals) if (Number.isFinite(v)) { hist[Math.min(N - 1, Math.floor((v - lo) / (hi - lo) * N))]++; n++; }
+  let sumAll = 0;
+  for (let i = 0; i < N; i++) sumAll += i * hist[i];
+  let w0 = 0, sum0 = 0, best = -1, bestI = 0;
+  for (let i = 0; i < N - 1; i++) {
+    w0 += hist[i]; sum0 += i * hist[i];
+    const w1 = n - w0;
+    if (!w0 || !w1) continue;
+    const m0 = sum0 / w0, m1 = (sumAll - sum0) / w1, between = w0 * w1 * (m0 - m1) ** 2;
+    if (between > best) { best = between; bestI = i; }
+  }
+  return lo + (bestI + 1) / N * (hi - lo);
+}
+
+/* ================= pose (spec: stage 1) ================= */
+
+function poseU(R, p) {
+  const pz = p[2] < 0 ? p[2] : -Math.max(1e-3, p[2]);
+  return [R[0], R[3], R[6], R[1], R[4], R[7], p[0] / pz, p[1] / pz, Math.log(-pz)];
+}
+const U_FLOOR = [0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.01, 0.01, 0.02];
+const norm3 = (v) => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
+/** The mount from the (averaged) first two columns: Gram–Schmidt, third column their cross product; row-major. */
+function mountFrom(c0, c1) {
+  const e1 = norm3(c0);
+  const k = e1[0] * c1[0] + e1[1] * c1[1] + e1[2] * c1[2];
+  const e2 = norm3([c1[0] - k * e1[0], c1[1] - k * e1[1], c1[2] - k * e1[2]]);
+  const e3 = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]];
+  return [e1[0], e2[0], e3[0], e1[1], e2[1], e3[1], e1[2], e2[2], e3[2]];
+}
+/** The rotation vector (radians) of Rbᵀ R. */
+function relRotvec(Rb, R) {
+  const M = new Float64Array(9);
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
+    let s = 0;
+    for (let k = 0; k < 3; k++) s += Rb[k * 3 + i] * R[k * 3 + j];
+    M[i * 3 + j] = s;
+  }
+  const th = Math.acos(clamp((M[0] + M[4] + M[8] - 1) / 2, -1, 1));
+  const s = th < 1e-6 ? 0.5 : th / (2 * Math.sin(th));
+  return [(M[7] - M[5]) * s, (M[2] - M[6]) * s, (M[3] - M[1]) * s];
+}
+const standardize = (raw, st) => Float64Array.from(raw, (v, d) => (v - st.med[d]) / st.iqr[d]);
+
+function medianPairDist(K, D, pts) {
+  const n = K, take = Math.min(n, 300), idx = [];
+  for (let i = 0; i < take; i++) idx.push(Math.floor(i * n / take));
+  const ds = [];
+  for (let a = 0; a < idx.length; a++) for (let b = a + 1; b < idx.length; b++) {
+    let s = 0;
+    for (let d = 0; d < D; d++) { const e = pts[idx[a] * D + d] - pts[idx[b] * D + d]; s += e * e; }
+    ds.push(Math.sqrt(s));
+  }
+  return quantile(ds, 0.5) || 1;
+}
+
+/** The pose-corrected blendshapes for one frame; `leave` = { bag, t } leaves out that bag's kernel points within 70 ms. */
+function residualize(M, us, ds, b, leave) {
+  const { K, Ku, Kd, Kb, Kbag, Kt } = M;
+  const lu = M.bufU, ld = M.bufD;
+  let mu = -Infinity, md = -Infinity;
+  const iu = 1 / (2 * M.hu * M.hu), id = 1 / (2 * M.hd * M.hd);
+  for (let j = 0; j < K; j++) {
+    if (leave && Kbag[j] === leave.bag && Math.abs(Kt[j] - leave.t) <= 70) { lu[j] = ld[j] = -Infinity; continue; }
+    let s = 0;
+    for (let d = 0; d < 9; d++) { const e = us[d] - Ku[j * 9 + d]; s += e * e; }
+    lu[j] = -s * iu; if (lu[j] > mu) mu = lu[j];
+    s = 0;
+    for (let d = 0; d < 3; d++) { const e = ds[d] - Kd[j * 3 + d]; s += e * e; }
+    ld[j] = -s * id; if (ld[j] > md) md = ld[j];
+  }
+  const su = M.su.fill(0), su2 = M.su2.fill(0), sd = M.sd.fill(0), sd2 = M.sd2.fill(0);
+  let Wu = 0, Wd = 0;
+  for (let j = 0; j < K; j++) {
+    if (lu[j] === -Infinity) continue;
+    const wu = Math.exp(lu[j] - mu), wd = Math.exp(ld[j] - md);
+    Wu += wu; Wd += wd;
+    const o = j * 52;
+    for (let c = 0; c < 52; c++) {
+      const v = Kb[o + c];
+      su[c] += wu * v; su2[c] += wu * v * v; sd[c] += wd * v; sd2[c] += wd * v * v;
+    }
+  }
+  const Nu = Wu > 0 ? Wu * Math.exp(mu) : 0, Nr = Wd > 0 ? Wd * Math.exp(md) : 0;
+  const lamU = Nu / (Nu + 5), lamR = Nr / (Nr + 5);
+  const bt = new Float64Array(52);
+  for (let c = 0; c < 52; c++) {
+    const mU = Wu ? su[c] / Wu : 0, vU = Wu ? Math.max(0, su2[c] / Wu - mU * mU) : 0;
+    const mD = Wd ? sd[c] / Wd : 0, vD = Wd ? Math.max(0, sd2[c] / Wd - mD * mD) : 0;
+    const mR = lamR * mD + (1 - lamR) * M.bMed[c], vR = lamR * vD + (1 - lamR) * M.sigG[c] ** 2;
+    const b0 = lamU * mU + (1 - lamU) * mR, v0 = lamU * vU + (1 - lamU) * vR;
+    bt[c] = (b[c] - b0) / (Math.sqrt(v0) + M.eps);
+  }
+  return { bt, Nu };
+}
+
+/** The 55 features before filtering: pairs' common and difference channels, the midline, and Dr. */
+function features(bt, dStd) {
+  const v = new Float64Array(NX);
+  for (let p = 0; p < NP; p++) { const l = bt[2 * p], r = bt[2 * p + 1]; v[p] = (l + r) / 2; v[NP + p] = (l - r) / 2; }
+  for (let m = 0; m < MIDLINE.length; m++) v[2 * NP + m] = bt[2 * NP + m];
+  v.set(dStd, 2 * NP + MIDLINE.length);
+  return v;
+}
+
+/** One series (one set of one bag), filtered: [{ t, x, Nu }]. */
+function runSeries(M, frames, leaveBag) {
+  const out = [];
+  let prev = null, tp = 0;
+  for (const f of frames) {
+    const us = standardize(poseU(f.R, f.p), M.uStats);
+    const ds = standardize(relRotvec(M.Rb, f.R), M.dStats);
+    const { bt, Nu } = residualize(M, us, ds, f.b, leaveBag === undefined ? null : { bag: leaveBag, t: f.t });
+    const v = features(bt, ds);
+    let x = v;
+    if (prev) { const a = Math.exp(-(f.t - tp) / 45); x = Float64Array.from(v, (vi, d) => a * prev[d] + (1 - a) * vi); }
+    out.push({ t: f.t, x, Nu });
+    prev = x; tp = f.t;
+  }
+  return out;
+}
+const setFrames = (bag, set) => { const fs = []; for (let i = set; i < bag.n; i += 2) fs.push(frameAt(bag, i)); return fs; };
+
+/* ================= the classifier (spec: stage 3) ================= */
+
+function fitGesture(units, ctx, gammaNull) {
+  const C = units.flat();
+  if (C.length < 3) return { unreliable: 'too few core frames' };
+  const { mu0, iqrBg, bgX } = ctx;
+  const { med: muK, iqr: iqrK } = colStats(C, NX);
+  const delta = new Float64Array(NX), s = new Float64Array(NX), rho = new Float64Array(NX), w = new Float64Array(NX);
+  let den = 0, active = 0;
+  for (let d = 0; d < NX; d++) {
+    delta[d] = muK[d] - mu0[d];
+    s[d] = iqrK[d] + iqrBg[d] + 0.001;
+    rho[d] = Math.max(0, Math.abs(delta[d]) / s[d] - gammaNull);
+    if (rho[d] > 0) { w[d] = delta[d] / (s[d] * s[d]); den += w[d] * delta[d]; active++; }
+  }
+  if (!active) return { unreliable: 'nothing in it differs from playing', rho };
+  const uOf = (x) => { let n = 0; for (let d = 0; d < NX; d++) if (w[d]) n += w[d] * (x[d] - mu0[d]); return n / den; };
+  const dres = (x, u) => {
+    const c = clamp(u, 0, 1.2);
+    let sum = 0;
+    for (let d = 0; d < NX; d++) { const r = (x[d] - mu0[d]) - c * delta[d]; sum += (r / s[d]) ** 2; }
+    return sum / NX;
+  };
+  const dC = C.map((x) => dres(x, uOf(x)));
+  const L = quantile(dC, 0.9), U = quantile(dC, 0.99);
+  const gateOf = (x, u) => Math.exp(-Math.max(0, (dres(x, u) - L) / (U - L + 1e-9)));
+  // Not in the spec: `upper` over only the Playing frames the gate lets through (gate ≥ 0.5), so
+  // that something the gate rejects anyway (a blink, for a wink) can't push `upper` past the gesture.
+  const bgU = bgX.map(uOf);
+  const passed = bgU.filter((u, i) => gateOf(bgX[i], u) >= 0.5);
+  const upperAll = quantile(bgU, 0.98);
+  const upper = quantile(passed.length >= 50 ? passed : bgU, 0.98), lower = quantile(C.map(uOf), 0.2);
+  if (!(lower > upper)) return { unreliable: 'it overlaps with playing', rho, active, upper, lower, upperAll };
+  const score = (x) => {
+    const u = uOf(x), a = clamp((u - upper) / (lower - upper), 0, 1), gate = gateOf(x, u);
+    return { u, a, gate, y: a * gate };
+  };
+  return { rho, active, upper, lower, upperAll, L, U, score };
+}
+
+/** γ_null: trial-level permutations of units (trials' cores and background chunks). */
+function nullGamma(trialUnits, bgChunks) {
+  const units = [...trialUnits, ...bgChunks], M = trialUnits.length, vals = [];
+  for (let k = 0; k < 100; k++) {
+    const pick = new Set();
+    while (pick.size < M) pick.add(Math.floor(Math.random() * units.length));
+    const G = [], R = [];
+    units.forEach((u, i) => (pick.has(i) ? G : R).push(...u));
+    // Thin the rest for speed.
+    const Rs = R.length > 1500 ? Array.from({ length: 1500 }, () => R[Math.floor(Math.random() * R.length)]) : R;
+    const g = colStats(G, NX), r = colStats(Rs, NX);
+    for (let d = 0; d < NX; d++) vals.push(Math.abs(g.med[d] - r.med[d]) / (g.iqr[d] + r.iqr[d] + 0.001));
+  }
+  return quantile(vals, 0.95);
+}
+
+/** The core of a trial: the longest run over Otsu's threshold inside [lo, hi]; above-frames < 140 ms apart join. */
+function coreInterval(pts, vals, lo, hi) {
+  const G = otsu(vals), runs = [];
+  let cur = null, lastT = -Infinity;
+  pts.forEach((p, i) => {
+    if (p.t < lo || p.t > hi || !(vals[i] > G)) return;
+    if (cur && p.t - lastT <= 140) cur[1] = p.t; else { cur = [p.t, p.t]; runs.push(cur); }
+    lastT = p.t;
+  });
+  let best = null;
+  for (const r of runs) if (!best || r[1] - r[0] > best[1] - best[0]) best = r;
+  return best;
+}
+
+/** The longest stretch a series is on, with On and Release. */
+function longestOn(series, on, release) {
+  let since = null, longest = 0;
+  for (const p of series) {
+    const isOn = since !== null ? p.y >= release : p.y >= on - 1e-9;
+    if (isOn && since === null) since = p.t;
+    if (!isOn && since !== null) { longest = Math.max(longest, p.t - since); since = null; }
+  }
+  if (since !== null && series.length) longest = Math.max(longest, series[series.length - 1].t - since);
+  return longest;
+}
+
+/* ================= training ================= */
+
+async function train(say) {
+  const bgBags = state.bags.filter((b) => b.kind === 'bg');
+  if (!bgBags.length) throw new Error('Record some Playing first.');
+  say('Pose…'); await tick();
+  const bgRaw = [];
+  for (const bag of bgBags) for (let i = 0; i < bag.n; i++) bgRaw.push({ bag: bag.id, ...frameAt(bag, i) });
+  if (bgRaw.length < 50) throw new Error('Too little Playing (was a face seen?).');
+  const c0 = [0, 0, 0], c1 = [0, 0, 0];
+  for (const f of bgRaw) for (let k = 0; k < 3; k++) { c0[k] += f.R[k * 3]; c1[k] += f.R[k * 3 + 1]; }
+  const M = { Rb: mountFrom(c0, c1) };
+  const floor = (st, fl) => { st.iqr = st.iqr.map((v, d) => Math.max(v, fl[d] ?? fl)); return st; };
+  M.uStats = floor(colStats(bgRaw.map((f) => poseU(f.R, f.p)), 9), U_FLOOR);
+  M.dStats = floor(colStats(bgRaw.map((f) => relRotvec(M.Rb, f.R)), 3), 0.0175);
+  const bSt = colStats(bgRaw.map((f) => f.b), 52);
+  M.bMed = bSt.med;
+  M.sigG = bSt.iqr.map((v) => Math.max(v / 1.349, 1e-4));
+  M.eps = Math.max(1e-3, quantile(M.sigG, 0.1));
+  // The kernel set: the background thinned uniformly in time to at most 1200 frames.
+  const step = Math.ceil(bgRaw.length / 1200), ks = bgRaw.filter((_, i) => i % step === 0);
+  M.K = ks.length;
+  M.Ku = new Float64Array(M.K * 9); M.Kd = new Float64Array(M.K * 3); M.Kb = new Float64Array(M.K * 52);
+  M.Kbag = ks.map((f) => f.bag); M.Kt = Float64Array.from(ks, (f) => f.t);
+  ks.forEach((f, j) => {
+    M.Ku.set(standardize(poseU(f.R, f.p), M.uStats), j * 9);
+    M.Kd.set(standardize(relRotvec(M.Rb, f.R), M.dStats), j * 3);
+    M.Kb.set(f.b, j * 52);
+  });
+  M.hu = medianPairDist(M.K, 9, M.Ku);
+  M.hd = medianPairDist(M.K, 3, M.Kd);
+  M.bufU = new Float64Array(M.K); M.bufD = new Float64Array(M.K);
+  for (const k of ['su', 'su2', 'sd', 'sd2']) M[k] = new Float64Array(52);
+
+  // The background's features, each frame without its own neighbourhood in the kernel set.
+  const bgByBag = [];
+  for (const [i, bag] of bgBags.entries()) {
+    say(`Playing ${i + 1} of ${bgBags.length}…`); await tick();
+    const sets = [0, 1].map((s) => runSeries(M, setFrames(bag, s), bag.id));
+    bgByBag.push({ bag, sets });
+  }
+  const bgPts = bgByBag.flatMap((b) => b.sets.flat());
+  const bgX = bgPts.map((p) => p.x);
+  const { med: mu0, iqr: iqrBg } = colStats(bgX, NX);
+  M.mu0 = mu0; M.iqrBg = iqrBg;
+  M.s0 = (x) => { let s = 0; for (let d = 0; d < NX; d++) s += ((x[d] - mu0[d]) / (iqrBg[d] + 0.001)) ** 2; return Math.sqrt(s); };
+  M.neutralS0 = quantile(bgX.map(M.s0), 0.75);
+  const ctx = { mu0, iqrBg, bgX };
+
+  // Each gesture: segment its trials, fit, and leave each trial out.
+  M.gestures = {};
+  for (const g of state.gestures) {
+    say(`${g.name}: segmenting…`); await tick();
+    const trials = state.bags.filter((b) => b.kind === 'trial' && b.gesture === g.id);
+    const R = { trials: trials.length, segmented: 0, notes: [] };
+    M.gestures[g.id] = R;
+    if (!trials.length) { R.notes.push('no trials recorded'); continue; }
+    const tr = trials.map((bag) => ({ bag, sets: [0, 1].map((s) => runSeries(M, setFrames(bag, s))) }));
+    const win = (t) => [t.bag.toneOn + 200, t.bag.toneOff + 1000];
+    const coreOf = (t, iv) => t.sets.flat().filter((p) => p.t >= iv[0] && p.t <= iv[1]).map((p) => p.x);
+    // Pass 1: novelty.
+    for (const t of tr) t.iv = coreInterval(t.sets[0], t.sets[0].map((p) => M.s0(p.x)), ...win(t));
+    const first = tr.filter((t) => t.iv).flatMap((t) => coreOf(t, t.iv));
+    if (first.length < 3) { R.notes.push('no trial could be segmented'); continue; }
+    // Pass 2: the projection onto the first pass's direction, every dimension weighted.
+    const m1 = colStats(first, NX).med, iq1 = colStats(first, NX).iqr;
+    const w1 = Float64Array.from(m1, (m, d) => (m - mu0[d]) / (iq1[d] + iqrBg[d] + 0.001) ** 2);
+    let den1 = 0; for (let d = 0; d < NX; d++) den1 += w1[d] * (m1[d] - mu0[d]);
+    const u1 = (x) => { let n = 0; for (let d = 0; d < NX; d++) n += w1[d] * (x[d] - mu0[d]); return n / den1; };
+    for (const t of tr) t.iv = coreInterval(t.sets[0], t.sets[0].map((p) => u1(p.x)), ...win(t));
+    const used = tr.filter((t) => t.iv);
+    R.segmented = used.length;
+    if (used.length < tr.length) R.notes.push(`${tr.length - used.length} trial(s) had no core and are left out`);
+    if (!used.length) continue;
+    const units = used.map((t) => coreOf(t, t.iv));
+    R.coreMs = quantile(used.map((t) => t.iv[1] - t.iv[0]), 0.5);
+
+    say(`${g.name}: γ_null…`); await tick();
+    const chunkSize = Math.max(2, Math.round(quantile(units.map((u) => u.length), 0.5)));
+    const bgChunks = [];
+    for (const b of bgByBag) {
+      const pts = b.sets.flat().sort((p, q) => p.t - q.t);
+      for (let i = 0; i + chunkSize <= pts.length; i += chunkSize) bgChunks.push(pts.slice(i, i + chunkSize).map((p) => p.x));
+    }
+    R.gammaNull = nullGamma(units, bgChunks);
+
+    say(`${g.name}: fitting…`); await tick();
+    const fit = fitGesture(units, ctx, R.gammaNull);
+    R.fit = fit;
+    if (fit.unreliable) { R.notes.push(`unreliable: ${fit.unreliable}`); continue; }
+
+    // Hold, from the Playing bags.
+    let longest = 0;
+    for (const b of bgByBag) for (const set of b.sets) longest = Math.max(longest, longestOn(set.map((p) => ({ t: p.t, y: fit.score(p.x).y })), 1, 0.5));
+    R.hold = clamp(Math.ceil((longest + 100) / 50) * 50, 100, 1500);
+    R.playingLongestOn = longest;
+
+    // Leaving one trial out.
+    say(`${g.name}: leaving each trial out…`); await tick();
+    R.loto = [];
+    if (used.length < 2) { R.notes.push('only one usable trial: no leave-one-out check'); continue; }
+    const heldYs = [], gaps = [];
+    let past = 0;
+    used.forEach((t, m) => {
+      const f = fitGesture(units.filter((_, i) => i !== m), ctx, R.gammaNull);
+      if (f.unreliable) { R.loto.push({ unreliable: f.unreliable }); return; }
+      gaps.push(f.lower - f.upper);
+      const ys = units[m].map((x) => f.score(x).y);
+      heldYs.push(...ys);
+      const on = longestOn(t.sets[0].map((p) => ({ t: p.t, y: f.score(p.x).y })), 1, 0.5);
+      if (on > R.hold) past++;
+      R.loto.push({ ys });
+    });
+    R.heldYs = heldYs;
+    R.heldCore = units;
+    R.trialsPastHold = past;
+    R.recall = heldYs.length ? heldYs.filter((y) => y > 0.7).length / heldYs.length : 0;
+    if (gaps.length >= 2) {
+      const mean = gaps.reduce((a, b) => a + b, 0) / gaps.length, n = gaps.length;
+      const se = Math.sqrt((n - 1) / n * gaps.reduce((a, g2) => a + (g2 - mean) ** 2, 0));
+      R.relSE = se / (fit.lower - fit.upper);
+    }
+    if (R.recall < 0.85 || R.relSE > 0.15) R.notes.push('record more trials of this gesture');
+    R.q10 = quantile(heldYs, 0.1);
+  }
+
+  // Confusable gestures.
+  say('Comparing gestures…'); await tick();
+  const ok = state.gestures.filter((g) => M.gestures[g.id]?.fit?.score && M.gestures[g.id].heldCore);
+  for (const j of ok) for (const k of ok) {
+    if (j === k) continue;
+    const Rj = M.gestures[j.id], Rk = M.gestures[k.id];
+    const xs = Rj.heldCore.flat();
+    const om = xs.filter((x) => Rk.fit.score(x).y > Rk.q10).length / xs.length;
+    (Rj.omega ??= {})[k.id] = om;
+  }
+  for (const j of ok) for (const k of ok) {
+    if (j.id >= k.id) continue;
+    const a = M.gestures[j.id].omega?.[k.id] ?? 0, b = M.gestures[k.id].omega?.[j.id] ?? 0;
+    if (Math.max(a, b) > 0.15) {
+      M.gestures[j.id].notes.push(`can't be told apart from ${k.name} (${(Math.max(a, b) * 100).toFixed(0)}%)`);
+      M.gestures[k.id].notes.push(`can't be told apart from ${j.name} (${(Math.max(a, b) * 100).toFixed(0)}%)`);
+    }
+  }
+  return M;
+}
+
+/* ================= state and storage ================= */
+
+let state = { gestures: [], bags: [], nextId: 1 };
+let model = null;
+
+function idb() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('face-classifier-prototype', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('s');
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function save() {
+  try {
+    const db = await idb();
+    await new Promise((res, rej) => { const tx = db.transaction('s', 'readwrite'); tx.objectStore('s').put(state, 'main'); tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
+  } catch (e) { console.error(e); }
+}
+async function load() {
+  try {
+    const db = await idb();
+    const v = await new Promise((res, rej) => { const r = db.transaction('s').objectStore('s').get('main'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+    if (v) state = v;
+  } catch (e) { console.error(e); }
+}
+function changed() { model = null; stopTrying(); $('tryStatus').textContent = 'Train again first.'; void save(); render(); renderDiag(); }
+
+/* ================= the camera and the loop ================= */
+
+let landmarker, stream, lastTs = -1;
+let mode = 'idle'; // 'idle' | 'record' | 'live'
+let recorder = null;
+let lastLive = -Infinity;
+
+async function startCamera() {
+  if (stream) return;
+  $('camStatus').textContent = 'Loading MediaPipe…';
+  if (!landmarker) {
+    const { FaceLandmarker, FilesetResolver } = await import(`${CDN}/vision_bundle.mjs`);
+    const fileset = await FilesetResolver.forVisionTasks(LOCAL);
+    const opts = (delegate) => ({ baseOptions: { modelAssetPath: `${LOCAL}/face_landmarker.task`, delegate }, runningMode: 'VIDEO', numFaces: 1, outputFaceBlendshapes: true, outputFacialTransformationMatrixes: true });
+    try { landmarker = await FaceLandmarker.createFromOptions(fileset, opts('GPU')); }
+    catch { landmarker = await FaceLandmarker.createFromOptions(fileset, opts('CPU')); }
+  }
+  $('camStatus').textContent = 'Starting the camera…';
+  stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 } }, audio: false });
+  video.srcObject = stream;
+  await video.play();
+  const s = stream.getVideoTracks()[0].getSettings();
+  $('camStatus').textContent = `Camera ${s.width}×${s.height} at ${s.frameRate ?? '?'} frames/s.`;
+  $('camStart').disabled = true; $('camStop').disabled = false;
+  schedule();
+}
+function stopCamera() {
+  stopTrying();
+  stream?.getTracks().forEach((t) => t.stop());
+  stream = undefined;
+  video.srcObject = null;
+  $('camStart').disabled = false; $('camStop').disabled = true;
+  $('camStatus').textContent = 'Camera off.';
+}
+function schedule() {
+  if (!stream) return;
+  if ('requestVideoFrameCallback' in video) video.requestVideoFrameCallback(onFrame);
+  else requestAnimationFrame((now) => onFrame(now));
+}
+function readResult(r) {
+  const cats = r.faceBlendshapes?.[0]?.categories, m = r.facialTransformationMatrixes?.[0];
+  if (!cats || !m) return null;
+  const b = new Float32Array(52);
+  for (const c of cats) { const i = IDX.get(c.categoryName); if (i !== undefined) b[i] = c.score; }
+  const d = m.data, R = new Float32Array(9);
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) R[i * 3 + j] = d[j * 4 + i];
+  return { b, R, p: new Float32Array([d[12], d[13], d[14]]) };
+}
+function detectNow() {
+  const ts = Math.max(lastTs + 1, performance.now());
+  lastTs = ts;
+  return readResult(landmarker.detectForVideo(video, ts));
+}
+function onFrame(now, meta) {
+  if (!stream) return;
+  schedule();
+  if (video.readyState < 2 || mode === 'idle') return;
+  const t = meta?.captureTime ?? now; // the performance clock either way
+  if (mode === 'record') {
+    const f = detectNow();
+    if (f && recorder) recorder.push(t, f);
+  } else if (mode === 'live') {
+    if (now - lastLive < 1000 / 15 - 2) return;
+    lastLive = now;
+    liveFrame(t, detectNow());
+  }
+}
+
+/* ================= recording (spec: recording) ================= */
+
+let audio;
+function beep(freq) {
+  audio ??= new AudioContext();
+  const c = audio, o = c.createOscillator(), g = c.createGain(), t0 = c.currentTime;
+  o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(0.5, t0 + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.15);
+  o.connect(g).connect(c.destination);
+  o.start(t0); o.stop(t0 + 0.16);
+  return performance.now();
+}
+function startRecorder() {
+  const start = performance.now(), rows = [];
+  recorder = {
+    start,
+    push(t, f) { rows.push(t - start, ...f.b, ...f.R, ...f.p); },
+    finish() { recorder = null; return { n: rows.length / STRIDE, data: Float32Array.from(rows) }; },
+  };
+  mode = 'record';
+  return recorder;
+}
+let busy = false;
+async function guarded(fn) {
+  if (busy) return;
+  busy = true; render();
+  try { await fn(); } catch (e) { console.error(e); $('recStatus').textContent = `Failed: ${e?.message ?? e}`; }
+  finally { busy = false; recorder = null; if (mode === 'record') mode = 'idle'; $('prompt').textContent = ''; render(); }
+}
+const countdown = async (label, s) => { for (let i = s; i > 0; i--) { $('prompt').textContent = `${label} in ${i}…`; await sleep(1000); } };
+
+async function recordPlaying() {
+  stopTrying();
+  await startCamera();
+  audio ??= new AudioContext();
+  const secs = Number($('bgLen').value);
+  await countdown('Play normally', 3);
+  const rec = startRecorder();
+  beep(660);
+  for (let left = secs; left > 0; left--) { $('prompt').textContent = `Play as you normally would: ${left} s`; await sleep(1000); }
+  beep(660);
+  const { n, data } = rec.finish();
+  mode = 'idle';
+  state.bags.push({ id: state.nextId++, kind: 'bg', n, data, at: Date.now() });
+  $('recStatus').textContent = `Recorded ${n} frames of Playing.`;
+  changed();
+}
+
+async function recordTrials(g, count = 5) {
+  stopTrying();
+  await startCamera();
+  audio ??= new AudioContext();
+  await countdown(`${g.name}: start playing; first trial`, 3);
+  for (let k = 1; k <= count; k++) {
+    const rec = startRecorder();
+    $('recStatus').textContent = `${g.name}: trial ${k} of ${count}.`;
+    $('prompt').textContent = 'Keep playing… wait for the high tone';
+    await sleep(2000 + Math.random() * 2000);
+    const toneOn = beep(880) - rec.start;
+    $('prompt').textContent = `${g.name}: do it and hold it`;
+    await sleep(2000);
+    const toneOff = beep(440) - rec.start;
+    $('prompt').textContent = 'Let go, keep playing';
+    await sleep(2000);
+    const { n, data } = rec.finish();
+    mode = 'idle';
+    state.bags.push({ id: state.nextId++, kind: 'trial', gesture: g.id, toneOn, toneOff, n, data, at: Date.now() });
+  }
+  $('recStatus').textContent = `Recorded ${count} trials of ${g.name}.`;
+  changed();
+}
+
+/* ================= trying it (spec: turning) ================= */
+
+let live = null;
+function startTrying() {
+  if (!model) return;
+  live = { c0: [model.Rb[0], model.Rb[3], model.Rb[6]], c1: [model.Rb[1], model.Rb[4], model.Rb[7]], Rb: model.Rb.slice(), prev: null, tp: 0, det: {}, lastTurn: -Infinity, page: 1 };
+  buildLiveRows();
+  mode = 'live';
+  $('try').textContent = 'Stop trying';
+  $('page').textContent = '1';
+}
+function stopTrying() {
+  if (mode === 'live') mode = 'idle';
+  live = null;
+  $('try').textContent = 'Start trying';
+}
+let rows = new Map();
+function buildLiveRows() {
+  const box = $('live');
+  box.replaceChildren();
+  rows = new Map();
+  for (const g of state.gestures) {
+    const R = model.gestures[g.id];
+    const card = document.createElement('div');
+    card.className = 'card live-row';
+    const usable = R?.fit?.score;
+    const hold = g.hold ?? R?.hold ?? 250;
+    card.innerHTML = `<span class="name"></span><div class="row" style="margin:0"><div class="meter"><div class="fill"></div><div class="mark"></div><div class="mark rel"></div></div></div>
+      <span class="dim"></span><div class="nums"></div>
+      <span></span><div class="row" style="margin:0">
+        <label>On <input type="number" step="0.05" min="0.05" max="1" data-k="on"></label>
+        <label>Release <input type="number" step="0.05" min="0" max="1" data-k="release"></label>
+        <label>Hold <input type="number" step="50" min="100" max="1500" data-k="hold"> ms</label></div>`;
+    card.querySelector('.name').textContent = g.name;
+    card.children[2].textContent = { next: '→ Next', prev: '← Back', none: 'None' }[g.direction];
+    const inputs = card.querySelectorAll('input');
+    inputs[0].value = g.on ?? 1; inputs[1].value = g.release ?? 0.5; inputs[2].value = hold;
+    const marks = card.querySelectorAll('.mark');
+    const place = () => { marks[0].style.left = `${(g.on ?? 1) * 100}%`; marks[1].style.left = `${(g.release ?? 0.5) * 100}%`; };
+    place();
+    inputs.forEach((inp) => inp.addEventListener('change', () => {
+      const v = Number(inp.value);
+      if (inp.dataset.k === 'on') g.on = clamp(v, 0.05, 1);
+      if (inp.dataset.k === 'release') g.release = clamp(v, 0, g.on ?? 1);
+      if (inp.dataset.k === 'hold') g.hold = clamp(v, 100, 1500);
+      place(); void save();
+    }));
+    if (!usable) card.querySelector('.nums').textContent = 'not usable: see the training results';
+    box.append(card);
+    rows.set(g.id, { card, fill: card.querySelector('.fill'), nums: card.querySelector('.nums'), usable });
+  }
+}
+function liveFrame(t, f) {
+  if (!live) return;
+  if (!f) {
+    live.prev = null; live.det = {};
+    $('lFace').textContent = 'none';
+    rows.forEach((r) => { r.fill.style.width = '0'; r.card.classList.remove('on'); });
+    return;
+  }
+  const M = model;
+  const us = standardize(poseU(f.R, f.p), M.uStats);
+  const ds = standardize(relRotvec(live.Rb, f.R), M.dStats);
+  const { bt, Nu } = residualize(M, us, ds, f.b, null);
+  const v = features(bt, ds);
+  let x = v;
+  const dt = live.prev ? t - live.tp : 0;
+  if (live.prev) { const a = Math.exp(-dt / 45); x = Float64Array.from(v, (vi, d) => a * live.prev[d] + (1 - a) * vi); }
+  live.prev = x; live.tp = t;
+  const s0 = M.s0(x);
+  // The mount follows neutral frames slowly.
+  if (s0 < M.neutralS0 && dt > 0) {
+    const a = Math.exp(-dt / 15000);
+    for (let k = 0; k < 3; k++) { live.c0[k] = a * live.c0[k] + (1 - a) * f.R[k * 3]; live.c1[k] = a * live.c1[k] + (1 - a) * f.R[k * 3 + 1]; }
+    live.Rb = mountFrom(live.c0, live.c1);
+  }
+  $('lFace').textContent = 'seen';
+  $('lNeff').textContent = Nu.toFixed(1);
+  $('lS0').textContent = s0.toFixed(2);
+  $('lWarn').textContent = Nu < 5 ? 'Unfamiliar angle: record more Playing from here.' : '';
+  let turned = false;
+  for (const g of state.gestures) {
+    const row = rows.get(g.id);
+    if (!row?.usable) continue;
+    const sc = M.gestures[g.id].fit.score(x);
+    row.fill.style.width = `${sc.y * 100}%`;
+    row.nums.textContent = `y ${sc.y.toFixed(2)} · u ${sc.u.toFixed(2)} · a ${sc.a.toFixed(2)} · gate ${sc.gate.toFixed(2)}`;
+    const on = g.on ?? 1, release = g.release ?? 0.5, hold = g.hold ?? M.gestures[g.id].hold ?? 250;
+    const st = live.det[g.id] ?? { turned: false };
+    const wasOn = st.since !== undefined || st.turned;
+    const isOn = wasOn ? sc.y >= release : sc.y >= on - 1e-9;
+    row.card.classList.toggle('on', isOn);
+    if (!isOn) { live.det[g.id] = { turned: false }; continue; }
+    if (st.turned) continue;
+    const since = st.since ?? t;
+    if (!turned && g.direction !== 'none' && t - since >= hold && t - live.lastTurn >= 100) {
+      turned = true;
+      live.lastTurn = t;
+      live.page = Math.max(1, live.page + (g.direction === 'next' ? 1 : -1));
+      $('page').textContent = String(live.page);
+      $('page').classList.add('flash'); setTimeout(() => $('page').classList.remove('flash'), 200);
+      $('lTurn').textContent = `${g.name} (${g.direction === 'next' ? 'next' : 'back'})`;
+      live.det[g.id] = { turned: true };
+    } else live.det[g.id] = { since, turned: false };
+  }
+}
+
+/* ================= the page ================= */
+
+function render() {
+  const bgs = state.bags.filter((b) => b.kind === 'bg');
+  const secs = bgs.reduce((a, b) => a + (b.n ? frameAt(b, b.n - 1).t / 1000 : 0), 0);
+  $('bgInfo').textContent = bgs.length ? `${bgs.length} recording(s), ${secs.toFixed(0)} s, ${bgs.reduce((a, b) => a + b.n, 0)} frames.` : 'None recorded yet.';
+  for (const id of ['bgRec', 'bgClear', 'gAdd', 'train', 'wipe', 'dl']) $(id).disabled = busy;
+  $('try').disabled = busy || !model;
+  const list = $('gList');
+  list.replaceChildren();
+  for (const g of state.gestures) {
+    const n = state.bags.filter((b) => b.kind === 'trial' && b.gesture === g.id).length;
+    const card = document.createElement('div');
+    card.className = 'card row';
+    const name = document.createElement('b');
+    name.textContent = g.name;
+    const dir = document.createElement('select');
+    for (const [v, l] of [['next', 'Next'], ['prev', 'Back'], ['none', 'None']]) dir.append(new Option(l, v, false, g.direction === v));
+    dir.addEventListener('change', () => { g.direction = dir.value; void save(); if (live) buildLiveRows(); });
+    const info = document.createElement('span');
+    info.className = 'dim';
+    info.textContent = `${n} trial(s)`;
+    const rec = document.createElement('button');
+    rec.textContent = 'Record 5 trials';
+    rec.disabled = busy || !bgs.length;
+    rec.title = bgs.length ? '' : 'Record Playing first';
+    rec.addEventListener('click', () => guarded(() => recordTrials(g)));
+    const clear = document.createElement('button');
+    clear.textContent = 'Clear trials';
+    clear.disabled = busy || !n;
+    clear.addEventListener('click', () => { if (!confirm(`Clear the trials of ${g.name}?`)) return; state.bags = state.bags.filter((b) => b.gesture !== g.id); changed(); });
+    const remove = document.createElement('button');
+    remove.textContent = 'Remove';
+    remove.disabled = busy;
+    remove.addEventListener('click', () => { if (!confirm(`Remove ${g.name} and its trials?`)) return; state.bags = state.bags.filter((b) => b.gesture !== g.id); state.gestures = state.gestures.filter((x) => x !== g); changed(); });
+    card.append(name, dir, info, rec, clear, remove);
+    list.append(card);
+  }
+}
+
+function renderDiag() {
+  const box = $('diag');
+  box.replaceChildren();
+  if (!model) return;
+  const f2 = (v) => (Number.isFinite(v) ? v.toFixed(2) : '–');
+  for (const g of state.gestures) {
+    const R = model.gestures[g.id];
+    const card = document.createElement('div');
+    card.className = 'card';
+    const h = document.createElement('b');
+    h.textContent = g.name;
+    card.append(h);
+    const t = document.createElement('table');
+    const row = (k, v, cls = '') => { const tr = t.insertRow(); tr.insertCell().textContent = k; const c = tr.insertCell(); c.textContent = v; c.className = `n ${cls}`; };
+    row('Trials segmented', `${R.segmented} of ${R.trials}`);
+    if (R.coreMs !== undefined) row('Core (median)', `${R.coreMs.toFixed(0)} ms`);
+    if (R.gammaNull !== undefined) row('γ_null', f2(R.gammaNull));
+    const fit = R.fit;
+    if (fit?.rho) {
+      const top = [...fit.rho].map((r, d) => [r, d]).filter(([r]) => r > 0).sort((a, b) => b[0] - a[0]).slice(0, 6);
+      row('Active dimensions', `${fit.active ?? 0}`);
+      row('Most relevant', top.map(([r, d]) => `${FEATURES[d]} ${r.toFixed(1)}`).join(', ') || '–');
+    }
+    if (fit?.upper !== undefined) row('upper / lower', `${f2(fit.upper)} / ${f2(fit.lower)} (upper before the gate: ${f2(fit.upperAll)})`);
+    if (R.recall !== undefined) row('Recall (left out, y > 0.7)', `${(R.recall * 100).toFixed(0)}%`, R.recall < 0.85 ? 'bad' : 'good');
+    if (R.relSE !== undefined) row('Stability (relative SE)', f2(R.relSE), R.relSE > 0.15 ? 'bad' : 'good');
+    if (R.hold !== undefined) row('Hold', `${R.hold} ms (Playing's longest on: ${R.playingLongestOn.toFixed(0)} ms)`);
+    if (R.trialsPastHold !== undefined) row('Trials on for longer than Hold', `${R.trialsPastHold} of ${R.loto.length}`, R.trialsPastHold < R.loto.length ? 'bad' : 'good');
+    card.append(t);
+    for (const n of R.notes) { const p = document.createElement('p'); p.className = 'bad'; p.textContent = n; card.append(p); }
+    if (!R.notes.length && fit?.score) { const p = document.createElement('p'); p.className = 'good'; p.textContent = 'Looks usable.'; card.append(p); }
+    box.append(card);
+  }
+}
+
+$('camStart').addEventListener('click', () => guarded(startCamera));
+$('camStop').addEventListener('click', stopCamera);
+$('bgRec').addEventListener('click', () => guarded(recordPlaying));
+$('bgClear').addEventListener('click', () => { if (!confirm('Clear all Playing recordings?')) return; state.bags = state.bags.filter((b) => b.kind !== 'bg'); changed(); });
+$('gAdd').addEventListener('click', () => {
+  const name = $('gName').value.trim();
+  if (!name) return;
+  state.gestures.push({ id: state.nextId++, name, direction: $('gDir').value });
+  $('gName').value = '';
+  changed();
+});
+$('train').addEventListener('click', () => guarded(async () => {
+  stopTrying();
+  model = null;
+  const t0 = performance.now();
+  model = await train((s) => { $('trainStatus').textContent = s; });
+  $('trainStatus').textContent = `Trained in ${((performance.now() - t0) / 1000).toFixed(1)} s.`;
+  $('tryStatus').textContent = stream ? '' : 'Start the camera to try.';
+  renderDiag();
+}));
+$('try').addEventListener('click', () => guarded(async () => {
+  if (live) { stopTrying(); return; }
+  await startCamera();
+  startTrying();
+  $('tryStatus').textContent = '';
+}));
+$('dl').addEventListener('click', () => {
+  const out = { ...state, bags: state.bags.map((b) => ({ ...b, data: Array.from(b.data) })) };
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(out)], { type: 'application/json' }));
+  a.download = 'face-classifier-recordings.json';
+  a.click();
+});
+$('ul').addEventListener('change', async () => {
+  const file = $('ul').files?.[0];
+  if (!file) return;
+  try {
+    const v = JSON.parse(await file.text());
+    state = { ...v, bags: v.bags.map((b) => ({ ...b, data: Float32Array.from(b.data) })) };
+    changed();
+  } catch (e) { $('recStatus').textContent = `Could not load: ${e?.message ?? e}`; }
+});
+$('wipe').addEventListener('click', () => { if (!confirm('Delete every recording and gesture?')) return; state = { gestures: [], bags: [], nextId: 1 }; changed(); renderDiag(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && !busy) stopCamera(); });
+
+// For checking the page without a camera.
+window.__fc = { NAMES, STRIDE, get state() { return state; }, set state(s) { state = s; changed(); }, startTrying, liveFrame };
+
+await load();
+render();
+</script>
+</body>
+</html>

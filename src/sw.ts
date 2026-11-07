@@ -27,5 +27,5 @@ self.addEventListener('fetch', (e) => {
 });
 
 precacheAndRoute(self.__WB_MANIFEST);
-// licenses.txt, which the library's menu opens, and the face-signals demo page aren't the app.
-registerRoute(new NavigationRoute(createHandlerBoundToURL('index.html'), { denylist: [/\/licenses\.txt/, /\/face-signals\.html/] }));
+// licenses.txt, which the library's menu opens, and the face-signals and face-classifier test pages aren't the app.
+registerRoute(new NavigationRoute(createHandlerBoundToURL('index.html'), { denylist: [/\/licenses\.txt/, /\/face-signals\.html/, /\/face-classifier\.html/] }));
