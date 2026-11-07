@@ -7,8 +7,8 @@
 <link rel="manifest" href="face-classifier.webmanifest">
 <!--
   A throwaway prototype of docs/face-classifier-spec.md: record Playing and gestures of your own,
-  train the classifier, and try it live. The library's code comes from jsDelivr; its WASM and the
-  face model are the app's own, from mediapipe/. Recordings are kept in this page's own IndexedDB
+  train a small causal TCN on them, and try it live. MediaPipe's code and TensorFlow.js come from
+  jsDelivr; MediaPipe's WASM and the face model are the app's own, from mediapipe/. Recordings are kept in this page's own IndexedDB
   database; nothing is sent anywhere. Not part of the app, and untested.
 -->
 <style>
@@ -79,7 +79,7 @@ tone, let go; keep playing throughout), then train, then try.</p>
 <div id="gList"></div>
 
 <h2>3. Train</h2>
-<div class="row"><button id="train" class="primary">Train</button><span id="trainStatus" class="dim"></span></div>
+<div class="row"><label>Steps <select id="steps"><option>400</option><option selected>800</option><option>1600</option></select></label><button id="train" class="primary">Train</button><span id="trainStatus" class="dim"></span></div>
 <div id="diag"></div>
 
 <h2>4. Try</h2>
@@ -112,7 +112,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const tick = () => new Promise((r) => setTimeout(r, 0));
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
-/* ================= blendshapes and features (spec: stage 2) ================= */
+/* ================= blendshapes ================= */
 
 const MIRROR = ['eyeBlink', 'eyeSquint', 'eyeWide', 'eyeLookUp', 'eyeLookDown', 'eyeLookIn', 'eyeLookOut', 'browDown',
   'browOuterUp', 'cheekSquint', 'noseSneer', 'mouthSmile', 'mouthFrown', 'mouthDimple', 'mouthStretch', 'mouthPress',
@@ -123,9 +123,7 @@ const MIDLINE = ['_neutral', 'browInnerUp', 'cheekPuff', 'jawOpen', 'jawForward'
 /** Storage order of the 52 scores: each pair's left then right, then the midline. */
 const NAMES = [...PAIRS.flatMap(([l, r]) => [l, r]), ...MIDLINE];
 const IDX = new Map(NAMES.map((n, i) => [n, i]));
-const NP = PAIRS.length; // 20
-const NX = 2 * NP + MIDLINE.length + 3; // 55
-const FEATURES = [...PAIRS.map((p) => `${p[2]} common`), ...PAIRS.map((p) => `${p[2]} diff`), ...MIDLINE, 'head rot x', 'head rot y', 'head rot z'];
+const NX = 55; // the 52 corrected blendshapes and Dr
 
 /* ================= stored frames ================= */
 
@@ -155,27 +153,6 @@ function colStats(rows, D) {
   }
   return { med, iqr };
 }
-/** Otsu's threshold over 64 bins. */
-function otsu(vals) {
-  let lo = Infinity, hi = -Infinity;
-  for (const v of vals) if (Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
-  if (!(hi - lo > 1e-12)) return hi;
-  const N = 64, hist = new Float64Array(N);
-  let n = 0;
-  for (const v of vals) if (Number.isFinite(v)) { hist[Math.min(N - 1, Math.floor((v - lo) / (hi - lo) * N))]++; n++; }
-  let sumAll = 0;
-  for (let i = 0; i < N; i++) sumAll += i * hist[i];
-  let w0 = 0, sum0 = 0, best = -1, bestI = 0;
-  for (let i = 0; i < N - 1; i++) {
-    w0 += hist[i]; sum0 += i * hist[i];
-    const w1 = n - w0;
-    if (!w0 || !w1) continue;
-    const m0 = sum0 / w0, m1 = (sumAll - sum0) / w1, between = w0 * w1 * (m0 - m1) ** 2;
-    if (between > best) { best = between; bestI = i; }
-  }
-  return lo + (bestI + 1) / N * (hi - lo);
-}
-
 /* ================= pose (spec: stage 1) ================= */
 
 function poseU(R, p) {
@@ -258,127 +235,219 @@ function residualize(M, us, ds, b, leave) {
   return { bt, Nu };
 }
 
-/** The 55 features before filtering: pairs' common and difference channels, the midline, and Dr. */
+/** The 55 inputs: the pose-corrected blendshapes and the standardized Dr, each clipped to ±10. */
 function features(bt, dStd) {
-  const v = new Float64Array(NX);
-  for (let p = 0; p < NP; p++) { const l = bt[2 * p], r = bt[2 * p + 1]; v[p] = (l + r) / 2; v[NP + p] = (l - r) / 2; }
-  for (let m = 0; m < MIDLINE.length; m++) v[2 * NP + m] = bt[2 * NP + m];
-  v.set(dStd, 2 * NP + MIDLINE.length);
+  const v = new Float32Array(NX);
+  for (let c = 0; c < 52; c++) v[c] = clamp(bt[c], -10, 10);
+  for (let k = 0; k < 3; k++) v[52 + k] = clamp(dStd[k], -10, 10);
   return v;
 }
 
-/** One series (one set of one bag), filtered: [{ t, x, Nu }]. */
+/** One series (one set of one bag): [{ t, x, Nu }]. */
 function runSeries(M, frames, leaveBag) {
-  const out = [];
-  let prev = null, tp = 0;
-  for (const f of frames) {
+  return frames.map((f) => {
     const us = standardize(poseU(f.R, f.p), M.uStats);
     const ds = standardize(relRotvec(M.Rb, f.R), M.dStats);
     const { bt, Nu } = residualize(M, us, ds, f.b, leaveBag === undefined ? null : { bag: leaveBag, t: f.t });
-    const v = features(bt, ds);
-    let x = v;
-    if (prev) { const a = Math.exp(-(f.t - tp) / 45); x = Float64Array.from(v, (vi, d) => a * prev[d] + (1 - a) * vi); }
-    out.push({ t: f.t, x, Nu });
-    prev = x; tp = f.t;
-  }
-  return out;
+    return { t: f.t, x: features(bt, ds), Nu };
+  });
 }
 const setFrames = (bag, set) => { const fs = []; for (let i = set; i < bag.n; i += 2) fs.push(frameAt(bag, i)); return fs; };
 
-/* ================= the classifier (spec: stage 3) ================= */
-
-function fitGesture(units, ctx, gammaNull) {
-  const C = units.flat();
-  if (C.length < 3) return { unreliable: 'too few core frames' };
-  const { mu0, iqrBg, bgX } = ctx;
-  const { med: muK, iqr: iqrK } = colStats(C, NX);
-  const delta = new Float64Array(NX), s = new Float64Array(NX), rho = new Float64Array(NX), w = new Float64Array(NX);
-  let den = 0, active = 0;
-  for (let d = 0; d < NX; d++) {
-    delta[d] = muK[d] - mu0[d];
-    s[d] = iqrK[d] + iqrBg[d] + 0.001;
-    rho[d] = Math.max(0, Math.abs(delta[d]) / s[d] - gammaNull);
-    if (rho[d] > 0) { w[d] = delta[d] / (s[d] * s[d]); den += w[d] * delta[d]; active++; }
-  }
-  if (!active) return { unreliable: 'nothing in it differs from playing', rho };
-  const uOf = (x) => { let n = 0; for (let d = 0; d < NX; d++) if (w[d]) n += w[d] * (x[d] - mu0[d]); return n / den; };
-  const dres = (x, u) => {
-    const c = clamp(u, 0, 1.2);
-    let sum = 0;
-    for (let d = 0; d < NX; d++) { const r = (x[d] - mu0[d]) - c * delta[d]; sum += (r / s[d]) ** 2; }
-    return sum / NX;
-  };
-  const dC = C.map((x) => dres(x, uOf(x)));
-  const L = quantile(dC, 0.9), U = quantile(dC, 0.99);
-  const gateOf = (x, u) => Math.exp(-Math.max(0, (dres(x, u) - L) / (U - L + 1e-9)));
-  // Not in the spec: `upper` over only the Playing frames the gate lets through (gate ≥ 0.5), so
-  // that something the gate rejects anyway (a blink, for a wink) can't push `upper` past the gesture.
-  const bgU = bgX.map(uOf);
-  const passed = bgU.filter((u, i) => gateOf(bgX[i], u) >= 0.5);
-  const upperAll = quantile(bgU, 0.98);
-  const upper = quantile(passed.length >= 50 ? passed : bgU, 0.98), lower = quantile(C.map(uOf), 0.2);
-  if (!(lower > upper)) return { unreliable: 'it overlaps with playing', rho, active, upper, lower, upperAll };
-  const score = (x) => {
-    const u = uOf(x), a = clamp((u - upper) / (lower - upper), 0, 1), gate = gateOf(x, u);
-    return { u, a, gate, y: a * gate };
-  };
-  return { rho, active, upper, lower, upperAll, L, U, score };
-}
-
-/** γ_null: trial-level permutations of units (trials' cores and background chunks). */
-function nullGamma(trialUnits, bgChunks) {
-  const units = [...trialUnits, ...bgChunks], M = trialUnits.length, vals = [];
-  for (let k = 0; k < 100; k++) {
-    const pick = new Set();
-    while (pick.size < M) pick.add(Math.floor(Math.random() * units.length));
-    const G = [], R = [];
-    units.forEach((u, i) => (pick.has(i) ? G : R).push(...u));
-    // Thin the rest for speed.
-    const Rs = R.length > 1500 ? Array.from({ length: 1500 }, () => R[Math.floor(Math.random() * R.length)]) : R;
-    const g = colStats(G, NX), r = colStats(Rs, NX);
-    for (let d = 0; d < NX; d++) vals.push(Math.abs(g.med[d] - r.med[d]) / (g.iqr[d] + r.iqr[d] + 0.001));
-  }
-  return quantile(vals, 0.95);
-}
-
-/** The core of a trial: the longest run over Otsu's threshold inside [lo, hi]; above-frames < 140 ms apart join. */
-function coreInterval(pts, vals, lo, hi) {
-  const G = otsu(vals), runs = [];
-  let cur = null, lastT = -Infinity;
-  pts.forEach((p, i) => {
-    if (p.t < lo || p.t > hi || !(vals[i] > G)) return;
-    if (cur && p.t - lastT <= 140) cur[1] = p.t; else { cur = [p.t, p.t]; runs.push(cur); }
-    lastT = p.t;
-  });
-  let best = null;
-  for (const r of runs) if (!best || r[1] - r[0] > best[1] - best[0]) best = r;
-  return best;
-}
-
-/** The longest stretch a series is on, with On and Release. */
+/** The longest stretch a series ([{ t, y }]) is on, with On and Release. */
 function longestOn(series, on, release) {
   let since = null, longest = 0;
   for (const p of series) {
-    const isOn = since !== null ? p.y >= release : p.y >= on - 1e-9;
+    const isOn = since !== null ? p.y >= release : p.y >= on;
     if (isOn && since === null) since = p.t;
     if (!isOn && since !== null) { longest = Math.max(longest, p.t - since); since = null; }
   }
   if (since !== null && series.length) longest = Math.max(longest, series[series.length - 1].t - since);
   return longest;
 }
+/** The times a series would turn the page: on for Hold, once per stretch on. */
+function fires(series, on, release, hold) {
+  let since = null, fired = false;
+  const out = [];
+  for (const p of series) {
+    const isOn = since !== null ? p.y >= release : p.y >= on;
+    if (!isOn) { since = null; fired = false; continue; }
+    if (since === null) since = p.t;
+    if (!fired && p.t - since >= hold) { fired = true; out.push(p.t); }
+  }
+  return out;
+}
+
+/* ================= the TCN (spec: stage 2) ================= */
+
+const TFJS = 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js';
+let tfLoading;
+function loadTf() {
+  return tfLoading ??= new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = TFJS;
+    s.onload = () => res(window.tf);
+    s.onerror = () => { tfLoading = undefined; rej(new Error('Could not load TensorFlow.js')); };
+    document.head.append(s);
+  });
+}
+
+const DILATIONS = [1, 2, 4], WIDTH = 32, KERNEL = 3;
+/** How many frames back each output sees: 29, about 2 s at 15 a second. */
+const RECEPTIVE = 1 + 2 * (KERNEL - 1) * DILATIONS.reduce((a, b) => a + b, 0);
+const WINDOW = 96, BATCH = 32;
+const ON_DEFAULT = 0.8, RELEASE_DEFAULT = 0.5;
+
+/**
+ * A causal TCN: residual blocks of two dilated causal convolutions (the past padded with zeros),
+ * ReLU and dropout; logits for each class at each frame. Plain tensors: `forward(x, training)`.
+ */
+function buildTcn(tf, nOut) {
+  const glorot = (k, i, o) => tf.variable(tf.randomUniform([k, i, o], -Math.sqrt(6 / (k * (i + o))), Math.sqrt(6 / (k * (i + o)))));
+  const bias = (o) => tf.variable(tf.zeros([o]));
+  const blocks = [];
+  let channels = NX;
+  for (const d of DILATIONS) {
+    blocks.push({
+      d,
+      convs: [0, 1].map((k) => ({ w: glorot(KERNEL, k ? WIDTH : channels, WIDTH), b: bias(WIDTH) })),
+      skip: channels === WIDTH ? null : { w: glorot(1, channels, WIDTH), b: bias(WIDTH) },
+    });
+    channels = WIDTH;
+  }
+  const out = { w: glorot(1, WIDTH, nOut), b: bias(nOut) };
+  const kernels = [...blocks.flatMap((b) => [...b.convs.map((c) => c.w), ...(b.skip ? [b.skip.w] : [])]), out.w];
+  return {
+    kernels,
+    forward(x, training) {
+      // A dilated causal convolution as matrix products: the input shifted back by 0, d, 2d… frames
+      // (zeros before the start), side by side, times the kernel. (TensorFlow.js has neither causal
+      // padding nor gradients for dilated convolutions.)
+      const conv = (h, w, bias, k, d) => {
+        const [B, T, I] = h.shape;
+        let cat = h;
+        if (k > 1) {
+          const padded = tf.pad(h, [[0, 0], [(k - 1) * d, 0], [0, 0]]);
+          cat = tf.concat(Array.from({ length: k }, (_, j) => padded.slice([0, j * d, 0], [B, T, I])), 2);
+        }
+        return tf.matMul(cat.reshape([B * T, k * I]), w.reshape([k * I, w.shape[2]])).add(bias).reshape([B, T, w.shape[2]]);
+      };
+      let h = x;
+      for (const b of blocks) {
+        let y = h;
+        for (const c of b.convs) {
+          y = tf.relu(conv(y, c.w, c.b, KERNEL, b.d));
+          if (training) y = tf.dropout(y, 0.2);
+        }
+        h = y.add(b.skip ? conv(h, b.skip.w, b.skip.b, 1, 1) : h);
+      }
+      return conv(h, out.w, out.b, 1, 1);
+    },
+  };
+}
+
+/** A trial frame's label: its gesture's class, Playing (0), or none (−1) at the edges, from the tones. */
+function trialLabel(t, bag, k) {
+  if (t >= bag.toneOn + 400 && t <= bag.toneOff + 200) return k;
+  if (t >= bag.toneOn + 100 && t <= bag.toneOff + 500) return -1;
+  return 0;
+}
+
+const gauss = () => Math.sqrt(-2 * Math.log(Math.random() + 1e-12)) * Math.cos(2 * Math.PI * Math.random());
+
+/** Window `b` of a batch from a sequence { x, y }: changed slightly in speed (±10%) and scale (±10%), with noise. */
+function sampleWindow(seq, xs, ys, ws, b, classW) {
+  const T = seq.x.length, o = b * WINDOW;
+  const scale = 0.9 + Math.random() * 0.2;
+  let start = 0, n = T, srcOf = (i) => i;
+  if (T >= WINDOW) {
+    const span = Math.min(T, Math.round(WINDOW * (0.9 + Math.random() * 0.2)));
+    start = Math.floor(Math.random() * (T - span + 1));
+    n = WINDOW;
+    const k = (span - 1) / (WINDOW - 1);
+    srcOf = (i) => start + i * k;
+  }
+  for (let i = 0; i < Math.min(n, WINDOW); i++) {
+    const s = srcOf(i), lo = Math.floor(s), hi = Math.min(T - 1, lo + 1), fr = s - lo;
+    const a = seq.x[lo], c = seq.x[hi], row = (o + i) * NX;
+    for (let d = 0; d < NX; d++) xs[row + d] = ((1 - fr) * a[d] + fr * c[d]) * (d < 52 ? scale : 1) + 0.1 * gauss();
+    const label = seq.y[Math.round(s)];
+    // A window that starts mid-sequence has no history for its first frames: they don't count.
+    const warm = start > 0 && i < RECEPTIVE - 1;
+    ys[o + i] = Math.max(0, label);
+    ws[o + i] = label < 0 || warm ? 0 : classW[label];
+  }
+}
+
+async function trainTcn(tf, seqs, nOut, steps, say) {
+  const net = buildTcn(tf, nOut);
+  const counts = new Float64Array(nOut);
+  for (const s of seqs) for (const y of s.y) if (y >= 0) counts[y]++;
+  const total = counts.reduce((a, b) => a + b, 0);
+  const classW = Array.from(counts, (c) => (c ? Math.min(10, total / (nOut * c)) : 0));
+  const trialSeqs = seqs.filter((s) => s.trial), playSeqs = seqs.filter((s) => !s.trial);
+  // A larger epsilon than the default: phones' GPUs may train in half precision.
+  const opt = tf.train.adam(1e-3, 0.9, 0.999, 1e-4);
+  let last = NaN;
+  for (let step = 0; step < steps; step++) {
+    const xs = new Float32Array(BATCH * WINDOW * NX), ys = new Int32Array(BATCH * WINDOW), ws = new Float32Array(BATCH * WINDOW);
+    for (let b = 0; b < BATCH; b++) {
+      const pool = (b % 2 === 1 && trialSeqs.length) || !playSeqs.length ? trialSeqs : playSeqs;
+      sampleWindow(pool[Math.floor(Math.random() * pool.length)], xs, ys, ws, b, classW);
+    }
+    const loss = tf.tidy(() => {
+      const x = tf.tensor3d(xs, [BATCH, WINDOW, NX]);
+      const y = tf.oneHot(tf.tensor1d(ys, 'int32'), nOut).reshape([BATCH, WINDOW, nOut]);
+      const w = tf.tensor2d(ws, [BATCH, WINDOW]);
+      const { value, grads } = tf.variableGrads(() => {
+        // Cross-entropy with label smoothing (0.05), each frame weighted; written out rather than
+        // tf.losses.softmaxCrossEntropy, whose gradient misbehaved here on batch × time × class.
+        const target = y.mul(0.95).add(0.05 / nOut);
+        const perFrame = target.mul(tf.logSoftmax(net.forward(x, true))).sum(-1).neg();
+        const ce = perFrame.mul(w).sum().div(w.sum().add(1e-6));
+        const l2 = tf.addN(net.kernels.map((v) => tf.sum(tf.square(v)))).mul(1e-4);
+        return ce.add(l2);
+      });
+      // Gradients clipped to a global norm of 5.
+      const names = Object.keys(grads);
+      const norm = tf.sqrt(tf.addN(names.map((n) => tf.sum(tf.square(grads[n])))));
+      const scale = tf.minimum(1, tf.div(5, norm.add(1e-6)));
+      opt.applyGradients(Object.fromEntries(names.map((n) => [n, grads[n].mul(scale)])));
+      return value;
+    });
+    if (step % 20 === 0 || step === steps - 1) {
+      last = (await loss.data())[0];
+      say(`Training: step ${step + 1} of ${steps}, loss ${last.toFixed(3)}`);
+      await tf.nextFrame();
+    }
+    loss.dispose();
+  }
+  return { net, loss: last };
+}
+
+/** Class probabilities at every frame of a sequence of inputs: a Float32Array, T × classes. */
+function predictSeq(M, xs) {
+  const T = xs.length, flat = new Float32Array(T * NX);
+  xs.forEach((x, i) => flat.set(x, i * NX));
+  return M.tf.tidy(() => M.tf.softmax(M.net.forward(M.tf.tensor3d(flat, [1, T, NX]), false)).dataSync());
+}
 
 /* ================= training ================= */
 
-async function train(say) {
+async function train(say, steps) {
   const bgBags = state.bags.filter((b) => b.kind === 'bg');
   if (!bgBags.length) throw new Error('Record some Playing first.');
+  const gestures = state.gestures.filter((g) => state.bags.some((b) => b.kind === 'trial' && b.gesture === g.id));
+  if (!gestures.length) throw new Error('Record some trials first.');
+  say('Loading TensorFlow.js…');
+  const tf = await loadTf();
   say('Pose…'); await tick();
   const bgRaw = [];
   for (const bag of bgBags) for (let i = 0; i < bag.n; i++) bgRaw.push({ bag: bag.id, ...frameAt(bag, i) });
   if (bgRaw.length < 50) throw new Error('Too little Playing (was a face seen?).');
   const c0 = [0, 0, 0], c1 = [0, 0, 0];
   for (const f of bgRaw) for (let k = 0; k < 3; k++) { c0[k] += f.R[k * 3]; c1[k] += f.R[k * 3 + 1]; }
-  const M = { Rb: mountFrom(c0, c1) };
+  const M = { tf, Rb: mountFrom(c0, c1) };
   const floor = (st, fl) => { st.iqr = st.iqr.map((v, d) => Math.max(v, fl[d] ?? fl)); return st; };
   M.uStats = floor(colStats(bgRaw.map((f) => poseU(f.R, f.p)), 9), U_FLOOR);
   M.dStats = floor(colStats(bgRaw.map((f) => relRotvec(M.Rb, f.R)), 3), 0.0175);
@@ -401,122 +470,89 @@ async function train(say) {
   M.bufU = new Float64Array(M.K); M.bufD = new Float64Array(M.K);
   for (const k of ['su', 'su2', 'sd', 'sd2']) M[k] = new Float64Array(52);
 
-  // The background's features, each frame without its own neighbourhood in the kernel set.
-  const bgByBag = [];
+  // Playing: each frame without its own neighbourhood in the kernel set; the last 20% of each set held out.
+  const seqs = [], heldPlay = [];
+  const bgX = [];
   for (const [i, bag] of bgBags.entries()) {
     say(`Playing ${i + 1} of ${bgBags.length}…`); await tick();
-    const sets = [0, 1].map((s) => runSeries(M, setFrames(bag, s), bag.id));
-    bgByBag.push({ bag, sets });
+    for (const s of [0, 1]) {
+      const pts = runSeries(M, setFrames(bag, s), bag.id);
+      bgX.push(...pts.map((p) => p.x));
+      const cut = Math.floor(pts.length * 0.8);
+      seqs.push({ x: pts.slice(0, cut).map((p) => p.x), t: pts.slice(0, cut).map((p) => p.t), y: new Int8Array(cut), trial: false });
+      heldPlay.push(pts.slice(cut));
+    }
   }
-  const bgPts = bgByBag.flatMap((b) => b.sets.flat());
-  const bgX = bgPts.map((p) => p.x);
   const { med: mu0, iqr: iqrBg } = colStats(bgX, NX);
-  M.mu0 = mu0; M.iqrBg = iqrBg;
   M.s0 = (x) => { let s = 0; for (let d = 0; d < NX; d++) s += ((x[d] - mu0[d]) / (iqrBg[d] + 0.001)) ** 2; return Math.sqrt(s); };
   M.neutralS0 = quantile(bgX.map(M.s0), 0.75);
-  const ctx = { mu0, iqrBg, bgX };
 
-  // Each gesture: segment its trials, fit, and leave each trial out.
-  M.gestures = {};
-  for (const g of state.gestures) {
-    say(`${g.name}: segmenting…`); await tick();
+  // Trials: labelled from the tones; each gesture's last trial held out (with two or more).
+  M.classes = gestures.map((g) => g.id);
+  const heldTrials = [];
+  M.info = {};
+  for (const [gi, g] of gestures.entries()) {
+    say(`${g.name}: pose…`); await tick();
     const trials = state.bags.filter((b) => b.kind === 'trial' && b.gesture === g.id);
-    const R = { trials: trials.length, segmented: 0, notes: [] };
-    M.gestures[g.id] = R;
-    if (!trials.length) { R.notes.push('no trials recorded'); continue; }
-    const tr = trials.map((bag) => ({ bag, sets: [0, 1].map((s) => runSeries(M, setFrames(bag, s))) }));
-    const win = (t) => [t.bag.toneOn + 200, t.bag.toneOff + 1000];
-    const coreOf = (t, iv) => t.sets.flat().filter((p) => p.t >= iv[0] && p.t <= iv[1]).map((p) => p.x);
-    // Pass 1: novelty.
-    for (const t of tr) t.iv = coreInterval(t.sets[0], t.sets[0].map((p) => M.s0(p.x)), ...win(t));
-    const first = tr.filter((t) => t.iv).flatMap((t) => coreOf(t, t.iv));
-    if (first.length < 3) { R.notes.push('no trial could be segmented'); continue; }
-    // Pass 2: the projection onto the first pass's direction, every dimension weighted.
-    const m1 = colStats(first, NX).med, iq1 = colStats(first, NX).iqr;
-    const w1 = Float64Array.from(m1, (m, d) => (m - mu0[d]) / (iq1[d] + iqrBg[d] + 0.001) ** 2);
-    let den1 = 0; for (let d = 0; d < NX; d++) den1 += w1[d] * (m1[d] - mu0[d]);
-    const u1 = (x) => { let n = 0; for (let d = 0; d < NX; d++) n += w1[d] * (x[d] - mu0[d]); return n / den1; };
-    for (const t of tr) t.iv = coreInterval(t.sets[0], t.sets[0].map((p) => u1(p.x)), ...win(t));
-    const used = tr.filter((t) => t.iv);
-    R.segmented = used.length;
-    if (used.length < tr.length) R.notes.push(`${tr.length - used.length} trial(s) had no core and are left out`);
-    if (!used.length) continue;
-    const units = used.map((t) => coreOf(t, t.iv));
-    R.coreMs = quantile(used.map((t) => t.iv[1] - t.iv[0]), 0.5);
-
-    say(`${g.name}: γ_null…`); await tick();
-    const chunkSize = Math.max(2, Math.round(quantile(units.map((u) => u.length), 0.5)));
-    const bgChunks = [];
-    for (const b of bgByBag) {
-      const pts = b.sets.flat().sort((p, q) => p.t - q.t);
-      for (let i = 0; i + chunkSize <= pts.length; i += chunkSize) bgChunks.push(pts.slice(i, i + chunkSize).map((p) => p.x));
+    const held = trials.length >= 2 ? trials[trials.length - 1] : null;
+    M.info[g.id] = { trials: trials.length, heldOut: !!held };
+    for (const bag of trials) {
+      for (const s of [0, 1]) {
+        const pts = runSeries(M, setFrames(bag, s));
+        const y = Int8Array.from(pts, (p) => trialLabel(p.t, bag, gi + 1));
+        if (bag === held) { if (s === 0) heldTrials.push({ g, bag, pts }); }
+        else seqs.push({ x: pts.map((p) => p.x), t: pts.map((p) => p.t), y, trial: true });
+      }
     }
-    R.gammaNull = nullGamma(units, bgChunks);
+  }
 
-    say(`${g.name}: fitting…`); await tick();
-    const fit = fitGesture(units, ctx, R.gammaNull);
-    R.fit = fit;
-    if (fit.unreliable) { R.notes.push(`unreliable: ${fit.unreliable}`); continue; }
+  const t0 = performance.now();
+  const { net, loss } = await trainTcn(tf, seqs, gestures.length + 1, steps, say);
+  M.net = net;
+  M.summary = { loss, steps, seqs: seqs.length, seconds: (performance.now() - t0) / 1000 };
 
-    // Hold, from the Playing bags.
+  // Hold: from the training part of Playing, the longest each gesture stays on, plus 100 ms.
+  say('Checking…'); await tick();
+  const C = gestures.length + 1;
+  const seriesOf = (probs, ts, gi) => ts.map((t, i) => ({ t, y: probs[i * C + gi + 1] }));
+  M.holds = {};
+  const playProbs = seqs.filter((s) => !s.trial).map((s) => ({ probs: predictSeq(M, s.x), t: s.t }));
+  gestures.forEach((g, gi) => {
     let longest = 0;
-    for (const b of bgByBag) for (const set of b.sets) longest = Math.max(longest, longestOn(set.map((p) => ({ t: p.t, y: fit.score(p.x).y })), 1, 0.5));
-    R.hold = clamp(Math.ceil((longest + 100) / 50) * 50, 100, 1500);
-    R.playingLongestOn = longest;
+    for (const p of playProbs) longest = Math.max(longest, longestOn(seriesOf(p.probs, p.t, gi), ON_DEFAULT, RELEASE_DEFAULT));
+    M.holds[g.id] = clamp(Math.ceil((longest + 100) / 50) * 50, 100, 1500);
+    M.info[g.id].playingLongestOn = longest;
+  });
+  const settingsOf = (g) => [g.on ?? ON_DEFAULT, g.release ?? RELEASE_DEFAULT, g.hold ?? M.holds[g.id]];
 
-    // Leaving one trial out.
-    say(`${g.name}: leaving each trial out…`); await tick();
-    R.loto = [];
-    if (used.length < 2) { R.notes.push('only one usable trial: no leave-one-out check'); continue; }
-    const heldYs = [], gaps = [];
-    let past = 0;
-    used.forEach((t, m) => {
-      const f = fitGesture(units.filter((_, i) => i !== m), ctx, R.gammaNull);
-      if (f.unreliable) { R.loto.push({ unreliable: f.unreliable }); return; }
-      gaps.push(f.lower - f.upper);
-      const ys = units[m].map((x) => f.score(x).y);
-      heldYs.push(...ys);
-      const on = longestOn(t.sets[0].map((p) => ({ t: p.t, y: f.score(p.x).y })), 1, 0.5);
-      if (on > R.hold) past++;
-      R.loto.push({ ys });
-    });
-    R.heldYs = heldYs;
-    R.heldCore = units;
-    R.trialsPastHold = past;
-    R.recall = heldYs.length ? heldYs.filter((y) => y > 0.7).length / heldYs.length : 0;
-    if (gaps.length >= 2) {
-      const mean = gaps.reduce((a, b) => a + b, 0) / gaps.length, n = gaps.length;
-      const se = Math.sqrt((n - 1) / n * gaps.reduce((a, g2) => a + (g2 - mean) ** 2, 0));
-      R.relSE = se / (fit.lower - fit.upper);
-    }
-    if (R.recall < 0.85 || R.relSE > 0.15) R.notes.push('record more trials of this gesture');
-    R.q10 = quantile(heldYs, 0.1);
+  // Held-out Playing: turns per minute by each gesture.
+  let minutes = 0;
+  const playFires = Object.fromEntries(gestures.map((g) => [g.id, 0]));
+  for (const pts of heldPlay) {
+    if (pts.length < 2) continue;
+    minutes += (pts[pts.length - 1].t - pts[0].t) / 60000;
+    const probs = predictSeq(M, pts.map((p) => p.x));
+    gestures.forEach((g, gi) => { playFires[g.id] += fires(seriesOf(probs, pts.map((p) => p.t), gi), ...settingsOf(g)).length; });
   }
+  M.heldPlay = { minutes, fires: playFires };
 
-  // Confusable gestures.
-  say('Comparing gestures…'); await tick();
-  const ok = state.gestures.filter((g) => M.gestures[g.id]?.fit?.score && M.gestures[g.id].heldCore);
-  for (const j of ok) for (const k of ok) {
-    if (j === k) continue;
-    const Rj = M.gestures[j.id], Rk = M.gestures[k.id];
-    const xs = Rj.heldCore.flat();
-    const om = xs.filter((x) => Rk.fit.score(x).y > Rk.q10).length / xs.length;
-    (Rj.omega ??= {})[k.id] = om;
+  // Held-out trials: which gestures would have turned, and the trial's own highest probability.
+  M.crosstalk = [];
+  for (const h of heldTrials) {
+    const probs = predictSeq(M, h.pts.map((p) => p.x)), ts = h.pts.map((p) => p.t);
+    const gi = gestures.indexOf(h.g);
+    const row = { g: h.g, fires: {}, ownMax: 0 };
+    gestures.forEach((k, ki) => { row.fires[k.id] = fires(seriesOf(probs, ts, ki), ...settingsOf(k)).length; });
+    ts.forEach((t, i) => { if (trialLabel(t, h.bag, 1) === 1) row.ownMax = Math.max(row.ownMax, probs[i * C + gi + 1]); });
+    M.crosstalk.push(row);
   }
-  for (const j of ok) for (const k of ok) {
-    if (j.id >= k.id) continue;
-    const a = M.gestures[j.id].omega?.[k.id] ?? 0, b = M.gestures[k.id].omega?.[j.id] ?? 0;
-    if (Math.max(a, b) > 0.15) {
-      M.gestures[j.id].notes.push(`can't be told apart from ${k.name} (${(Math.max(a, b) * 100).toFixed(0)}%)`);
-      M.gestures[k.id].notes.push(`can't be told apart from ${j.name} (${(Math.max(a, b) * 100).toFixed(0)}%)`);
-    }
-  }
+  M.gestures = gestures;
   return M;
 }
 
 /* ================= state and storage ================= */
 
-let state = { gestures: [], bags: [], nextId: 1 };
+let state = { version: 2, gestures: [], bags: [], nextId: 1 };
 let model = null;
 
 function idb() {
@@ -538,6 +574,8 @@ async function load() {
     const db = await idb();
     const v = await new Promise((res, rej) => { const r = db.transaction('s').objectStore('s').get('main'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
     if (v) state = v;
+    // The first version's On, Release and Hold were for another classifier.
+    if (state.version !== 2) { for (const g of state.gestures) { delete g.on; delete g.release; delete g.hold; } state.version = 2; }
   } catch (e) { console.error(e); }
 }
 function changed() { model = null; stopTrying(); $('tryStatus').textContent = 'Train again first.'; void save(); render(); renderDiag(); }
@@ -689,7 +727,7 @@ async function recordTrials(g, count = 5) {
 let live = null;
 function startTrying() {
   if (!model) return;
-  live = { c0: [model.Rb[0], model.Rb[3], model.Rb[6]], c1: [model.Rb[1], model.Rb[4], model.Rb[7]], Rb: model.Rb.slice(), prev: null, tp: 0, det: {}, lastTurn: -Infinity, page: 1 };
+  live = { c0: [model.Rb[0], model.Rb[3], model.Rb[6]], c1: [model.Rb[1], model.Rb[4], model.Rb[7]], Rb: model.Rb.slice(), buf: [], tp: null, det: {}, lastTurn: -Infinity, page: 1 };
   buildLiveRows();
   mode = 'live';
   $('try').textContent = 'Stop trying';
@@ -706,11 +744,9 @@ function buildLiveRows() {
   box.replaceChildren();
   rows = new Map();
   for (const g of state.gestures) {
-    const R = model.gestures[g.id];
+    const ci = model.classes.indexOf(g.id);
     const card = document.createElement('div');
     card.className = 'card live-row';
-    const usable = R?.fit?.score;
-    const hold = g.hold ?? R?.hold ?? 250;
     card.innerHTML = `<span class="name"></span><div class="row" style="margin:0"><div class="meter"><div class="fill"></div><div class="mark"></div><div class="mark rel"></div></div></div>
       <span class="dim"></span><div class="nums"></div>
       <span></span><div class="row" style="margin:0">
@@ -720,26 +756,26 @@ function buildLiveRows() {
     card.querySelector('.name').textContent = g.name;
     card.children[2].textContent = { next: '→ Next', prev: '← Back', none: 'None' }[g.direction];
     const inputs = card.querySelectorAll('input');
-    inputs[0].value = g.on ?? 1; inputs[1].value = g.release ?? 0.5; inputs[2].value = hold;
+    inputs[0].value = g.on ?? ON_DEFAULT; inputs[1].value = g.release ?? RELEASE_DEFAULT; inputs[2].value = g.hold ?? model.holds[g.id] ?? 250;
     const marks = card.querySelectorAll('.mark');
-    const place = () => { marks[0].style.left = `${(g.on ?? 1) * 100}%`; marks[1].style.left = `${(g.release ?? 0.5) * 100}%`; };
+    const place = () => { marks[0].style.left = `${(g.on ?? ON_DEFAULT) * 100}%`; marks[1].style.left = `${(g.release ?? RELEASE_DEFAULT) * 100}%`; };
     place();
     inputs.forEach((inp) => inp.addEventListener('change', () => {
       const v = Number(inp.value);
       if (inp.dataset.k === 'on') g.on = clamp(v, 0.05, 1);
-      if (inp.dataset.k === 'release') g.release = clamp(v, 0, g.on ?? 1);
+      if (inp.dataset.k === 'release') g.release = clamp(v, 0, g.on ?? ON_DEFAULT);
       if (inp.dataset.k === 'hold') g.hold = clamp(v, 100, 1500);
       place(); void save();
     }));
-    if (!usable) card.querySelector('.nums').textContent = 'not usable: see the training results';
+    if (ci < 0) card.querySelector('.nums').textContent = 'not in the trained model: train again';
     box.append(card);
-    rows.set(g.id, { card, fill: card.querySelector('.fill'), nums: card.querySelector('.nums'), usable });
+    rows.set(g.id, { card, fill: card.querySelector('.fill'), nums: card.querySelector('.nums'), ci });
   }
 }
 function liveFrame(t, f) {
   if (!live) return;
   if (!f) {
-    live.prev = null; live.det = {};
+    live.buf = []; live.det = {};
     $('lFace').textContent = 'none';
     rows.forEach((r) => { r.fill.style.width = '0'; r.card.classList.remove('on'); });
     return;
@@ -748,11 +784,11 @@ function liveFrame(t, f) {
   const us = standardize(poseU(f.R, f.p), M.uStats);
   const ds = standardize(relRotvec(live.Rb, f.R), M.dStats);
   const { bt, Nu } = residualize(M, us, ds, f.b, null);
-  const v = features(bt, ds);
-  let x = v;
-  const dt = live.prev ? t - live.tp : 0;
-  if (live.prev) { const a = Math.exp(-dt / 45); x = Float64Array.from(v, (vi, d) => a * live.prev[d] + (1 - a) * vi); }
-  live.prev = x; live.tp = t;
+  const x = features(bt, ds);
+  live.buf.push(x);
+  if (live.buf.length > RECEPTIVE + 8) live.buf.shift();
+  const dt = live.tp === null ? 0 : t - live.tp;
+  live.tp = t;
   const s0 = M.s0(x);
   // The mount follows neutral frames slowly.
   if (s0 < M.neutralS0 && dt > 0) {
@@ -760,21 +796,22 @@ function liveFrame(t, f) {
     for (let k = 0; k < 3; k++) { live.c0[k] = a * live.c0[k] + (1 - a) * f.R[k * 3]; live.c1[k] = a * live.c1[k] + (1 - a) * f.R[k * 3 + 1]; }
     live.Rb = mountFrom(live.c0, live.c1);
   }
+  const all = predictSeq(M, live.buf), C = M.classes.length + 1, last = (live.buf.length - 1) * C;
   $('lFace').textContent = 'seen';
   $('lNeff').textContent = Nu.toFixed(1);
-  $('lS0').textContent = s0.toFixed(2);
+  $('lS0').textContent = `${s0.toFixed(2)} (Playing ${all[last].toFixed(2)})`;
   $('lWarn').textContent = Nu < 5 ? 'Unfamiliar angle: record more Playing from here.' : '';
   let turned = false;
   for (const g of state.gestures) {
     const row = rows.get(g.id);
-    if (!row?.usable) continue;
-    const sc = M.gestures[g.id].fit.score(x);
-    row.fill.style.width = `${sc.y * 100}%`;
-    row.nums.textContent = `y ${sc.y.toFixed(2)} · u ${sc.u.toFixed(2)} · a ${sc.a.toFixed(2)} · gate ${sc.gate.toFixed(2)}`;
-    const on = g.on ?? 1, release = g.release ?? 0.5, hold = g.hold ?? M.gestures[g.id].hold ?? 250;
+    if (!row || row.ci < 0) continue;
+    const y = all[last + row.ci + 1];
+    row.fill.style.width = `${y * 100}%`;
+    row.nums.textContent = `p ${y.toFixed(2)}`;
+    const on = g.on ?? ON_DEFAULT, release = g.release ?? RELEASE_DEFAULT, hold = g.hold ?? M.holds[g.id];
     const st = live.det[g.id] ?? { turned: false };
     const wasOn = st.since !== undefined || st.turned;
-    const isOn = wasOn ? sc.y >= release : sc.y >= on - 1e-9;
+    const isOn = wasOn ? y >= release : y >= on;
     row.card.classList.toggle('on', isOn);
     if (!isOn) { live.det[g.id] = { turned: false }; continue; }
     if (st.turned) continue;
@@ -812,7 +849,7 @@ function render() {
     dir.addEventListener('change', () => { g.direction = dir.value; void save(); if (live) buildLiveRows(); });
     const info = document.createElement('span');
     info.className = 'dim';
-    info.textContent = `${n} trial(s)`;
+    info.textContent = `${n} trial(s)${n < 10 ? ' (10–15 recommended)' : ''}`;
     const rec = document.createElement('button');
     rec.textContent = 'Record 5 trials';
     rec.disabled = busy || !bgs.length;
@@ -835,34 +872,44 @@ function renderDiag() {
   const box = $('diag');
   box.replaceChildren();
   if (!model) return;
-  const f2 = (v) => (Number.isFinite(v) ? v.toFixed(2) : '–');
-  for (const g of state.gestures) {
-    const R = model.gestures[g.id];
-    const card = document.createElement('div');
-    card.className = 'card';
-    const h = document.createElement('b');
-    h.textContent = g.name;
-    card.append(h);
-    const t = document.createElement('table');
-    const row = (k, v, cls = '') => { const tr = t.insertRow(); tr.insertCell().textContent = k; const c = tr.insertCell(); c.textContent = v; c.className = `n ${cls}`; };
-    row('Trials segmented', `${R.segmented} of ${R.trials}`);
-    if (R.coreMs !== undefined) row('Core (median)', `${R.coreMs.toFixed(0)} ms`);
-    if (R.gammaNull !== undefined) row('γ_null', f2(R.gammaNull));
-    const fit = R.fit;
-    if (fit?.rho) {
-      const top = [...fit.rho].map((r, d) => [r, d]).filter(([r]) => r > 0).sort((a, b) => b[0] - a[0]).slice(0, 6);
-      row('Active dimensions', `${fit.active ?? 0}`);
-      row('Most relevant', top.map(([r, d]) => `${FEATURES[d]} ${r.toFixed(1)}`).join(', ') || '–');
+  const M = model, gs = M.gestures;
+  const p = (text, cls = 'dim') => { const e = document.createElement('p'); e.className = cls; e.textContent = text; box.append(e); return e; };
+  p(`${M.summary.steps} steps on ${M.summary.seqs} sequences in ${M.summary.seconds.toFixed(0)} s; final loss ${M.summary.loss.toFixed(3)}.`);
+
+  // Crosstalk: rows are what was done (a held-out trial, or held-out Playing); columns which gesture would have turned.
+  const t = document.createElement('table');
+  const head = t.insertRow();
+  head.insertCell().textContent = 'Held out ↓ · would turn →';
+  for (const k of gs) head.insertCell().textContent = k.name;
+  head.insertCell().textContent = 'own highest p';
+  for (const r of M.crosstalk) {
+    const tr = t.insertRow();
+    tr.insertCell().textContent = `a trial of ${r.g.name}`;
+    for (const k of gs) {
+      const c = tr.insertCell(), n = r.fires[k.id];
+      c.className = `n ${k === r.g ? (n ? 'good' : 'bad') : (n ? 'bad' : '')}`;
+      c.textContent = String(n);
     }
-    if (fit?.upper !== undefined) row('upper / lower', `${f2(fit.upper)} / ${f2(fit.lower)} (upper before the gate: ${f2(fit.upperAll)})`);
-    if (R.recall !== undefined) row('Recall (left out, y > 0.7)', `${(R.recall * 100).toFixed(0)}%`, R.recall < 0.85 ? 'bad' : 'good');
-    if (R.relSE !== undefined) row('Stability (relative SE)', f2(R.relSE), R.relSE > 0.15 ? 'bad' : 'good');
-    if (R.hold !== undefined) row('Hold', `${R.hold} ms (Playing's longest on: ${R.playingLongestOn.toFixed(0)} ms)`);
-    if (R.trialsPastHold !== undefined) row('Trials on for longer than Hold', `${R.trialsPastHold} of ${R.loto.length}`, R.trialsPastHold < R.loto.length ? 'bad' : 'good');
-    card.append(t);
-    for (const n of R.notes) { const p = document.createElement('p'); p.className = 'bad'; p.textContent = n; card.append(p); }
-    if (!R.notes.length && fit?.score) { const p = document.createElement('p'); p.className = 'good'; p.textContent = 'Looks usable.'; card.append(p); }
-    box.append(card);
+    const c = tr.insertCell(); c.className = 'n'; c.textContent = r.ownMax.toFixed(2);
+  }
+  const pr = t.insertRow();
+  pr.insertCell().textContent = `Playing, ${M.heldPlay.minutes.toFixed(1)} min (turns per minute)`;
+  for (const k of gs) {
+    const c = pr.insertCell(), n = M.heldPlay.minutes ? M.heldPlay.fires[k.id] / M.heldPlay.minutes : 0;
+    c.className = `n ${n ? 'bad' : 'good'}`;
+    c.textContent = n.toFixed(1);
+  }
+  pr.insertCell();
+  box.append(t);
+  p('Each gesture\'s last trial and the last 20% of each Playing recording were left out of training. Green on the diagonal: the trial turned the page as it should; red elsewhere: crosstalk or false turns.');
+
+  for (const g of gs) {
+    const I = M.info[g.id];
+    const notes = [];
+    if (I.trials < 10) notes.push('record more trials (10–15 recommended)');
+    if (!I.heldOut) notes.push('only one trial: nothing held out to check it');
+    const e = p(`${g.name}: ${I.trials} trial(s); Hold ${M.holds[g.id]} ms (Playing kept it on for at most ${I.playingLongestOn.toFixed(0)} ms).${notes.length ? ' ' + notes.join('; ') + '.' : ''}`, notes.length ? 'bad' : '');
+    e.style.margin = '4px 0';
   }
 }
 
@@ -881,7 +928,7 @@ $('train').addEventListener('click', () => guarded(async () => {
   stopTrying();
   model = null;
   const t0 = performance.now();
-  model = await train((s) => { $('trainStatus').textContent = s; });
+  model = await train((s) => { $('trainStatus').textContent = s; }, Number($('steps').value));
   $('trainStatus').textContent = `Trained in ${((performance.now() - t0) / 1000).toFixed(1)} s.`;
   $('tryStatus').textContent = stream ? '' : 'Start the camera to try.';
   renderDiag();
@@ -908,7 +955,7 @@ $('ul').addEventListener('change', async () => {
     changed();
   } catch (e) { $('recStatus').textContent = `Could not load: ${e?.message ?? e}`; }
 });
-$('wipe').addEventListener('click', () => { if (!confirm('Delete every recording and gesture?')) return; state = { gestures: [], bags: [], nextId: 1 }; changed(); renderDiag(); });
+$('wipe').addEventListener('click', () => { if (!confirm('Delete every recording and gesture?')) return; state = { version: 2, gestures: [], bags: [], nextId: 1 }; changed(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden && !busy) stopCamera(); });
 
 // For checking the page without a camera.
