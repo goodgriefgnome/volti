@@ -9,15 +9,16 @@
   ],
   "scripts": {
     "smufl-names": "node scripts/smufl-names.mjs",
-    "predev": "node scripts/copy-pdfjs.mjs",
+    "predev": "node scripts/copy-pdfjs.mjs && node scripts/copy-mediapipe.mjs",
     "dev": "vite",
-    "prebuild": "node scripts/copy-pdfjs.mjs",
+    "prebuild": "node scripts/copy-pdfjs.mjs && node scripts/copy-mediapipe.mjs",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@mediapipe/tasks-vision": "1.1.1",
     "@pdfsmaller/pdf-decrypt": "github:goodgriefgnome/pdf-decrypt#a6af0ddfe5b80ad034868932dca661c1d974b833",
     "fontkit": "2.0.4",
     "pdf-lib": "1.17.1",

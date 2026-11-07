@@ -1,5 +1,6 @@
 node_modules/
 dist/
 public/pdfjs/
+public/mediapipe/
 *.log
 .env*.local

@@ -27,8 +27,9 @@ export default defineConfig({
       registerType: 'prompt',
       injectRegister: false,
       injectManifest: {
-        globPatterns: ['**/*.{html,js,mjs,css,png,svg,webmanifest,wasm,pfb,ttf,woff2,bcmap,icc}'],
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        globPatterns: ['**/*.{html,js,mjs,css,png,svg,webmanifest,wasm,pfb,ttf,woff2,bcmap,icc,task}'],
+        // MediaPipe's WASM is 13.5 MB.
+        maximumFileSizeToCacheInBytes: 16 * 1024 * 1024,
         // The service worker is built apart, so it needs its own: its workbox code is listed too.
         buildPlugins: { vite: [licenses()] },
       },

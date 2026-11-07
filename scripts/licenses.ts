@@ -12,7 +12,8 @@ const header = `Volti is free software under the GNU Affero General Public Licen
 https://github.com/goodgriefgnome/volti
 
 Volti includes the libraries below, under their own licences. The fonts and pdf.js's data files
-carry theirs next to them: fonts/*-OFL.txt and pdfjs/*/LICENSE*.`;
+carry theirs next to them: fonts/*-OFL.txt and pdfjs/*/LICENSE*.
+The face model (mediapipe/face_landmarker.task) is Google's, under the Apache License, Version 2.0.`;
 
 /** The package directory a module comes from: the last node_modules/<name> (or node_modules/@scope/<name>) in its id. */
 function packageDir(id: string): string | undefined {
@@ -43,6 +44,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.`;
  * source headers. Checked by hand: look again when one of these is updated.
  */
 const noFile: Record<string, string> = {
+  '@mediapipe/tasks-vision': `Copyright Google LLC. Licensed under the Apache License, Version 2.0: the full text is under
+pdfjs-dist in this file.`,
   fontkit: mit('Devon Govett'),
   dfa: mit('Devon Govett'),
   // fontkit uses its decoder (dec/), which is Google's.
