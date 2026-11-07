@@ -5,7 +5,7 @@
 import { attempts, calibrated, restLevel, ATTEMPTS } from '../face/calibration';
 import { buttonState } from '../face/button-state';
 import { faceButton } from '../face/face-button';
-import { DEFAULT_FACE_SETTINGS, GESTURES, HOLD_RANGE, hasGestures, measure, otherEye, thresholdRange, type FaceFrame, type FaceGesture, type FaceSettings, type TurnDir } from '../face/gestures';
+import { DEFAULT_FACE_SETTINGS, GESTURES, HOLD_RANGE, hasGestures, measure, thresholdRange, type FaceFrame, type FaceGesture, type FaceSettings, type TurnDir } from '../face/gestures';
 import { loadFaceSettings, saveFaceSettings } from '../face/store';
 import { FaceWatcher, type CameraStatus } from '../face/watcher';
 import { button, el } from '../ui/dom';
@@ -143,7 +143,7 @@ export function openFaceGestures(closed?: () => void): void {
     calibrating.hidden = false;
     const rest = new Map<FaceGesture, number>();
     const resting = new Map<FaceGesture, number[]>(set.map((g) => [g.id, []]));
-    const samples = new Map<FaceGesture, { value: number; other?: number }[]>(set.map((g) => [g.id, []]));
+    const samples = new Map<FaceGesture, number[]>(set.map((g) => [g.id, []]));
     // Step 0 is the rest; step i the i-th gesture.
     let step = -1;
     let stepStart = 0;
@@ -153,12 +153,12 @@ export function openFaceGestures(closed?: () => void): void {
       if (!f) return;
       if (step < 0) { for (const g of set) resting.get(g.id)!.push(measure(g.id, f)); return; }
       const g = set[step].id;
-      samples.get(g)!.push({ value: measure(g, f), other: otherEye(g, f) });
+      samples.get(g)!.push(measure(g, f));
       // Three attempts are in once the third has fallen back under the line.
       const s = samples.get(g)!;
       const found = attempts(s, rest.get(g)!);
       if (found.length >= ATTEMPTS) {
-        const top = Math.max(...s.map((x) => x.value));
+        const top = Math.max(...s);
         if (f && measure(g, f) <= rest.get(g)! + (top - rest.get(g)!) / 2) next();
       }
     };

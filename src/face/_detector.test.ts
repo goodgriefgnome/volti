@@ -59,9 +59,9 @@ describe('the detector', () => {
     expect(last.progress.prev).toEqual({ near: 0, hold: 0 });
   });
   it('shows the larger progress of two gestures going the same way', () => {
-    const f = frame({ eyeBlinkLeft: 0.25, eyeBlinkRight: 0.05, mouthLeft: 0.4 });
+    const f = frame({ eyeBlinkLeft: 0.4, eyeBlinkRight: 0.05, mouthLeft: 0.4 });
     const { last } = run([f], settings({ winkLeft: 'next', mouthLeft: 'next' }));
-    expect(last.progress.next.near).toBeCloseTo(0.8);
+    expect(last.progress.next.near).toBeCloseTo(0.6);
     expect(last.progress.prev.near).toBe(0);
   });
   it('shows how long an over-threshold gesture has been held, and nothing after it turned', () => {
@@ -85,5 +85,31 @@ describe('the detector', () => {
     const { turns } = run(times(frame({}, 30), 8), settings({ headLeft: 'prev' }));
     expect(turns).toEqual([{ at: 250, dir: 'prev' }]);
     expect(run(times(frame({}, -30), 8), settings({ headLeft: 'prev' })).turns).toEqual([]);
+  });
+  const dip = frame({ eyeBlinkLeft: 0.4, eyeBlinkRight: 0.05 }); // signal 0.35: between release and on
+  it('keeps a wink on through a dip between release and on', () => {
+    const s = settings({ winkLeft: 'next' });
+    expect(run([...times(winkL, 2), ...times(dip, 2), ...times(winkL, 6)], s).turns).toEqual(run(times(winkL, 8), s).turns);
+  });
+  it('restarts the hold on a dip under release', () => {
+    const { turns } = run([...times(winkL, 4), rest, ...times(winkL, 8)], settings({ winkLeft: 'next' }));
+    expect(turns).toEqual([{ at: 250 + 250, dir: 'next' }]);
+  });
+  it('lets go only under release once turned', () => {
+    const s = settings({ winkLeft: 'next' });
+    expect(run([...times(winkL, 8), ...times(dip, 2), ...times(winkL, 8)], s).turns).toHaveLength(1);
+    expect(run([...times(winkL, 8), ...times(rest, 2), ...times(winkL, 8)], s).turns).toHaveLength(2);
+  });
+  it('shows near from release to on, then full with the hold growing', () => {
+    const s = settings({ winkLeft: 'next' });
+    expect(run([frame({ eyeBlinkLeft: 0.3, eyeBlinkRight: 0.05 })], s).last.progress.next.near).toBeCloseTo(0);
+    expect(run([frame({ eyeBlinkLeft: 0.425, eyeBlinkRight: 0.05 })], s).last.progress.next.near).toBeCloseTo(0.5);
+    expect(run(times(winkL, 3), s).last.progress.next).toEqual({ near: 1, hold: 100 / 250 });
+  });
+  it('is 1 or 0 when release equals the on level', () => {
+    const s = settings({ mouthLeft: 'next' });
+    s.mouthLeft.release = s.mouthLeft.threshold;
+    expect(run([frame({ mouthLeft: 0.4 })], s).last.progress.next.near).toBe(0);
+    expect(run([frame({ mouthLeft: 0.6 })], s).last.progress.next.near).toBe(1);
   });
 });

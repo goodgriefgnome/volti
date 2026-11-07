@@ -86,7 +86,7 @@ export function faceButton(o: { tap?: () => void; longPress?: () => void; intera
     const sign = dir === 'next' ? 1 : -1;
     const draw = (e: SVGPathElement, f: number) => e.setAttribute('d', f > 0 ? arc(RING_R, 0, sign * SWEEP * Math.min(1, f)) : '');
     draw(halves[dir].faint, p?.near ?? 0);
-    // The solid arc grows over the faint one only once the score is over its threshold.
+    // The solid arc grows over the faint one only once the gesture is on.
     draw(halves[dir].solid, p && p.near >= 1 ? p.hold : 0);
   };
 

@@ -1,9 +1,9 @@
 // Turning frames into page turns: which gestures are on, for how long, and how close each
 // direction is to turning, for the button's ring. Pure: the watcher gives it each frame.
 
-import { GESTURES, measure, otherEye, type FaceFrame, type FaceGesture, type FaceSettings, type GestureTune, type TurnDir } from './gestures';
+import { GESTURES, measure, type FaceFrame, type FaceGesture, type FaceSettings, type GestureTune, type TurnDir } from './gestures';
 
-/** How close a direction is to turning, each 0..1: `near` the score to its threshold, `hold` the time held. */
+/** How close a direction is to turning, each 0..1: `near` the signal from its release level to its on level, `hold` the time held. */
 export interface Progress { near: number; hold: number }
 
 interface Seen {
@@ -18,15 +18,10 @@ export const NEW_DETECTOR: DetectorState = Object.fromEntries(GESTURES.map((g) =
 
 const NONE: Record<TurnDir, Progress> = { next: { near: 0, hold: 0 }, prev: { near: 0, hold: 0 } };
 
-/** Whether the other eye of a wink is under its level (always true for the other gestures). */
-function otherUnder(g: FaceGesture, t: GestureTune, f: FaceFrame): boolean {
-  const o = otherEye(g, f);
-  return o === undefined || o < (t.otherBelow ?? 0);
-}
-
-/** Whether a gesture is on in a frame. */
-function isOn(g: FaceGesture, t: GestureTune, f: FaceFrame): boolean {
-  return measure(g, f) > t.threshold && otherUnder(g, t, f);
+/** How close a signal is to its on level, counted from its release level: 0..1. */
+function near(v: number, t: GestureTune): number {
+  if (t.threshold <= t.release) return v > t.threshold ? 1 : 0;
+  return Math.max(0, Math.min(1, (v - t.release) / (t.threshold - t.release)));
 }
 
 /**
@@ -40,25 +35,27 @@ export function step(s: DetectorState, f: FaceFrame | null, settings: FaceSettin
   let turn: TurnDir | undefined;
   for (const { id } of GESTURES) {
     const t = settings[id];
-    if (t.direction === 'none' || !f || !isOn(id, t, f)) {
+    if (t.direction === 'none' || !f) {
       state[id] = { turned: false };
-      // A wink whose other eye isn't under its level shows nothing; the others fall under their threshold.
-      if (t.direction !== 'none' && f && otherUnder(id, t, f)) {
-        bump(progress[t.direction], Math.max(0, Math.min(1, measure(id, f) / t.threshold)), 0);
-      }
       continue;
     }
-    let seen = state[id];
-    if (!seen.turned) {
-      const since = seen.since ?? now;
-      seen = { since, turned: false };
-      if (!turn && now - since >= t.hold) {
-        turn = t.direction;
-        seen = { turned: true };
-      }
-      state[id] = seen;
+    const was = s[id];
+    const held = was.since !== undefined || was.turned;
+    const v = measure(id, f);
+    if (!(held ? v > t.release : v > t.threshold)) {
+      state[id] = { turned: false };
+      bump(progress[t.direction], near(v, t), 0);
+      continue;
     }
-    if (!seen.turned) bump(progress[t.direction], Math.min(1, measure(id, f) / t.threshold), Math.min(1, (now - seen.since!) / t.hold));
+    if (was.turned) continue;
+    const since = was.since ?? now;
+    if (!turn && now - since >= t.hold) {
+      turn = t.direction;
+      state[id] = { turned: true };
+      continue;
+    }
+    state[id] = { since, turned: false };
+    bump(progress[t.direction], 1, Math.min(1, (now - since) / t.hold));
   }
   return { state, turn, progress };
 }

@@ -18,31 +18,28 @@ export const GESTURES: readonly { id: FaceGesture; name: string; kind: 'score' |
 
 export interface GestureTune {
   direction: TurnDir | 'none';
-  /** A score (0.05–0.95) or, for the head and nod, an angle in degrees (5–45). */
+  /** The on level (shown as **On**): a score (0.05–0.95) or, for the head and nod, an angle in degrees (5–45). */
   threshold: number;
+  /** The level the signal must fall under to let go once on: in the threshold's range, never over it. */
+  release: number;
   /** ms, 100–1500. */
   hold: number;
-  /** Winks only: the other eye's score must be under this (0.05–0.9). */
-  otherBelow?: number;
 }
 export type FaceSettings = Record<FaceGesture, GestureTune>;
 
 export const HOLD_RANGE = { min: 100, max: 1500 } as const;
-export const OTHER_RANGE = { min: 0.05, max: 0.9 } as const;
 /** The range of a gesture's threshold: scores, or degrees for the head and nod. */
 export function thresholdRange(g: FaceGesture): { min: number; max: number } {
   return kindOf(g) === 'angle' ? { min: 5, max: 45 } : { min: 0.05, max: 0.95 };
 }
 
 const kindOf = (g: FaceGesture) => GESTURES.find((x) => x.id === g)!.kind;
-const isWink = (g: FaceGesture) => g === 'winkLeft' || g === 'winkRight';
 
-const tune = (threshold: number, hold = 250, otherBelow?: number): GestureTune =>
-  ({ direction: 'none', threshold, hold, ...(otherBelow === undefined ? {} : { otherBelow }) });
+const tune = (threshold: number, hold = 250): GestureTune => ({ direction: 'none', threshold, release: threshold / 2, hold });
 
 export const DEFAULT_FACE_SETTINGS: FaceSettings = {
-  winkLeft: tune(0.5, 250, 0.3),
-  winkRight: tune(0.5, 250, 0.3),
+  winkLeft: tune(0.5),
+  winkRight: tune(0.5),
   longBlink: tune(0.5, 700),
   mouthLeft: tune(0.5),
   mouthRight: tune(0.5),
@@ -68,25 +65,36 @@ export function faceSettingsFrom(stored: unknown): FaceSettings {
     const d = DEFAULT_FACE_SETTINGS[id];
     const s = from[id] && typeof from[id] === 'object' ? from[id]! : {};
     const r = thresholdRange(id);
+    const threshold = num(s.threshold, d.threshold, r.min, r.max);
     out[id] = {
       direction: s.direction === 'next' || s.direction === 'prev' ? s.direction : 'none',
-      threshold: num(s.threshold, d.threshold, r.min, r.max),
+      threshold,
+      // A missing release is half the on level; one over the on level stops at it.
+      release: Math.min(threshold, num(s.release, threshold / 2, r.min, r.max)),
       hold: num(s.hold, d.hold, HOLD_RANGE.min, HOLD_RANGE.max),
-      ...(d.otherBelow === undefined ? {} : { otherBelow: num(s.otherBelow, d.otherBelow, OTHER_RANGE.min, OTHER_RANGE.max) }),
     };
   }
   return out;
 }
 
+/** A tune with new levels, kept in range and with release never over threshold: a threshold
+ *  moved under release takes release down with it; a release moved over threshold stops there. */
+export function withLevels(g: FaceGesture, t: GestureTune, to: { threshold?: number; release?: number }): GestureTune {
+  const r = thresholdRange(g);
+  const threshold = clamp(to.threshold ?? t.threshold, r.min, r.max);
+  const release = Math.min(threshold, clamp(to.release ?? t.release, r.min, r.max));
+  return { ...t, threshold, release };
+}
+
 /** One frame: the blendshape scores by name, and the head's angles in degrees. */
 export interface FaceFrame { scores: Record<string, number>; yaw: number; pitch: number }
 
-/** How far a gesture is on in a frame, for its meter and calibration: its score, or its angle. */
+/** A gesture's signal in a frame: what its meter shows and its levels compare against. */
 export function measure(g: FaceGesture, f: FaceFrame): number {
   const s = f.scores;
   switch (g) {
-    case 'winkLeft': return s.eyeBlinkLeft ?? 0;
-    case 'winkRight': return s.eyeBlinkRight ?? 0;
+    case 'winkLeft': return Math.max(0, (s.eyeBlinkLeft ?? 0) - (s.eyeBlinkRight ?? 0));
+    case 'winkRight': return Math.max(0, (s.eyeBlinkRight ?? 0) - (s.eyeBlinkLeft ?? 0));
     case 'longBlink': return Math.min(s.eyeBlinkLeft ?? 0, s.eyeBlinkRight ?? 0);
     case 'mouthLeft': return s.mouthLeft ?? 0;
     case 'mouthRight': return s.mouthRight ?? 0;
@@ -95,10 +103,4 @@ export function measure(g: FaceGesture, f: FaceFrame): number {
     case 'headRight': return -f.yaw;
     case 'nodDown': return f.pitch;
   }
-}
-
-/** A wink's other eye's score in a frame; undefined for the other gestures. */
-export function otherEye(g: FaceGesture, f: FaceFrame): number | undefined {
-  if (!isWink(g)) return undefined;
-  return f.scores[g === 'winkLeft' ? 'eyeBlinkRight' : 'eyeBlinkLeft'] ?? 0;
 }
