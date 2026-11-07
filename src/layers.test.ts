@@ -13,6 +13,7 @@ const LAYERS: Record<string, number> = {
   'page-cache': 1,
   markings: 1,
   fonts: 1,
+  face: 2,
   originals: 2,
   scores: 2,
   setlists: 3,

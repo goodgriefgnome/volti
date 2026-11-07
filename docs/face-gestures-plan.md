@@ -16,7 +16,7 @@ and lift from it.
 
 ## Where things go
 
-A new directory, `src/face/`, at layer 1 beside `ui/` (it uses `ui/`, nothing above it), so both
+A new directory, `src/face/`, at layer 2, beside `scores/` (it uses `ui/` and `storage/`, nothing above or beside it; the layers test lets a directory import only from lower layers), so both
 the reader (layer 7) and the dialogs (layer 6) can use it:
 
 | File | What | Pure |
@@ -76,8 +76,8 @@ Manual check: a pedal or arrow key still turns once per press; two very quick ta
 
 ## Stage 2: the gestures and the detector, pure
 
-Add `face: 1` to `LAYERS` in `src/layers.test.ts`, and a row for `face/` to the layers table in
-`ARCHITECTURE.md` (layer 1: "Face gestures: the gestures and their settings, watching the front
+Add `face: 2` to `LAYERS` in `src/layers.test.ts`, and a row for `face/` to the layers table in
+`ARCHITECTURE.md` (layer 2: "Face gestures: the gestures and their settings, watching the front
 camera with MediaPipe, and the button that shows it").
 
 `face/gestures.ts`:
@@ -472,7 +472,7 @@ reload).
 
 ## Decisions made here that we didn't discuss
 
-- `face/` is a new directory at layer 1, so the reader and the dialog can share it.
+- `face/` is a new directory at layer 2, so the reader and the dialog can share it.
 - Only MediaPipe's SIMD WASM is served (13.5 MB): every current browser has WASM SIMD; the
   non-SIMD build would add 12.6 MB to everyone's download.
 - The model is downloaded at build time and checked by its SHA-256, not committed to the repo.
