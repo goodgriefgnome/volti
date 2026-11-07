@@ -2,7 +2,8 @@
 
 Turning pages with the face, seen by the front camera: a wink, the mouth pushed to one side, the
 head turned or nodded, a long blink. What the result must be; how to get there is in
-`face-gestures-plan.md`, and where the two disagree, this file wins.
+`face-gestures-plan.md`, and for the one signal and the release levels in
+`face-gestures-levels-plan.md`. Where they disagree, this file wins.
 
 ## What the user sees
 
@@ -44,12 +45,12 @@ side, at most 170° (a gap is left at the bottom), on a circle 6.5 px outside th
 
 Each half shows the gesture nearest to turning among those set to its direction:
 
-- **Faint** (the accent colour at 35%) grows with how near the gesture's score is to its
-  threshold: `score / threshold`, at most 1.
-- Once the score is over the threshold, **solid** (the accent colour) grows over it with the time
-  held: `held / hold`. The page turns when it is full.
-- After a turn, that gesture shows nothing until it is let go (its score falls under the
-  threshold).
+- **Faint** (the accent colour at 35%) grows as the gesture's signal climbs from its release level
+  to its on level: `(signal − release) / (on − release)`, from 0 to 1. Under the release level it
+  shows nothing.
+- Once the gesture is on (below), faint is full, and **solid** (the accent colour) grows over it
+  with the time held: `held / hold`. The page turns when it is full.
+- After a turn, that gesture shows nothing until it is let go.
 
 ### When it watches
 
@@ -83,34 +84,38 @@ second turn from a misfire) are a change to it alone.
 
 ### The gestures
 
-| Gesture | Name shown | Is on while |
+Each gesture is one number, its **signal**. The signal is the only thing the meter shows, the ring
+fills from, the levels compare against, and calibration measures.
+
+| Gesture | Name shown | Its signal |
 | --- | --- | --- |
-| `winkLeft` | Wink left | `eyeBlinkLeft` is over its threshold and `eyeBlinkRight` is under its "other eye" level |
-| `winkRight` | Wink right | the same, the other way round |
-| `longBlink` | Long blink | both `eyeBlinkLeft` and `eyeBlinkRight` are over its threshold |
-| `mouthLeft` | Mouth to the left | `mouthLeft` is over its threshold |
-| `mouthRight` | Mouth to the right | `mouthRight` is over its threshold |
-| `headLeft` | Head to the left | the head's yaw is over its threshold, turned to the person's left |
-| `headRight` | Head to the right | the yaw is over its threshold, turned to the person's right |
-| `nodDown` | Nod down | the head's pitch is over its threshold, tipped down |
+| `winkLeft` | Wink left | `eyeBlinkLeft − eyeBlinkRight`, at least 0 |
+| `winkRight` | Wink right | `eyeBlinkRight − eyeBlinkLeft`, at least 0 |
+| `longBlink` | Long blink | the lower of `eyeBlinkLeft` and `eyeBlinkRight` |
+| `mouthLeft` | Mouth to the left | `mouthLeft` |
+| `mouthRight` | Mouth to the right | `mouthRight` |
+| `headLeft` | Head to the left | the head's yaw, in degrees, positive turned to the person's left |
+| `headRight` | Head to the right | the yaw, positive turned to the person's right |
+| `nodDown` | Nod down | the head's pitch, in degrees, positive tipped down |
 
 Left and right are always the person's own, not the camera's. The scores are MediaPipe Face
-Landmarker's blendshapes, from 0 to 1; yaw and pitch are in degrees, from the face's transform.
-How close a wink is uses only the winking eye's score, and counts as 0 while the other eye isn't
-under its level, so an ordinary blink doesn't light the ring.
+Landmarker's blendshapes, from 0 to 1; yaw and pitch are from the face's transform. An ordinary
+blink gives a wink's signal of about 0, so it doesn't light the ring.
 
 Each gesture has:
 
 - a **direction**: next, back, or none. Each gesture has one; several may share one.
-- a **threshold**: a score from 0.05 to 0.95, or an angle from 5° to 45°.
+- an **on level**: a score from 0.05 to 0.95, or an angle from 5° to 45°.
+- a **release level**: in the same range, and never over the on level.
 - a **hold**: how long it must stay on to turn, from 100 to 1500 ms.
-- for the winks only, the **other eye's level**, from 0.05 to 0.9: set by calibration, not shown.
 
-A gesture turns the page when it has been on for its hold, unless it already turned and hasn't
-been let go since. Turning also goes through the gate above.
+A gesture comes **on** when its signal goes over its on level, and stays on until its signal falls
+under its release level (it is **let go**), or no face is seen. It turns the page when it has been
+on for its hold, unless it already turned and hasn't been let go since. Turning also goes through
+the gate above.
 
-The defaults: every direction none. Thresholds 0.5 (winks, mouth, long blink), 20° (head), 15°
-(nod); holds 250 ms, and 700 ms for the long blink; the other eye's level 0.3.
+The defaults: every direction none. On levels 0.5 (winks, mouth, long blink), 20° (head), 15°
+(nod); release levels half the on level; holds 250 ms, and 700 ms for the long blink.
 
 ### The settings
 
@@ -126,37 +131,45 @@ From the top:
    the settings can be tried in place. A line under it says when the camera can't start, and why.
 2. **The gestures**, one row each, in the order of the table above: its name and a choice of
    **Next**, **Back** or **None**. A row set to a direction also shows:
-   - a meter: its score now, with a mark at the threshold;
-   - **Sensitivity**: a slider that moves the threshold (left is less sensitive: a higher
-     threshold);
+   - a meter: its signal now, from 0 at the left (to 1, or 45° for the head and nod), with a mark
+     at the on level and a fainter one at the release level;
+   - **On**: a slider for the on level, on the meter's scale (further right needs more), showing
+     its value (`0.42`, `20°`);
+   - **Release**: the same, for the release level. It can't be moved past the on level; moving
+     the on level under it takes it down too;
    - **Hold**: a slider, in ms.
 3. **Calibrate** (below).
 4. **Done**.
 
 ### Calibration
 
-From **Calibrate**, for the gestures set to a direction; it sets their thresholds, which can then
-be moved with the sliders. The dialog shows each step's instruction, a countdown, and **Cancel**,
-which leaves every threshold as it was.
+From **Calibrate**, for the gestures set to a direction; it sets their on and release levels,
+which can then be moved with the sliders. The dialog shows each step's instruction, a countdown,
+and **Cancel**, which leaves every level as it was.
 
-1. **Rest**: "Play as you normally would for 10 seconds, without gesturing." Every score is
+1. **Rest**: "Play as you normally would for 10 seconds, without gesturing." Every signal is
    sampled for 10 s. Its **rest level** is its 95th percentile.
 2. **Each gesture, in turn**: "Wink left three times" (and so on), for up to 15 s. An **attempt**
-   is a stretch where the score rises over the rest level plus half of the way from the rest level
-   to the highest score so far, and falls back under it; its **peak** is its highest score. The step
-   ends after three attempts, or at 15 s.
+   is a stretch where the signal rises over the rest level plus half of the way from the rest level
+   to the highest signal so far, and falls back under it; its **peak** is its highest signal. The
+   step ends after three attempts, or at 15 s.
 
 Then, for each gesture: if it had fewer than three attempts, or its lowest peak is less than 0.15
-(8° for the head and nod) over the rest level, its threshold stays as it was and the dialog says
-"Wink left: not reliable for you; try another gesture." Otherwise its threshold is the rest level
-plus 40% of the way to the lowest peak. For a wink, the other eye's level is halfway between the
-other eye's score at the wink's peaks (the highest of the three) and the new threshold.
+(8° for the head and nod) over the rest level, its levels stay as they were and the dialog says
+"Wink left: not reliable for you; try another gesture." Otherwise its on level is the rest level
+plus 40% of the way to the lowest peak, and its release level is the rest level plus half of the
+way to the new on level.
 
 ## What is stored
 
-One new key in the kv store, `face-gestures`, owned by `face/store.ts`: a `FaceSettings`, each
-gesture's direction, threshold, hold and (winks) other eye's level. Missing is the defaults. It is
-the device's own, like the tool settings. No existing data changes.
+One key in the kv store, `face-gestures`, owned by `face/store.ts`: a `FaceSettings`, each
+gesture's direction, on level (stored as `threshold`), release level and hold. Missing is the
+defaults; a missing release level is half the stored on level. It is the device's own, like the
+tool settings.
+
+The winks' other-eye levels (`otherBelow`) stored before the release level came in are dropped.
+Their on levels are kept, though they now apply to the difference between the eyes rather than the
+winking eye alone, so a wink may want calibrating again.
 
 ## MediaPipe
 
