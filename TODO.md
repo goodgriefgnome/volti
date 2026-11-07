@@ -15,9 +15,6 @@ scores.
 
 ## Confirmed features which require more thought
 
-- **Remove the gesture test page** once it has been tried on the tablet: delete
-  `public/gesture-test.html` and `public/gesture-test.webmanifest`, and its entry in the service
-  worker's denylist (`src/sw.ts`). An installed copy on the home screen can be deleted too.
 - **The cache giving room back when the origin runs short of quota**: pinned
   pages are never evicted, and the others only to stay within 30% of the quota (`diskBudget`,
   `page-cache/_budget.ts`); nothing shrinks the cache when the origin as a whole (scores added,

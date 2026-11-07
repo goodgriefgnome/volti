@@ -28,4 +28,4 @@ self.addEventListener('fetch', (e) => {
 
 precacheAndRoute(self.__WB_MANIFEST);
 // licenses.txt, which the library's menu opens, isn't the app.
-registerRoute(new NavigationRoute(createHandlerBoundToURL('index.html'), { denylist: [/\/licenses\.txt/, /\/gesture-test\.html/] }));
+registerRoute(new NavigationRoute(createHandlerBoundToURL('index.html'), { denylist: [/\/licenses\.txt/] }));
