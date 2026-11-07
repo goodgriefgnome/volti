@@ -36,6 +36,7 @@ import { keepSetlistPagesOffline } from './_offline-pages';
 import type { OfflineStatus } from './_offline-status';
 import { SetlistsSection } from './_setlists-section';
 import { hearPageCacheTrouble } from '../page-cache/cache';
+import { warmUp } from '../face/watcher';
 
 /** How long Volti has to be out of view before the scores folder is read again on coming back. */
 const AWAY_MS = 30_000;
@@ -145,6 +146,7 @@ export class Library implements LibraryHost {
    * scan and every change Volti makes writes. Drawn at most once a frame.
    */
   private async follow() {
+    let first = true;
     try {
       for await (const { files, left } of libraryFiles(this.following.signal)) {
         this.originals = files;
@@ -154,6 +156,8 @@ export class Library implements LibraryHost {
         } else if (this.reading && this.status.textContent?.startsWith('Reading new scores')) this.say(this.saidBefore);
         this.reading = left > 0;
         this.draw();
+        // Once the library has its first reading of the scores, get MediaPipe ready if a gesture is set.
+        if (first) { first = false; void warmUp(); }
       }
     } catch (e) {
       failedOnce('follow the library\'s files', e);

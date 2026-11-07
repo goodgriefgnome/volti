@@ -1,0 +1,38 @@
+/* The face gestures' button (face/face-button.ts) and, with the dialog, its settings. */
+:root { --paused: #8b8f97; }
+
+.face-button {
+  position: relative; width: 44px; height: 44px; min-height: 0; padding: 0; display: grid; place-items: center; border-radius: 50%;
+  border: 0; background: rgba(255, 255, 255, 0.85); color: #1d2026; box-shadow: 0 0 0 1px var(--bar-line); opacity: 0.9;
+}
+.face-button.inert { pointer-events: none; }
+.face-glyph { width: 22px; height: 22px; display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transform-origin: 50% 50%; }
+/* The rings are 64 px square, centred on the 44 px button. */
+.face-rings { position: absolute; left: -10px; top: -10px; width: 64px; height: 64px; pointer-events: none; overflow: visible; }
+.face-faint, .face-solid { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; }
+.face-faint { opacity: 0.35; }
+.face-press { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-dasharray: 100; stroke-dashoffset: 100; transform: rotate(-90deg); transform-origin: 32px 32px; display: none; }
+.face-button.pressing .face-press { display: block; animation: face-press linear forwards; }
+@keyframes face-press { to { stroke-dashoffset: 0; } }
+
+.face-button[data-state="unavailable"] .face-glyph { opacity: 0.4; }
+.face-button[data-state="starting"]::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%; border: 2.5px solid transparent; border-top-color: var(--accent);
+  animation: face-spin 0.9s linear infinite;
+}
+.face-button[data-state="watching"] { box-shadow: 0 0 0 2.5px var(--accent); }
+.face-button[data-state="noFace"] { box-shadow: 0 0 0 2.5px var(--warn); color: var(--warn); }
+.face-button[data-state="noFace"] .face-glyph { animation: face-blink 3.6s infinite; }
+.face-button[data-state="paused"] { box-shadow: 0 0 0 2.5px var(--paused); }
+.face-button[data-state="paused"] .face-glyph { opacity: 0.55; }
+.face-button.pulse::before {
+  content: ''; position: absolute; inset: 0; border-radius: 50%; animation: face-pulse 0.7s ease-out;
+}
+@keyframes face-spin { to { transform: rotate(360deg); } }
+@keyframes face-blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.12); } }
+@keyframes face-pulse { from { box-shadow: 0 0 0 0 var(--accent); opacity: 1; } to { box-shadow: 0 0 0 12px var(--accent); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .face-button::after, .face-button::before, .face-glyph { animation: none !important; }
+  .face-button[data-state="starting"]::after { border-color: var(--accent) transparent transparent; }
+}

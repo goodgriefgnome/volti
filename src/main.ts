@@ -17,6 +17,7 @@ import { failed, failedOnce } from './ui/failure';
 import './styles/base.css';
 import './styles/library.css';
 import './styles/reader.css';
+import './styles/face.css';
 import './styles/cuts.css';
 import './styles/overlay.css';
 import './styles/setlists.css';
