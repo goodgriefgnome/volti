@@ -37,6 +37,9 @@ export const keys = {
   /** Each tool's settings for new markings, a ToolSettings (markings/store.ts). */
   toolSettings: 'tool-settings',
 
+  /** The face gestures' settings, a FaceSettings (face/store.ts). */
+  faceGestures: 'face-gestures',
+
   /* Setlists (setlists/store.ts). Cuts and markings are only ever stored in the score. */
   /** Setlist ids, newest first. */
   setlists: 'setlists',

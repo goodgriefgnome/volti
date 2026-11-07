@@ -63,6 +63,7 @@ are done. Data from a newer version than the app's is not opened.
 | `symbols` | `SymbolLibrary` | `markings/store.ts` |
 | `placed-mark-colors` | `{ color?: string; background?: string }`, the default colours | `markings/store.ts` |
 | `tool-settings` | `ToolSettings`, each tool's settings for new markings | `markings/store.ts` |
+| `face-gestures` | `FaceSettings`, the face gestures' settings | `face/store.ts` |
 | `last-read` | `LastRead` | `reader/_store.ts` |
 | `setlists` | `string[]`, setlist ids, newest first | `setlists/store.ts` |
 | `setlist:<id>` | `Setlist` | `setlists/store.ts` |
@@ -284,6 +285,14 @@ the library. Its glyphs are in `glyph:` records, written before the library.
 `{ color?: string; background?: string }`: the colour of placed markings, and of their backgrounds,
 that have none of their own. A missing one is the built-in colour (`#1c1f26`, and `#cce0ff`); only
 colours that differ from the built-in ones are stored.
+
+### `face-gestures`: the face gestures' settings
+
+A `FaceSettings` (`face/gestures.ts`): for each of the eight gestures, its direction (`'next'`,
+`'prev'` or `'none'`), its threshold (a score from 0.05 to 0.95, or degrees from 5 to 45), its hold
+in ms (100 to 1500) and, for the winks, the other eye's level (0.05 to 0.9). It is the device's
+own, like `tool-settings`. Missing is the defaults: every direction `'none'`. Values out of range
+are clamped when read.
 
 ### `last-read`: where to pick up
 
