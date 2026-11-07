@@ -1,11 +1,12 @@
 // What a failure says on screen, and what it leaves in the console: one sentence for every error,
 // made from the error's own message, so a new kind of error needs teaching to nobody.
 
-import { NoAccess, PasswordNotGiven, Unreachable } from '../originals/types';
+/** Errors the person can put right (no access, offline, no password), by the names originals/types.ts gives them: not logged. */
+const expected = new Set(['NoAccess', 'Unreachable', 'PasswordNotGiven']);
 
 /** `Could not <what> “<title>”: <the error's message>`; logged unless it is one the person can put right (no access, offline, no password). */
 export function failed(what: string, e: unknown, title?: string): string {
-  if (!(e instanceof NoAccess || e instanceof Unreachable || e instanceof PasswordNotGiven)) console.error(e);
+  if (!expected.has((e as Error)?.name)) console.error(e);
   return `Could not ${what}${title ? ` “${title}”` : ''}: ${(e as Error)?.message ?? String(e)}`;
 }
 
