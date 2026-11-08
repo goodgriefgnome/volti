@@ -228,7 +228,8 @@ pose is the gesture, so replacing it would wipe the gesture out.
 
 - Before training, **impulses** are found in the co-occurring background's `b̃`: a stretch of 1, 2
   or 3 ticks where some channel is more than 2.5 from the mean of the two ticks before and the two
-  after, and those ticks either side differ by less than 1 in every channel (it comes back). Its
+  after, and, in every channel that is, the ticks either side differ by less than 1 (it comes back;
+  the other channels aren't looked at, since across 52 of them some always differ by noise). Its
   shape is its ticks minus that mean (1 to 3 × 52 numbers). Taken greedily from the largest, not
   overlapping; at most 500 kept.
 - One to three impulses, at random, are added to `b̃` at random ticks of the window's held region.
@@ -294,9 +295,10 @@ For each pair of gestures `i`, `j`, an **overlap** is shown when either holds:
   where `r_k` is the root mean square of `‖e − c_k‖` over `k`'s training held ticks; averaged over
   the three models, under 1.5.
 
-For each overlap, the **conflicting channels**: on `i`'s held-out cores, the gradient of `y_j` with
-respect to the input, times the input (summed over the last 7 ticks' inputs, averaged over the cores'
-ticks, in absolute value), per input channel; the five largest, by name (the 52 blendshape names,
+For each overlap, the **conflicting channels**: on `i`'s held-out cores (one grid of each rep), the
+gradient of `y_j` summed over the core with respect to each input tick, times that input, in
+absolute value, summed over the core's ticks and averaged per tick, per input channel; the five
+largest, by name (the 52 blendshape names,
 and for `q`: `rot 1`–`rot 6`, `x`, `y`, `z`). And the same the other way round. They are what makes `j` respond to `i`'s gesture.
 
 Also, live: **unfamiliar angle**, when `N_eff < 5`: the camera sees the face from an angle the
@@ -305,11 +307,14 @@ background doesn't cover: "record more background from here".
 ## The prototype
 
 `public/face-classifier.html`, a page of its own like `face-signals.html`: MediaPipe's code and
-TensorFlow.js (4.22.0) from jsDelivr, MediaPipe's WASM and the face model the app's own
+TensorFlow.js (4.22.0, with its WASM backend, the default, about 5 times as fast here as its
+JavaScript one) from jsDelivr, MediaPipe's WASM and the face model the app's own
 (`mediapipe/`), nothing sent anywhere. The service worker leaves it alone. It has no tests.
 TensorFlow.js has neither causal padding nor gradients for dilated convolutions, so each causal
 convolution is the input shifted back by 0, d and 2d ticks, side by side, times the kernel; the GRU
-is written out step by step for the same reason.
+is written out step by step for the same reason. Once trained, the models are run a tick at a time
+in plain JavaScript (live, and for the checks); TensorFlow.js is only for training and the
+gradients.
 
 - **Camera**: start and stop; the front camera at 640×480, asking for 30 frames a second. Detection
   runs on every camera frame; the ticks come from the resampler.
@@ -317,7 +322,7 @@ is written out step by step for the same reason.
   kind.
 - **Gestures**: add one (a name and a direction); record a round of five trials; clear its trials;
   change its direction; remove it.
-- **Train**: the number of steps per model; trains the baseline and then the three models, saying
+- **Train**: the number of steps per model, and what to run on (WASM, JavaScript or the GPU); trains the baseline and then the three models, saying
   what it is doing and the loss; then shows, per gesture, its flags and their reasons and its Hold;
   the cross-activation table and the prototype distances; and, for each overlap, its conflicting
   channels.
