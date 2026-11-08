@@ -920,11 +920,13 @@ function check(tf, M, seqs) {
     if (!crossHit && !protoHit || M.info[i].trials < 3 || M.info[j].trials < 3) continue;
     M.overlaps.push({ i, j, crossHit, protoHit, ij: saliency(tf, M, seqs, i, j), ji: saliency(tf, M, seqs, j, i) });
   }
+  // What each gesture responds to: its own saliency on its held-out cores.
+  M.own = M.gestures.map((_, k) => saliency(tf, M, seqs, k, k));
   for (const s of seqs) delete s.ys;
 }
 
 /**
- * What makes gesture j respond to gesture i: on i's held-out cores, the gradient of y_j summed over
+ * What makes gesture j respond to gesture i (with j = i, what each gesture responds to): on i's held-out cores, the gradient of y_j summed over
  * the core with respect to each input tick, times the input, in absolute value, averaged over the
  * core's ticks and the reps; the five largest channels.
  */
@@ -1330,6 +1332,9 @@ function renderDiag() {
     ];
   }));
   p('Held-out: each rep scored by the model that did not train on it. Spread: the variance of the held ticks\' yaw and pitch, as a share of the co-occurring background\'s (under 25% is too still).');
+
+  h('What each gesture responds to (saliency on its own held-out cores)');
+  for (const [k, g] of gs.entries()) p(`${g.name}: ${M.own[k].map((c) => `${c.name} ${c.v.toFixed(3)}`).join(', ')}.`);
 
   h('Cross-activation (mean y on another gesture\'s held-out cores)');
   table(['Done ↓ · responds →', ...gs.map((g) => g.name)], gs.map((g, i) => [[g.name], ...gs.map((_, j) => [M.cross[i][j].toFixed(2), `n ${i === j ? '' : M.cross[i][j] > 0.35 ? 'bad' : ''}`])]));

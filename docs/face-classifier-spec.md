@@ -301,6 +301,11 @@ absolute value, summed over the core's ticks and averaged per tick, per input ch
 largest, by name (the 52 blendshape names,
 and for `q`: `rot 1`–`rot 6`, `x`, `y`, `z`). And the same the other way round. They are what makes `j` respond to `i`'s gesture.
 
+### What each gesture responds to
+
+For each gesture, the same saliency of its own `y_k` on its own held-out cores: the five input
+channels with the largest, by name, with their values.
+
 Also, live: **unfamiliar angle**, when `N_eff < 5`: the camera sees the face from an angle the
 background doesn't cover: "record more background from here".
 
@@ -324,7 +329,8 @@ gradients.
   change its direction; remove it.
 - **Train**: the number of steps per model, and what to run on (WASM, JavaScript or the GPU); trains the baseline and then the three models, saying
   what it is doing and the loss; then shows, per gesture, its flags and their reasons and its Hold;
-  the cross-activation table and the prototype distances; and, for each overlap, its conflicting
+  the five channels each gesture responds to most; the cross-activation table and the prototype
+  distances; and, for each overlap, its conflicting
   channels.
 - **Try**: live, a tick at a time, through the ensemble with each model's GRU state carried: per
   gesture a meter of `y_k`, its On, Release and Hold (editable), whether it is on; the tared yaw,
