@@ -77,7 +77,6 @@ has three trials (10 to 15 are better). Then try it.</p>
 <div class="row dim">
   <label>On at <input type="number" id="onFrac" step="0.05" min="0.05" max="1"> of the way from the rest level to the lowest rep</label>
   <label>Release at <input type="number" id="relFrac" step="0.05" min="0" max="1"> of the way from the rest level to On</label>
-  <label><input type="checkbox" id="otherSide"> Hold the other side of each channel where the gesture has it</label>
 </div>
 <div id="gList"></div>
 
@@ -123,8 +122,6 @@ const IDX = new Map(NAMES.map((n, i) => [n, i]));
 /** A frame's channels: the 52 scores, then the head's angles in degrees, as the camera sees them. */
 const CHANNELS = [...NAMES, 'yaw', 'pitch', 'roll'];
 const NC = CHANNELS.length;
-/** The least spread a channel is scored with: a score, or degrees. */
-const floorOf = (c) => (c < 52 ? 0.05 : 3);
 /** A paired channel's counterpart on the other side, or -1. */
 const partnerOf = (c) => (c < PAIRS.length * 2 ? c ^ 1 : -1);
 const fmt = (c, v) => (c < 52 ? v.toFixed(2) : `${v.toFixed(0)}°`);
@@ -152,11 +149,6 @@ function quantile(values, q) {
   return a[lo] + (a[hi] - a[lo]) * (pos - lo);
 }
 const median = (values) => quantile(values, 0.5);
-/** A channel's centre (median) and spread (1.4826 × the median absolute deviation) over frames. */
-function centreAndSpread(frames, c) {
-  const col = frames.map((x) => x[c]), m = median(col);
-  return { m, s: 1.4826 * median(col.map((v) => Math.abs(v - m))) };
-}
 
 /* ================= fitting ================= */
 
@@ -165,7 +157,7 @@ const SELECT = 52;      // the channels a template is chosen from: the scores (t
 const EDGE = 0.1;       // a channel's edges: the held frames' 10th percentile on the rest side, the rest frames' 90th on the held side
 const MIN_SHIFT = 0.1;  // how far a channel's held edge must be from its rest value
 const MAX_SUPPORT = 10;
-const OTHER_WIDTH = 4;  // how many spreads off an other-side channel is wholly short
+const MIN_CAP = 0.1;    // how far short of a moving channel's edge its counterpart must stay held, to be capped
 const MISSED = 4;       // how many channels that just missed a card shows
 const NORM = 2;         // how the channels' shortfalls combine: their root mean square
 const MIN_TRIALS = 3;
@@ -191,47 +183,51 @@ function trialOf(bag) {
 }
 
 /**
- * A gesture's template from its trials. Its rows are of two kinds:
- * - **moves** (`side` +1 or -1, which way from rest): the held frames' near edge (`edge`) is clear
- *   of the rest frames' far edge (`far`), and MIN_SHIFT or more from the rest frames' median
- *   (`rest`). `clear` is that gap as a share of the way from `rest` to `edge`. The clearest
- *   MAX_SUPPORT are kept.
- * - **other side** (`side` 0), only when asked for: a moving channel's counterpart, which must stay
- *   near the held median `m` (within OTHER_WIDTH of its spread `s`, floored).
- * And, not scored: `missed`, the clearest channels left out.
+ * A gesture's template from its trials:
+ * - `rows`, the channels that move (`side` +1 or -1, which way from rest): the held frames' near
+ *   edge (`edge`) is clear of the rest frames' far edge (`far`), and MIN_SHIFT or more from the rest
+ *   frames' median (`rest`). `clear` is that gap as a share of the way from `rest` to `edge`. The
+ *   clearest MAX_SUPPORT are kept.
+ * - `caps`, on the other side of a lopsided pair: a moving channel's counterpart, which must stay
+ *   within where the gesture held it (`cap`, the held frames' far edge) and is wholly short on
+ *   reaching the moving channel's edge (`full`), as it does when both sides do the gesture (a blink,
+ *   for a wink). Only when `cap` is MIN_CAP or more short of `full`. A counterpart that moves the same
+ *   way itself is capped in place of its row; one that moves the other way keeps its row.
+ * - `missed`, not scored: the clearest channels left out.
  */
 function fit(trials) {
   const held = trials.flatMap((t) => t.held), rest = trials.flatMap((t) => t.rest);
-  if (!held.length || !rest.length) return { rows: [], missed: [] };
-  const all = [];
+  if (!held.length || !rest.length) return { rows: [], caps: [], missed: [] };
+  const all = [], heldOf = [];
   for (let c = 0; c < SELECT; c++) {
     const h = held.map((x) => x[c]), r = rest.map((x) => x[c]);
-    const m = median(h), rm = median(r), side = Math.sign(m - rm) || 1;
+    const rm = median(r), side = Math.sign(median(h) - rm) || 1;
     const edge = quantile(h, side > 0 ? EDGE : 1 - EDGE), far = quantile(r, side > 0 ? 1 - EDGE : EDGE);
     const span = side * (edge - rm);
-    all.push({ c, side, m, edge, far, rest: rm, span, clear: span > 0 ? side * (edge - far) / span : -Infinity });
+    heldOf.push(h);
+    all.push({ c, side, edge, far, rest: rm, span, clear: span > 0 ? side * (edge - far) / span : -Infinity });
   }
   const byClear = [...all].sort((a, b) => b.clear - a.clear);
-  const moves = (r) => r.clear > 0 && r.span >= MIN_SHIFT;
-  const rows = byClear.filter(moves).slice(0, MAX_SUPPORT).map((r) => ({ ...r, kind: 'moves' }));
-  const used = new Set(rows.map((r) => r.c));
-  if (state.otherSide) for (const r of [...rows]) {
-    const p = partnerOf(r.c);
-    if (p < 0 || used.has(p)) continue;
-    used.add(p);
-    rows.push({ ...all[p], side: 0, s: Math.max(centreAndSpread(held, p).s, floorOf(p)), kind: 'other side' });
+  const picked = byClear.filter((r) => r.clear > 0 && r.span >= MIN_SHIFT).slice(0, MAX_SUPPORT);
+  const moving = new Map(picked.map((r) => [r.c, r])), caps = [], capped = new Set();
+  for (const r of picked) {
+    const p = partnerOf(r.c), other = moving.get(p);
+    if (p < 0 || (other && other.side !== r.side)) continue;
+    const cap = quantile(heldOf[p], r.side > 0 ? 1 - EDGE : EDGE);
+    if (r.side * (r.edge - cap) < MIN_CAP) continue;
+    capped.add(p);
+    caps.push({ c: p, side: r.side, cap, full: r.edge, rest: all[p].rest });
   }
-  return { rows, missed: byClear.filter((r) => !used.has(r.c) && Number.isFinite(r.clear)).slice(0, MISSED) };
+  const used = new Set([...moving.keys(), ...capped]);
+  return { rows: picked.filter((r) => !capped.has(r.c)), caps, missed: byClear.filter((r) => !used.has(r.c) && Number.isFinite(r.clear)).slice(0, MISSED) };
 }
-/** How far short of the gesture a row's channel is, 0 to 1: for a moving channel, 1 at its rest value and 0 at its held edge or past it. */
-const shortOf = (r, v) => clamp(r.side ? r.side * (r.edge - v) / r.span : Math.abs(v - r.m) / (OTHER_WIDTH * r.s), 0, 1);
-/** How close a frame is to the gesture: 1 less the root mean square of its rows' shortfalls. */
-function score(T, x) {
-  if (!T.rows.length) return 0;
-  let a = 0;
-  for (const r of T.rows) a += shortOf(r, x[r.c]) ** NORM;
-  return 1 - (a / T.rows.length) ** (1 / NORM);
-}
+/** How far short of the gesture a moving channel is, 0 to 1: 1 at its rest value, 0 at its held edge or past it. */
+const shortOf = (r, v) => clamp(r.side * (r.edge - v) / r.span, 0, 1);
+/** How far past its cap a capped channel is, 0 to 1. */
+const overOf = (k, v) => clamp((v - k.cap) / (k.full - k.cap), 0, 1);
+const rms = (list, of, x) => (list.length ? (list.reduce((a, r) => a + of(r, x[r.c]) ** NORM, 0) / list.length) ** (1 / NORM) : 0);
+/** How close a frame is to the gesture: 1 less the root mean square of the moving channels' shortfalls, times 1 less that of the caps'. */
+const score = (T, x) => (T.rows.length ? (1 - rms(T.rows, shortOf, x)) * (1 - rms(T.caps, overOf, x)) : 0);
 
 /**
  * A gesture's model: its template, its calibrated levels (as face/calibration.ts: the rest level is
@@ -276,7 +272,7 @@ function build(g) {
 }
 
 const levels = (g, M) => ({ on: g.on ?? M.on, release: Math.min(g.on ?? M.on, g.release ?? M.release), hold: g.hold ?? HOLD_DEFAULT });
-const supportNames = (M) => M.T.rows.filter((r) => r.side).map((r) => CHANNELS[r.c]);
+const supportNames = (M) => M.T.rows.map((r) => CHANNELS[r.c]);
 /** `j`'s score on `i`'s gesture (the highest of its reps' median held scores), if it reaches `j`'s release level: `j` would stay on through it. */
 function firesOn(j, Mj, Mi) {
   const y = Math.max(...Mi.trials.map((t) => median(t.held.map((x) => score(Mj.T, x)))));
@@ -565,13 +561,14 @@ function liveFrame(t, f) {
     if (!row) continue;
     const T = row.M.T, y = score(T, x);
     row.fill.style.width = `${y * 100}%`;
-    // Each channel's value and how far short it is (0 to 1); those over a quarter are what holds the score down.
-    row.nums.replaceChildren(`y ${y.toFixed(2)} · `, ...T.rows.map((r) => {
-      const z = shortOf(r, x[r.c]), e = document.createElement('span');
+    // Each channel's value and how far short it is, or past its cap (0 to 1); those over a quarter are what holds the score down.
+    const num = (r, z) => {
+      const e = document.createElement('span');
       e.textContent = `${CHANNELS[r.c]} ${fmt(r.c, x[r.c])} (${z.toFixed(2)}) `;
       if (z > 0.25) e.className = 'chan-bad';
       return e;
-    }));
+    };
+    row.nums.replaceChildren(`y ${y.toFixed(2)} · `, ...T.rows.map((r) => num(r, shortOf(r, x[r.c]))), T.caps.length ? '· caps: ' : '', ...T.caps.map((k) => num(k, overOf(k, x[k.c]))));
     const { on, release, hold } = levels(g, row.M);
     const st = live.det[g.id] ?? { turned: false };
     const wasOn = st.since !== undefined || st.turned;
@@ -595,7 +592,7 @@ function liveFrame(t, f) {
 /* ================= the page ================= */
 
 function render() {
-  $('onFrac').value = state.onFrac ?? ON_FRAC; $('relFrac').value = state.relFrac ?? REL_FRAC; $('otherSide').checked = !!state.otherSide;
+  $('onFrac').value = state.onFrac ?? ON_FRAC; $('relFrac').value = state.relFrac ?? REL_FRAC;
   for (const id of ['gAdd', 'wipe', 'dl']) $(id).disabled = busy;
   const usable = [...models.values()].some((M) => M.T);
   $('try').disabled = busy || !usable;
@@ -641,13 +638,9 @@ function render() {
       const t = document.createElement('table');
       const hr = t.insertRow();
       for (const c of ['Channel', 'Why', 'Must be', 'At rest', 'Rest reaches', 'Clear']) { const th = document.createElement('th'); th.textContent = c; hr.append(th); }
-      for (const r of M.T.rows) {
-        const tr = t.insertRow();
-        const cells = r.side
-          ? [CHANNELS[r.c], r.kind, `${r.side > 0 ? '≥' : '≤'} ${fmt(r.c, r.edge)}`, fmt(r.c, r.rest), fmt(r.c, r.far), r.clear.toFixed(2)]
-          : [CHANNELS[r.c], r.kind, `near ${fmt(r.c, r.m)} (± ${fmt(r.c, OTHER_WIDTH * r.s)})`, fmt(r.c, r.rest), '', ''];
-        cells.forEach((text, i) => { const c = tr.insertCell(); c.textContent = text; if (i > 2) c.className = 'n'; });
-      }
+      const add = (cells) => { const tr = t.insertRow(); cells.forEach((text, i) => { const c = tr.insertCell(); c.textContent = text; if (i > 2) c.className = 'n'; }); };
+      for (const r of M.T.rows) add([CHANNELS[r.c], 'moves', `${r.side > 0 ? '≥' : '≤'} ${fmt(r.c, r.edge)}`, fmt(r.c, r.rest), fmt(r.c, r.far), r.clear.toFixed(2)]);
+      for (const k of M.T.caps) add([CHANNELS[k.c], 'capped', `${k.side > 0 ? '≤' : '≥'} ${fmt(k.c, k.cap)} (wholly out at ${fmt(k.c, k.full)})`, fmt(k.c, k.rest), '', '']);
       wrap.append(t); card.append(wrap);
       line(card, `Just missed (how clear of rest, how far they move): ${M.missed.map((r) => `${CHANNELS[r.c]} (${r.clear.toFixed(2)}, ${r.span.toFixed(2)})`).join(', ')}.`);
     }
@@ -667,7 +660,6 @@ $('gAdd').addEventListener('click', () => {
 });
 $('onFrac').addEventListener('change', () => { state.onFrac = clamp(Number($('onFrac').value) || ON_FRAC, 0.05, 1); changed(); });
 $('relFrac').addEventListener('change', () => { state.relFrac = clamp(Number($('relFrac').value) || 0, 0, 1); changed(); });
-$('otherSide').addEventListener('change', () => { state.otherSide = $('otherSide').checked; changed(); });
 $('try').addEventListener('click', () => guarded(async () => {
   if (live) { stopTrying(); return; }
   await startCamera();
