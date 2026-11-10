@@ -7,11 +7,12 @@
 <link rel="manifest" href="face-classifier.webmanifest">
 <!--
   A throwaway prototype of gestures you define, as sparse templates: record trials of a gesture, and
-  it is fitted at once as a few channels (blendshape scores), each with a centre and a spread; a
-  frame's score is how close it is to that, from 0 (resting) to 1. No network and no training. MediaPipe's code comes from jsDelivr; its WASM and the face model are the
-  app's own, from mediapipe/. Recordings are kept in this page's own IndexedDB database; nothing is
-  sent anywhere. Not part of the app, and not tested. (docs/face-classifier-spec.md still describes
-  the network this replaced.)
+  it is fitted at once as a few channels (blendshape scores) whose held values are clear of their
+  values at rest; a frame's score is how far those channels have come from rest to the gesture,
+  from 0 to 1. No network and no training. MediaPipe's code comes from jsDelivr; its WASM and the
+  face model are the app's own, from mediapipe/. Recordings are kept in this page's own IndexedDB
+  database; nothing is sent anywhere. Not part of the app, and not tested.
+  (docs/face-classifier-spec.md still describes the network this replaced.)
 -->
 <style>
   :root { color-scheme: dark; --bg: #15171c; --fg: #e8e8ea; --dim: #9a9ca3; --line: #2c2f37; --track: #23262e; --bar: #4c8dff; --hot: #ffb347; --bad: #ff6b6b; --good: #5fd38d; }
@@ -76,6 +77,7 @@ has three trials (10 to 15 are better). Then try it.</p>
 <div class="row dim">
   <label>On at <input type="number" id="onFrac" step="0.05" min="0.05" max="1"> of the way from the rest level to the lowest rep</label>
   <label>Release at <input type="number" id="relFrac" step="0.05" min="0" max="1"> of the way from the rest level to On</label>
+  <label><input type="checkbox" id="otherSide"> Hold the other side of each channel where the gesture has it</label>
 </div>
 <div id="gList"></div>
 
@@ -160,17 +162,16 @@ function centreAndSpread(frames, c) {
 
 const GUARD = 500;      // ms either side of the third tones left out
 const SELECT = 52;      // the channels a template is chosen from: the scores (the head's angles are left out for now)
-const SEL_FLOOR = 0.01; // the least spread in choosing channels (scoring has floorOf)
-const SEP = 3;          // a support channel's least separation,
-const MIN_SHIFT = 0.1;  // and how far it must move outright
+const EDGE = 0.1;       // a channel's edges: the held frames' 10th percentile on the rest side, the rest frames' 90th on the held side
+const MIN_SHIFT = 0.1;  // how far a channel's held edge must be from its rest value
 const MAX_SUPPORT = 10;
-const RATIO = 3;        // how many times tighter (or wider) than at rest a channel's held spread must be to count
+const OTHER_WIDTH = 4;  // how many spreads off an other-side channel is wholly short
 const MISSED = 4;       // how many channels that just missed a card shows
-const NORM = 4;         // the distance's exponent: between root-mean-square (2) and the largest (∞)
+const NORM = 2;         // how the channels' shortfalls combine: their root mean square
 const MIN_TRIALS = 3;
 const MIN_GAP = 0.15;   // how far over the rest level the lowest rep must be (face/calibration.ts)
 const HOLD_DEFAULT = 250;
-const ON_FRAC = 0.4, REL_FRAC = 0.5; // face/calibration.ts's; the page's two boxes change them
+const ON_FRAC = 0.8, REL_FRAC = 0.5; // the page's two boxes change them (face/calibration.ts has 0.4 and 0.5)
 
 const trialCache = new WeakMap();
 /** A trial's frames as channels: `held` between the third tones, `rest` outside them (with their times), less the guard. */
@@ -190,50 +191,47 @@ function trialOf(bag) {
 }
 
 /**
- * A gesture's template from its trials. Its rows are a channel, the held centre `m` and spread `s`
- * (floored for scoring), and `side`, of three kinds:
- * - **support** (`side` +1 or -1, which way it moves from rest): its separation, the held and rest
- *   centres' distance over the sum of their spreads, is SEP or more, and it moves MIN_SHIFT or more;
- * - **other side** (`side` 0): a support channel's counterpart, which must stay where the gesture has it;
- * - **held still** (`side` 0): its spread at rest is RATIO times its held spread or more.
- * And, not scored: `varies`, the channels whose held spread is RATIO times their rest spread or
- * more; `missed`, the largest separations left out; `seps`, every channel, the largest first.
- * `dRest` is the median distance of the rest frames.
+ * A gesture's template from its trials. Its rows are of two kinds:
+ * - **moves** (`side` +1 or -1, which way from rest): the held frames' near edge (`edge`) is clear
+ *   of the rest frames' far edge (`far`), and MIN_SHIFT or more from the rest frames' median
+ *   (`rest`). `clear` is that gap as a share of the way from `rest` to `edge`. The clearest
+ *   MAX_SUPPORT are kept.
+ * - **other side** (`side` 0), only when asked for: a moving channel's counterpart, which must stay
+ *   near the held median `m` (within OTHER_WIDTH of its spread `s`, floored).
+ * And, not scored: `missed`, the clearest channels left out.
  */
 function fit(trials) {
   const held = trials.flatMap((t) => t.held), rest = trials.flatMap((t) => t.rest);
-  if (!held.length || !rest.length) return { rows: [], seps: [], varies: [], missed: [], dRest: 0 };
+  if (!held.length || !rest.length) return { rows: [], missed: [] };
   const all = [];
   for (let c = 0; c < SELECT; c++) {
-    const h = centreAndSpread(held, c), r = centreAndSpread(rest, c);
-    const hs = Math.max(h.s, SEL_FLOOR), rs = Math.max(r.s, SEL_FLOOR), shift = Math.abs(h.m - r.m);
-    all.push({ c, m: h.m, s: Math.max(h.s, floorOf(c)), heldS: h.s, rest: r.m, restS: r.s, shift, sep: shift / (hs + rs), ratio: rs / hs, side: Math.sign(h.m - r.m) });
+    const h = held.map((x) => x[c]), r = rest.map((x) => x[c]);
+    const m = median(h), rm = median(r), side = Math.sign(m - rm) || 1;
+    const edge = quantile(h, side > 0 ? EDGE : 1 - EDGE), far = quantile(r, side > 0 ? 1 - EDGE : EDGE);
+    const span = side * (edge - rm);
+    all.push({ c, side, m, edge, far, rest: rm, span, clear: span > 0 ? side * (edge - far) / span : -Infinity });
   }
-  const seps = [...all].sort((a, b) => b.sep - a.sep);
-  const rows = seps.filter((r) => r.sep >= SEP && r.shift >= MIN_SHIFT).slice(0, MAX_SUPPORT).map((r) => ({ ...r, kind: 'moves' }));
+  const byClear = [...all].sort((a, b) => b.clear - a.clear);
+  const moves = (r) => r.clear > 0 && r.span >= MIN_SHIFT;
+  const rows = byClear.filter(moves).slice(0, MAX_SUPPORT).map((r) => ({ ...r, kind: 'moves' }));
   const used = new Set(rows.map((r) => r.c));
-  for (const r of [...rows]) {
+  if (state.otherSide) for (const r of [...rows]) {
     const p = partnerOf(r.c);
-    if (p >= 0 && !used.has(p)) { used.add(p); rows.push({ ...all[p], side: 0, kind: 'other side' }); }
+    if (p < 0 || used.has(p)) continue;
+    used.add(p);
+    rows.push({ ...all[p], side: 0, s: Math.max(centreAndSpread(held, p).s, floorOf(p)), kind: 'other side' });
   }
-  for (const r of all) if (!used.has(r.c) && r.ratio >= RATIO) { used.add(r.c); rows.push({ ...r, side: 0, kind: 'held still' }); }
-  const T = {
-    rows, seps, dRest: 0,
-    varies: all.filter((r) => !used.has(r.c) && r.ratio <= 1 / RATIO),
-    missed: seps.filter((r) => !used.has(r.c)).slice(0, MISSED),
-  };
-  T.dRest = median(rest.map((x) => distance(T, x)));
-  return T;
+  return { rows, missed: byClear.filter((r) => !used.has(r.c) && Number.isFinite(r.clear)).slice(0, MISSED) };
 }
-/** A row's distance from a frame's value, in spreads: one-sided for a support channel (past the centre is as good as on it). */
-const zOf = (r, v) => (r.side ? Math.max(0, r.side * (r.m - v)) : Math.abs(v - r.m)) / r.s;
-function distance(T, x) {
+/** How far short of the gesture a row's channel is, 0 to 1: for a moving channel, 1 at its rest value and 0 at its held edge or past it. */
+const shortOf = (r, v) => clamp(r.side ? r.side * (r.edge - v) / r.span : Math.abs(v - r.m) / (OTHER_WIDTH * r.s), 0, 1);
+/** How close a frame is to the gesture: 1 less the root mean square of its rows' shortfalls. */
+function score(T, x) {
+  if (!T.rows.length) return 0;
   let a = 0;
-  for (const r of T.rows) a += zOf(r, x[r.c]) ** NORM;
-  return a ** (1 / NORM);
+  for (const r of T.rows) a += shortOf(r, x[r.c]) ** NORM;
+  return 1 - (a / T.rows.length) ** (1 / NORM);
 }
-/** How close a frame is to the gesture: 0 at the typical rest frame's distance or beyond, 1 on the template. */
-const score = (T, x) => (T.dRest > 0 ? clamp(1 - distance(T, x) / T.dRest, 0, 1) : 0);
 
 /**
  * A gesture's model: its template, its calibrated levels (as face/calibration.ts: the rest level is
@@ -246,14 +244,14 @@ function build(g) {
   const M = { n: trials.length, flags: [], T: null };
   if (trials.length < MIN_TRIALS) { M.flags.push(`record at least ${MIN_TRIALS} trials`); return M; }
   const T = fit(trials);
-  M.seps = T.seps.slice(0, 3);
-  if (!T.rows.some((r) => r.side) || !(T.dRest > 0)) { M.flags.push('can\'t be told from playing: no channel moves far enough from rest'); return M; }
+  M.missed = T.missed;
+  if (!T.rows.length) { M.flags.push('can\'t be told from playing: no channel\'s held values are clear of its values at rest'); return M; }
   M.T = T;
   M.trials = trials;
   M.rest = quantile(trials.flatMap((t) => t.rest.map((x) => score(T, x))), 0.95);
   M.peaks = trials.map((t, i) => {
     const Ti = fit(trials.filter((_, j) => j !== i));
-    return Ti.dRest > 0 ? median(t.held.map((x) => score(Ti, x))) : 0;
+    return Ti.rows.length ? median(t.held.map((x) => score(Ti, x))) : 0;
   });
   M.lowest = Math.min(...M.peaks);
   if (M.lowest - M.rest < MIN_GAP) M.flags.push('unreliable: a rep left out of the fit scores little over rest');
@@ -567,11 +565,11 @@ function liveFrame(t, f) {
     if (!row) continue;
     const T = row.M.T, y = score(T, x);
     row.fill.style.width = `${y * 100}%`;
-    // Each channel's value and how many spreads it is off; those over 1 are what holds the score down.
+    // Each channel's value and how far short it is (0 to 1); those over a quarter are what holds the score down.
     row.nums.replaceChildren(`y ${y.toFixed(2)} · `, ...T.rows.map((r) => {
-      const z = zOf(r, x[r.c]), e = document.createElement('span');
-      e.textContent = `${CHANNELS[r.c]} ${fmt(r.c, x[r.c])} (${z.toFixed(1)}) `;
-      if (z > 1) e.className = 'chan-bad';
+      const z = shortOf(r, x[r.c]), e = document.createElement('span');
+      e.textContent = `${CHANNELS[r.c]} ${fmt(r.c, x[r.c])} (${z.toFixed(2)}) `;
+      if (z > 0.25) e.className = 'chan-bad';
       return e;
     }));
     const { on, release, hold } = levels(g, row.M);
@@ -597,7 +595,7 @@ function liveFrame(t, f) {
 /* ================= the page ================= */
 
 function render() {
-  $('onFrac').value = state.onFrac ?? ON_FRAC; $('relFrac').value = state.relFrac ?? REL_FRAC;
+  $('onFrac').value = state.onFrac ?? ON_FRAC; $('relFrac').value = state.relFrac ?? REL_FRAC; $('otherSide').checked = !!state.otherSide;
   for (const id of ['gAdd', 'wipe', 'dl']) $(id).disabled = busy;
   const usable = [...models.values()].some((M) => M.T);
   $('try').disabled = busy || !usable;
@@ -635,22 +633,23 @@ function render() {
     card.append(top);
     if (g.note) line(card, g.note, 'bad');
     for (const f of M.flags) line(card, f[0].toUpperCase() + f.slice(1) + '.', 'bad');
-    if (!M.T && M.seps?.length) line(card, `The channels that move most: ${M.seps.map((r) => `${CHANNELS[r.c]} (separation ${r.sep.toFixed(1)}, moves ${r.shift.toFixed(2)})`).join(', ')}; ${SEP} and ${MIN_SHIFT} are needed.`);
+    if (!M.T && M.missed?.length) line(card, `The clearest channels (how clear of rest, how far they move): ${M.missed.map((r) => `${CHANNELS[r.c]} (${r.clear.toFixed(2)}, ${r.span.toFixed(2)})`).join(', ')}; over 0 and ${MIN_SHIFT} are needed.`);
     if (M.T) {
       const l = levels(g, M);
-      line(card, `On ${l.on.toFixed(2)}, release ${l.release.toFixed(2)}${g.on !== undefined || g.release !== undefined ? ' (moved by hand)' : ''}. Rest level ${M.rest.toFixed(2)}; each rep, left out: ${M.peaks.map((v) => v.toFixed(2)).join(', ')}. A typical rest frame is ${M.T.dRest.toFixed(1)} away.`);
+      line(card, `On ${l.on.toFixed(2)}, release ${l.release.toFixed(2)}${g.on !== undefined || g.release !== undefined ? ' (moved by hand)' : ''}. Rest level ${M.rest.toFixed(2)}; each rep, left out: ${M.peaks.map((v) => v.toFixed(2)).join(', ')}.`);
       const wrap = document.createElement('div'); wrap.className = 'scroll';
       const t = document.createElement('table');
       const hr = t.insertRow();
-      for (const c of ['Channel', 'Why', 'Must be', 'Held spread', 'At rest', 'Rest spread', 'Separation']) { const th = document.createElement('th'); th.textContent = c; hr.append(th); }
+      for (const c of ['Channel', 'Why', 'Must be', 'At rest', 'Rest reaches', 'Clear']) { const th = document.createElement('th'); th.textContent = c; hr.append(th); }
       for (const r of M.T.rows) {
         const tr = t.insertRow();
-        const cells = [CHANNELS[r.c], r.kind, `${r.side > 0 ? '≥' : r.side < 0 ? '≤' : 'near'} ${fmt(r.c, r.m)}`, r.heldS.toFixed(3), fmt(r.c, r.rest), r.restS.toFixed(3), r.sep.toFixed(1)];
+        const cells = r.side
+          ? [CHANNELS[r.c], r.kind, `${r.side > 0 ? '≥' : '≤'} ${fmt(r.c, r.edge)}`, fmt(r.c, r.rest), fmt(r.c, r.far), r.clear.toFixed(2)]
+          : [CHANNELS[r.c], r.kind, `near ${fmt(r.c, r.m)} (± ${fmt(r.c, OTHER_WIDTH * r.s)})`, fmt(r.c, r.rest), '', ''];
         cells.forEach((text, i) => { const c = tr.insertCell(); c.textContent = text; if (i > 2) c.className = 'n'; });
       }
       wrap.append(t); card.append(wrap);
-      if (M.T.varies.length) line(card, `Varies with the gesture (not scored; held spread, rest spread): ${M.T.varies.map((r) => `${CHANNELS[r.c]} (${r.heldS.toFixed(3)}, ${r.restS.toFixed(3)})`).join(', ')}.`);
-      line(card, `Just missed (separation, moves): ${M.T.missed.map((r) => `${CHANNELS[r.c]} (${r.sep.toFixed(1)}, ${r.shift.toFixed(2)})`).join(', ')}.`);
+      line(card, `Just missed (how clear of rest, how far they move): ${M.missed.map((r) => `${CHANNELS[r.c]} (${r.clear.toFixed(2)}, ${r.span.toFixed(2)})`).join(', ')}.`);
     }
     list.append(card);
   }
@@ -668,6 +667,7 @@ $('gAdd').addEventListener('click', () => {
 });
 $('onFrac').addEventListener('change', () => { state.onFrac = clamp(Number($('onFrac').value) || ON_FRAC, 0.05, 1); changed(); });
 $('relFrac').addEventListener('change', () => { state.relFrac = clamp(Number($('relFrac').value) || 0, 0, 1); changed(); });
+$('otherSide').addEventListener('change', () => { state.otherSide = $('otherSide').checked; changed(); });
 $('try').addEventListener('click', () => guarded(async () => {
   if (live) { stopTrying(); return; }
   await startCamera();
