@@ -7,9 +7,8 @@
 <link rel="manifest" href="face-classifier.webmanifest">
 <!--
   A throwaway prototype of gestures you define, as sparse templates: record trials of a gesture, and
-  it is fitted at once as a few channels (blendshape scores and the head's angles), each with a
-  centre and a spread; a frame's score is how close it is to that, from 0 (resting) to 1. No
-  network and no training. MediaPipe's code comes from jsDelivr; its WASM and the face model are the
+  it is fitted at once as a few channels (blendshape scores), each with a centre and a spread; a
+  frame's score is how close it is to that, from 0 (resting) to 1. No network and no training. MediaPipe's code comes from jsDelivr; its WASM and the face model are the
   app's own, from mediapipe/. Recordings are kept in this page's own IndexedDB database; nothing is
   sent anywhere. Not part of the app, and not tested. (docs/face-classifier-spec.md still describes
   the network this replaced.)
@@ -122,7 +121,7 @@ const IDX = new Map(NAMES.map((n, i) => [n, i]));
 /** A frame's channels: the 52 scores, then the head's angles in degrees, as the camera sees them. */
 const CHANNELS = [...NAMES, 'yaw', 'pitch', 'roll'];
 const NC = CHANNELS.length;
-/** The least spread a channel is given: a score, or degrees. */
+/** The least spread a channel is scored with: a score, or degrees. */
 const floorOf = (c) => (c < 52 ? 0.05 : 3);
 /** A paired channel's counterpart on the other side, or -1. */
 const partnerOf = (c) => (c < PAIRS.length * 2 ? c ^ 1 : -1);
@@ -151,17 +150,22 @@ function quantile(values, q) {
   return a[lo] + (a[hi] - a[lo]) * (pos - lo);
 }
 const median = (values) => quantile(values, 0.5);
-/** A channel's centre (median) and spread (1.4826 × the median absolute deviation, at least its floor) over frames. */
+/** A channel's centre (median) and spread (1.4826 × the median absolute deviation) over frames. */
 function centreAndSpread(frames, c) {
   const col = frames.map((x) => x[c]), m = median(col);
-  return { m, s: Math.max(1.4826 * median(col.map((v) => Math.abs(v - m))), floorOf(c)) };
+  return { m, s: 1.4826 * median(col.map((v) => Math.abs(v - m))) };
 }
 
 /* ================= fitting ================= */
 
 const GUARD = 500;      // ms either side of the third tones left out
-const SEP = 3;          // a support channel's least separation
-const MAX_SUPPORT = 6;
+const SELECT = 52;      // the channels a template is chosen from: the scores (the head's angles are left out for now)
+const SEL_FLOOR = 0.01; // the least spread in choosing channels (scoring has floorOf)
+const SEP = 3;          // a support channel's least separation,
+const MIN_SHIFT = 0.1;  // and how far it must move outright
+const MAX_SUPPORT = 10;
+const RATIO = 3;        // how many times tighter (or wider) than at rest a channel's held spread must be to count
+const MISSED = 4;       // how many channels that just missed a card shows
 const NORM = 4;         // the distance's exponent: between root-mean-square (2) and the largest (∞)
 const MIN_TRIALS = 3;
 const MIN_GAP = 0.15;   // how far over the rest level the lowest rep must be (face/calibration.ts)
@@ -186,27 +190,38 @@ function trialOf(bag) {
 }
 
 /**
- * A gesture's template from its trials: its rows (a channel, the held centre `m` and spread `s`,
- * and `side`: +1 or -1 for a support channel, which way it moves from rest; 0 for a support
- * channel's counterpart on the other side, which must stay where the gesture has it), and the
- * median distance of the rest frames. `seps` is every channel's separation, the largest first.
+ * A gesture's template from its trials. Its rows are a channel, the held centre `m` and spread `s`
+ * (floored for scoring), and `side`, of three kinds:
+ * - **support** (`side` +1 or -1, which way it moves from rest): its separation, the held and rest
+ *   centres' distance over the sum of their spreads, is SEP or more, and it moves MIN_SHIFT or more;
+ * - **other side** (`side` 0): a support channel's counterpart, which must stay where the gesture has it;
+ * - **held still** (`side` 0): its spread at rest is RATIO times its held spread or more.
+ * And, not scored: `varies`, the channels whose held spread is RATIO times their rest spread or
+ * more; `missed`, the largest separations left out; `seps`, every channel, the largest first.
+ * `dRest` is the median distance of the rest frames.
  */
 function fit(trials) {
   const held = trials.flatMap((t) => t.held), rest = trials.flatMap((t) => t.rest);
-  if (!held.length || !rest.length) return { rows: [], seps: [], dRest: 0 };
+  if (!held.length || !rest.length) return { rows: [], seps: [], varies: [], missed: [], dRest: 0 };
   const all = [];
-  for (let c = 0; c < NC; c++) {
+  for (let c = 0; c < SELECT; c++) {
     const h = centreAndSpread(held, c), r = centreAndSpread(rest, c);
-    all.push({ c, m: h.m, s: h.s, rest: r.m, sep: Math.abs(h.m - r.m) / (h.s + r.s), side: Math.sign(h.m - r.m) });
+    const hs = Math.max(h.s, SEL_FLOOR), rs = Math.max(r.s, SEL_FLOOR), shift = Math.abs(h.m - r.m);
+    all.push({ c, m: h.m, s: Math.max(h.s, floorOf(c)), heldS: h.s, rest: r.m, restS: r.s, shift, sep: shift / (hs + rs), ratio: rs / hs, side: Math.sign(h.m - r.m) });
   }
   const seps = [...all].sort((a, b) => b.sep - a.sep);
-  const rows = seps.filter((r) => r.sep >= SEP).slice(0, MAX_SUPPORT);
+  const rows = seps.filter((r) => r.sep >= SEP && r.shift >= MIN_SHIFT).slice(0, MAX_SUPPORT).map((r) => ({ ...r, kind: 'moves' }));
   const used = new Set(rows.map((r) => r.c));
   for (const r of [...rows]) {
     const p = partnerOf(r.c);
-    if (p >= 0 && !used.has(p)) { used.add(p); rows.push({ ...all[p], side: 0 }); }
+    if (p >= 0 && !used.has(p)) { used.add(p); rows.push({ ...all[p], side: 0, kind: 'other side' }); }
   }
-  const T = { rows, seps, dRest: 0 };
+  for (const r of all) if (!used.has(r.c) && r.ratio >= RATIO) { used.add(r.c); rows.push({ ...r, side: 0, kind: 'held still' }); }
+  const T = {
+    rows, seps, dRest: 0,
+    varies: all.filter((r) => !used.has(r.c) && r.ratio <= 1 / RATIO),
+    missed: seps.filter((r) => !used.has(r.c)).slice(0, MISSED),
+  };
   T.dRest = median(rest.map((x) => distance(T, x)));
   return T;
 }
@@ -232,13 +247,13 @@ function build(g) {
   if (trials.length < MIN_TRIALS) { M.flags.push(`record at least ${MIN_TRIALS} trials`); return M; }
   const T = fit(trials);
   M.seps = T.seps.slice(0, 3);
-  if (!T.rows.length || !(T.dRest > 0)) { M.flags.push('can\'t be told from playing: no channel moves far enough from rest'); return M; }
+  if (!T.rows.some((r) => r.side) || !(T.dRest > 0)) { M.flags.push('can\'t be told from playing: no channel moves far enough from rest'); return M; }
   M.T = T;
   M.trials = trials;
   M.rest = quantile(trials.flatMap((t) => t.rest.map((x) => score(T, x))), 0.95);
   M.peaks = trials.map((t, i) => {
     const Ti = fit(trials.filter((_, j) => j !== i));
-    return Ti.rows.length ? median(t.held.map((x) => score(Ti, x))) : 0;
+    return Ti.dRest > 0 ? median(t.held.map((x) => score(Ti, x))) : 0;
   });
   M.lowest = Math.min(...M.peaks);
   if (M.lowest - M.rest < MIN_GAP) M.flags.push('unreliable: a rep left out of the fit scores little over rest');
@@ -620,20 +635,22 @@ function render() {
     card.append(top);
     if (g.note) line(card, g.note, 'bad');
     for (const f of M.flags) line(card, f[0].toUpperCase() + f.slice(1) + '.', 'bad');
-    if (!M.T && M.seps?.length) line(card, `The channels that move most: ${M.seps.map((r) => `${CHANNELS[r.c]} (${r.sep.toFixed(1)})`).join(', ')}; ${SEP} is needed.`);
+    if (!M.T && M.seps?.length) line(card, `The channels that move most: ${M.seps.map((r) => `${CHANNELS[r.c]} (separation ${r.sep.toFixed(1)}, moves ${r.shift.toFixed(2)})`).join(', ')}; ${SEP} and ${MIN_SHIFT} are needed.`);
     if (M.T) {
       const l = levels(g, M);
       line(card, `On ${l.on.toFixed(2)}, release ${l.release.toFixed(2)}${g.on !== undefined || g.release !== undefined ? ' (moved by hand)' : ''}. Rest level ${M.rest.toFixed(2)}; each rep, left out: ${M.peaks.map((v) => v.toFixed(2)).join(', ')}. A typical rest frame is ${M.T.dRest.toFixed(1)} away.`);
       const wrap = document.createElement('div'); wrap.className = 'scroll';
       const t = document.createElement('table');
       const hr = t.insertRow();
-      for (const c of ['Channel', 'Must be', 'Spread', 'At rest', 'Separation']) { const th = document.createElement('th'); th.textContent = c; hr.append(th); }
+      for (const c of ['Channel', 'Why', 'Must be', 'Held spread', 'At rest', 'Rest spread', 'Separation']) { const th = document.createElement('th'); th.textContent = c; hr.append(th); }
       for (const r of M.T.rows) {
         const tr = t.insertRow();
-        const cells = [CHANNELS[r.c], `${r.side > 0 ? '≥' : r.side < 0 ? '≤' : 'near'} ${fmt(r.c, r.m)}${r.side ? '' : ' (other side)'}`, fmt(r.c, r.s), fmt(r.c, r.rest), r.sep.toFixed(1)];
-        cells.forEach((text, i) => { const c = tr.insertCell(); c.textContent = text; if (i > 1) c.className = 'n'; });
+        const cells = [CHANNELS[r.c], r.kind, `${r.side > 0 ? '≥' : r.side < 0 ? '≤' : 'near'} ${fmt(r.c, r.m)}`, r.heldS.toFixed(3), fmt(r.c, r.rest), r.restS.toFixed(3), r.sep.toFixed(1)];
+        cells.forEach((text, i) => { const c = tr.insertCell(); c.textContent = text; if (i > 2) c.className = 'n'; });
       }
       wrap.append(t); card.append(wrap);
+      if (M.T.varies.length) line(card, `Varies with the gesture (not scored; held spread, rest spread): ${M.T.varies.map((r) => `${CHANNELS[r.c]} (${r.heldS.toFixed(3)}, ${r.restS.toFixed(3)})`).join(', ')}.`);
+      line(card, `Just missed (separation, moves): ${M.T.missed.map((r) => `${CHANNELS[r.c]} (${r.sep.toFixed(1)}, ${r.shift.toFixed(2)})`).join(', ')}.`);
     }
     list.append(card);
   }
