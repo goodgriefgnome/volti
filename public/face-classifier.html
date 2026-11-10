@@ -159,11 +159,11 @@ const MIN_SHIFT = 0.1;  // how far a channel's held edge must be from its rest v
 const MAX_SUPPORT = 10;
 const MIN_CAP = 0.1;    // how far short of a moving channel's edge its counterpart must stay held, to be capped
 const MISSED = 4;       // how many channels that just missed a card shows
-const NORM = 2;         // how the channels' shortfalls combine: their root mean square
+const SPARE = 4;         // with this many moving channels or more, a frame's largest shortfall is left out
 const MIN_TRIALS = 3;
 const MIN_GAP = 0.15;   // how far over the rest level the lowest rep must be (face/calibration.ts)
 const HOLD_DEFAULT = 250;
-const ON_FRAC = 0.8, REL_FRAC = 0.5; // the page's two boxes change them (face/calibration.ts has 0.4 and 0.5)
+const ON_FRAC = 0.65, REL_FRAC = 0.5; // the page's two boxes change them (face/calibration.ts has 0.4 and 0.5)
 
 const trialCache = new WeakMap();
 /** A trial's frames as channels: `held` between the third tones, `rest` outside them (with their times), less the guard. */
@@ -225,9 +225,16 @@ function fit(trials) {
 const shortOf = (r, v) => clamp(r.side * (r.edge - v) / r.span, 0, 1);
 /** How far past its cap a capped channel is, 0 to 1. */
 const overOf = (k, v) => clamp((v - k.cap) / (k.full - k.cap), 0, 1);
-const rms = (list, of, x) => (list.length ? (list.reduce((a, r) => a + of(r, x[r.c]) ** NORM, 0) / list.length) ** (1 / NORM) : 0);
-/** How close a frame is to the gesture: 1 less the root mean square of the moving channels' shortfalls, times 1 less that of the caps'. */
-const score = (T, x) => (T.rows.length ? (1 - rms(T.rows, shortOf, x)) * (1 - rms(T.caps, overOf, x)) : 0);
+/** The mean of the moving channels' shortfalls; with SPARE of them or more, less the largest (one channel may be missing). */
+function shortfall(T, x) {
+  let sum = 0, worst = 0;
+  for (const r of T.rows) { const z = shortOf(r, x[r.c]); sum += z; worst = Math.max(worst, z); }
+  return T.rows.length >= SPARE ? (sum - worst) / (T.rows.length - 1) : sum / T.rows.length;
+}
+/** The root mean square of how far past their caps the capped channels are. */
+const overshoot = (T, x) => (T.caps.length ? Math.sqrt(T.caps.reduce((a, k) => a + overOf(k, x[k.c]) ** 2, 0) / T.caps.length) : 0);
+/** How close a frame is to the gesture: 1 less the moving channels' shortfall, times 1 less the caps' overshoot. */
+const score = (T, x) => (T.rows.length ? (1 - shortfall(T, x)) * (1 - overshoot(T, x)) : 0);
 
 /**
  * A gesture's model: its template, its calibrated levels (as face/calibration.ts: the rest level is
