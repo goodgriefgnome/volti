@@ -1,9 +1,12 @@
 # Face gestures: spec
 
-Turning pages with the face, seen by the front camera: a wink, the mouth pushed to one side, the
-head turned or nodded, a long blink. What the result must be; how to get there is in
-`face-gestures-plan.md`, and for the one signal and the release levels in
-`face-gestures-levels-plan.md`. Where they disagree, this file wins.
+Turning pages with the face, seen by the front camera, by gestures the person defines: they name a
+gesture, record themselves doing it while playing, and set it to turn forward or back. What the
+result must be. How a gesture is fitted from its recordings and scored is in
+`face-classifier-spec.md`; how to get from the eight built-in gestures to these is in
+`face-gestures-defined-plan.md` (the earlier `face-gestures-plan.md` and
+`face-gestures-levels-plan.md` built what this replaces). Where a plan and this file disagree, this
+file wins.
 
 ## What the user sees
 
@@ -17,7 +20,7 @@ a viewfinder: four corner brackets round a head and shoulders. It is hidden whil
 
 | State | When | Looks like |
 | --- | --- | --- |
-| Can't turn on | Every gesture is set to none | The glyph struck through, faded to 40% |
+| Can't turn on | No gesture can turn a page (below) | The glyph struck through, faded to 40% |
 | Off | Not watching | The glyph in the bar's colour, no ring |
 | Starting | Watching, and the camera or the model is not ready yet | As off, with an accent-coloured arc turning round the edge |
 | Watching | The camera is on and a face was seen in the last second | Glyph and a 2.5 px ring in the accent colour (`--accent`), no fill |
@@ -63,7 +66,7 @@ Watching starts only from a tap on the button. It stops, and stays off until the
 - the settings are opened;
 - the camera or the model fails to start, or the camera ends: the reader says why, as
   `Could not start the camera: <the error's message>`;
-- the settings change so that every gesture is none.
+- the settings change so that no gesture can turn a page.
 
 A notification banner doesn't hide the page, so it doesn't stop watching. When the system
 interrupts the camera without hiding the page (its track is muted), the button shows Paused, and
@@ -84,38 +87,31 @@ second turn from a misfire) are a change to it alone.
 
 ### The gestures
 
-Each gesture is one number, its **signal**. The signal is the only thing the meter shows, the ring
-fills from, the levels compare against, and calibration measures.
+There are no built-in gestures. The person adds their own, as many as they like, each with:
 
-| Gesture | Name shown | Its signal |
-| --- | --- | --- |
-| `winkLeft` | Wink left | `eyeBlinkLeft − eyeBlinkRight`, at least 0 |
-| `winkRight` | Wink right | `eyeBlinkRight − eyeBlinkLeft`, at least 0 |
-| `longBlink` | Long blink | the lower of `eyeBlinkLeft` and `eyeBlinkRight` |
-| `mouthLeft` | Mouth to the left | `mouthLeft` |
-| `mouthRight` | Mouth to the right | `mouthRight` |
-| `headLeft` | Head to the left | the head's yaw, in degrees, positive turned to the person's left |
-| `headRight` | Head to the right | the yaw, positive turned to the person's right |
-| `nodDown` | Nod down | the head's pitch, in degrees, positive tipped down |
+- a **name**, theirs ("Wink right");
+- its **trials**: recordings of them doing it (below);
+- a **direction**: next, back, or none. Several may share one;
+- an **on level** and a **release level**, from 0.05 to 0.95, the release level never over the on
+  level;
+- a **hold**: how long it must stay on to turn, from 100 to 1500 ms; 250 ms to start with.
 
-Left and right are always the person's own, not the camera's. The scores are MediaPipe Face
-Landmarker's blendshapes, from 0 to 1; yaw and pitch are from the face's transform. An ordinary
-blink gives a wink's signal of about 0, so it doesn't light the ring.
+A gesture with three trials or more is **fitted**: `face-classifier-spec.md` says how its template,
+its levels and its flags come from its trials. Each frame, a fitted gesture has one number, its
+**score**, from 0 to 1: the only thing its meter shows, the ring fills from and its levels compare
+against. Fitting uses the 52 blendshape scores only: a turn of the head or a nod can't be a gesture
+for now.
 
-Each gesture has:
+A gesture **can turn a page** when it is fitted and has a direction. It comes **on** when its score
+reaches its on level, and stays on until its score falls under its release level (it is **let go**),
+or no face is seen. It turns the page when it has been on for its hold, unless it already turned
+and hasn't been let go since. Turning also goes through the gate above.
 
-- a **direction**: next, back, or none. Each gesture has one; several may share one.
-- an **on level**: a score from 0.05 to 0.95, or an angle from 5° to 45°.
-- a **release level**: in the same range, and never over the on level.
-- a **hold**: how long it must stay on to turn, from 100 to 1500 ms.
+The on and release levels are the fitted ones until a slider moves them; they go back to the fitted
+ones whenever the gesture's trials change.
 
-A gesture comes **on** when its signal goes over its on level, and stays on until its signal falls
-under its release level (it is **let go**), or no face is seen. It turns the page when it has been
-on for its hold, unless it already turned and hasn't been let go since. Turning also goes through
-the gate above.
-
-The defaults: every direction none. On levels 0.5 (winks, mouth, long blink), 20° (head), 15°
-(nod); release levels half the on level; holds 250 ms, and 700 ms for the long blink.
+Gestures that can turn a page can't **conflict** (`face-classifier-spec.md`): one that would is set
+to none when it is recorded or given its direction, and its row says why.
 
 ### The settings
 
@@ -128,48 +124,90 @@ From the top:
 
 1. **A preview**: the camera's picture, mirrored, 160 px wide; beside it the button as the reader
    shows it, ring included (not tappable), and a page number that turns as the reader's would, so
-   the settings can be tried in place. A line under it says when the camera can't start, and why.
-2. **The gestures**, one row each, in the order of the table above: its name and a choice of
-   **Next**, **Back** or **None**. A row set to a direction also shows:
-   - a meter: its signal now, from 0 at the left (to 1, or 45° for the head and nod), with a mark
-     at the on level and a fainter one at the release level;
-   - **On**: a slider for the on level, on the meter's scale (further right needs more), showing
-     its value (`0.42`, `20°`);
-   - **Release**: the same, for the release level. It can't be moved past the on level; moving
-     the on level under it takes it down too;
-   - **Hold**: a slider, in ms.
-3. **Calibrate** (below).
+   the gestures can be tried in place. A line under it says when the camera can't start, and why.
+2. **The gestures**, one row each, in the order they were added. With none: "No gestures yet. Add
+   one, and record yourself doing it." A row has:
+   - its name, and a choice of **Next**, **Back** or **None**;
+   - how many trials it has ("5 trials"; under ten, "10 to 15 are best");
+   - **Record 5 trials**, **Clear trials** (asks first; not shown with no trials) and **Remove**
+     (asks first; removes the gesture and its trials);
+   - what is wrong with it, each on a line of its own: its flags, in the words of
+     `face-classifier-spec.md` ("Record at least three trials.", "Can't be told from playing: no
+     channel's held values are clear of its values at rest.", "Unreliable: a rep left out of the fit
+     scores little over rest.", "Fires while resting: 4 frames, 130 ms at the longest."), and why
+     it was set to none ("Set to None: "Mouth left" also fires on it: it scores 0.97, and its
+     release is 0.42. Both are mouthLeft.");
+   - when it is fitted:
+     - a meter: its score now, from 0 at the left to 1, with a mark at the on level and a fainter
+       one at the release level;
+     - **On**, **Release** and **Hold** sliders, as before (the levels in steps of 0.01, showing
+       `0.42`; the hold in steps of 50 ms). Release can't be moved past On; moving On under it
+       takes it down too;
+     - **Details**, closed to start with. Open, it shows a line ("Rest level 0.26. Each rep, left
+       out: 0.94, 1.00, 0.95."), and a table of the template's channels: each moving channel's name,
+       what it must reach (`≥ 0.58`, `≤ 0.04`), its rest value, the rest's reach, how clear it is,
+       and its value **now** with its shortfall (`0.61 (0.00)`); each cap's name, its cap and where
+       it is wholly out (`≤ 0.39, out at 0.58`), its rest value, and its value now with its
+       overshoot. A shortfall or an overshoot over a quarter is in the warning colour. Under the
+       table: "Just missed:" and the four clearest channels left out, with how clear each is and
+       its span.
+3. **Add gesture…**: asks for its name (not empty; it may repeat another's). The new gesture is set
+   to **Next**, with no trials.
 4. **Done**.
 
-### Calibration
+### Recording
 
-From **Calibrate**, for the gestures set to a direction; it sets their on and release levels,
-which can then be moved with the sliders. The dialog shows each step's instruction, a countdown,
-and **Cancel**, which leaves every level as it was.
+From a gesture's **Record 5 trials**. The rows and the buttons under them give way to the round's
+instruction, which trial it is ("Trial 2 of 5"), and **Cancel**. Each trial is as
+`face-classifier-spec.md` says (a lead-in, three rising tones, the hold, three falling tones, 2 s
+more), and the instruction follows it:
 
-1. **Rest**: "Play as you normally would for 10 seconds, without gesturing." Every signal is
-   sampled for 10 s. Its **rest level** is its 95th percentile.
-2. **Each gesture, in turn**: "Wink left three times" (and so on), for up to 15 s. An **attempt**
-   is a stretch where the signal rises over the rest level plus half of the way from the rest level
-   to the highest signal so far, and falls back under it; its **peak** is its highest signal. The
-   step ends after three attempts, or at 15 s.
+- "Keep playing. Wait for the rising tones." through the lead-in;
+- "Ready: on the third tone" from the first rising tone;
+- "Hold it" from the third;
+- "Let go on the third tone" from the first falling tone;
+- "Let go. Keep playing." after the third.
 
-Then, for each gesture: if it had fewer than three attempts, or its lowest peak is less than 0.15
-(8° for the head and nod) over the rest level, its levels stay as they were and the dialog says
-"Wink left: not reliable for you; try another gesture." Otherwise its on level is the rest level
-plus 40% of the way to the lowest peak, and its release level is the rest level plus half of the
-way to the new on level.
+Before the first trial: "Start playing. The first trial starts in 3… 2… 1…".
+
+- Frames are recorded as the watcher gives them (15 a second), each with its time, its 52 scores
+  and the head's yaw and pitch.
+- While a round is being recorded, nothing turns: the preview's page number and ring stay still.
+- A frame without a face is left out. A trial with fewer than 15 held frames or fewer than 15 rest
+  frames is thrown away, and the round ends there, saying "Your face wasn't seen for most of that
+  trial. Try again."
+- **Cancel**, or closing the dialog, throws away the trial under way and keeps those finished.
+- When the round ends, the gesture is fitted again from all its trials, its levels go back to the
+  fitted ones, and the conflict check runs with this gesture the first to give way.
+- The tones need sound: the dialog can't tell whether the tablet is muted. Its instruction says
+  "Turn the sound on to hear the tones." before the first trial.
+
+Clearing a gesture's trials leaves it not fitted; its direction stays.
 
 ## What is stored
 
-One key in the kv store, `face-gestures`, owned by `face/store.ts`: a `FaceSettings`, each
-gesture's direction, on level (stored as `threshold`), release level and hold. Missing is the
-defaults; a missing release level is half the stored on level. It is the device's own, like the
-tool settings.
+In the kv store, the device's own, like the tool settings:
 
-The winks' other-eye levels (`otherBelow`) stored before the release level came in are dropped.
-Their on levels are kept, though they now apply to the difference between the eyes rather than the
-winking eye alone, so a wink may want calibrating again.
+- `face-gestures`, owned by `face/store.ts`: a `FaceSettings`: the gestures in order, each with its
+  id, name, direction, hold, the levels moved by hand (if any), why it was set to none (if it was),
+  and its **fit**: the fitting's version, how many trials it was fitted from, and, when it is
+  fitted, its template, its fitted levels, its rest level, each rep's peak, and its flags. Missing
+  is no gestures.
+- `face-trials:<gesture id>`, owned by `face/store.ts`: that gesture's trials, each the times of
+  its third tones and its frames as 32-bit floats (per frame: its time in ms from the trial's
+  start, the 52 scores in the template's channel order, yaw and pitch in degrees). Some 33 kB a
+  trial. Deleted with the gesture, and when its trials are cleared.
+
+The reader reads only `face-gestures`: a fit has all that turning needs. The dialog reads the
+trials.
+
+The fitting has a version (`FIT_VERSION`). When stored gestures were fitted by an earlier one, they
+are fitted again from their trials when the settings are next loaded, and the conflict check runs
+again.
+
+The eight built-in gestures' settings stored before this are dropped (their directions, levels and
+holds): face gestures are off until a gesture is added and recorded. This is the stored data's
+version 5.
 
 ## MediaPipe
 
@@ -190,7 +228,8 @@ winking eye alone, so a wink may want calibrating again.
 - Detection runs on the page's own thread at 15 frames a second, with the GPU delegate, falling
   back to the CPU when the GPU fails.
 
-## The test page
+## The test pages
 
-`public/gesture-test.html`, `public/gesture-test.webmanifest` and their entry in `src/sw.ts` are
-removed, and so is the TODO item about removing them.
+`public/face-signals.html` and `public/face-classifier.html` (the prototype of
+`face-classifier-spec.md`) stay as they are, apart from the app: the service worker leaves them
+alone, and they keep their own recordings, not the app's.

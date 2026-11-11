@@ -13,8 +13,7 @@ judged only by how close it is to the gesture. The rest frames of a gesture's ow
 its channels and set its scale, and nothing more.
 
 This spec covers the templates, recording, the levels and the checks, and the prototype test page.
-Folding it into the app (the dialog, the reader, the kv store) is for a later spec; until then the
-app keeps its eight gestures.
+The app's side of it (the button, the dialog, what is stored) is in `face-gestures-spec.md`.
 
 ## Terms
 
@@ -34,8 +33,8 @@ app keeps its eight gestures.
 
 ## Recording
 
-At 30 frames a second, every camera frame, timed by the camera's capture time. Tones are in the same
-clock. There is no background recording: a trial's own lead-in and tail are its rest.
+Every frame that is detected (30 a second on the prototype page, 15 in the app), with its time.
+Tones are in the same clock. There is no background recording: a trial's own lead-in and tail are its rest.
 
 A gesture's trials are recorded a round of five in a row, while the person keeps playing. Each:
 
