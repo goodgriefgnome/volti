@@ -3,10 +3,7 @@
 Turning pages with the face, seen by the front camera, by gestures the person defines: they name a
 gesture, record themselves doing it while playing, and set it to turn forward or back. What the
 result must be. How a gesture is fitted from its recordings and scored is in
-`face-classifier-spec.md`; how to get from the eight built-in gestures to these is in
-`face-gestures-defined-plan.md` (the earlier `face-gestures-plan.md` and
-`face-gestures-levels-plan.md` built what this replaces). Where a plan and this file disagree, this
-file wins.
+`face-classifier-spec.md`.
 
 ## What the user sees
 
@@ -111,7 +108,11 @@ The on and release levels are the fitted ones until a slider moves them; they go
 ones whenever the gesture's trials change.
 
 Gestures that can turn a page can't **conflict** (`face-classifier-spec.md`): one that would is set
-to none when it is recorded or given its direction, and its row says why.
+to none when it is recorded or given its direction, and its row says why. If two gestures reach
+their hold on the same frame, only the first, in the order they were added, turns the page.
+
+A new gesture starts set to Next. Names may repeat, and a gesture can't be renamed: remove it and
+add it again.
 
 ### The settings
 
@@ -222,7 +223,8 @@ version 5.
   (`face_landmarker.task`, float16, version 1) are served by Volti itself from `mediapipe/` next to
   the app. Nothing is fetched from anywhere else: the privacy policy stays true as it is.
 - They are precached with the rest of the app: downloaded on install, again only when they change,
-  and available offline.
+  and available offline; the build's precache limit for one file is 16 MB. The model is downloaded
+  at build time and checked by its SHA-256, not committed.
 - `licenses.txt` lists the package (Apache-2.0), and says that the model is Google's, under the
   Apache License 2.0.
 - Detection runs on the page's own thread at 15 frames a second, with the GPU delegate, falling
