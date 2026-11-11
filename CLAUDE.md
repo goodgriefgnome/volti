@@ -32,6 +32,12 @@ When asked for a plan:
   "Work for the immediate future" in `TODO.md` as a whole: it does every item there, in order, as
   the file says. Don't name or pick items.
 
+## Sessions
+
+- Menial work (implementing a plan, renames, moves, mechanical edits across files) goes to a
+  subordinate cloud session on the latest Sonnet model, not to the session I'm talking to. Reuse a
+  session that is still open on this repository rather than starting another.
+
 ## TODOs
 
 - Don't tag items in `TODO.md` with a status in brackets ("[needs thought]", "[deferred]" and the
