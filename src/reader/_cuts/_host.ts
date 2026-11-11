@@ -1,7 +1,7 @@
 // What the cut editor needs from the reader (EditorHost), and small helpers the cut editor's files
 // share.
 
-import type { Hatches } from '../../render/paint';
+import type { Hatches } from '../../render/draw';
 import { passesOf } from '../../scores/edits';
 import { passOf, type Cut, type Score, type State } from '../../scores/model';
 import type { Frame } from '../../scores/frames';

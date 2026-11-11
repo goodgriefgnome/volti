@@ -7,7 +7,7 @@ import type { Zoom, View } from '../../render/zoom';
 import type { State } from '../../scores/model';
 import type { Selected } from '../../scores/placing';
 import type { Loupe } from '../_loupe';
-import type { FrameSlot } from '../_spread';
+import type { FrameSlot } from '../_slots';
 import type { ReaderView } from '../_view';
 
 /** What a tool needs from the reader. */
@@ -22,9 +22,9 @@ export interface ToolHost extends ReaderView {
   /** The loupe shown while a marking is dragged. */
   loupe(): Loupe;
   /** Draw a frame's ink again; `extra` is a marking still being made. */
-  paintInk(slot: FrameSlot, extra?: Marking): void;
+  drawInk(slot: FrameSlot, extra?: Marking): void;
   /** Draw a frame's ink as it would be in `s`, without taking the edit: a marking being dragged. */
-  paintState(slot: FrameSlot, s: State): void;
+  drawState(slot: FrameSlot, s: State): void;
   /**
    * Take an edit: undo, save, reflow, and show the frame holding `focus`. `selected` is the
    * selected marking as it is in `s`, when the edit replaced it, so the selection doesn't end.

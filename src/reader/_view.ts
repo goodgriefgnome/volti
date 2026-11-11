@@ -6,7 +6,7 @@ import type { Zoom } from '../render/zoom';
 import type { Aspects, State } from '../scores/model';
 import type { Frame } from '../scores/frames';
 import type { DrawPage, DrawProgressive } from './_open-scores';
-import type { FrameSlot } from './_spread';
+import type { FrameSlot } from './_slots';
 
 /** The reader as it is now: read each time, as the reader turns from score to score and redraws. */
 export interface ReaderView {

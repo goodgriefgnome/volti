@@ -5,11 +5,11 @@
 .page { position: absolute; background: #ffffff; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.14), 0 0 0 1px rgba(0, 0, 0, 0.05); }
 .page canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 /* The sharp close-up drawn while zoomed in; the reader sets its position and size. */
-.page canvas.detail { right: auto; bottom: auto; }
+.page canvas.close-up { right: auto; bottom: auto; }
 /* What multiplies (highlights, backgrounds) is blended over the music beneath it. */
 .page canvas.under { mix-blend-mode: multiply; }
-/* Zooming scales the whole spread from the stage's top-left corner. */
-.spread { position: absolute; inset: 0; transform-origin: 0 0; }
+/* Zooming scales the whole screen from the stage's top-left corner. */
+.screen { position: absolute; inset: 0; transform-origin: 0 0; }
 
 .bar {
   position: absolute; top: 0; left: 0; right: 0; display: grid;

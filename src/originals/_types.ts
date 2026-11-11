@@ -2,7 +2,7 @@
 // bytes, what draws an original's pages, and what reading a file gives.
 
 import type { Crop } from '../page-cache/types';
-import type { RenderedPdf, SourceFile } from './types';
+import type { MusicPdf, SourceFile } from './types';
 
 /** A source file's bytes, for reading what only originals/ reads from it. */
 export interface Readable extends SourceFile { file(): Promise<File> }
@@ -21,7 +21,7 @@ export interface OpenPages {
 /** What a file's bytes are, read as music: its pages to draw, and its music as a PDF. */
 export interface Content {
   pages(): Promise<OpenPages>;
-  pdf(): Promise<RenderedPdf>;
+  pdf(): Promise<MusicPdf>;
 }
 
 /**

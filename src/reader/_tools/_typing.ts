@@ -4,7 +4,7 @@
 
 import { cssFamily, fontMetrics } from '../../fonts/fonts';
 import { el } from '../../ui/dom';
-import type { FrameSlot } from '../_spread';
+import type { FrameSlot } from '../_slots';
 
 export interface TypingRequest {
   slot: FrameSlot;

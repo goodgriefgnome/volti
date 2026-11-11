@@ -25,9 +25,9 @@ Each part is a class in a file of its own in `src/reader/`, with a leading under
 
 | Part | File | Owns | Does |
 | --- | --- | --- | --- |
-| `StageZoom` | `_stage-zoom.ts` | `zoom`, `minScale` | The spread's zoom and its transform; the view below the toolbar; placing a new screen; the smallest zoom as the toolbar shows and hides |
+| `StageZoom` | `_stage-zoom.ts` | `zoom`, `minScale` | The screen's zoom and its transform; the view below the toolbar; placing a new screen; the smallest zoom as the toolbar shows and hides |
 | `ToolDesk` | `_tool-desk.ts` | the lend stack, the tools' telling queue, the tools, their button faces, the tools' settings, the selection | Equipping, lending and unequipping tools; the selection and ending it; the tools' chrome layers; the tools' settings; making each tool's host |
-| `Screen` | `_screen.ts` | the slots, the page canvases drawn for them, the screen's sequence number, the abort controller for drawing ahead, how many frames the screen shows, whether it is asking for access | Drawing a screen of frames (stand-ins first, then sharp), the screen of a score that can't be shown, painting frames and their ink, the frozen layout while a cut is dragged, drawing the next screens ahead |
+| `Screen` | `_screen.ts` | the slots, the page canvases drawn for them, the screen's sequence number, the abort controller for drawing ahead, how many frames the screen shows, whether it is asking for access | Drawing a screen of frames (stand-ins first, then sharp), the screen of a score that can't be shown, drawing frames and their ink, the frozen layout while a cut is dragged, drawing the next screens ahead |
 | `Pager` | `_pager.ts` | the item read (`k`), its frames, the first frame on the screen, whether an item is opening (and its sequence number), the score offered past a score's end | Going to an item and a screen; turning; offering and opening the library's next score; a setlist relisted; where to go after an edit; remembering where it was read |
 | `Changes` | `_changes.ts` | undo history, the `Saver` | Taking an edit (undo step, carrying it through `Reading`, saving, showing it); the eraser's sweep; undo and redo; saving |
 | `FolderAccess` | `_access.ts` | nothing | Whether what is read can be read from its files, and asking for access to the scores folder from a tap |
@@ -42,7 +42,7 @@ Two pure modules go with them, unit tested:
   `_last-read.ts`, `_history.ts`, `_open-scores.ts`.
 
 The existing parts the reader joins keep their files and interfaces: `CutEditor`
-(`_cuts/_editor.ts`), `Input` (`_input.ts`), `Detail` (`_detail.ts`), `Loupe` (`_loupe.ts`),
+(`_cuts/_editor.ts`), `Input` (`_input.ts`), `CloseUp` (`_close-up.ts`), `Loupe` (`_loupe.ts`),
 `Toolbar` (`_toolbar.ts`), `ReaderMenus` (`_toolbar-menus.ts`), the tools (`tools/`), `OpenScores`
 and `Reading`. `ReaderView` (`_view.ts`), `ToolHost`, `HandHost`, `InputHost`, `EditorHost` and
 `MenusHost` keep their shape: the reader builds them from the parts.
@@ -85,7 +85,7 @@ Public surface only; the exact signatures are in the plan.
 - `ToolDesk`: `tools`, `handHost`, `active`, `selected`, `settings`; `setTool`, `useTool`,
   `panel`, `select`, `keepSelected`, `deselect`, `refreshSelection`, `deleteSelected`,
   `setThisTimeOnly`, `showLayers`, `drawChromes`, `sync`, `showFaces`, `finish`.
-- `Screen`: `slots`, `shown`, `show(options)`, `paint`, `paintInk`, `reframe`, `repaint`, `stop`.
+- `Screen`: `slots`, `shown`, `show(options)`, `draw`, `drawInk`, `reframe`, `redraw`, `stop`.
 - `Pager`: `k`, `items`, `frames`, `frame`, `loading`, `current`; `framesFor`, `goTo`, `turn`,
   `relisted`, `replay`, `relayout`, `saveSpot`, `stop`.
 - `Changes`: `saver`, `canUndo`, `canRedo`; `commit`, `showSweep`, `endSweep`, `undo`, `redo`.
@@ -102,7 +102,7 @@ These are the orderings and checks that make the reader work; the split keeps ea
 - **`loading`.** While `Pager.goTo` waits for a score to open, `Screen.show` does nothing and
   turning does nothing.
 - **The order of a screen's showing:** title, the first draw of every page, the slots placed and
-  painted, the spread filled, placed fresh (unless kept), the cut editor's decoration, the tools'
+  drawn, the screen filled, placed fresh (unless kept), the cut editor's decoration, the tools'
   chrome, the selection checked, the page info, the score card, the place remembered, then drawing
   ahead and sharpening.
 - **An edit that leaves the layout and the screen as they are only repaints the ink** (each slot

@@ -5,19 +5,19 @@ import { compact, drawPenSegment, HIGHLIGHT_SIZE, PEN_SIZE, type Stroke } from '
 import { type Point } from '../../markings/model';
 import { markColors } from '../../markings/placed';
 import { strokeColor } from '../../markings/tool-settings';
-import { frameTarget } from '../../render/paint';
+import { frameTarget } from '../../render/draw';
 import { claimMarking } from '../../scores/ownership';
 import { setInk } from '../../scores/edits';
-import type { FrameSlot } from '../_spread';
+import type { FrameSlot } from '../_slots';
 import { showStrokeColors } from './_tool-panels';
 import { inkFace } from './_faces';
 import { TOOL_LABELS, type Tool, type ToolHost } from './_tool';
 
 /** Draw a stroke as it is written: the pen a segment at a time, the highlighter all again. */
 function drawLive(host: ToolHost, slot: FrameSlot, s: Stroke, a: Point, b: Point) {
-  if (s.tool !== 'pen') { host.paintInk(slot, s); return; }
+  if (s.tool !== 'pen') { host.drawInk(slot, s); return; }
   drawPenSegment(frameTarget(slot.ink.getContext('2d')!, slot.ink.width), s, a, b);
-  const d = slot.detail;
+  const d = slot.closeUp;
   if (d) drawPenSegment(frameTarget(d.ink.getContext('2d')!, d.W, d.x, d.y), s, a, b);
 }
 
@@ -57,17 +57,17 @@ export const penTool = (host: ToolHost, kind: 'pen' | 'highlighter'): Tool => {
           if (stroke.tool === 'pen') drawLive(host, slot, stroke, prev, p);
         },
         moved() {
-          if (stroke.tool === 'highlighter') host.paintInk(slot, stroke);
+          if (stroke.tool === 'highlighter') host.drawInk(slot, stroke);
         },
         end(cancelled) {
-          if (cancelled) { host.paintInk(slot); return; } // the system decided it was a palm
+          if (cancelled) { host.drawInk(slot); return; } // the system decided it was a palm
           const claimed = claimMarking(slot.frame, { ...stroke, points: compact(stroke.points) }, host.aspects());
-          if (!claimed) { host.paintInk(slot); return; }
+          if (!claimed) { host.drawInk(slot); return; }
           const { cut, marking } = claimed, state = host.state();
           host.commit(setInk(state, cut.page, [...(state.ink[cut.page] ?? []), marking]), cut.id);
         },
         drop() {
-          host.paintInk(slot);
+          host.drawInk(slot);
         },
       };
     },

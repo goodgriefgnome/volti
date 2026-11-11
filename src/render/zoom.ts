@@ -12,27 +12,27 @@ export const _MAX_ZOOM = 5;
 
 export const isZoomed = (z: Zoom) => z.s > 1.001;
 
-/** Whether z leaves the spread as it is laid out: no transform needed. */
+/** Whether z leaves the screen as it is laid out: no transform needed. */
 export const isIdentity = (z: Zoom) => Math.abs(z.s - 1) < 0.001 && Math.abs(z.x) < 0.5 && Math.abs(z.y) < 0.5;
 
-/** The part of the stage the spread can be seen in: below `top`, the toolbar's height (0 when hidden). */
+/** The part of the stage the screen can be seen in: below `top`, the toolbar's height (0 when hidden). */
 export interface View { top: number; W: number; H: number }
 
-/** The largest scale at which the whole spread (the W x H stage) fits in the view. */
+/** The largest scale at which the whole screen (the W x H stage) fits in the view. */
 export function fitScale(v: View): number {
   return v.top === 0 ? 1 : (v.H - v.top) / v.H;
 }
 
-/** A new screen while the toolbar shows: the spread at fitScale, centred in the view both ways. */
+/** A new screen while the toolbar shows: the screen at fitScale, centred in the view both ways. */
 export function placeFresh(v: View): Zoom {
   const s = fitScale(v);
   return { s, x: (v.W - v.W * s) / 2, y: v.top + (v.H - v.top - v.H * s) / 2 };
 }
 
 /**
- * Move one edge-pair along one axis by d: the spread covers [pos, pos + len], the view [v0, v1].
- * The move may keep or increase how much of the spread is in the view, never decrease it; what
- * goes past that is lost (the spread sticks).
+ * Move one edge-pair along one axis by d: the screen covers [pos, pos + len], the view [v0, v1].
+ * The move may keep or increase how much of the screen is in the view, never decrease it; what
+ * goes past that is lost (the screen sticks).
  */
 export function _slide(pos: number, len: number, v0: number, v1: number, d: number): number {
   const lo = Math.min(v0, v1 - len);

@@ -3,9 +3,9 @@
 
 import { dpr, el } from '../ui/dom';
 import type { Marking } from '../markings/model';
-import { drawFrameInk, regionBands } from '../render/paint';
+import { drawFrameInk, regionBands } from '../render/draw';
 import type { ScoreInk } from '../scores/model';
-import type { FrameSlot } from './_spread';
+import type { FrameSlot } from './_slots';
 import type { ReaderView } from './_view';
 import { failedOnce } from '../ui/failure';
 
@@ -154,8 +154,8 @@ export class Loupe {
         put(slot.canvas);
         putUnder(slot.under);
         put(slot.ink);
-        const detail = slot.detail;
-        if (detail?.canvas.isConnected) { put(detail.canvas); putUnder(detail.under); put(detail.ink); }
+        const closeUp = slot.closeUp;
+        if (closeUp?.canvas.isConnected) { put(closeUp.canvas); putUnder(closeUp.under); put(closeUp.ink); }
       }
     }
   }

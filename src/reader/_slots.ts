@@ -1,15 +1,15 @@
 // The frames on the reader's screen as elements: putting their boxes where render/screen.ts says,
-// and painting them. FrameSlot, the reader's record of a frame on the screen, is defined here.
+// and drawing them. FrameSlot, the reader's record of a frame on the screen, is defined here.
 
 import type { Marking } from '../markings/model';
-import { drawFrame, drawFrameInk, type Hatches } from '../render/paint';
+import { drawFrame, drawFrameInk, type Hatches } from '../render/draw';
 import { placeScreen, type ScreenBox } from '../render/screen';
 import type { Aspects, ScoreInk } from '../scores/model';
 import type { Frame } from '../scores/frames';
 import { el } from '../ui/dom';
 import type { ToolName } from './_tools/_tool';
 
-/** A frame on the screen. Sizes are CSS pixels in the unzoomed spread. */
+/** A frame on the screen. Sizes are CSS pixels in the unzoomed screen. */
 export interface FrameSlot {
   index: number;
   frame: Frame;
@@ -20,7 +20,7 @@ export interface FrameSlot {
   under: HTMLCanvasElement;
   ink: HTMLCanvasElement;
   /** A sharp close-up of the visible part while zoomed in: drawn as if the frame were W device pixels wide, from (x, y). */
-  detail?: { canvas: HTMLCanvasElement; under: HTMLCanvasElement; ink: HTMLCanvasElement; W: number; x: number; y: number };
+  closeUp?: { canvas: HTMLCanvasElement; under: HTMLCanvasElement; ink: HTMLCanvasElement; W: number; x: number; y: number };
   /** The editing tabs and shading over the frame. */
   ui?: HTMLElement;
   /** Each tool's chrome layer over the frame, once it has asked for it. */
@@ -58,16 +58,16 @@ export function placeSlots(frames: Frame[], first: number, W: number, H: number,
 }
 
 /** Draw a frame's music, from page canvases drawn at the frame's width, and its ink. */
-export function paintSlot(slot: FrameSlot, pages: Map<number, HTMLCanvasElement>, aspects: Aspects, ink: ScoreInk, hatches?: Hatches, extra?: Marking) {
+export function drawSlot(slot: FrameSlot, pages: Map<number, HTMLCanvasElement>, aspects: Aspects, ink: ScoreInk, hatches?: Hatches, extra?: Marking) {
   const W = slot.canvas.width;
   drawFrame(slot.canvas.getContext('2d', { alpha: false })!, slot.frame, W, (p) => pages.get(p), aspects, hatches);
-  paintSlotInk(slot, aspects, ink, extra);
+  drawSlotInk(slot, aspects, ink, extra);
 }
 
 /** Draw a frame's ink, and its close-up's; `extra` is a marking still being made. */
-export function paintSlotInk(slot: FrameSlot, aspects: Aspects, ink: ScoreInk, extra?: Marking) {
+export function drawSlotInk(slot: FrameSlot, aspects: Aspects, ink: ScoreInk, extra?: Marking) {
   drawFrameInk(slot.ink.getContext('2d')!, slot.frame, ink, aspects, slot.ink.width, 0, 0, extra, slot.under.getContext('2d')!);
-  const d = slot.detail;
+  const d = slot.closeUp;
   if (d) drawFrameInk(d.ink.getContext('2d')!, slot.frame, ink, aspects, d.W, d.x, d.y, extra, d.under.getContext('2d')!);
 }
 

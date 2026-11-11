@@ -12,7 +12,7 @@ import { backgroundOf, ownColor, type BackgroundChoice, type ColorChoice } from 
 import { replaceMarking, setInk, textResized, textSizeOf } from '../../scores/edits';
 import { claimMarking } from '../../scores/ownership';
 import { centreOnFrame, movedTo, type Selected } from '../../scores/placing';
-import type { FrameSlot } from '../_spread';
+import type { FrameSlot } from '../_slots';
 import { showTextPanel, type TextPanel } from './_tool-panels';
 import { textFace, type Look } from './_faces';
 import { placingTool } from './_placing';
@@ -139,8 +139,8 @@ export const textTool = (host: ToolHost): Tool => {
     if (!site) return;
     const { slot, start } = site;
     const state = host.state(), { mark } = sel;
-    const restore = () => { host.paintInk(slot); host.select(sel); };
-    if (!state.ink[sel.page]?.includes(mark)) { host.paintInk(slot); return; }
+    const restore = () => { host.drawInk(slot); host.select(sel); };
+    if (!state.ink[sel.page]?.includes(mark)) { host.drawInk(slot); return; }
     if (text === mark.text && font === mark.font) { restore(); return; }
     const s = text.trim() ? await shaped(font, text) : undefined;
     if (text.trim() && !s) { restore(); return; }
@@ -160,16 +160,16 @@ export const textTool = (host: ToolHost): Tool => {
       try {
         const font = (await fontChoices()).some((c) => c.id === mark.font) ? mark.font : ACADEMICO;
         // Without the marking while its field is open.
-        host.paintState(slot, replaceMarking(host.state(), sel.page, sel.mark));
+        host.drawState(slot, replaceMarking(host.state(), sel.page, sel.mark));
         await typing.show({
           slot, font, size, color: mark.color ?? markColors().color, start, text: mark.text,
           done: (text, typed) => void retext(sel, typed, text),
-          cancel: () => { host.paintInk(slot); host.select(sel); },
+          cancel: () => { host.drawInk(slot); host.select(sel); },
         });
         placing.drawChrome?.(); // hides the box while the field is open
       } catch (e) {
         host.say(failed('place the text', e));
-        host.paintInk(slot);
+        host.drawInk(slot);
         host.select(sel);
       }
     })();

@@ -3,7 +3,7 @@
 import { hitDistance, type Point } from '../../markings/model';
 import { setInk } from '../../scores/edits';
 import { shows } from '../../scores/ownership';
-import type { FrameSlot } from '../_spread';
+import type { FrameSlot } from '../_slots';
 import { iconFace } from './_faces';
 import { TOOL_LABELS, type Tool, type ToolHost } from './_tool';
 

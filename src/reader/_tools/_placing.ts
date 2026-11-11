@@ -9,7 +9,7 @@ import { symbolSizeOf, type Cut, type State } from '../../scores/model';
 import { centreOnFrame, extentOnFrame, handleRadius, MIN_BOX_PX, movedTo, pressOnSelection, resizedFrom, selectionBox, thisTimeOnly, type Selected } from '../../scores/placing';
 import { isTap } from '../_gestures';
 import { loupeTarget, type SharpInk } from '../_loupe';
-import { slotUnder, type FrameSlot } from '../_spread';
+import { slotUnder, type FrameSlot } from '../_slots';
 import { SelectionBox } from './_selection';
 import { TOOL_LABELS, type Press, type Tool, type ToolHost, type ToolName } from './_tool';
 
@@ -180,10 +180,10 @@ export function placingTool(host: ToolHost, spec: Placing): Tool {
       const showGhost = (client: { x: number; y: number }) => {
         const now = slotUnder(host.slots(), slot, [last[0], last[1]]);
         const mark = now && ghost(now.at);
-        if (over && (!now || !mark || over.slot !== now.slot)) { host.paintInk(over.slot); over = undefined; }
+        if (over && (!now || !mark || over.slot !== now.slot)) { host.drawInk(over.slot); over = undefined; }
         if (!now || !mark) { unmagnify(); return; }
         if (!over || over.at[0] !== now.at[0] || over.at[1] !== now.at[1]) {
-          host.paintInk(now.slot, mark);
+          host.drawInk(now.slot, mark);
           over = now;
         }
         const e = markExtent(mark);
@@ -193,8 +193,8 @@ export function placingTool(host: ToolHost, spec: Placing): Tool {
       /** Forget the drag: show the ink as it is, and the box again. */
       const drop = () => {
         unmagnify();
-        if (over) { host.paintInk(over.slot); over = undefined; }
-        if (dragging) { moving = false; host.paintInk(slot); host.select(host.selected()); }
+        if (over) { host.drawInk(over.slot); over = undefined; }
+        if (dragging) { moving = false; host.drawInk(slot); host.select(host.selected()); }
       };
 
       // Pointer events come faster than frames: `move` records the latest, and what it shows is drawn once per animation frame.
@@ -210,7 +210,7 @@ export function placingTool(host: ToolHost, spec: Placing): Tool {
         const r = dragged(grab);
         moving = true;
         box?.hide();
-        host.paintState(slot, r.state);
+        host.drawState(slot, r.state);
         const item = itemOf(r.selected.cut);
         magnify(slot, item && extentOnFrame(item, r.selected.mark, aspects[item.cut.page]), client, { ink: r.state.ink });
       };

@@ -14,7 +14,7 @@ import { titleOf } from '../originals/path-utils';
 import { framesOnScreen } from '../render/layout';
 import { fitScale, isIdentity, NO_ZOOM, placeFresh, type View, type Zoom } from '../render/zoom';
 import { pageWidths, screenAt } from '../render/screen';
-import { type Hatches } from '../render/paint';
+import { type Hatches } from '../render/draw';
 import { replaceMarking } from '../scores/edits';
 import { shows } from '../scores/ownership';
 import { setThisTimeOnly, type Selected } from '../scores/placing';
@@ -35,7 +35,7 @@ import { DEFAULT_TOOL_SETTINGS, type ToolSettings } from '../markings/tool-setti
 import { dpr, el } from '../ui/dom';
 import { Toast } from '../ui/toast';
 import { CutEditor } from './_cuts/_editor';
-import { Detail } from './_detail';
+import { CloseUp } from './_close-up';
 import type { Gesture } from './_gestures';
 import { History } from './_history';
 import { Input, type InputHost } from './_input';
@@ -44,7 +44,7 @@ import { Reading, setlistItems, type ReadingKind, type ReadingSnapshot } from '.
 import { Saver } from './_saver';
 import { LendStack, type StackChange } from './_lending';
 import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
-import { paintSlot, paintSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_spread';
+import { drawSlot, drawSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_slots';
 import { Loupe } from './_loupe';
 import { backIcon, Toolbar, turnIcon } from './_toolbar';
 import { ReaderMenus } from './_toolbar-menus';
@@ -125,7 +125,7 @@ class Reader {
   private themeBefore = document.documentElement.dataset.theme;
   private root = el('div', 'reader chrome-hidden');
   private stage = el('div', 'stage');
-  private spreadEl = el('div', 'spread');
+  private screenEl = el('div', 'screen');
   private scope = el('p', 'scope', 'Cuts changed here change the score, in every setlist');
   private toast = new Toast();
   /** The gate every page turn goes through (_turn-gate.ts). */
@@ -152,9 +152,9 @@ class Reader {
   private pages = new Map<number, HTMLCanvasElement>();
 
   private zoom: Zoom = NO_ZOOM;
-  /** The smallest zoom: the spread fits below the toolbar at its tallest since it showed. */
+  /** The smallest zoom: the screen fits below the toolbar at its tallest since it showed. */
   private minScale = 1;
-  private detail: Detail;
+  private closeUp: CloseUp;
 
   /** The tool equipped by its button, with the tools a selection has lent on top of it. */
   private stack = new LendStack<ToolName>('hand');
@@ -234,13 +234,13 @@ class Reader {
       say: (t) => this.say(t),
       changed: () => this.syncBar(),
     });
-    this.detail = new Detail(view);
+    this.closeUp = new CloseUp(view);
     this.loupe = new Loupe(this.root, view);
     const base: Omit<InputHost & HandHost, 'layer' | 'setButtonFace'> = {
       ...view,
       editor: this.editor,
       tool: () => this.tool,
-      paintState: (slot, s) => this.paintInk(slot, s),
+      drawState: (slot, s) => this.drawInk(slot, s),
       selected: () => this.selected,
       select: (s) => this.select(s),
       delete: () => this.deleteSelected(),
@@ -253,7 +253,7 @@ class Reader {
       minScale: () => this.minScale,
       annotating: () => this.annotating,
       act: (g) => this.act(g),
-      paintInk: (slot, extra) => this.paintInk(slot, this.state, extra),
+      drawInk: (slot, extra) => this.drawInk(slot, this.state, extra),
       commit: (s, focus, selected) => this.commit(s, focus, selected),
       show: (s, slot) => this.showState(s, slot),
       undoTo: (before, slot) => this.undoTo(before, slot),
@@ -321,7 +321,7 @@ class Reader {
     });
     this.syncBar();
     void loadToolSettings().then((s) => { this.settings = s; this.syncBar(); }, (e) => failedOnce("load the tools' settings", e));
-    this.stage.append(this.spreadEl);
+    this.stage.append(this.screenEl);
     this.scope.hidden = true;
     // While the toolbar is hidden, a button at the top right watches the front camera for face gestures.
     this.faceButton = faceButton({
@@ -662,7 +662,7 @@ class Reader {
   /**
    * Show the screen. `turned`, from a tap that turned to it: a screen that can't be shown at all
    * without access to the scores folder asks for it then. Otherwise only the toolbar asks.
-   * `place`: a new screen is placed fresh (see placeFresh); 'keep' leaves the spread where it is.
+   * `place`: a new screen is placed fresh (see placeFresh); 'keep' leaves the screen where it is.
    */
   private async show({ turned = false, place = 'fresh' }: { turned?: boolean; place?: 'keep' | 'fresh' } = {}) {
     const seq = ++this.seq; // a newer show() (turn, resize, edit) supersedes this one
@@ -714,8 +714,8 @@ class Reader {
     // In a setlist each score starts on a fresh screen, so a score's last screen may have room left.
     const extra = this.reading.setlistId && on.length < wanted ? [this.blank()] : [];
     this.slots = placeSlots(on, this.frame, W, H, scale, extra);
-    for (const s of this.slots) this.paint(s, this.state);
-    this.spreadEl.replaceChildren(...this.slots.map((s) => s.box), ...extra);
+    for (const s of this.slots) this.drawPagesAndInk(s, this.state);
+    this.screenEl.replaceChildren(...this.slots.map((s) => s.box), ...extra);
     if (place === 'fresh') this.placeFresh();
     this.decorate();
     this.drawChromes();
@@ -730,7 +730,7 @@ class Reader {
   }
 
   /**
-   * Page p's draws after its first: as each arrives, put it in `pages` and repaint the slots that
+   * Page p's draws after its first: as each arrives, put it in `pages` and redraw the slots that
    * show it, unless the screen has moved on. A failure keeps the page that is shown.
    */
   private async sharpen(seq: number, p: number, drawing: AsyncIterator<Drawn>) {
@@ -738,7 +738,7 @@ class Reader {
       for (let r = await drawing.next(); !r.done; r = await drawing.next()) {
         if (seq !== this.seq) { void drawing.return?.().catch(() => {}); return; }
         this.pages.set(p, r.value.canvas);
-        for (const s of this.slots) if (s.frame.items.some((i) => i.cut.page === p)) this.paint(s, this.state);
+        for (const s of this.slots) if (s.frame.items.some((i) => i.cut.page === p)) this.drawPagesAndInk(s, this.state);
       }
     } catch (e) {
       if (seq !== this.seq) return;
@@ -757,7 +757,7 @@ class Reader {
     this.shown = 1;
     const boxes = [blankBox(undefined, { title, why }), ...(framesOnScreen(A4, W, H) === 2 ? [this.blank()] : [])];
     placeBoxes(boxes, boxes.map(() => A4), W, H, dpr());
-    this.spreadEl.replaceChildren(...boxes);
+    this.screenEl.replaceChildren(...boxes);
     if (place === 'fresh') this.placeFresh();
     this.toolbar.info.textContent = { access: 'Needs access', missing: 'Missing', unsaved: 'Not saved' }[why];
     this.showCard();
@@ -822,12 +822,12 @@ class Reader {
   }
 
   /** Draw a frame's music and ink at its current layout. */
-  private paint(slot: FrameSlot, s: State, hatches?: Hatches, extra?: Marking) {
-    paintSlot(slot, this.pages, this.aspects, s.ink, hatches, extra);
+  private drawPagesAndInk(slot: FrameSlot, s: State, hatches?: Hatches, extra?: Marking) {
+    drawSlot(slot, this.pages, this.aspects, s.ink, hatches, extra);
   }
 
-  private paintInk(slot: FrameSlot, s: State, extra?: Marking) {
-    paintSlotInk(slot, this.aspects, s.ink, extra);
+  private drawInk(slot: FrameSlot, s: State, extra?: Marking) {
+    drawSlotInk(slot, this.aspects, s.ink, extra);
   }
 
   private decorate() {
@@ -837,10 +837,10 @@ class Reader {
   /** While a cut is dragged: show it with the layout frozen, the music being cut away hatched. */
   private preview(s: State | null, frames: Frame[] | null, hatches?: Hatches) {
     const all = frames ?? this.frames;
-    this.detail.drop();
+    this.closeUp.drop();
     for (const slot of this.slots) {
       slot.frame = all[slot.index] ?? slot.frame;
-      this.paint(slot, s ?? this.state, hatches);
+      this.drawPagesAndInk(slot, s ?? this.state, hatches);
     }
     this.editor.decorate(this.slots, all, !!frames);
   }
@@ -979,7 +979,7 @@ class Reader {
     if (!moved && target === this.frame) {
       for (const slot of this.slots) {
         slot.frame = this.frames[slot.index];
-        this.paintInk(slot, s);
+        this.drawInk(slot, s);
       }
       this.decorate();
       this.refreshSelection();
@@ -994,7 +994,7 @@ class Reader {
   private showState(s: State, slot: FrameSlot) {
     this.current!.state = s;
     this.saver.soon(this.current);
-    this.paintInk(slot, s);
+    this.drawInk(slot, s);
   }
 
   /** One undo step for the whole sweep of the eraser. */
@@ -1026,7 +1026,7 @@ class Reader {
 
   /* ---------- zoom ---------- */
 
-  /** The part of the stage below the toolbar, which the spread is moved within. */
+  /** The part of the stage below the toolbar, which the screen is moved within. */
   private view(): View {
     return { top: this.annotating ? this.toolbar.el.offsetHeight : 0, W: this.stage.clientWidth, H: this.stage.clientHeight };
   }
@@ -1038,10 +1038,10 @@ class Reader {
 
   private setZoom(z: Zoom) {
     this.zoom = z;
-    this.spreadEl.style.transform = !isIdentity(z) ? `translate(${z.x}px, ${z.y}px) scale(${z.s})` : '';
+    this.screenEl.style.transform = !isIdentity(z) ? `translate(${z.x}px, ${z.y}px) scale(${z.s})` : '';
     this.drawChromes();
     this.syncBar();
-    this.detail.update();
+    this.closeUp.update();
   }
 
   /* ---------- lifecycle ---------- */
@@ -1081,7 +1081,7 @@ class Reader {
     this.input.detach();
     document.removeEventListener('visibilitychange', this.onVisible);
     this.observer.disconnect();
-    this.detail.stop();
+    this.closeUp.stop();
     this.seq++;
     this.ahead.abort();
     this.card.stop();

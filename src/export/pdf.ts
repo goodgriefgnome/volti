@@ -7,7 +7,7 @@
 import type { PDFDocument, PDFEmbeddedPage, PDFPage } from 'pdf-lib';
 import { type Excerpt, excerptCuts } from '../scores/excerpts';
 import { NoAccess, PasswordNotGiven, type AskPassword, type LossyReason, type SourceFile } from '../originals/types';
-import { cutTarget, shownOn } from '../render/paint';
+import { cutTarget, shownOn } from '../render/draw';
 import { loadScore } from '../scores/store';
 import { pack, type Frame } from '../scores/frames';
 import { type Aspects, type State } from '../scores/model';

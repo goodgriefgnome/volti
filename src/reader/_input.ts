@@ -9,7 +9,7 @@ import { pinch, type Pt, type View, type Zoom } from '../render/zoom';
 import { closeOverlay, overlayOpen } from '../ui/overlay';
 import type { CutEditor } from './_cuts/_editor';
 import { gestureForKey, isTap, turnFor, type Gesture } from './_gestures';
-import type { FrameSlot } from './_spread';
+import type { FrameSlot } from './_slots';
 import type { Press, Tool, ToolHost, ToolName, ToolPointer } from './_tools/_tool';
 
 /** What a press goes to, from what is known of it as it goes down. */

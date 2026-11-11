@@ -6,7 +6,7 @@
 
 import type { Priority } from './types';
 
-/** Draws at once: two overlap well (the worker reads one while the other is painted); more only use up memory. */
+/** Draws at once: two overlap well (the worker reads one while the other is drawn); more only use up memory. */
 const AT_ONCE = 2;
 const ORDER: Priority[] = ['now', 'ahead', 'later'];
 

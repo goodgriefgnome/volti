@@ -6,7 +6,7 @@ import { passOf, type Cut, type State } from '../../scores/model';
 import { type Placed } from '../../scores/frames';
 import { closeWithOverlay, showMenu, type MenuItem } from '../../ui/overlay';
 import { el } from '../../ui/dom';
-import type { FrameSlot } from '../_spread';
+import type { FrameSlot } from '../_slots';
 import { pageLabel, type Edge, type EditorHost } from './_host';
 import { openPicker } from './_insert-picker';
 

@@ -1,19 +1,19 @@
 // The sharp close-up drawn over the frames while zoomed in.
 
-import { drawFrameInk, regionBands } from '../render/paint';
+import { drawFrameInk, regionBands } from '../render/draw';
 import { isZoomed, visiblePart } from '../render/zoom';
 import { dpr, el } from '../ui/dom';
 import type { ReaderView } from './_view';
 import { failedOnce } from '../ui/failure';
 
 /** Wait this long after a pinch or pan settles before drawing the sharp close-up. */
-const DETAIL_DELAY_MS = 150;
+const CLOSE_UP_DELAY_MS = 150;
 
 /**
  * Zoomed in, the frame drawings are stretched and soft. This draws the visible part of each frame
  * again at the zoomed size, on top: the close-up hides the soft music and ink beneath it.
  */
-export class Detail {
+export class CloseUp {
   private timer: ReturnType<typeof setTimeout> | undefined;
   private seq = 0;
   private drawing = new AbortController();
@@ -24,7 +24,7 @@ export class Detail {
   update() {
     clearTimeout(this.timer);
     if (!isZoomed(this.host.zoom())) { this.drop(); return; }
-    this.timer = setTimeout(() => void this.draw(), DETAIL_DELAY_MS);
+    this.timer = setTimeout(() => void this.draw(), CLOSE_UP_DELAY_MS);
   }
 
   /** Supersede any close-up being drawn. */
@@ -37,10 +37,10 @@ export class Detail {
   drop() {
     this.restart();
     for (const s of this.host.slots()) {
-      s.detail?.canvas.remove();
-      s.detail?.under.remove();
-      s.detail?.ink.remove();
-      s.detail = undefined;
+      s.closeUp?.canvas.remove();
+      s.closeUp?.under.remove();
+      s.closeUp?.ink.remove();
+      s.closeUp = undefined;
     }
   }
 
@@ -62,7 +62,7 @@ export class Detail {
       const fw = Math.round(slot.w * k);
       const x = Math.floor(part.x * k), y = Math.floor(part.y * k);
       const region = { x, y, w: Math.ceil((part.x + part.w) * k) - x, h: Math.ceil((part.y + part.h) * k) - y };
-      const canvas = Object.assign(el('canvas', 'detail'), { width: region.w, height: region.h });
+      const canvas = Object.assign(el('canvas', 'close-up'), { width: region.w, height: region.h });
       const ctx = canvas.getContext('2d', { alpha: false })!;
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, region.w, region.h);
@@ -79,15 +79,15 @@ export class Detail {
         continue;
       }
       if (seq !== this.seq) return;
-      const ink = Object.assign(el('canvas', 'ink detail'), { width: region.w, height: region.h });
-      const under = Object.assign(el('canvas', 'ink under detail'), { width: region.w, height: region.h });
+      const ink = Object.assign(el('canvas', 'ink close-up'), { width: region.w, height: region.h });
+      const under = Object.assign(el('canvas', 'ink under close-up'), { width: region.w, height: region.h });
       for (const c of [canvas, under, ink]) {
         Object.assign(c.style, { left: x / k + 'px', top: y / k + 'px', width: region.w / k + 'px', height: region.h / k + 'px' });
       }
-      slot.detail?.canvas.remove();
-      slot.detail?.under.remove();
-      slot.detail?.ink.remove();
-      slot.detail = { canvas, under, ink, W: fw, x, y };
+      slot.closeUp?.canvas.remove();
+      slot.closeUp?.under.remove();
+      slot.closeUp?.ink.remove();
+      slot.closeUp = { canvas, under, ink, W: fw, x, y };
       drawFrameInk(ink.getContext('2d')!, slot.frame, this.host.state().ink, aspects, fw, x, y, undefined, under.getContext('2d')!);
       slot.box.insertBefore(canvas, slot.ui ?? null);
       slot.box.insertBefore(under, slot.ui ?? null);

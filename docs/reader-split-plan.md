@@ -19,7 +19,7 @@ are `reader.ts` as it is before stage 1; they drift as the stages go, so find ea
 ## The shape at the end
 
 `Reader` makes the parts in this order, each given its host, and then the parts the reader already
-joins (`CutEditor`, `Detail`, `Loupe`, `Input`, `Toolbar`, `ReaderMenus`):
+joins (`CutEditor`, `CloseUp`, `Loupe`, `Input`, `Toolbar`, `ReaderMenus`):
 
 ```ts
 this.zoomer = new StageZoom({ ... });
@@ -52,7 +52,7 @@ import type { Item } from './_open-scores';
 export function sameLayout(a: readonly Cut[], b: readonly Cut[]): boolean;
 
 /** What to show after an edit: only the ink again, or the screen starting at `frame`, kept where it is or placed fresh. */
-export type AfterEdit = { kind: 'repaint' } | { kind: 'show'; frame: number; place: 'keep' | 'fresh' };
+export type AfterEdit = { kind: 'redraw' } | { kind: 'show'; frame: number; place: 'keep' | 'fresh' };
 
 /**
  * After an edit: `before` is every cut of the item's frames before it, `frames` the item's frames
@@ -76,7 +76,7 @@ Bodies, from `reader.ts`:
 - `sameLayout`: the arrow at line 70, as it is.
 - `afterEdit`: the second half of `setState` (lines 885–909). `moved` is
   `!sameLayout(frames.flatMap((f) => f.items.map((p) => p.cut)), before)`; `f`, `target` as there;
-  `!moved && target === frame` gives `repaint`; otherwise `frame` is
+  `!moved && target === frame` gives `redraw`; otherwise `frame` is
   `Math.min(target, Math.max(0, frames.length - 1))` and `place` is `'keep'` when `target === frame`
   (the frame before the edit), else `'fresh'`.
 - `lastScreenStart`: the body of `lastScreen` (line 579), with `W` and `H` as parameters.
@@ -93,8 +93,8 @@ from `scores/frames.ts` with `aspects` to make frames):
 
 - `sameLayout`: true for the same cuts; false when one cut's `y1`, `page` or `pad` differs, when the
   ids differ, and when the lengths differ; true when only a `pass` differs (as now).
-- `afterEdit`: an edit that changes nothing (same cuts) with no focus gives `repaint`; a focus on a
-  frame on the screen gives `repaint`; a focus on a frame after the screen gives
+- `afterEdit`: an edit that changes nothing (same cuts) with no focus gives `redraw`; a focus on a
+  frame on the screen gives `redraw`; a focus on a frame after the screen gives
   `show` at that frame, `fresh`; a cut removed before the screen (layout moved) gives `show` at the
   same frame, `keep`; a frame past the new end is brought back to the last frame.
 - `lastScreenStart`: portrait frames on a landscape stage (two to a screen) start at `n - 2`;
@@ -112,13 +112,13 @@ setlist entry going back (it starts at the last two frames when two show).
 A new module, `src/reader/_stage-zoom.ts`:
 
 ```ts
-// The zoom of the reader's spread: where it is, the smallest it may be, the view below the
+// The zoom of the reader's screen: where it is, the smallest it may be, the view below the
 // toolbar it is moved within, and placing a new screen. The moves themselves are render/zoom.ts.
 
 export interface StageZoomHost {
   stage: HTMLElement;
   /** The element the zoom transforms. */
-  spread: HTMLElement;
+  screen: HTMLElement;
   /** The toolbar shows: annotation mode. */
   annotating(): boolean;
   /** The toolbar's height in CSS pixels. */
@@ -130,14 +130,14 @@ export interface StageZoomHost {
 export class StageZoom {
   constructor(host: StageZoomHost);
   get zoom(): Zoom;
-  /** The smallest zoom: the spread fits below the toolbar at its tallest since it showed. */
+  /** The smallest zoom: the screen fits below the toolbar at its tallest since it showed. */
   get minScale(): number;
-  /** The part of the stage below the toolbar, which the spread is moved within. */
+  /** The part of the stage below the toolbar, which the screen is moved within. */
   view(): View;
   set(z: Zoom): void;
   /** A new screen: whole below the toolbar and centred while it shows, at full size otherwise. */
   placeFresh(): void;
-  /** The toolbar hid: the smallest zoom is 1 again, and the spread at full size. */
+  /** The toolbar hid: the smallest zoom is 1 again, and the screen at full size. */
   reset(): void;
   /** The toolbar showed or changed: the smallest zoom lowers to fit below it, never rises. */
   barChanged(): void;
@@ -146,18 +146,18 @@ export class StageZoom {
 
 Move from `reader.ts`: the fields `zoom` and `minScale`; `view()` (line 947) with
 `this.toolbar.el.offsetHeight` as `host.barHeight()`; `placeFresh()` (952); `setZoom()` (956) as
-`set`, its `drawChromes(); syncBar(); detail.update()` becoming `host.changed()`, after the
+`set`, its `drawChromes(); syncBar(); closeUp.update()` becoming `host.changed()`, after the
 transform is set; from `showChrome` (546), `minScale = 1; setZoom(NO_ZOOM)` as `reset`; from
 `syncBar` (524), its last line as `barChanged`.
 
 In `reader.ts`: a field `zoomer: StageZoom`, made in the constructor before the `view` object, with
-`changed: () => { this.drawChromes(); this.syncBar(); this.detail.update(); }` (stage 3 makes the
+`changed: () => { this.drawChromes(); this.syncBar(); this.closeUp.update(); }` (stage 3 makes the
 first `this.desk.drawChromes()`). Every `this.zoom` becomes `this.zoomer.zoom`, `this.minScale`
 `this.zoomer.minScale`, `this.setZoom(z)` `this.zoomer.set(z)`, `this.view()` `this.zoomer.view()`,
 `this.placeFresh()` `this.zoomer.placeFresh()`. `syncBar` ends with `this.zoomer.barChanged()`.
 
-Check in the app: show the toolbar, pinch in and out and pan; the spread can't be made smaller than
-fits below the toolbar. Hide the toolbar: the spread goes back to full size. Turn a page zoomed in:
+Check in the app: show the toolbar, pinch in and out and pan; the screen can't be made smaller than
+fits below the toolbar. Hide the toolbar: the screen goes back to full size. Turn a page zoomed in:
 the new screen is placed whole below the toolbar. The close-up sharpens after a pinch.
 
 ## Stage 3: `ToolDesk`
@@ -253,13 +253,13 @@ A new module, `src/reader/_screen.ts`:
 
 ```ts
 // What is on the reader's screen: the frames shown as slots, drawn from their pages (stand-ins
-// first, then sharp), the screen of a score that can't be shown, painting frames and their ink, the
+// first, then sharp), the screen of a score that can't be shown, drawing frames and their ink, the
 // frozen layout while a cut is dragged, and drawing the next screens ahead. Which screen to show is
 // the Pager's.
 
 export interface ScreenHost {
   stage: HTMLElement;
-  spread: HTMLElement;
+  screen: HTMLElement;
   toast: Toast;
   /** The item read, its score once open, its frames, and the first frame on the screen. */
   item(): Item;
@@ -296,20 +296,20 @@ export class Screen {
   get shown(): number;
   /** Show the screen: as `show` in reader.ts now. */
   show(options?: { turned?: boolean; place?: 'keep' | 'fresh' }): Promise<void>;
-  paint(slot: FrameSlot, s: State, hatches?: Hatches, extra?: Marking): void;
-  paintInk(slot: FrameSlot, s: State, extra?: Marking): void;
-  /** Each slot takes its frame of `frames` (by its index) and its ink is painted from `s`. */
+  draw(slot: FrameSlot, s: State, hatches?: Hatches, extra?: Marking): void;
+  drawInk(slot: FrameSlot, s: State, extra?: Marking): void;
+  /** Each slot takes its frame of `frames` (by its index) and its ink is drawn from `s`. */
   reframe(frames: Frame[], s: State): void;
-  /** Each slot takes its frame of `frames`, where there is one, and is painted from `s`: a cut dragged. */
-  repaint(frames: Frame[], s: State, hatches?: Hatches): void;
+  /** Each slot takes its frame of `frames`, where there is one, and is drawn from `s`: a cut dragged. */
+  redraw(frames: Frame[], s: State, hatches?: Hatches): void;
   /** The reader is closing, or the screen is going: no screen being drawn shows, and drawing ahead stops. */
   stop(): void;
 }
 ```
 
 Move from `reader.ts`: the fields `shown`, `seq`, `ahead`, `slots`, `pages`, `askingAccess`;
-`screenAt` (574), `blank` (585), `show` (594), `sharpen` (664), `showUnread` (684), `paint` (748),
-`paintInk` (752) and `predraw` (772), as they are, with:
+`screenAt` (574), `blank` (585), `show` (594), `sharpen` (664), `showUnread` (684), `draw` (748),
+`drawInk` (752) and `predraw` (772), as they are, with:
 
 - `this.frame` read through `host.frame()`, and the clamp at the top of `show` through
   `host.setFrame(...)`; `this.frames` through `host.frames()`; `this.current`, `this.items[this.k]`,
@@ -327,14 +327,14 @@ Move from `reader.ts`: the fields `shown`, `seq`, `ahead`, `slots`, `pages`, `as
   `host.inSetlist()` and this is the item's last screen; `const next = await host.next()`; return
   when the screen has moved on or `next` is null; draw `next.frames`' first screen with `next.draw`.
 - `reframe`: the loop in `setState`'s repaint-only path (`slot.frame = frames[slot.index]` and
-  `paintInk`), and `undoTo`'s `slot.frame = this.frames[slot.index]` uses it for that one slot.
-- `repaint`: the loop in `preview` (761).
+  `drawInk`), and `undoTo`'s `slot.frame = this.frames[slot.index]` uses it for that one slot.
+- `redraw`: the loop in `preview` (761).
 - `stop`: `this.seq++` and `this.ahead.abort()` from `close`.
 
 In `reader.ts`: `showed` does `this.decorate(); this.desk.drawChromes(); this.desk.refreshSelection();
 this.showCard(); this.saveSpot(first)`. `showedUnread()` does `this.showCard()`. `next` does what `predraw` did: `ensure(this.k + 1)`, returning
 `{ draw: cur.draw, frames: this.framesFor(this.k + 1) }` when it opened with a `draw`. `preview`
-becomes `this.detail.drop(); this.screen.repaint(frames ?? this.frames, s ?? this.state, hatches);
+becomes `this.closeUp.drop(); this.screen.redraw(frames ?? this.frames, s ?? this.state, hatches);
 this.editor.decorate(this.screen.slots, frames ?? this.frames, !!frames)`. The view's `slots()`
 reads `this.screen.slots`. Every other call of a moved method calls the screen.
 
@@ -409,7 +409,7 @@ are, with:
 - In `turn`, the two `if (t.to !== 'score')` lines become one.
 - `replay`: the body the reader's menus host has three times now (lines 279–283, 290–295 and 296–301,
   after the `reading` call in the last two): `frames = framesFor(k); frame = 0; screen.show()`.
-- `relayout`: what `setState` does after `this.syncBar()`, through `afterEdit`: on `repaint`,
+- `relayout`: what `setState` does after `this.syncBar()`, through `afterEdit`: on `redraw`,
   `screen.reframe(frames, s)`, then `host.changed()`'s decoration (see below) and
   `desk.refreshSelection()`; on `show`, set `frame` and `screen.show({ place })`. `before` is the
   cuts of the frames before `frames` is recomputed, so read it first.
@@ -529,7 +529,7 @@ saved pages are all that can be shown.
 ## Stage 8: what is left, and the docs
 
 `reader.ts` now has `openReader`, `ToRead`, and `Reader` with: the fields for the DOM (`root`,
-`stage`, `spreadEl`, `scope`, `toast`, `toolbar`, `card`), `themeBefore`, `wake`, `resizeTimer`,
+`stage`, `screenEl`, `scope`, `toast`, `toolbar`, `card`), `themeBefore`, `wake`, `resizeTimer`,
 `observer`, `fileChanges`, `leaveUnsaved`, and the parts; the constructor, which makes and joins
 them; `syncBar`, `annotating`, `showChrome`, `say`, `showTitle`, `showCard`, `act`, `decorate`,
 `preview`; and the lifecycle (`requestWake`, `onVisible`, `onPop`, `close`, `savedForClosing`).

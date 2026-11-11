@@ -10,7 +10,7 @@ import type { Content, Readable } from '../_types';
 import { _contents, _noteContents } from '../_record-store';
 import { sharePages, type SharedPages } from './_sources';
 import { isPdf, readPdf } from './_pdf';
-import type { AskPassword, DrawOptions, Original, Pages, RenderedPdf } from '../types';
+import type { AskPassword, DrawOptions, Original, Pages, MusicPdf } from '../types';
 
 /**
  * Read a source file: an image as it is; a PDF has its password checked now (and asked for, if it
@@ -97,7 +97,7 @@ class FileOriginal implements Original {
     if (!this.got) throw new Error('Closed more often than it was got');
     if (!--this.got) this.shared.close();
   }
-  pdf(): Promise<RenderedPdf> { this.use(); return this.content.pdf(); }
+  pdf(): Promise<MusicPdf> { this.use(); return this.content.pdf(); }
   private shapes?: number[];
   async aspects(): Promise<number[]> {
     this.use();

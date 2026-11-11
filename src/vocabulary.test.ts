@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 
 /** The last stage of the vocabulary plan that is done: the entries of later stages are not yet checked. */
-const DONE = 1;
+const DONE = 2;
 
 interface Retired {
   /** Tested on the text with identifiers split into words ('words': `spreadEl` is "spread El") or as it is ('raw'). */
@@ -50,6 +50,10 @@ const ALLOWED: { text: string; in?: string }[] = [
   { text: 'Paint' }, // a fill or a stroke, as a path is drawn with (markings/draw.ts, export/_annotations.ts)
   { text: 'trashed' }, // Drive's query parameter
   { text: 'cut-mark' }, // a cut's mark on a thumbnail
+  { text: 'paint', in: 'markings/draw.ts' }, // a variable of type Paint
+  { text: 'paint', in: 'export/_annotations.ts' },
+  { text: 'e.detail', in: 'reader/_cuts/_editor.ts' }, // the DOM event's
+  { text: 'is spread over', in: 'scores/placing.ts' }, // the English verb
 ];
 
 const sources = import.meta.glob<string>(['./**/*.ts', './**/*.css', '!./**/*.test.ts', '!./**/*.d.ts'], { query: '?raw', import: 'default', eager: true });

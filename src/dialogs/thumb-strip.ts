@@ -2,7 +2,7 @@
 // shows at once: a pinch zooms it, and a finger drags along it. The excerpt picker puts a band over
 // each cut; the screen for incoming files shows a file's pages as they are.
 
-import { drawFrame, drawFrameInk } from '../render/paint';
+import { drawFrame, drawFrameInk } from '../render/draw';
 import { scrollForPinch, type Pt } from '../render/zoom';
 import { pack, type Frame } from '../scores/frames';
 import { type Aspects, type State } from '../scores/model';

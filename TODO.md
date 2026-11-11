@@ -165,15 +165,15 @@ scores.
   suspicion: `close` (`reader/_tools/_typing.ts`) turns `overlaysContent` off, the stage resizes, and
   `show()` sets `NO_ZOOM` (`reader/reader.ts`).
 - **The selected marking's delete button keeps its size on screen**: it is 28 px in CSS
-  (`.selection-delete`, `styles/reader.css`) inside the zoomed spread, so it grows with the zoom
+  (`.selection-delete`, `styles/reader.css`) inside the zoomed screen, so it grows with the zoom
   (84 px at 3×), while the box's line and handles keep their size (`SelectionBox.zoomed`,
   `reader/_tools/_selection.ts`). It should be scaled by `1 / s` there too, as they are.
-- **What the tools' painting calls are for**: to be explained, then perhaps merged.
-  `ToolHost` has `paintInk(slot, extra)` (the frame's ink as it is, plus a marking still being
-  made: a stroke, a ghost), `paintState(slot, s)` (the frame's ink as it would be in `s`, not taken:
+- **What the tools' drawing calls are for**: to be explained, then perhaps merged.
+  `ToolHost` has `drawInk(slot, extra)` (the frame's ink as it is, plus a marking still being
+  made: a stroke, a ghost), `drawState(slot, s)` (the frame's ink as it would be in `s`, not taken:
   a marking being moved or resized), and `erased(s, slot)` (`s` taken, without an undo step yet:
   the eraser's sweep) (`reader/_tools/_tool.ts`, `reader/reader.ts`). Perhaps one
-  `paint(slot, { state?, extra? })` for the first two.
+  `draw(slot, { state?, extra? })` for the first two.
 
 ## Speculative future ideas
 

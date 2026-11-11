@@ -47,7 +47,7 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - On the toolbar, the tool in use and Cuts (when on) have the same blue ring, and their icons
     keep their colour.
 - **The loupe's magnification from the score's symbol size:** placing a staccato dot, a fingering,
-  *pp* and text on a whole spread, the loupe shows the staff at the same size each time (about
+  *pp* and text on a whole screen, the loupe shows the staff at the same size each time (about
   half the loupe's height), with the marking on it at its size relative to the staff. Zoomed in, a
   marking shows no bigger relative to the staff than before, and the loupe is never smaller than
   the screen.
@@ -84,7 +84,7 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - Drag a marking, or the selected one's corner: it moves or resizes, with the loupe.
   - With one selected, tap empty music: only deselected, the toolbar stays. Tap again: the toolbar
     hides.
-  - Press on empty music and drag: the spread pans, and the selection stays.
+  - Press on empty music and drag: the screen pans, and the selection stays.
   - Choose a tool (and back to none): the selection ends. Pen, Highlight and Erase still draw or
     erase on a tap.
 - **Selecting another marking** (with Text or Symbols as the tool):

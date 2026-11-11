@@ -2,7 +2,7 @@
 
 import { el } from '../../ui/dom';
 import { handleRadius, MIN_BOX_PX, selectionBox } from '../../scores/placing';
-import type { FrameSlot } from '../_spread';
+import type { FrameSlot } from '../_slots';
 
 type Ext = [number, number, number, number];
 
@@ -39,7 +39,7 @@ export class SelectionBox {
 
   /**
    * Show it in `layer` of `slot` round the marking whose ink is at `ext` (frame coordinates: x in
-   * frame widths, y in frame widths from its top), the spread zoomed by `s`, with "This time only"
+   * frame widths, y in frame widths from its top), the screen zoomed by `s`, with "This time only"
    * on, off, or hidden (undefined); or hide it.
    */
   show(layer: HTMLElement | undefined, slot: FrameSlot | undefined, ext: Ext | undefined, s: number, pass: 'on' | 'off' | undefined) {
@@ -57,7 +57,7 @@ export class SelectionBox {
     this.box.hidden = true;
   }
 
-  /** The spread's zoom changed: the box, its line and its handles keep their size on screen. */
+  /** The screen's zoom changed: the box, its line and its handles keep their size on screen. */
   zoomed(s: number) {
     if (!this.shown) return;
     const { slot, ext } = this.shown, a = slot.frame.aspect, px = slot.w * s; // CSS pixels in a frame width
@@ -66,7 +66,7 @@ export class SelectionBox {
     // The line's border is centred on the box's edge.
     const w = 1 / s;
     Object.assign(this.line.style, { inset: -w / 2 + 'px', borderWidth: w + 'px' });
-    const r = handleRadius(Math.min(x1 - x0, y1 - y0) * px) / s; // in the zoomed spread's pixels
+    const r = handleRadius(Math.min(x1 - x0, y1 - y0) * px) / s; // in the zoomed screen's pixels
     this.handles.forEach((h, i) => Object.assign(h.style, {
       left: i === 1 || i === 2 ? '100%' : '0', top: i >= 2 ? '100%' : '0',
       width: 2 * r + 'px', height: 2 * r + 'px', margin: -r + 'px 0 0 ' + -r + 'px', borderWidth: 1.5 / s + 'px',

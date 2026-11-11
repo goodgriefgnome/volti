@@ -3,7 +3,7 @@ import type { PlacedMark } from '../../markings/placed';
 import { addGlyph } from '../../markings/glyphs';
 import { pack } from '../../scores/frames';
 import { A4, aspects, cut, state } from '../../scores/testing';
-import type { FrameSlot } from '../_spread';
+import type { FrameSlot } from '../_slots';
 import { _lifted, _tapAction, placingTool } from './_placing';
 import type { Press, ToolHost } from './_tool';
 
@@ -38,7 +38,7 @@ describe('placingTool: the press', () => {
     const calls: string[] = [];
     const host = {
       zoom: () => ({ s: 1 }), aspects: () => aspects, state: () => state([c], { [c.id]: [ink] }), slots: () => [slot],
-      selected: () => (selected ? { cut: c.id, mark: selected } : undefined), select: () => {}, paintInk: () => {},
+      selected: () => (selected ? { cut: c.id, mark: selected } : undefined), select: () => {}, drawInk: () => {},
       loupe: () => ({ begin: () => void calls.push('begin'), show: () => void calls.push('show'), end: () => void calls.push('end') }),
     } as unknown as ToolHost;
     const ghost = () => ({ ...m, at: [0.2, 0.2] as [number, number] });

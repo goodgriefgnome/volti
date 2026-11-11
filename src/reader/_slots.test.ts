@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { slotUnder, type FrameSlot } from './_spread';
+import { slotUnder, type FrameSlot } from './_slots';
 
 // Only the boxes are read.
 const slot = (x: number, y: number, w = 100, h = 140) => ({ x, y, w, h }) as FrameSlot;

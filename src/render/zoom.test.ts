@@ -23,23 +23,23 @@ describe('fitScale and placeFresh', () => {
 });
 
 describe('_slide', () => {
-  it('moves a spread that fits freely inside the view, and stops at its edges', () => {
+  it('moves a screen that fits freely inside the view, and stops at its edges', () => {
     expect(_slide(100, 300, 0, 1000, 200)).toBe(300);
     expect(_slide(100, 300, 0, 1000, 5000)).toBe(700);
     expect(_slide(100, 300, 0, 1000, -50)).toBe(50);
     expect(_slide(100, 300, 0, 1000, -5000)).toBe(0);
   });
-  it('moves a spread bigger than the view until an edge meets the view', () => {
+  it('moves a screen bigger than the view until an edge meets the view', () => {
     expect(_slide(-500, 2000, 0, 1000, 200)).toBe(-300);
     expect(_slide(-500, 2000, 0, 1000, 5000)).toBe(0);
     expect(_slide(-500, 2000, 0, 1000, -5000)).toBe(-1000);
   });
-  it('lets a spread that is out of bounds move only to show more', () => {
+  it('lets a screen that is out of bounds move only to show more', () => {
     // gap at the bottom, top under the view's top: pos -50, len 700 in a view of 113..800
     expect(_slide(-50, 687, 113, 800, 30)).toBe(-20); // moving down shows more of the top
     expect(_slide(-50, 687, 113, 800, 500)).toBe(113);
     expect(_slide(-50, 687, 113, 800, -30)).toBe(-50); // showing less leaves it
-    // spread bigger than the view, hanging below the view's bottom by being too low
+    // screen bigger than the view, hanging below the view's bottom by being too low
     expect(_slide(200, 2000, 0, 1000, 50)).toBe(200);
     expect(_slide(200, 2000, 0, 1000, -50)).toBe(150);
   });
@@ -53,10 +53,10 @@ describe('drag', () => {
     expect(drag(NO_ZOOM, 0, 200, bar).y).toBe(113);
     expect(drag(NO_ZOOM, 0, -200, bar)).toEqual(NO_ZOOM);
   });
-  it('cannot move an unzoomed spread with no toolbar', () => {
+  it('cannot move an unzoomed screen with no toolbar', () => {
     expect(drag(NO_ZOOM, 100, -100, top)).toEqual(NO_ZOOM);
   });
-  it('moves a zoomed spread with the finger', () => {
+  it('moves a zoomed screen with the finger', () => {
     expect(drag({ s: 2, x: -500, y: -400 }, 100, -50, top)).toEqual({ s: 2, x: -400, y: -450 });
   });
 });
@@ -85,7 +85,7 @@ describe('pinch', () => {
     expect(z.s).toBe(1);
     expect(z.x).toBe(0);
   });
-  it('leaves the spread inside the view when pinched below its size', () => {
+  it('leaves the screen inside the view when pinched below its size', () => {
     const c = { x: 900, y: 700 };
     const z = pinch(NO_ZOOM, c, 200, c, 100, bar, 0.5);
     expect(z.x).toBeGreaterThanOrEqual(0);
@@ -101,7 +101,7 @@ describe('visiblePart', () => {
     expect(visiblePart(NO_ZOOM, W, H, box)).toEqual({ x: 0, y: 0, w: 400, h: 600 });
   });
   it('is the corner in view when zoomed into the top left', () => {
-    // 2x at the stage origin shows spread coordinates 0..500 x 0..400
+    // 2x at the stage origin shows screen coordinates 0..500 x 0..400
     expect(visiblePart({ s: 2, x: 0, y: 0 }, W, H, box)).toEqual({ x: 0, y: 0, w: 400, h: 350 });
   });
   it('is nothing for a page out of view', () => {

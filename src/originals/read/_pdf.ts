@@ -21,7 +21,7 @@ import { _contents, _noteContents } from '../_record-store';
 import type { Crop } from '../../page-cache/types';
 import type { Content, OpenPages, Readable } from '../_types';
 import { titleOf } from '../path-utils';
-import { PasswordNotGiven, type AskPassword, type RenderedPdf, type SourceFile } from '../types';
+import { PasswordNotGiven, type AskPassword, type MusicPdf, type SourceFile } from '../types';
 
 /** How far into a file a PDF's header may start. */
 const PDF_HEADER_WITHIN = 1024;
@@ -136,7 +136,7 @@ class PdfContent implements Content {
   constructor(private f: Readable) {}
 
   /** For export: the music as a PDF pdf-lib can read, worked out now. */
-  async pdf(): Promise<RenderedPdf> {
+  async pdf(): Promise<MusicPdf> {
     return pdfOf(this.f, await this.f.file());
   }
 
@@ -160,11 +160,11 @@ class PdfContent implements Content {
  * tries the password remembered for it, then asks `ask` (with none, it gives up:
  * PasswordNotGiven), and remembers the one that opens it.
  */
-async function pdfOf(o: SourceFile, file: File, ask?: AskPassword): Promise<RenderedPdf> {
+async function pdfOf(o: SourceFile, file: File, ask?: AskPassword): Promise<MusicPdf> {
   const bytes = new Uint8Array(await file.arrayBuffer());
   const lib = await import('pdf-lib');
   /** The PDF as it is, where pdf-lib can read it. */
-  const asItIs = async (): Promise<RenderedPdf> => {
+  const asItIs = async (): Promise<MusicPdf> => {
     try {
       await lib.PDFDocument.load(bytes);
     } catch (e) {
@@ -207,7 +207,7 @@ async function pdfOf(o: SourceFile, file: File, ask?: AskPassword): Promise<Rend
 }
 
 /** A PDF of each page of `bytes` drawn by pdf.js, with the password if it needs one. */
-async function pagesDrawn(o: SourceFile, bytes: Uint8Array, ask: AskPassword | undefined, why: 'encryption' | 'unreadable'): Promise<RenderedPdf> {
+async function pagesDrawn(o: SourceFile, bytes: Uint8Array, ask: AskPassword | undefined, why: 'encryption' | 'unreadable'): Promise<MusicPdf> {
   const passwords = await Passwords.for(o, ask);
   const source = await openPdf(bytes, (wrong) => passwords.next(wrong)).catch((e: unknown) => { throw passwords.failure(e); });
   try {

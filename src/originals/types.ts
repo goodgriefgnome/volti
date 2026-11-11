@@ -61,7 +61,7 @@ export interface Original extends SourceFile, Pages {
   /** The same original, got once more: to be closed once more. */
   read(ask?: AskPassword): Promise<Original>;
   /** Its music as a PDF, for export (read/_pdf.ts, read/_image.ts). */
-  pdf(): Promise<RenderedPdf>;
+  pdf(): Promise<MusicPdf>;
 }
 
 /** Whether a scores folder is linked, and whether this session may read it. */
@@ -86,7 +86,7 @@ export class PasswordNotGiven extends Error {
 export type LossyReason = 'encryption' | 'unreadable' | 'recompressed';
 
 /** An original's music as a PDF that pdf.js and pdf-lib can both read. */
-export interface RenderedPdf {
+export interface MusicPdf {
   /** An unencrypted PDF that pdf-lib can read, new each time: pdf.js takes the bytes it is given. */
   bytes: Uint8Array;
   /** Why its music isn't as the file has it; none when it is. */

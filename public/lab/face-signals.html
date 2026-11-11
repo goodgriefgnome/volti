@@ -62,7 +62,7 @@ own. The grey line on each bar is its highest since the last reset; a score over
       <tr><td>Camera frames/s</td><td class="n" id="camFps">–</td></tr>
       <tr><td>Detections/s</td><td class="n" id="detFps">–</td></tr>
       <tr><td>Interval, mean</td><td class="n" id="ivMean">–</td></tr>
-      <tr><td>Interval, spread (sd)</td><td class="n" id="ivSd">–</td></tr>
+      <tr><td>Interval, screen (sd)</td><td class="n" id="ivSd">–</td></tr>
       <tr><td>Interval, min–max</td><td class="n" id="ivRange">–</td></tr>
       <tr><td>Capture to detected</td><td class="n" id="latency">–</td></tr>
       <tr><td>Detection takes</td><td class="n" id="detMs">–</td></tr>
@@ -192,8 +192,8 @@ let recent = [];
 let cameraFrames = [];
 let skipped = 0;
 let lastPresented;
-const clockName = { capture: 'camera capture time', media: 'video frame time', paint: 'page time (no frame timing here)' };
-let clock = 'paint';
+const clockName = { capture: 'camera capture time', media: 'video frame time', draw: 'page time (no frame timing here)' };
+let clock = 'draw';
 
 function showTiming(now) {
   recent = recent.filter((r) => now - r.wall < 2000);
@@ -245,7 +245,7 @@ function onFrame(now, meta) {
   let at = now, latency;
   if (meta?.captureTime) { clock = 'capture'; at = meta.captureTime; latency = performance.now() - meta.captureTime; }
   else if (meta?.mediaTime !== undefined) { clock = 'media'; at = meta.mediaTime * 1000; }
-  else clock = 'paint';
+  else clock = 'draw';
   // detectForVideo needs increasing timestamps.
   const ts = Math.max(lastTs + 1, performance.now());
   lastTs = ts;
