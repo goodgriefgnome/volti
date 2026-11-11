@@ -45,10 +45,11 @@ takes `putInbox` without pdf.js): keep it true, and do any start-up work from `m
 | Layer | Directory | What it holds |
 | --- | --- | --- |
 | 9 | `src/*.ts` | Start-up (`main.ts`), taking new versions (`updates.ts`), bringing the stored data up to the app's version (`stored-data.ts`), the service worker (`sw.ts`) |
-| 8 | `library/` | The Library screen; keeping the pages setlists play offline (`_offline-pages`) and saying how much of each is saved (`_offline-status`); the folder chooser for linking a Google Drive folder (`_drive-folders`) |
+| 8 | `library/` | The Library screen; the folder chooser for linking a Google Drive folder (`_drive-folders`) |
 | 7 | `reader/` | The score screen: reading a score, an excerpt or a setlist, writing on it, editing its cuts. The tools and their own interface (panels, swatches, the symbol library's editor and its glyph picker) are in `reader/tools/` |
 | 6 | `dialogs/` | Dialogs both screens open: choosing an excerpt (over a strip of a score's frames, `thumb-strip`), the named excerpt dialogs, adding scores to a setlist, renaming and filing a score's file, exporting, setlist names and menus, a PDF's password |
 | 5 | `export/` | Exporting PDFs (with pdf-lib) |
+| 5 | `offline/` | Keeping the pages setlists play offline (`pages`), and how much of each is saved (`status`) |
 | 4 | `render/` | What is on a screen: fitting frames to it (`layout`, `screen`), zoom maths (`zoom`), drawing a frame on a canvas (`paint`) |
 | 3 | `setlists/` | Setlists and their entries, and keeping them on the same music when a score's cuts change |
 | 2 | `face/` | Face gestures the person defines: a gesture and its settings (`gestures`), its template fitted from its trials and a frame's score (`template`, `model`, `recording`, `settling`), watching the front camera with MediaPipe (`watcher`), and the button that shows it |

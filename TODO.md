@@ -41,7 +41,7 @@ scores.
     "The first open of a PDF still lags").
 - **How the pages kept offline are worked out**: the offline job works out the
   widths each setlist's pages are drawn at from the screen's size, in both orientations, and pins
-  exactly those (`library/_offline-pages.ts`). Open:
+  exactly those (`offline/pages.ts`). Open:
   - A score whose aspects were never measured and whose file can't be read now (folder locked, no
     password): neither its pages nor their widths can be worked out, as a score's cuts, its
     frames' shapes and the widths a screen shows them at all follow from its pages' aspects. Its

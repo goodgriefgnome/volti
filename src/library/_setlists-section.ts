@@ -12,7 +12,7 @@ import { button, el, plural } from '../ui/dom';
 import { dragToReorder } from '../ui/drag-reorder';
 import { buttonRow, closeOverlay, showDialog, showMenu, whenOverlayCloses } from '../ui/overlay';
 import type { LibraryHost } from './_host';
-import { offlineText, type OfflineStatus } from './_offline-status';
+import { offlineText, type OfflineStatus } from '../offline/status';
 import { expandableRow, moreButton } from './_rows';
 
 const RING_R = 8.5, RING_LENGTH = 2 * Math.PI * RING_R;

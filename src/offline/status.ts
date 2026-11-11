@@ -1,6 +1,6 @@
 // How much of each setlist is saved for offline, and why the rest isn't: worked out from the pages
-// each setlist needs and the pages saved so far. Pure: no DOM, no storage; _offline-pages.ts
-// gathers the pages, and _setlists-section.ts shows the result.
+// each setlist needs and the pages saved so far. Pure: no DOM, no storage; pages.ts gathers
+// the pages, and library/_setlists-section.ts shows the result.
 
 /** Why a score's pages can't be saved now. */
 export type Blocked = 'access' | 'password' | 'offline' | 'missing';

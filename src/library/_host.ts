@@ -11,7 +11,7 @@ import type { Aspects, NamedExcerpt, Score } from '../scores/model';
 import type { Setlist } from '../setlists/model';
 import type { MenuItem } from '../ui/overlay';
 import type { Toast } from '../ui/toast';
-import type { OfflineStatus } from './_offline-status';
+import type { OfflineStatus } from '../offline/status';
 
 export interface LibraryHost {
   readonly folder: FolderState;

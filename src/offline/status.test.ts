@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { offlineStatus, offlineText, pageKey, type OfflineStatus } from './_offline-status';
+import { offlineStatus, offlineText, pageKey, type OfflineStatus } from './status';
 
 const a1 = pageKey('a', 1, 800), a2 = pageKey('a', 2, 800), b1 = pageKey('b', 1, 800), c1 = pageKey('c', 1, 800);
 const none = new Map<string, { why: 'access'; title: string }>();

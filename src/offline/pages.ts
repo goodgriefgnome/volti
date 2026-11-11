@@ -1,7 +1,8 @@
-// Keeping the pages setlists play offline, in the background: working out, score by score, which
-// original pages setlists play, at the widths this screen shows them in either orientation, telling
-// the page cache to keep exactly those (and let go of the rest), drawing those not saved yet, and
-// telling how much of each setlist is saved. An original is read only while it is used.
+// The job that keeps the pages setlists play offline, started by the library and run in the
+// background: working out, score by score, which original pages setlists play, at the widths this
+// screen shows them in either orientation, telling the page cache to keep exactly those (and let go
+// of the rest), drawing those not saved yet, and telling how much of each setlist is saved. An
+// original is read only while it is used.
 
 import { excerptCuts } from '../scores/excerpts';
 import { keepOriginalsOffline } from '../originals/drive/score-fs';
@@ -17,7 +18,7 @@ import { pack } from '../scores/frames';
 import type { Entry, Setlist } from '../setlists/model';
 import { dpr } from '../ui/dom';
 import { failedOnce } from '../ui/failure';
-import { offlineStatus, pageKey, type Blocked, type OfflineStatus } from './_offline-status';
+import { offlineStatus, pageKey, type Blocked, type OfflineStatus } from './status';
 
 /** How long to wait after a change, so a burst of them is worked out once. */
 const SETTLE_MS = 2000;
