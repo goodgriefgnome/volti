@@ -35,10 +35,10 @@ export function symbolPicture(
   const canvas = el('canvas');
   canvas.width = canvas.height = Math.round(side * scale);
   canvas.style.width = canvas.style.height = side + 'px';
-  const mark = { ...placed(sym, (em * sym.scale) / side, color), ...(background && { background }) };
-  if (emExtent(mark)) {
+  const marking = { ...placed(sym, (em * sym.scale) / side, color), ...(background && { background }) };
+  if (emExtent(marking)) {
     const ctx = canvas.getContext('2d');
-    if (ctx) drawMarkings({ draw: canvasDrawing(ctx), w: canvas.width, h: canvas.height, ox: 0, oy: 0 }, [mark]);
+    if (ctx) drawMarkings({ draw: canvasDrawing(ctx), w: canvas.width, h: canvas.height, ox: 0, oy: 0 }, [marking]);
   }
   return canvas;
 }

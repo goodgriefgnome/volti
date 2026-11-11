@@ -119,7 +119,7 @@ export function baselineStart(m: PlacedMarking): [number, number] {
  * `start` (frame coordinates: x in frame widths, y in frame widths from the frame's top); undefined
  * when it has no ink (empty, or spaces only).
  */
-export function textMark(
+export function textMarking(
   font: string, text: string, glyphs: readonly { gid: number; x: number; y: number }[], start: readonly [number, number], size: number,
 ): PlacedMarking | undefined {
   const c = centred(font, glyphs);

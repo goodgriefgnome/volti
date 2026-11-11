@@ -1,7 +1,7 @@
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { Drawing, Paint, PathCmd } from './draw';
 import { addGlyph } from './glyphs';
-import { _placed, backgroundOutline, baselineStart, centred, emExtent, glyphKeysIn, markingColors, markingExtent, setMarkingColors, textMark, type PlacedMarking } from './placed';
+import { _placed, backgroundOutline, baselineStart, centred, emExtent, glyphKeysIn, markingColors, markingExtent, setMarkingColors, textMarking, type PlacedMarking } from './placed';
 import { compactMarking, copyMarking, type DrawTarget } from './model';
 import type { Stroke } from './stroke';
 
@@ -11,7 +11,7 @@ beforeAll(() => {
 });
 
 // Glyph 1 spans -0.5..0.5 either way from the centre, glyph 2 0.5..2.5 across and -0.5..0 up.
-const mark: PlacedMarking = { kind: 'symbol', text: 'ab', font: 't', glyphs: [[1, -0.5, 0.5], [2, 0.5, 0]], at: [0.5, 0.5], size: 0.1 };
+const marking: PlacedMarking = { kind: 'symbol', text: 'ab', font: 't', glyphs: [[1, -0.5, 0.5], [2, 0.5, 0]], at: [0.5, 0.5], size: 0.1 };
 
 describe('centred', () => {
   it('moves two glyphs side by side so the centre of their ink is the origin', () => {
@@ -29,7 +29,7 @@ describe('centred', () => {
 describe('text markings', () => {
   const glyphs = [{ gid: 1, x: 0, y: 0 }, { gid: 2, x: 1.5, y: 0 }];
   it('are placed so their baseline starts at the start they were made at', () => {
-    const m = textMark('t', 'ab', glyphs, [0.2, 0.3], 0.1)!;
+    const m = textMarking('t', 'ab', glyphs, [0.2, 0.3], 0.1)!;
     expect(m).toMatchObject({ kind: 'text', text: 'ab', font: 't', size: 0.1 });
     expect(m.at[0]).toBeCloseTo(0.2 + 1.75 * 0.1);
     expect(m.at[1]).toBeCloseTo(0.3 - 0.5 * 0.1);
@@ -38,11 +38,11 @@ describe('text markings', () => {
     expect(m.at[1] + by * m.size).toBeCloseTo(0.3);
   });
   it('are nothing when they have no ink', () => {
-    expect(textMark('t', '  ', [{ gid: 99, x: 0, y: 0 }], [0.2, 0.3], 0.1)).toBeUndefined();
-    expect(textMark('t', '', [], [0.2, 0.3], 0.1)).toBeUndefined();
+    expect(textMarking('t', '  ', [{ gid: 99, x: 0, y: 0 }], [0.2, 0.3], 0.1)).toBeUndefined();
+    expect(textMarking('t', '', [], [0.2, 0.3], 0.1)).toBeUndefined();
   });
   it('are annotated as FreeText with what was typed', () => {
-    const m = textMark('t', 'rit.', glyphs, [0.2, 0.3], 0.1)!;
+    const m = textMarking('t', 'rit.', glyphs, [0.2, 0.3], 0.1)!;
     const t: DrawTarget = { draw: { path() {}, shape() {} }, w: 1000, h: 1400, ox: 0, oy: 0 };
     expect(_placed.annotation(t, m)).toEqual({ subtype: 'FreeText', contents: 'rit.' });
   });
@@ -50,51 +50,51 @@ describe('text markings', () => {
 
 describe('placed markings', () => {
   it('are anchored at their centre', () => {
-    expect(_placed.anchor(mark)).toEqual([0.5, 0.5, 0]);
+    expect(_placed.anchor(marking)).toEqual([0.5, 0.5, 0]);
   });
   it('move their centre through f, leaving the rest', () => {
-    const m = _placed.map(mark, ([x, y]) => [x + 0.1, y * 2, 0.7]);
+    const m = _placed.map(marking, ([x, y]) => [x + 0.1, y * 2, 0.7]);
     expect(m.at).toEqual([0.6, 1]);
-    expect({ ...m, at: mark.at }).toEqual(mark);
+    expect({ ...m, at: marking.at }).toEqual(marking);
   });
   it('have an extent round their glyphs, in em from their centre', () => {
-    expect(emExtent(mark)).toEqual([-0.5, -0.5, 2.5, 0.5]);
-    expect(emExtent({ ...mark, glyphs: [[99, 0, 0]] })).toBeUndefined();
+    expect(emExtent(marking)).toEqual([-0.5, -0.5, 2.5, 0.5]);
+    expect(emExtent({ ...marking, glyphs: [[99, 0, 0]] })).toBeUndefined();
   });
   it('are hit within their extent, grown by the radius, in page widths', () => {
     // 0.45..0.75 across, 0.45..0.55 down (in page widths from y 0.5 × aspect).
-    expect(_placed.hitDistance(mark, [0.5, 0.5, 0], 0, 1.4)).toBeDefined();
-    expect(_placed.hitDistance(mark, [0.9, 0.5, 0], 0, 1.4)).toBeUndefined();
-    expect(_placed.hitDistance(mark, [0.77, 0.5, 0], 0, 1.4)).toBeUndefined();
-    expect(_placed.hitDistance(mark, [0.77, 0.5, 0], 0.03, 1.4)).toBeDefined();
-    expect(_placed.hitDistance(mark, [0.5, 0.54, 0], 0, 1)).toBeDefined();
-    expect(_placed.hitDistance(mark, [0.5, 0.54, 0], 0, 1.4)).toBeUndefined();
+    expect(_placed.hitDistance(marking, [0.5, 0.5, 0], 0, 1.4)).toBeDefined();
+    expect(_placed.hitDistance(marking, [0.9, 0.5, 0], 0, 1.4)).toBeUndefined();
+    expect(_placed.hitDistance(marking, [0.77, 0.5, 0], 0, 1.4)).toBeUndefined();
+    expect(_placed.hitDistance(marking, [0.77, 0.5, 0], 0.03, 1.4)).toBeDefined();
+    expect(_placed.hitDistance(marking, [0.5, 0.54, 0], 0, 1)).toBeDefined();
+    expect(_placed.hitDistance(marking, [0.5, 0.54, 0], 0, 1.4)).toBeUndefined();
   });
   it('are 0 inside their extent, and as far from it as the nearest edge or corner outside', () => {
-    expect(_placed.hitDistance(mark, [0.5, 0.5, 0], 1, 1)).toBe(0);
-    expect(_placed.hitDistance(mark, [0.8, 0.5, 0], 1, 1)).toBeCloseTo(0.05);
+    expect(_placed.hitDistance(marking, [0.5, 0.5, 0], 1, 1)).toBe(0);
+    expect(_placed.hitDistance(marking, [0.8, 0.5, 0], 1, 1)).toBeCloseTo(0.05);
     // Diagonally off the corner (0.75, 0.55): 0.03 right, 0.04 down.
-    expect(_placed.hitDistance(mark, [0.78, 0.59, 0], 1, 1)).toBeCloseTo(0.05);
-    expect(_placed.hitDistance(mark, [0.78, 0.59, 0], 0.04, 1)).toBeUndefined();
+    expect(_placed.hitDistance(marking, [0.78, 0.59, 0], 1, 1)).toBeCloseTo(0.05);
+    expect(_placed.hitDistance(marking, [0.78, 0.59, 0], 0.04, 1)).toBeUndefined();
   });
   it('are rounded to 1/10000, and copied apart', () => {
-    const c = _placed.compact({ ...mark, at: [0.123456, 0.654321], size: 0.0351234 });
+    const c = _placed.compact({ ...marking, at: [0.123456, 0.654321], size: 0.0351234 });
     expect(c.at).toEqual([0.1235, 0.6543]);
     expect(c.size).toBe(0.0351);
-    const copy = _placed.copy(mark);
-    expect(copy).toEqual(mark);
-    expect(copy.at).not.toBe(mark.at);
-    expect(copy.glyphs[0]).not.toBe(mark.glyphs[0]);
+    const copy = _placed.copy(marking);
+    expect(copy).toEqual(marking);
+    expect(copy.at).not.toBe(marking.at);
+    expect(copy.glyphs[0]).not.toBe(marking.glyphs[0]);
   });
   it('need the glyphs of their fonts', () => {
     const stroke: Stroke = { tool: 'pen', color: '#000', size: 0.002, points: [[0, 0, 0]] };
-    expect(glyphKeysIn({ a: [mark, stroke], b: [mark] })).toEqual(new Set(['t:1', 't:2']));
+    expect(glyphKeysIn({ a: [marking, stroke], b: [marking] })).toEqual(new Set(['t:1', 't:2']));
   });
   it('draw a half-opaque white halo, then the glyphs in their colour', () => {
     const shapes: [readonly PathCmd[], Paint][] = [];
     const draw: Drawing = { path() {}, shape: (cmds, paint) => void shapes.push([cmds, paint]) };
     const t: DrawTarget = { draw, w: 1000, h: 1400, ox: 0, oy: 0 };
-    _placed.draw(t, mark);
+    _placed.draw(t, marking);
     expect(shapes).toHaveLength(2);
     const [halo, fill] = shapes;
     expect(halo[1]).toEqual({ stroke: { color: '#ffffff', opacity: 0.5, multiply: false }, width: 0.04 * 0.1 * 1000 });
@@ -122,8 +122,8 @@ describe('default colours', () => {
   });
   it('colour a marking without a colour of its own, and not one with its own', () => {
     setMarkingColors({ color: '#800000' });
-    expect(fillColor(mark)).toBe('#800000');
-    expect(fillColor({ ...mark, color: '#00ff00' })).toBe('#00ff00');
+    expect(fillColor(marking)).toBe('#800000');
+    expect(fillColor({ ...marking, color: '#00ff00' })).toBe('#00ff00');
   });
 });
 
@@ -132,11 +132,11 @@ describe('backgrounds', () => {
   // Its ink spans -1..2 across and -0.5..0.5 up and down, so 3 × 1 em; the padding makes it 3.24 × 1.24.
   let ink: ReturnType<typeof emExtent> & {}, x0 = 0, y0 = 0, x1 = 0, y1 = 0, point = 0;
   beforeAll(() => {
-    ink = emExtent(mark)!;
+    ink = emExtent(marking)!;
     [x0, y0, x1, y1] = [ink[0] - 0.12, ink[1] - 0.12, ink[2] + 0.12, ink[3] + 0.12];
     point = (y1 - y0) * (Math.tan(Math.PI / 6) / 2);
   });
-  const boxed = (shape: 'box' | 'tag-left' | 'tag-right', color?: string): PlacedMarking => ({ ...mark, background: { shape, color } });
+  const boxed = (shape: 'box' | 'tag-left' | 'tag-right', color?: string): PlacedMarking => ({ ...marking, background: { shape, color } });
 
   it('have a box outline of the ink grown by the padding, clockwise from the top left', () => {
     expect(backgroundOutline(boxed('box'))).toEqual([[x0, y0], [x1, y0], [x1, y1], [x0, y1]]);
@@ -155,18 +155,18 @@ describe('backgrounds', () => {
     expect(o[4][1]).toBeCloseTo((y0 + y1) / 2);
   });
   it('have no outline without a background', () => {
-    expect(backgroundOutline(mark)).toBeUndefined();
+    expect(backgroundOutline(marking)).toBeUndefined();
   });
   it('widen the extent by a tag\'s point, and leave it alone without a background', () => {
     expect(markingExtent(boxed('tag-right'))![2]).toBeCloseTo(x1 + point);
     expect(markingExtent(boxed('tag-right'))![0]).toBeCloseTo(x0);
-    expect(markingExtent(mark)).toEqual(emExtent(mark));
+    expect(markingExtent(marking)).toEqual(emExtent(marking));
   });
   it('are hit by a point in their padding only when there is one', () => {
     // 0.06 em beyond the ink, to the right: 0.006 page widths.
     const p: [number, number, number] = [0.5 + ink[2] * 0.1 + 0.006, 0.5, 0];
     expect(_placed.hitDistance(boxed('box'), p, 0, 1.4)).toBeDefined();
-    expect(_placed.hitDistance(mark, p, 0, 1.4)).toBeUndefined();
+    expect(_placed.hitDistance(marking, p, 0, 1.4)).toBeUndefined();
   });
   it('are drawn first, filled in the default background colour and darkening only', () => {
     const shapes: [readonly PathCmd[], Paint][] = [];
@@ -197,7 +197,7 @@ describe('backgrounds', () => {
 describe('passes', () => {
   const stroke: Stroke = { tool: 'pen', color: '#000', size: 0.002, points: [[0.1, 0.2, 0.5]], pass: 2 };
   it('are kept when a marking is compacted or copied', () => {
-    for (const m of [{ ...mark, pass: 2 }, stroke]) {
+    for (const m of [{ ...marking, pass: 2 }, stroke]) {
       expect(compactMarking(m).pass).toBe(2);
       expect(copyMarking(m).pass).toBe(2);
     }

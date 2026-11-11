@@ -115,7 +115,7 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
     the library.
   - The menu stays open after the buttons, and opens again when a dialog from it closes.
 - Showing the toolbar doesn't move the pages: it covers the top of them. Drag (one finger, with no
-  tool in use) or pinch (two fingers) to bring the top out from under it, or to zoom in or out;
+  active tool) or pinch (two fingers) to bring the top out from under it, or to zoom in or out;
   the pages can't be moved so that less of them shows, and can't be made smaller than they fit
   below the toolbar. Turning the page shows the new screen whole below the toolbar, centred.
   Hiding the toolbar puts the pages back at full size. With the toolbar hidden, a pinch that

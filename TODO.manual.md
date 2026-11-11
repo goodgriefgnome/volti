@@ -40,11 +40,11 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - Lift after a tap: the loupe goes. Drag: it follows the finger smoothly, with no stalls.
   - Stop the finger: the music in the loupe turns sharp shortly after (about 150 ms, and the
     drawing). Move again: it follows at once, softer, and sharpens again when you stop.
-- **A chosen button stands out** (in the reader, light theme):
-  - In Pen's colours, the Text panel and the Symbols panel, the chosen colour, shape and symbol
+- **A picked button stands out** (in the reader, light theme):
+  - In Pen's colours, the Text panel and the Symbols panel, the picked colour, shape and symbol
     are white with a 2 px blue ring, plain to see at a glance; the others show the menu's
-    off-white, and nothing else looks chosen. The Font dropdown stays a white field.
-  - On the toolbar, the tool in use and Cuts (when on) have the same blue ring, and their icons
+    off-white, and nothing else looks picked. The Font dropdown stays a white field.
+  - On the toolbar, the active tool and Cuts (when on) have the same blue ring, and their icons
     keep their colour.
 - **The loupe's magnification from the score's symbol size:** placing a staccato dot, a fingering,
   *pp* and text on a whole screen, the loupe shows the staff at the same size each time (about
@@ -62,7 +62,7 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
 - **A long press makes the tool the tool:**
   - With no tool, long-press Pen, Highlight, Text, then Symbols in turn: each becomes the tool
     (lit; for Symbols, the last symbol picked) and its panel opens.
-  - Long-press the button of the tool already in use: its panel opens, and it stays the tool (it
+  - Long-press the button of the tool already active: its panel opens, and it stays the tool (it
     is not put away).
   - Select a symbol under Symbols, long-press Text: it is the tool, the symbol is deselected, and
     the panel shows the settings for new text. Choosing a setting in a panel doesn't change the
@@ -381,7 +381,7 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
 - **The version in the library's ⋯ menu:** after an update takes over, the menu's last line reads
   `Version <hash> · <date>` of the commit just pushed.
 - **The Symbols panel's symbols sit in the middle of their buttons:** a staccato dot and a
-  fermata sit in the middle of their buttons (52 px square), and the chosen one's ring is even
+  fermata sit in the middle of their buttons (52 px square), and the picked one's ring is even
   round it.
 - **The selected marking's handles smaller, and its box's line over them:** zoomed in and out,
   the box's line is as dark and as thick where it crosses a handle as anywhere else, and runs

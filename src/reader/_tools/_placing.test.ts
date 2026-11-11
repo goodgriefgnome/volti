@@ -7,8 +7,8 @@ import type { FrameSlot } from '../_slots';
 import { _lifted, _tapAction, placingTool } from './_placing';
 import type { Press, ToolHost } from './_tool';
 
-const mark = (text: string): PlacedMarking => ({ kind: 'symbol', text, font: 'f', glyphs: [], at: [0.5, 0.5], size: 0.05 });
-const a = mark('a'), b = mark('b');
+const marking = (text: string): PlacedMarking => ({ kind: 'symbol', text, font: 'f', glyphs: [], at: [0.5, 0.5], size: 0.05 });
+const a = marking('a'), b = marking('b');
 
 describe('_tapAction', () => {
   it('goes again on the selected marking', () => expect(_tapAction(a, a)).toBe('again'));
@@ -38,7 +38,7 @@ describe('placingTool: the press', () => {
     const calls: string[] = [];
     const host = {
       zoom: () => ({ s: 1 }), aspects: () => aspects, state: () => state([c], { [c.id]: [ink] }), slots: () => [slot],
-      selected: () => (selected ? { cut: c.id, mark: selected } : undefined), select: () => {}, drawInk: () => {},
+      selected: () => (selected ? { cut: c.id, marking: selected } : undefined), select: () => {}, drawInk: () => {},
       loupe: () => ({ begin: () => void calls.push('begin'), show: () => void calls.push('show'), end: () => void calls.push('end') }),
     } as unknown as ToolHost;
     const ghost = () => ({ ...m, at: [0.2, 0.2] as [number, number] });
@@ -47,7 +47,7 @@ describe('placingTool: the press', () => {
     return { calls, placed, host, tool };
   };
   const press = (x: number, on?: Press['on'], py = y): Press => ({ slot, framePoint: [x, py, 0.5], screenPoint: { x: x * 1000, y: 0 }, ...(on ? { on } : {}) });
-  const grabbed: Press['on'] = { what: 'grabbed', sel: { page: c.page, cut: c.id, mark: m } };
+  const grabbed: Press['on'] = { what: 'grabbed', sel: { page: c.page, cut: c.id, marking: m } };
   it('shows the loupe on a grabbed marking at once, and hides it when lifting', () => {
     const { calls, tool } = setup();
     const use = tool.start(press(0.5, grabbed))!;
@@ -102,7 +102,7 @@ describe('placingTool: its chrome', () => {
   const tool = (m: PlacedMarking, selected: boolean) => {
     const host = {
       zoom: () => ({ s: 1 }), aspects: () => aspects, state: () => state([c], { [c.id]: [m] }),
-      selected: () => (selected ? { cut: c.id, mark: m } : undefined),
+      selected: () => (selected ? { cut: c.id, marking: m } : undefined),
     } as unknown as ToolHost;
     return placingTool(host, { name: 'symbol', owns: () => true, place: () => {}, ghost: () => undefined, again: () => {}, resized: (s) => s });
   };

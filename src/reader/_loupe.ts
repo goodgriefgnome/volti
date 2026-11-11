@@ -59,7 +59,7 @@ export const sharpIsFull = (m: number, d: number) => (sharpSide(LOUPE_PX / m, m,
 interface Sharp { canvas: HTMLCanvasElement; x0: number; y0: number; x1: number; y1: number }
 
 /** The ink to draw sharp: the state's, and a marking being dragged (on its slot). */
-export interface SharpInk { ink: ScoreInk; extra?: { slot: FrameSlot; mark: Marking } }
+export interface SharpInk { ink: ScoreInk; extra?: { slot: FrameSlot; marking: Marking } }
 
 export class Loupe {
   private canvas: HTMLCanvasElement | undefined;
@@ -167,7 +167,7 @@ export class Loupe {
     const lower = this.underCanvas ??= Object.assign(el('canvas'), { width: side, height: side });
     const W = b.width * m * d;
     const ox = (target.x - b.left) * m * d - r * d, oy = (target.y - b.top) * m * d - r * d;
-    drawFrameInk(own.getContext('2d')!, slot.frame, ink.ink, this.view.aspects(), W, ox, oy, ink.extra?.slot === slot ? ink.extra.mark : undefined, lower.getContext('2d')!);
+    drawFrameInk(own.getContext('2d')!, slot.frame, ink.ink, this.view.aspects(), W, ox, oy, ink.extra?.slot === slot ? ink.extra.marking : undefined, lower.getContext('2d')!);
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalCompositeOperation = 'multiply';

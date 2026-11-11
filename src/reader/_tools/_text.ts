@@ -6,7 +6,7 @@
 import { ACADEMICO, fontChoices, fontMetrics, shapeWith, type FontChoice } from '../../fonts/fonts';
 import { mix } from '../../markings/draw';
 import { compactMarking, type Marking } from '../../markings/model';
-import { baselineStart, markingColors, textMark, type Background, type PlacedMarking } from '../../markings/placed';
+import { baselineStart, markingColors, textMarking, type Background, type PlacedMarking } from '../../markings/placed';
 import { saveGlyphs } from '../../markings/store';
 import { backgroundOf, ownColor, type BackgroundChoice, type ColorChoice } from '../../markings/tool-settings';
 import { replaceMarking, setInk, textResized, textSizeOf } from '../../scores/edits';
@@ -31,14 +31,14 @@ export const textTool = (host: ToolHost): Tool => {
   /** The selected marking, when it is a text marking. */
   const selectedText = (): Selected | undefined => {
     const sel = host.selected();
-    return sel && isText(sel.mark) ? sel : undefined;
+    return sel && isText(sel.marking) ? sel : undefined;
   };
 
   /* ---------- the button ---------- */
 
   /** What the button shows: the selected text marking's look, else the settings for the next one. */
   const look = (): Look => {
-    const m = selectedText()?.mark;
+    const m = selectedText()?.marking;
     if (m) return { font: m.font, color: m.color ?? markingColors().color, ...(m.background ? { background: m.background } : {}) };
     const t = host.settings().text, background = backgroundOf(t.background, t.backgroundColor);
     return { font: t.font ?? ACADEMICO, color: ownColor(t.color) ?? markingColors().color, ...(background ? { background } : {}) };
@@ -72,7 +72,7 @@ export const textTool = (host: ToolHost): Tool => {
     const g = ghostText, t = host.settings().text;
     if (!g || g.font !== (t.font ?? ACADEMICO)) return undefined;
     const size = textSizeOf(host.state().score);
-    const made = textMark(g.font, 'Ag', g.glyphs, [at[0], at[1] + (g.capHeight / 2) * size], size);
+    const made = textMarking(g.font, 'Ag', g.glyphs, [at[0], at[1] + (g.capHeight / 2) * size], size);
     if (!made) return undefined;
     const background = backgroundOf(t.background, t.backgroundColor);
     return { ...made, color: mix(ownColor(t.color) ?? markingColors().color, '#1f6fe0', 0.25), ...(background ? { background } : {}) };
@@ -96,11 +96,11 @@ export const textTool = (host: ToolHost): Tool => {
   const placeText = async (slot: FrameSlot, font: string, size: number, text: string, start: [number, number]) => {
     if (!text.trim()) return;
     const s = await shaped(font, text);
-    const made = s && textMark(font, text, s.glyphs, start, size);
+    const made = s && textMarking(font, text, s.glyphs, start, size);
     if (!made) return;
     const t = host.settings().text, color = ownColor(t.color), background = backgroundOf(t.background, t.backgroundColor);
-    const mark: PlacedMarking = { ...made, ...(color ? { color } : {}), ...(background ? { background } : {}) };
-    const claimed = claimMarking(slot.frame, compactMarking(mark), host.aspects());
+    const placed: PlacedMarking = { ...made, ...(color ? { color } : {}), ...(background ? { background } : {}) };
+    const claimed = claimMarking(slot.frame, compactMarking(placed), host.aspects());
     if (!claimed) return;
     const { cut, marking } = claimed, state = host.state();
     host.commit(setInk(state, cut.page, [...(state.ink[cut.page] ?? []), marking]), cut.id);
@@ -128,8 +128,8 @@ export const textTool = (host: ToolHost): Tool => {
     const slot = host.slots().find((sl) => sl.frame.items.some((i) => i.cut.id === sel.cut));
     const item = slot?.frame.items.find((i) => i.cut.id === sel.cut);
     if (!slot || !item) return undefined;
-    const { mark } = sel, size = mark.size;
-    const [cx, cy] = centreOnFrame(item, mark, host.aspects()[item.cut.page]), [bx, by] = baselineStart(mark);
+    const { marking } = sel, size = marking.size;
+    const [cx, cy] = centreOnFrame(item, marking, host.aspects()[item.cut.page]), [bx, by] = baselineStart(marking);
     return { slot, start: [cx + bx * size, cy + by * size] };
   };
 
@@ -138,14 +138,14 @@ export const textTool = (host: ToolHost): Tool => {
     const site = textSite(sel);
     if (!site) return;
     const { slot, start } = site;
-    const state = host.state(), { mark } = sel;
+    const state = host.state(), { marking } = sel;
     const restore = () => { host.drawInk(slot); host.select(sel); };
-    if (!state.ink[sel.page]?.includes(mark)) { host.drawInk(slot); return; }
-    if (text === mark.text && font === mark.font) { restore(); return; }
+    if (!state.ink[sel.page]?.includes(marking)) { host.drawInk(slot); return; }
+    if (text === marking.text && font === marking.font) { restore(); return; }
     const s = text.trim() ? await shaped(font, text) : undefined;
     if (text.trim() && !s) { restore(); return; }
-    const next = s && textMark(font, text, s.glyphs, start, mark.size);
-    if (!next) { host.commit(replaceMarking(state, sel.page, mark), sel.cut); return; }
+    const next = s && textMarking(font, text, s.glyphs, start, marking.size);
+    if (!next) { host.commit(replaceMarking(state, sel.page, marking), sel.cut); return; }
     const moved = movedTo(state, slot.frame, sel, next.at, host.aspects(), next.size, { text, font, glyphs: next.glyphs });
     host.commit(moved.state, moved.selected.cut, moved.selected);
     host.select(moved.selected);
@@ -155,14 +155,14 @@ export const textTool = (host: ToolHost): Tool => {
   const editText = (sel: Selected) => {
     const site = textSite(sel);
     if (!site) return;
-    const { slot, start } = site, { mark } = sel, size = mark.size;
+    const { slot, start } = site, { marking } = sel, size = marking.size;
     void (async () => {
       try {
-        const font = (await fontChoices()).some((c) => c.id === mark.font) ? mark.font : ACADEMICO;
+        const font = (await fontChoices()).some((c) => c.id === marking.font) ? marking.font : ACADEMICO;
         // Without the marking while its field is open.
-        host.drawState(slot, replaceMarking(host.state(), sel.page, sel.mark));
+        host.drawState(slot, replaceMarking(host.state(), sel.page, sel.marking));
         await typing.show({
-          slot, font, size, color: mark.color ?? markingColors().color, start, text: mark.text,
+          slot, font, size, color: marking.color ?? markingColors().color, start, text: marking.text,
           done: (text, typed) => void retext(sel, typed, text),
           cancel: () => { host.drawInk(slot); host.select(sel); },
         });
@@ -180,10 +180,10 @@ export const textTool = (host: ToolHost): Tool => {
   /** A colour from the panel: the selected text marking takes it, and so do new ones. */
   const panelColor = (c: ColorChoice) => {
     const sel = selectedText();
-    if (sel && sel.mark.color !== ownColor(c)) {
-      const { color: _, ...rest } = sel.mark, own = ownColor(c);
+    if (sel && sel.marking.color !== ownColor(c)) {
+      const { color: _, ...rest } = sel.marking, own = ownColor(c);
       const marked: PlacedMarking = own ? { ...rest, color: own } : rest;
-      host.commit(replaceMarking(host.state(), sel.page, sel.mark, marked), sel.cut, { ...sel, mark: marked });
+      host.commit(replaceMarking(host.state(), sel.page, sel.marking, marked), sel.cut, { ...sel, marking: marked });
     }
     host.setSettings((s) => ({ ...s, text: { ...s.text, color: c } }));
   };
@@ -192,12 +192,12 @@ export const textTool = (host: ToolHost): Tool => {
   const panelBackground = (change: { shape?: BackgroundChoice; color?: ColorChoice }) => {
     const sel = selectedText();
     if (sel) {
-      const was: Background | undefined = sel.mark.background;
+      const was: Background | undefined = sel.marking.background;
       const next = backgroundOf(change.shape ?? was?.shape ?? 'none', change.color ?? was?.color ?? 'default');
       if (JSON.stringify(next) !== JSON.stringify(was)) {
-        const { background: _, ...rest } = sel.mark;
+        const { background: _, ...rest } = sel.marking;
         const marked: PlacedMarking = next ? { ...rest, background: next } : rest;
-        host.commit(replaceMarking(host.state(), sel.page, sel.mark, marked), sel.cut, { ...sel, mark: marked });
+        host.commit(replaceMarking(host.state(), sel.page, sel.marking, marked), sel.cut, { ...sel, marking: marked });
       }
     }
     host.setSettings((s) => ({ ...s, text: { ...s.text, ...(change.shape !== undefined ? { background: change.shape } : {}), ...(change.color !== undefined ? { backgroundColor: change.color } : {}) } }));
@@ -210,7 +210,7 @@ export const textTool = (host: ToolHost): Tool => {
     if (typing.open) void typing.setFont(id).then(setFace, (e) => host.say(failed('change the font', e)));
     else {
       const sel = selectedText();
-      if (sel && sel.mark.font !== id) void retext(sel, id, sel.mark.text);
+      if (sel && sel.marking.font !== id) void retext(sel, id, sel.marking.text);
     }
   };
 
@@ -233,7 +233,7 @@ export const textTool = (host: ToolHost): Tool => {
       return placing.start(press);
     },
     showPanel(anchor) {
-      const sel = selectedText()?.mark, t = host.settings().text;
+      const sel = selectedText()?.marking, t = host.settings().text;
       const v: TextPanel = {
         fonts,
         font: typing.font ?? sel?.font ?? t.font ?? ACADEMICO,

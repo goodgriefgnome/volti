@@ -139,7 +139,7 @@ From the top:
      it was set to none ("Set to None: "Mouth left" also fires on it: it scores 0.97, and its
      release is 0.42. Both are mouthLeft.");
    - when it is fitted:
-     - a meter: its score now, from 0 at the left to 1, with a mark at the on level and a fainter
+     - a meter: its score now, from 0 at the left to 1, with a tick at the on level and a fainter
        one at the release level;
      - **On**, **Release** and **Hold** sliders, as before (the levels in steps of 0.01, showing
        `0.42`; the hold in steps of 50 ms). Release can't be moved past On; moving On under it

@@ -430,7 +430,7 @@ export class Library implements LibraryHost {
 
   /* ---------- named excerpts, and scores opened for dialogs ---------- */
 
-  /** Save a score changed here (its names), with the setlists if they changed too. */
+  /** Save a score changed here (its named excerpts), with the setlists if they changed too. */
   private saveScore(score: Score, setlists = this.setlists) {
     this.saved.set(score.id, score);
     this.openRows.add(score.id);

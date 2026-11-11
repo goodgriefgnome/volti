@@ -63,14 +63,14 @@ export const symbolTool = (host: ToolHost): Tool => {
   /** The selected marking, when it is a symbol. */
   const selectedSymbol = (): Selected | undefined => {
     const sel = host.selected();
-    return sel && isSymbol(sel.mark) ? sel : undefined;
+    return sel && isSymbol(sel.marking) ? sel : undefined;
   };
 
   /* ---------- the button ---------- */
 
   /** The symbol the button pictures: the selected symbol's, else the last one picked. */
   const buttonSymbol = (): LibrarySymbol | undefined => {
-    const m = selectedSymbol()?.mark;
+    const m = selectedSymbol()?.marking;
     if (!m) return picked();
     const at = lib && findSymbol(lib, m.font, m.text);
     return lib && at ? symbolsOf(lib, at.group)[at.index] : { font: m.font, text: m.text, scale: 1, glyphs: m.glyphs.map((g) => [...g]) };
@@ -78,7 +78,7 @@ export const symbolTool = (host: ToolHost): Tool => {
 
   /** What the button shows: the selected symbol's look, else the settings for the next one. */
   const look = (): Look => {
-    const m = selectedSymbol()?.mark;
+    const m = selectedSymbol()?.marking;
     if (m) return { color: m.color ?? markingColors().color, ...(m.background ? { background: m.background } : {}) };
     const background = picked()?.background;
     return { color: ownColor(host.settings().symbol.color) ?? markingColors().color, ...(background ? { background } : {}) };
@@ -129,17 +129,17 @@ export const symbolTool = (host: ToolHost): Tool => {
    * and `sym` its group's current symbol.
    */
   const replaceWith = (sel: Selected, sym: LibrarySymbol) => {
-    const { mark } = sel;
+    const { marking } = sel;
     if (!lib) return;
-    const size = (mark.size / scaleOf(lib, mark.font, mark.text)) * sym.scale;
+    const size = (marking.size / scaleOf(lib, marking.font, marking.text)) * sym.scale;
     // It keeps its own colour, background and pass, not the new symbol's.
-    const { background: _, ...fresh } = placed(sym, mark.at, size);
+    const { background: _, ...fresh } = placed(sym, marking.at, size);
     const replacement = compactMarking({
-      ...fresh, ...(mark.color ? { color: mark.color } : {}), ...(mark.background ? { background: { ...mark.background } } : {}),
-      ...(mark.pass !== undefined ? { pass: mark.pass } : {}),
+      ...fresh, ...(marking.color ? { color: marking.color } : {}), ...(marking.background ? { background: { ...marking.background } } : {}),
+      ...(marking.pass !== undefined ? { pass: marking.pass } : {}),
     }) as PlacedMarking;
-    host.commit(setSymbolSize(replaceMarking(host.state(), sel.page, mark, replacement), size / sym.scale), sel.cut, { ...sel, mark: replacement });
-    host.select({ ...sel, mark: replacement });
+    host.commit(setSymbolSize(replaceMarking(host.state(), sel.page, marking, replacement), size / sym.scale), sel.cut, { ...sel, marking: replacement });
+    host.select({ ...sel, marking: replacement });
     const at = findSymbol(lib, sym.font, sym.text);
     if (at) makeCurrent(at.group, at.index);
   };
@@ -211,7 +211,7 @@ export const symbolTool = (host: ToolHost): Tool => {
   /* ---------- placing and cycling ---------- */
 
   /** The current symbol as it would be placed, centred at `at`: its colour and background. */
-  const symbolMark = (at: [number, number]): PlacedMarking | undefined => {
+  const symbolMarking = (at: [number, number]): PlacedMarking | undefined => {
     const sym = picked();
     if (!sym) return undefined;
     const made = placed(sym, at, symbolSizeOf(host.state().score) * sym.scale), color = ownColor(host.settings().symbol.color);
@@ -220,7 +220,7 @@ export const symbolTool = (host: ToolHost): Tool => {
 
   /** Replace the selected symbol with the next of its group. */
   const cycle = (sel: Selected) => {
-    const next = lib && nextSymbol(lib, sel.mark.font, sel.mark.text);
+    const next = lib && nextSymbol(lib, sel.marking.font, sel.marking.text);
     if (next) replaceWith(sel, next);
   };
 
@@ -229,10 +229,10 @@ export const symbolTool = (host: ToolHost): Tool => {
   /** A colour from the panel: the selected symbol takes it, and so do new ones. */
   const panelColor = (c: ColorChoice) => {
     const sel = selectedSymbol();
-    if (sel && sel.mark.color !== ownColor(c)) {
-      const { color: _, ...rest } = sel.mark, own = ownColor(c);
+    if (sel && sel.marking.color !== ownColor(c)) {
+      const { color: _, ...rest } = sel.marking, own = ownColor(c);
       const marked: PlacedMarking = own ? { ...rest, color: own } : rest;
-      host.commit(replaceMarking(host.state(), sel.page, sel.mark, marked), sel.cut, { ...sel, mark: marked });
+      host.commit(replaceMarking(host.state(), sel.page, sel.marking, marked), sel.cut, { ...sel, marking: marked });
     }
     host.setSettings((s) => ({ ...s, symbol: { color: c } }));
   };
@@ -247,14 +247,14 @@ export const symbolTool = (host: ToolHost): Tool => {
     const resolve = (was: Background | undefined) => backgroundOf(change.shape ?? was?.shape ?? 'none', change.color ?? was?.color ?? 'default');
     let next: Background | undefined;
     if (sel) {
-      next = resolve(sel.mark.background);
-      if (JSON.stringify(next) !== JSON.stringify(sel.mark.background)) {
-        const { background: _, ...rest } = sel.mark;
+      next = resolve(sel.marking.background);
+      if (JSON.stringify(next) !== JSON.stringify(sel.marking.background)) {
+        const { background: _, ...rest } = sel.marking;
         const marked: PlacedMarking = next ? { ...rest, background: next } : rest;
-        host.commit(replaceMarking(host.state(), sel.page, sel.mark, marked), sel.cut, { ...sel, mark: marked });
+        host.commit(replaceMarking(host.state(), sel.page, sel.marking, marked), sel.cut, { ...sel, marking: marked });
       }
     }
-    const at = lib && sel && findSymbol(lib, sel.mark.font, sel.mark.text);
+    const at = lib && sel && findSymbol(lib, sel.marking.font, sel.marking.text);
     const sym = sel ? lib && at && symbolsOf(lib, at.group)[at.index] : picked();
     if (lib && sym) {
       const { background: _, ...rest } = sym, was = sel ? next : resolve(sym.background);
@@ -266,14 +266,14 @@ export const symbolTool = (host: ToolHost): Tool => {
     name: 'symbol',
     owns: isSymbol,
     place(slot, at) {
-      const made = symbolMark(at), state = host.state();
+      const made = symbolMarking(at), state = host.state();
       if (!made) return;
       const claimed = claimMarking(slot.frame, compactMarking(made), host.aspects());
       if (!claimed) return;
       const { cut, marking } = claimed;
       host.commit(setInk(state, cut.page, [...(state.ink[cut.page] ?? []), marking]), cut.id);
     },
-    ghost: symbolMark,
+    ghost: symbolMarking,
     again: cycle,
     resized: (s, size, from) => setSymbolSize(s, size / scaleOf(lib, from.font, from.text)),
   });
@@ -282,7 +282,7 @@ export const symbolTool = (host: ToolHost): Tool => {
     ...placing,
     async showPanel(anchor) {
       if (!await ensureLibrary()) return;
-      const sel = selectedSymbol()?.mark, was = sel ? sel.background : picked()?.background;
+      const sel = selectedSymbol()?.marking, was = sel ? sel.background : picked()?.background;
       const v: SymbolSettingsView = {
         color: sel ? sel.color ?? 'default' : host.settings().symbol.color,
         background: was?.shape ?? 'none',
@@ -291,7 +291,7 @@ export const symbolTool = (host: ToolHost): Tool => {
       showSymbolPanel(anchor, {
         library: () => lib!,
         // The panel lights the selected symbol, as the button pictures it; with none selected, the tool's.
-        tool: () => { const s = selectedSymbol()?.mark ?? picked(); return lib && s && equipped ? findSymbol(lib, s.font, s.text) : undefined; },
+        tool: () => { const s = selectedSymbol()?.marking ?? picked(); return lib && s && equipped ? findSymbol(lib, s.font, s.text) : undefined; },
         pick: (at) => pick(at.group, at.index),
         move: moveSymbolTo,
         moveGroup: moveGroupTo,

@@ -219,9 +219,9 @@ export class Input {
     const owner = (m: Marking) => Object.values(this.tools).find((t) => t.ownsMarking?.(m));
     const found = markingAt(hit.slot.frame, host.state().ink, host.aspects(), [fp[0], fp[1]], SELECT_MARGIN_PX / (hit.slot.w * host.zoom().s), (m) => !!owner(m));
     if (found) {
-      const picked = { page: found.cut.page, cut: found.cut.id, mark: found.mark as PlacedMarking };
+      const picked = { page: found.cut.page, cut: found.cut.id, marking: found.marking as PlacedMarking };
       host.select(picked);
-      return { tool: owner(found.mark)!, on: { what: 'grabbed', sel: picked } };
+      return { tool: owner(found.marking)!, on: { what: 'grabbed', sel: picked } };
     }
     // 3. Anywhere else, a selection only ends.
     if (sel) { host.select(undefined); return 'ended'; }

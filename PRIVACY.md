@@ -9,7 +9,7 @@ If you link a Google Drive folder, Volti asks Google for access to your Drive an
 
 - list the files in the folder you linked, and the folders inside it
 - download those files to show them, and keep copies on your device so they open offline
-- upload, rename, move and send to Drive's trash the files in that folder, when you ask it to
+- upload, rename, move and send to Drive's bin the files in that folder, when you ask it to
 
 Volti doesn't read or change anything outside the folder you linked. The key that lets Volti reach
 your Drive is kept in your browser on your device. Your files go only between your device and

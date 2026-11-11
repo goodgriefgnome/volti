@@ -17,7 +17,7 @@ export class LendStack<T> {
     this.entries = [{ tool: bottom }];
   }
 
-  /** The tool on top. */
+  /** The active tool. */
   get active(): T {
     return this.entries[this.entries.length - 1].tool;
   }

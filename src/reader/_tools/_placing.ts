@@ -19,7 +19,7 @@ import { TOOL_LABELS, type Press, type Tool, type ToolHost, type ToolName } from
  * `px` the CSS pixels in a frame width: what the box drawn by `SelectionBox` is.
  */
 function selectionOn(item: Placed, sel: Selected, aspect: number, px: number): { box: [number, number, number, number]; r: number } | undefined {
-  const ext = extentOnFrame(item, sel.mark, aspect);
+  const ext = extentOnFrame(item, sel.marking, aspect);
   if (!ext) return undefined;
   const box = selectionBox(ext, MIN_BOX_PX / px);
   return { box, r: handleRadius(Math.min(box[2] - box[0], box[3] - box[1]) * px) / px };
@@ -79,9 +79,9 @@ export function placingTool(host: ToolHost, spec: Placing): Tool {
   let moving = false;
   const drawChrome = () => {
     const sel = host.selected();
-    const slot = sel && !moving && !spec.chromeHidden?.() && owns(sel.mark) ? host.slots().find((sl) => sl.frame.items.some((i) => i.cut.id === sel.cut)) : undefined;
+    const slot = sel && !moving && !spec.chromeHidden?.() && owns(sel.marking) ? host.slots().find((sl) => sl.frame.items.some((i) => i.cut.id === sel.cut)) : undefined;
     const item = slot && slot.frame.items.find((i) => i.cut.id === sel!.cut);
-    const ext = item && sel ? extentOnFrame(item, sel.mark, host.aspects()[item.cut.page]) : undefined;
+    const ext = item && sel ? extentOnFrame(item, sel.marking, host.aspects()[item.cut.page]) : undefined;
     if (slot && ext && sel) {
       box ??= new SelectionBox(() => host.delete(), (on) => host.setThisTimeOnly(on));
       box.show(host.layer(slot), slot, ext, host.zoom().s, thisTimeOnly(host.state().score, sel));
@@ -114,21 +114,21 @@ export function placingTool(host: ToolHost, spec: Placing): Tool {
 
       // A press on a handle of the selected marking's box resizes it; on the box, moves it (and a tap acts on it); on a marking the reader selected for it, moves that.
       // What was selected before this press, read before anything else tells the tool of a change.
-      const priorMark = on?.what === 'chrome' ? host.selected()?.mark : before?.mark;
+      const priorMarking = on?.what === 'chrome' ? host.selected()?.marking : before?.marking;
       let grab: Grab | undefined;
-      let hit: { cut: Cut; mark: PlacedMarking } | undefined;
+      let hit: { cut: Cut; marking: PlacedMarking } | undefined;
       const sel = host.selected(), selItem = sel && itemOf(sel.cut);
       if (on?.what === 'chrome' && sel && selItem) {
         const box = selectionOn(selItem, sel, aspects[selItem.cut.page], px);
         const pressed = box && pressOnSelection(box.box, box.r, at0);
-        const centre = centreOnFrame(selItem, sel.mark, aspects[selItem.cut.page]);
+        const centre = centreOnFrame(selItem, sel.marking, aspects[selItem.cut.page]);
         if (box && pressed?.kind === 'handle') grab = { kind: 'resize', from: sel, corner: pressed.corner, ext: box.box, centre };
-        else { grab = { kind: 'move', from: sel, centre }; hit = { cut: selItem.cut, mark: sel.mark }; }
+        else { grab = { kind: 'move', from: sel, centre }; hit = { cut: selItem.cut, marking: sel.marking }; }
       } else if (on?.what === 'grabbed') {
         const item = itemOf(on.sel.cut);
         if (item) {
-          hit = { cut: item.cut, mark: on.sel.mark as PlacedMarking };
-          grab = { kind: 'move', from: on.sel, centre: centreOnFrame(item, on.sel.mark as PlacedMarking, aspects[item.cut.page]) };
+          hit = { cut: item.cut, marking: on.sel.marking as PlacedMarking };
+          grab = { kind: 'move', from: on.sel, centre: centreOnFrame(item, on.sel.marking as PlacedMarking, aspects[item.cut.page]) };
         }
       }
 
@@ -143,15 +143,15 @@ export function placingTool(host: ToolHost, spec: Placing): Tool {
       /** The state the drag so far makes, the marking as it is in it, and the size it implies for a symbol. */
       const dragged = (g: Grab) => {
         if (g.kind === 'move') return movedTo(host.state(), slot.frame, g.from, [g.centre[0] + last[0] - p0[0], g.centre[1] + last[1] - p0[1]], aspects);
-        const r = resizedFrom(g.ext, g.corner, [last[0], last[1]], g.centre, g.from.mark.size);
+        const r = resizedFrom(g.ext, g.corner, [last[0], last[1]], g.centre, g.from.marking.size);
         return movedTo(host.state(), slot.frame, g.from, r.at, aspects, r.size);
       };
 
       /** What a tap does; `target` is the marking it was on as it is now, if the press moved it. */
       const tap = (target?: Selected) => {
         if (grab?.kind === 'resize') return; // a tap on a handle does nothing
-        const marked = target ?? (hit && { page: hit.cut.page, cut: hit.cut.id, mark: hit.mark });
-        switch (_tapAction(priorMark, hit?.mark)) {
+        const marked = target ?? (hit && { page: hit.cut.page, cut: hit.cut.id, marking: hit.marking });
+        switch (_tapAction(priorMarking, hit?.marking)) {
           case 'select': host.select(marked!); break;
           case 'again': spec.again(marked!); break;
           case 'place': {
@@ -179,15 +179,15 @@ export function placingTool(host: ToolHost, spec: Placing): Tool {
       /** Show the ghost under the finger, on the slot there, repainting only what changed. */
       const showGhost = (client: { x: number; y: number }) => {
         const now = slotUnder(host.slots(), slot, [last[0], last[1]]);
-        const mark = now && ghost(now.at);
-        if (over && (!now || !mark || over.slot !== now.slot)) { host.drawInk(over.slot); over = undefined; }
-        if (!now || !mark) { unmagnify(); return; }
+        const marking = now && ghost(now.at);
+        if (over && (!now || !marking || over.slot !== now.slot)) { host.drawInk(over.slot); over = undefined; }
+        if (!now || !marking) { unmagnify(); return; }
         if (!over || over.at[0] !== now.at[0] || over.at[1] !== now.at[1]) {
-          host.drawInk(now.slot, mark);
+          host.drawInk(now.slot, marking);
           over = now;
         }
-        const e = markingExtent(mark);
-        magnify(now.slot, e && [now.at[0] + e[0] * mark.size, now.at[1] + e[1] * mark.size, now.at[0] + e[2] * mark.size, now.at[1] + e[3] * mark.size], client, { ink: host.state().ink, extra: { slot: now.slot, mark } });
+        const e = markingExtent(marking);
+        magnify(now.slot, e && [now.at[0] + e[0] * marking.size, now.at[1] + e[1] * marking.size, now.at[0] + e[2] * marking.size, now.at[1] + e[3] * marking.size], client, { ink: host.state().ink, extra: { slot: now.slot, marking } });
       };
 
       /** Forget the drag: show the ink as it is, and the box again. */
@@ -212,7 +212,7 @@ export function placingTool(host: ToolHost, spec: Placing): Tool {
         box?.hide();
         host.drawState(slot, r.state);
         const item = itemOf(r.selected.cut);
-        magnify(slot, item && extentOnFrame(item, r.selected.mark, aspects[item.cut.page]), client, { ink: r.state.ink });
+        magnify(slot, item && extentOnFrame(item, r.selected.marking, aspects[item.cut.page]), client, { ink: r.state.ink });
       };
       const cancelFrame = () => { cancelAnimationFrame(frame); frame = 0; };
 
@@ -222,7 +222,7 @@ export function placingTool(host: ToolHost, spec: Placing): Tool {
         client = { x: b.left + p0[0] * b.width, y: b.top + p0[1] * b.width };
         if (grab) {
           const item = itemOf(grab.from.cut);
-          magnify(slot, item && extentOnFrame(item, grab.from.mark, aspects[item.cut.page]), client, { ink: host.state().ink });
+          magnify(slot, item && extentOnFrame(item, grab.from.marking, aspects[item.cut.page]), client, { ink: host.state().ink });
         } else if (!on) showGhost(client);
       }
 
@@ -263,7 +263,7 @@ export function placingTool(host: ToolHost, spec: Placing): Tool {
           moving = false;
           let state: State = r.state;
           if (g.kind === 'resize') {
-            state = spec.resized(state, r.selected.mark.size, g.from.mark);
+            state = spec.resized(state, r.selected.marking.size, g.from.marking);
           }
           host.commit(state, r.selected.cut, r.selected);
           host.select(r.selected);

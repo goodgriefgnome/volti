@@ -127,12 +127,12 @@ export class ScoresSection {
   /** A score: tap to open it; the arrow slides its named excerpts open; ⋯ for the rest. */
   private scoreRow(s: SourceFile): HTMLLIElement {
     const { lib } = this;
-    const score = lib.saved.get(s.id), names = score ? sortedExcerpts(score) : [];
+    const score = lib.saved.get(s.id), namedExcerpts = score ? sortedExcerpts(score) : [];
     const title = button('', () => lib.open(s), 'open');
     const name = el('span', 'score-title', titleOf(s.path));
     title.append(name);
     const n = setlistsWith(lib.setlists, s.id).length;
-    const meta = [names.length ? plural(names.length, 'excerpt') : '', n ? `in ${plural(n, 'setlist')}` : ''].filter(Boolean).join(' · ');
+    const meta = [namedExcerpts.length ? plural(namedExcerpts.length, 'excerpt') : '', n ? `in ${plural(n, 'setlist')}` : ''].filter(Boolean).join(' · ');
     if (meta) title.append(el('span', 'score-folder', meta));
 
     const more = moreButton(titleOf(s.path), (at) => showMenu(at, titleOf(s.path), [
@@ -153,10 +153,10 @@ export class ScoresSection {
     ]));
 
     let excerpts: HTMLElement | undefined;
-    if (score && names.length) {
+    if (score && namedExcerpts.length) {
       excerpts = el('ul', 'entries excerpts');
       excerpts.setAttribute('aria-label', `Named excerpts of ${titleOf(s.path)}`);
-      for (const x of names) excerpts.append(this.excerptRow(s, score, x));
+      for (const x of namedExcerpts) excerpts.append(this.excerptRow(s, score, x));
     }
     return expandableRow({
       cls: 'score set',

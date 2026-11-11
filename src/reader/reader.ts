@@ -164,7 +164,7 @@ class Reader {
   private tools!: Record<ToolName, Tool>;
   /** What each tool's button shows, as the tool last set it. */
   private faces = new Map<ToolName, ButtonFace>();
-  /** The tool in use: the one on top of the stack. */
+  /** The active tool: the one on top of the stack. */
   private get tool(): ToolName { return this.stack.active; }
   /** Each tool's settings for new markings; kept across restarts. */
   private settings: ToolSettings = DEFAULT_TOOL_SETTINGS;
@@ -494,7 +494,7 @@ class Reader {
     this.toolbar?.setFace(tool, face);
   }
 
-  /** The tool's chrome layer in a frame, made the first time it is asked for and shown while the tool is in use. */
+  /** The tool's chrome layer in a frame, made the first time it is asked for and shown while the tool is active. */
   private layerFor(tool: ToolName, slot: FrameSlot): HTMLElement {
     slot.layers ??= {};
     let layer = slot.layers[tool];
@@ -507,7 +507,7 @@ class Reader {
     return layer;
   }
 
-  /** Only the chrome of the tool in use shows. */
+  /** Only the chrome of the active tool shows. */
   private showLayers() {
     for (const slot of this.slots) for (const [tool, layer] of Object.entries(slot.layers ?? {})) layer.hidden = tool !== this.tool;
   }
@@ -529,7 +529,7 @@ class Reader {
   private select(s: Selected | undefined) {
     if (s) {
       this.selected = s;
-      const owner = Object.values(this.tools).find((t) => t.ownsMarking?.(s.mark));
+      const owner = Object.values(this.tools).find((t) => t.ownsMarking?.(s.marking));
       if (owner) this.lend(owner.name);
     } else this.deselect();
     this.refreshSelection();
@@ -538,7 +538,7 @@ class Reader {
   /** The selected marking's delete button: take it away, as one undo step. */
   private deleteSelected() {
     const sel = this.selected;
-    if (sel) this.commit(replaceMarking(this.state, sel.page, sel.mark), sel.cut);
+    if (sel) this.commit(replaceMarking(this.state, sel.page, sel.marking), sel.cut);
   }
 
   /** The selected marking's "This time only": its cut's pass (on) or none (off), as one undo step; it stays selected. */
@@ -556,7 +556,7 @@ class Reader {
   private refreshSelection() {
     const sel = this.selected, cur = this.current;
     const cut = sel && cur?.state.score.cuts.find((c) => c.id === sel.cut);
-    if (sel && (!cur || !cut || !cur.state.ink[sel.page]?.includes(sel.mark) || !shows(cut, sel.mark))) this.deselect();
+    if (sel && (!cur || !cut || !cur.state.ink[sel.page]?.includes(sel.marking) || !shows(cut, sel.marking))) this.deselect();
     this.selectionChanged();
     if (cur) this.syncBar();
   }

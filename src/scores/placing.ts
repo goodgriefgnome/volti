@@ -9,7 +9,7 @@ import { passOf, type Aspects, type Cut, type Score, type ScoreInk, type State }
 import { claimMarking, shownBy } from './ownership';
 
 /** A placed marking selected on the music: the page whose ink holds it, the marking itself (found there by identity), and the cut it was selected in, which shows it. */
-export interface Selected { page: number; cut: string; mark: PlacedMarking }
+export interface Selected { page: number; cut: string; marking: PlacedMarking }
 
 type Box = [x0: number, y0: number, x1: number, y1: number];
 
@@ -64,8 +64,8 @@ export function pressOnSelection(box: Box, r: number, p: readonly [number, numbe
  */
 export function markingAt(
   frame: Frame, ink: ScoreInk, aspects: Aspects, p: readonly [number, number], radius: number, owned: (m: Marking) => boolean,
-): { cut: Cut; mark: Marking } | undefined {
-  let best: { cut: Cut; mark: Marking } | undefined, nearest = Infinity;
+): { cut: Cut; marking: Marking } | undefined {
+  let best: { cut: Cut; marking: Marking } | undefined, nearest = Infinity;
   for (const item of frame.items) {
     const { cut } = item, aspect = aspects[cut.page];
     // The point on this cut's page; a frame is a page wide, so frame widths are page widths.
@@ -73,7 +73,7 @@ export function markingAt(
     for (const m of shownBy(cut, ink)) {
       if (!owned(m)) continue;
       const d = hitDistance(m, q, radius, aspect);
-      if (d !== undefined && d <= nearest) { nearest = d; best = { cut, mark: m }; }
+      if (d !== undefined && d <= nearest) { nearest = d; best = { cut, marking: m }; }
     }
   }
   return best;
@@ -105,17 +105,17 @@ export function resizedFrom(ext: Box, corner: 0 | 1 | 2 | 3, p: readonly [number
  * moved marking, for its new text, font and glyphs.
  */
 export function movedTo(
-  s: State, frame: Frame, from: Selected, at: readonly [number, number], aspects: Aspects, size = from.mark.size, content: Partial<PlacedMarking> = {},
+  s: State, frame: Frame, from: Selected, at: readonly [number, number], aspects: Aspects, size = from.marking.size, content: Partial<PlacedMarking> = {},
 ): { state: State; selected: Selected } {
-  const claimed = claimMarking(frame, { ...from.mark, ...content, at: [at[0], at[1]], size }, aspects);
+  const claimed = claimMarking(frame, { ...from.marking, ...content, at: [at[0], at[1]], size }, aspects);
   if (!claimed) return { state: s, selected: from };
   const moved = compactMarking(claimed.marking) as PlacedMarking;
-  const mark = moved.pass === undefined ? moved : { ...moved, pass: passOf(claimed.cut) };
+  const marking = moved.pass === undefined ? moved : { ...moved, pass: passOf(claimed.cut) };
   const page = claimed.cut.page;
   const state = page === from.page
-    ? replaceMarking(s, page, from.mark, mark)
-    : (() => { const left = replaceMarking(s, from.page, from.mark); return setInk(left, page, [...(left.ink[page] ?? []), mark]); })();
-  return { state, selected: { page, cut: claimed.cut.id, mark } };
+    ? replaceMarking(s, page, from.marking, marking)
+    : (() => { const left = replaceMarking(s, from.page, from.marking); return setInk(left, page, [...(left.ink[page] ?? []), marking]); })();
+  return { state, selected: { page, cut: claimed.cut.id, marking } };
 }
 
 /**
@@ -123,14 +123,14 @@ export function movedTo(
  * undefined (hidden) when its page's cuts all have one pass and the marking has none.
  */
 export function thisTimeOnly(score: Score, sel: Selected): 'on' | 'off' | undefined {
-  if (sel.mark.pass !== undefined) return 'on';
+  if (sel.marking.pass !== undefined) return 'on';
   return passesOf(score, [sel.page]).length > 1 ? 'off' : undefined;
 }
 
 /** The state with the selected marking given its cut's pass (on) or none (off), and the marking as it is then. */
 export function setThisTimeOnly(s: State, sel: Selected, on: boolean): { state: State; selected: Selected } {
   const cut = s.score.cuts.find((c) => c.id === sel.cut);
-  const { pass: _, ...rest } = sel.mark;
-  const mark: PlacedMarking = on ? { ...rest, pass: cut ? passOf(cut) : 1 } : rest;
-  return { state: replaceMarking(s, sel.page, sel.mark, mark), selected: { ...sel, mark } };
+  const { pass: _, ...rest } = sel.marking;
+  const marking: PlacedMarking = on ? { ...rest, pass: cut ? passOf(cut) : 1 } : rest;
+  return { state: replaceMarking(s, sel.page, sel.marking, marking), selected: { ...sel, marking } };
 }

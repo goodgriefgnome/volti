@@ -44,7 +44,7 @@ scores.
   exactly those (`offline/pages.ts`). Open:
   - A score whose aspects were never measured and whose file can't be read now (folder locked, no
     password): neither its pages nor their widths can be worked out, as a score's cuts, its
-    frames' shapes and the widths a screen shows them at all follow from its pages' aspects. Its
+    frames' aspects and the widths a screen shows them at all follow from its pages' aspects. Its
     earlier pins are left as they are, and its setlist waits.
   - Both orientations double the pages and the drawing. Eventually the user says which
     orientation each frame is played in, and only that is kept.
@@ -67,7 +67,7 @@ scores.
   (option 3 in https://claude.ai/artifact/Bt8AySBf7E2dZC13NQcqF7).
   - What is stored (`storage/keys.ts`): `score:` (cuts and named excerpts) and `ink:` (markings)
     by original; `setlist:` and `setlists` (their order); `original:` records (where each file
-    is, its page shapes, its password); and a few settings and places: `folder`,
+    is, its aspects, its password); and a few settings and places: `folder`,
     `closed-folders`, `last-added-to`, `last-read`. (Files shared to Volti and not added yet are
     in OPFS now, not in metadata.)
   - Each part's size worked out by Volti from its own records (each written out as JSON), so close
@@ -79,7 +79,7 @@ scores.
   - To think through: how to group them. One split: your work (`score:`, `ink:`, setlists), the
     library's records (`original:`, which hold the passwords too: they could be a part of their
     own), and settings and places. Most of an `original:` record can be worked out again from the
-    files (page shapes; where a folder file is); a password, and where a file in Volti's own
+    files (aspects; where a folder file is); a password, and where a file in Volti's own
     folder or Recently removed is, can't.
 - **Imported fonts** for text and symbol markings (the rest of markings is done; its spec and
   plans are gone, so what was decided is here). The user adds a font file (TTF, OTF, WOFF or
@@ -249,7 +249,7 @@ scores.
 - **A new edition of an original:** replacing a score's PDF isn't supported, as cuts and ink refer
   to page positions.
 - **Markings carry an id while a score is open, so a selection survives edits:** the selection is
-  found by identity now (`includes(sel.mark)` in `refreshSelection`, `reader/reader.ts`), and an
+  found by identity now (`includes(sel.marking)` in `refreshSelection`, `reader/reader.ts`), and an
   edit always makes a new object, so every edit to the selected marking has to hand the reader
   its replacement (`commit`'s `selected`). An `id` field on `Marking`, never stored, would let the
   reader find the selected marking again by id, on its page, after any commit; `commit` would lose

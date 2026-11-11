@@ -192,7 +192,7 @@ export class ToolDesk {
   /** The hand tool's host, which pointer input is given too. */
   readonly handHost: InputHost & HandHost;
   constructor(base: DeskBase, host: ToolDeskHost);
-  /** The tool in use: the one on top of the stack. */
+  /** The active tool: the one on top of the stack. */
   get active(): ToolName;
   get selected(): Selected | undefined;
   get settings(): ToolSettings;
