@@ -28,7 +28,7 @@ import { loadToolSettings, saveToolSettings } from '../markings/store';
 import { buttonState } from '../face/button-state';
 import { openFaceGestures } from '../dialogs/face-gestures';
 import { faceButton, type FaceButton } from '../face/face-button';
-import { DEFAULT_FACE_SETTINGS, hasGestures, type FaceSettings } from '../face/gestures';
+import { activeOf, hasGestures, NO_GESTURES, type FaceSettings } from '../face/gestures';
 import { loadFaceSettings } from '../face/store';
 import { FaceWatcher, type CameraStatus } from '../face/watcher';
 import { DEFAULT_TOOL_SETTINGS, type ToolSettings } from '../markings/tool-settings';
@@ -169,7 +169,7 @@ class Reader {
   /** Each tool's settings for new markings; kept across restarts. */
   private settings: ToolSettings = DEFAULT_TOOL_SETTINGS;
   /** Face gestures: their settings, whether the camera is being watched, what it says, and the button. */
-  private faceSettings: FaceSettings = DEFAULT_FACE_SETTINGS;
+  private faceSettings: FaceSettings = NO_GESTURES;
   private watching: Watching = 'off';
   private camera: CameraStatus = 'stopped';
   private faceSeen = false;
@@ -340,11 +340,11 @@ class Reader {
         this.watchEvent({ kind: 'cameraFailed' });
         this.say(failed('start the camera', e));
       },
-    }, this.faceSettings);
+    }, activeOf(this.faceSettings));
     this.showFaceButton();
     void loadFaceSettings().then((s) => {
       this.faceSettings = s;
-      this.face.setSettings(s);
+      this.face.setGestures(activeOf(s));
       this.showFaceButton();
     }, (e) => failedOnce("load the face gestures' settings", e));
     // While the toolbar is hidden, a small back arrow at the top left still leads to the library.
@@ -616,7 +616,7 @@ class Reader {
     openFaceGestures(() => {
       void loadFaceSettings().then((s) => {
         this.faceSettings = s;
-        this.face.setSettings(s);
+        this.face.setGestures(activeOf(s));
         this.watchEvent({ kind: 'gesturesChanged', available: hasGestures(s) });
       }, (e) => failedOnce("load the face gestures' settings", e));
     });

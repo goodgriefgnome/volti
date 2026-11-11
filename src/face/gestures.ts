@@ -1,106 +1,134 @@
-// The face gestures and their settings: which gestures there are, what each measures, the settings
-// stored for each and the defaults. Pure: no DOM, no camera, no storage (face/store.ts stores them).
+// The face gestures the person defines and their settings: a gesture's name, direction, hold and
+// levels, the fit its trials gave, and what can turn a page. Pure: no DOM, no camera, no storage
+// (face/store.ts stores them).
 
-export type FaceGesture = 'winkLeft' | 'winkRight' | 'longBlink' | 'mouthLeft' | 'mouthRight' | 'headLeft' | 'headRight' | 'nodDown';
+import { FIT_VERSION, type Fit, type Flag } from './model';
+import type { Cap, Row, Template } from './template';
+
 export type TurnDir = 'next' | 'prev';
 
-/** Each gesture, in the order the settings show them, with its name and what it measures. */
-export const GESTURES: readonly { id: FaceGesture; name: string; kind: 'score' | 'angle' }[] = [
-  { id: 'winkLeft', name: 'Wink left', kind: 'score' },
-  { id: 'winkRight', name: 'Wink right', kind: 'score' },
-  { id: 'longBlink', name: 'Long blink', kind: 'score' },
-  { id: 'mouthLeft', name: 'Mouth to the left', kind: 'score' },
-  { id: 'mouthRight', name: 'Mouth to the right', kind: 'score' },
-  { id: 'headLeft', name: 'Head to the left', kind: 'angle' },
-  { id: 'headRight', name: 'Head to the right', kind: 'angle' },
-  { id: 'nodDown', name: 'Nod down', kind: 'angle' },
-];
-
-export interface GestureTune {
+export interface Gesture {
+  id: string;
+  name: string;
   direction: TurnDir | 'none';
-  /** The on level (shown as **On**): a score (0.05–0.95) or, for the head and nod, an angle in degrees (5–45). */
-  threshold: number;
-  /** The level the signal must fall under to let go once on: in the threshold's range, never over it. */
-  release: number;
   /** ms, 100–1500. */
   hold: number;
+  /** The levels moved by hand; none is the fit's. */
+  on?: number;
+  release?: number;
+  /** Why it was set to none, in words. */
+  note?: string;
+  fit: Fit;
 }
-export type FaceSettings = Record<FaceGesture, GestureTune>;
+export interface FaceSettings { gestures: Gesture[] }
 
+export const NO_GESTURES: FaceSettings = { gestures: [] };
 export const HOLD_RANGE = { min: 100, max: 1500 } as const;
-/** The range of a gesture's threshold: scores, or degrees for the head and nod. */
-export function thresholdRange(g: FaceGesture): { min: number; max: number } {
-  return kindOf(g) === 'angle' ? { min: 5, max: 45 } : { min: 0.05, max: 0.95 };
-}
-
-const kindOf = (g: FaceGesture) => GESTURES.find((x) => x.id === g)!.kind;
-
-const tune = (threshold: number, hold = 250): GestureTune => ({ direction: 'none', threshold, release: threshold / 2, hold });
-
-export const DEFAULT_FACE_SETTINGS: FaceSettings = {
-  winkLeft: tune(0.5),
-  winkRight: tune(0.5),
-  longBlink: tune(0.5, 700),
-  mouthLeft: tune(0.5),
-  mouthRight: tune(0.5),
-  headLeft: tune(20),
-  headRight: tune(20),
-  nodDown: tune(15),
-};
-
-/** Whether any gesture turns a page. */
-export function hasGestures(s: FaceSettings): boolean {
-  return GESTURES.some((g) => s[g.id].direction !== 'none');
-}
+export const HOLD_DEFAULT = 250;
+export const LEVEL_RANGE = { min: 0.05, max: 0.95 } as const;
 
 export const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
-const num = (v: unknown, fallback: number, min: number, max: number) =>
-  typeof v === 'number' && Number.isFinite(v) ? clamp(v, min, max) : fallback;
 
-/** Stored settings with every gesture present and every value in its range; missing ones are the defaults. */
-export function faceSettingsFrom(stored: unknown): FaceSettings {
-  const from = (stored && typeof stored === 'object' ? stored : {}) as Record<string, Record<string, unknown> | undefined>;
-  const out = {} as FaceSettings;
-  for (const { id } of GESTURES) {
-    const d = DEFAULT_FACE_SETTINGS[id];
-    const s = from[id] && typeof from[id] === 'object' ? from[id]! : {};
-    const r = thresholdRange(id);
-    const threshold = num(s.threshold, d.threshold, r.min, r.max);
-    out[id] = {
-      direction: s.direction === 'next' || s.direction === 'prev' ? s.direction : 'none',
-      threshold,
-      // A missing release is half the on level; one over the on level stops at it.
-      release: Math.min(threshold, num(s.release, threshold / 2, r.min, r.max)),
-      hold: num(s.hold, d.hold, HOLD_RANGE.min, HOLD_RANGE.max),
-    };
+/** A new gesture, set to next, with no trials. */
+export function newGesture(name: string): Gesture {
+  return { id: crypto.randomUUID(), name, direction: 'next', hold: HOLD_DEFAULT, fit: { version: FIT_VERSION, trials: 0, flags: [{ kind: 'tooFew' }] } };
+}
+
+/** A gesture given the fit its trials now give: the levels moved by hand and why it was set to none are dropped. */
+export function withFit(g: Gesture, fit: Fit): Gesture {
+  const { on: _on, release: _release, note: _note, ...rest } = g;
+  return { ...rest, fit };
+}
+
+/** A gesture's levels: by hand, else the fit's; undefined when it isn't fitted. Release is never over on. */
+export function levelsOf(g: Gesture): { on: number; release: number; hold: number } | undefined {
+  const { template, on, release } = g.fit;
+  if (!template || on === undefined || release === undefined) return undefined;
+  const o = g.on ?? on;
+  return { on: o, release: Math.min(o, g.release ?? release), hold: g.hold };
+}
+
+/** A gesture with new levels by hand, kept in range and with release never over on: moving on under release takes release down too. */
+export function withLevels(g: Gesture, to: { on?: number; release?: number }): Gesture {
+  const now = levelsOf(g);
+  if (!now) return g;
+  const on = clamp(to.on ?? now.on, LEVEL_RANGE.min, LEVEL_RANGE.max);
+  const release = Math.min(on, clamp(to.release ?? now.release, LEVEL_RANGE.min, LEVEL_RANGE.max));
+  return { ...g, on, release };
+}
+
+/** A gesture that can turn a page, as the detector takes it. */
+export interface Active { id: string; direction: TurnDir; on: number; release: number; hold: number; template: Template }
+
+/** The gestures that can turn a page: fitted, with a direction. */
+export function activeOf(s: FaceSettings): Active[] {
+  const out: Active[] = [];
+  for (const g of s.gestures) {
+    const l = levelsOf(g);
+    if (l && g.direction !== 'none') out.push({ id: g.id, direction: g.direction, template: g.fit.template!, ...l });
   }
   return out;
 }
 
-/** A tune with new levels, kept in range and with release never over threshold: a threshold
- *  moved under release takes release down with it; a release moved over threshold stops there. */
-export function withLevels(g: FaceGesture, t: GestureTune, to: { threshold?: number; release?: number }): GestureTune {
-  const r = thresholdRange(g);
-  const threshold = clamp(to.threshold ?? t.threshold, r.min, r.max);
-  const release = Math.min(threshold, clamp(to.release ?? t.release, r.min, r.max));
-  return { ...t, threshold, release };
+/** Whether any gesture can turn a page. */
+export const hasGestures = (s: FaceSettings): boolean => activeOf(s).length > 0;
+
+const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object';
+const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+const num = (v: unknown, fallback: number, min: number, max: number) => (isNum(v) ? clamp(v, min, max) : fallback);
+const optional = (v: unknown, min: number, max: number) => (isNum(v) ? clamp(v, min, max) : undefined);
+
+const FLAGS = ['tooFew', 'noChannels', 'unreliable', 'firesAtRest'];
+const rowOk = (r: unknown): r is Row => isObject(r) && ['c', 'side', 'edge', 'far', 'rest', 'span', 'clear'].every((k) => isNum(r[k]));
+const capOk = (k: unknown): k is Cap => isObject(k) && ['c', 'side', 'cap', 'full', 'rest'].every((n) => isNum(k[n]));
+
+/** A stored fit, or undefined when it isn't one. */
+function fitFrom(v: unknown): Fit | undefined {
+  if (!isObject(v) || !isNum(v.version) || !isNum(v.trials) || !Array.isArray(v.flags)) return undefined;
+  const flags = v.flags.filter((f): f is Flag => isObject(f) && FLAGS.includes(f.kind as string));
+  const fit: Fit = { version: v.version, trials: v.trials, flags };
+  if (Array.isArray(v.missed)) fit.missed = v.missed.filter(rowOk);
+  if (v.template !== undefined) {
+    const t = v.template;
+    if (!isObject(t) || !Array.isArray(t.rows) || !Array.isArray(t.caps) || !Array.isArray(t.missed)) return undefined;
+    if (!isNum(v.on) || !isNum(v.release) || !isNum(v.rest) || !Array.isArray(v.peaks)) return undefined;
+    fit.template = { rows: t.rows.filter(rowOk), caps: t.caps.filter(capOk), missed: t.missed.filter(rowOk) };
+    fit.on = v.on;
+    fit.release = v.release;
+    fit.rest = v.rest;
+    fit.peaks = v.peaks.filter(isNum);
+  }
+  return fit;
+}
+
+/**
+ * Stored settings made safe: not an object, or without a gestures list, is NO_GESTURES (so is the
+ * eight built-in gestures' shape); a gesture without an id, a name or a fit is dropped; values out
+ * of range are clamped.
+ */
+export function faceSettingsFrom(stored: unknown): FaceSettings {
+  if (!isObject(stored) || !Array.isArray(stored.gestures)) return NO_GESTURES;
+  const gestures: Gesture[] = [];
+  for (const s of stored.gestures) {
+    if (!isObject(s) || typeof s.id !== 'string' || typeof s.name !== 'string') continue;
+    const fit = fitFrom(s.fit);
+    if (!fit) continue;
+    const g: Gesture = {
+      id: s.id,
+      name: s.name,
+      direction: s.direction === 'next' || s.direction === 'prev' ? s.direction : 'none',
+      hold: num(s.hold, HOLD_DEFAULT, HOLD_RANGE.min, HOLD_RANGE.max),
+      fit,
+    };
+    const on = optional(s.on, LEVEL_RANGE.min, LEVEL_RANGE.max);
+    const release = optional(s.release, LEVEL_RANGE.min, LEVEL_RANGE.max);
+    if (on !== undefined) g.on = on;
+    if (release !== undefined) g.release = release;
+    if (typeof s.note === 'string') g.note = s.note;
+    gestures.push(g);
+  }
+  return { gestures };
 }
 
 /** One frame: the blendshape scores by name, and the head's angles in degrees. */
 export interface FaceFrame { scores: Record<string, number>; yaw: number; pitch: number }
-
-/** A gesture's signal in a frame: what its meter shows and its levels compare against. */
-export function measure(g: FaceGesture, f: FaceFrame): number {
-  const s = f.scores;
-  switch (g) {
-    case 'winkLeft': return Math.max(0, (s.eyeBlinkLeft ?? 0) - (s.eyeBlinkRight ?? 0));
-    case 'winkRight': return Math.max(0, (s.eyeBlinkRight ?? 0) - (s.eyeBlinkLeft ?? 0));
-    case 'longBlink': return Math.min(s.eyeBlinkLeft ?? 0, s.eyeBlinkRight ?? 0);
-    case 'mouthLeft': return s.mouthLeft ?? 0;
-    case 'mouthRight': return s.mouthRight ?? 0;
-    // Yaw is positive when the head is turned to the person's left (the test page's "Head to your left").
-    case 'headLeft': return f.yaw;
-    case 'headRight': return -f.yaw;
-    case 'nodDown': return f.pitch;
-  }
-}

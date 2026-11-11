@@ -4,8 +4,9 @@
 
 import { detect, landmarker } from './_landmarker';
 import { NEW_DETECTOR, step, type DetectorState, type Progress } from './_detector';
-import { hasGestures, type FaceFrame, type FaceSettings, type TurnDir } from './gestures';
+import { hasGestures, type Active, type FaceFrame, type TurnDir } from './gestures';
 import { loadFaceSettings } from './store';
+import { channelsOf } from './template';
 
 export type CameraStatus = 'stopped' | 'starting' | 'running' | 'paused';
 
@@ -14,8 +15,8 @@ export interface WatcherEvents {
   status(s: CameraStatus): void;
   /** Whether a face is seen: false after a second without one, true again on the next face. */
   face(seen: boolean): void;
-  /** Each frame, for meters and calibration; null without a face. */
-  frame(f: FaceFrame | null): void;
+  /** Each frame, for meters and recording, with its channels (null without a face) and its time (ms, the animation frame's). */
+  frame(f: FaceFrame | null, x: Float32Array | null, now: number): void;
   /** Each frame: how close each direction is. */
   progress(p: Record<TurnDir, Progress>): void;
   /** A gesture turned. */
@@ -41,7 +42,7 @@ export class FaceWatcher {
   private lastTick = 0;
   private lastVideoTime = -1;
 
-  constructor(private events: Partial<WatcherEvents>, private settings: FaceSettings) {
+  constructor(private events: Partial<WatcherEvents>, private gestures: Active[]) {
     this.video.playsInline = true;
     this.video.muted = true;
     this.video.autoplay = true;
@@ -104,9 +105,9 @@ export class FaceWatcher {
     this.setStatus('stopped');
   }
 
-  /** New settings: the detector starts afresh with them. */
-  setSettings(s: FaceSettings): void {
-    this.settings = s;
+  /** New gestures that can turn: the detector starts afresh with them. */
+  setGestures(gestures: Active[]): void {
+    this.gestures = gestures;
     this.detector = NEW_DETECTOR;
   }
 
@@ -142,9 +143,10 @@ export class FaceWatcher {
       this.lastFaceAt = now;
       this.setFace(true);
     }
-    const r = step(this.detector, f, this.settings, now);
+    const x = f ? channelsOf(f.scores) : null;
+    const r = step(this.detector, x, this.gestures, now);
     this.detector = r.state;
-    this.events.frame?.(f);
+    this.events.frame?.(f, x, now);
     this.events.progress?.(r.progress);
     if (r.turn) this.events.turn?.(r.turn);
   }

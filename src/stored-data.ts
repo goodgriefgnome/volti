@@ -8,13 +8,13 @@ import { keys } from './storage/keys';
 import { kv } from './storage/kv';
 
 /** The version of the stored data this app reads and writes. */
-export const DATA_VERSION = 4;
+export const DATA_VERSION = 5;
 
 /** A step brings the whole store from one version to the next. Run again after failing partway, it finishes what is left. */
 export type Step = () => Promise<void>;
 
 /** Each step, by the version it starts from. */
-const STEPS: Record<number, Step> = { 1: scoresToVersion2, 2: toVersion3, 3: toVersion4 };
+const STEPS: Record<number, Step> = { 1: scoresToVersion2, 2: toVersion3, 3: toVersion4, 4: toVersion5 };
 
 /** The keys earlier versions wrote that are not in the format of STORAGE.md; what they held is not carried over. */
 const OLD_KEYS = ['folder-files', 'hashes', 'internal-ids', 'titles', 'removed', 'inbox'];
@@ -42,6 +42,15 @@ async function toVersion3(): Promise<void> {
  */
 async function toVersion4(): Promise<void> {
   await kv.del(keys.folder);
+}
+
+/**
+ * The step from version 4 to 5: face gestures are the person's own now, each with its trials, so
+ * the eight built-in gestures' settings (their directions, levels and holds) are dropped. Face
+ * gestures are off until one is added and recorded.
+ */
+async function toVersion5(): Promise<void> {
+  await kv.del(keys.faceGestures);
 }
 
 /** Where the version is kept: the kv store, or a stand-in in tests. */

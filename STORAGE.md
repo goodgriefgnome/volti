@@ -48,6 +48,9 @@ are done. Data from a newer version than the app's is not opened.
   too), so the stored link was dropped (`toVersion4` in `stored-data.ts`). The folder is linked
   again once; as it isn't known to be the same, its `folder` records turn `gone` and its files are
   read again to find their ids. Scores, cuts and markings are kept, by id.
+- **Version 4 to 5:** face gestures became the person's own, each with its trials, so the eight
+  built-in gestures' settings under `face-gestures` (their directions, levels and holds) were
+  dropped (`toVersion5` in `stored-data.ts`). Face gestures are off until one is added and recorded.
 
 ### Every key
 
@@ -63,7 +66,8 @@ are done. Data from a newer version than the app's is not opened.
 | `symbols` | `SymbolLibrary` | `markings/store.ts` |
 | `placed-mark-colors` | `{ color?: string; background?: string }`, the default colours | `markings/store.ts` |
 | `tool-settings` | `ToolSettings`, each tool's settings for new markings | `markings/store.ts` |
-| `face-gestures` | `FaceSettings`, the face gestures' settings | `face/store.ts` |
+| `face-gestures` | `FaceSettings`, the face gestures the person defined, each with its fit | `face/store.ts` |
+| `face-trials:<id>` | `Trial[]`, a face gesture's trials | `face/store.ts` |
 | `last-read` | `LastRead` | `reader/_store.ts` |
 | `setlists` | `string[]`, setlist ids, newest first | `setlists/store.ts` |
 | `setlist:<id>` | `Setlist` | `setlists/store.ts` |
@@ -286,13 +290,44 @@ the library. Its glyphs are in `glyph:` records, written before the library.
 that have none of their own. A missing one is the built-in colour (`#1c1f26`, and `#cce0ff`); only
 colours that differ from the built-in ones are stored.
 
-### `face-gestures`: the face gestures' settings
+### `face-gestures`: the face gestures the person defined
 
-A `FaceSettings` (`face/gestures.ts`): for each of the eight gestures, its direction (`'next'`,
-`'prev'` or `'none'`), its threshold (a score from 0.05 to 0.95, or degrees from 5 to 45), its hold
-in ms (100 to 1500) and, for the winks, the other eye's level (0.05 to 0.9). It is the device's
-own, like `tool-settings`. Missing is the defaults: every direction `'none'`. Values out of range
-are clamped when read.
+```ts
+interface FaceSettings { gestures: Gesture[] }   // face/gestures.ts, in the order they were added
+interface Gesture {
+  id: string; name: string;
+  direction: 'next' | 'prev' | 'none';
+  hold: number;                                  // ms, 100 to 1500
+  on?: number; release?: number;                 // the levels moved by hand, 0.05 to 0.95; none is the fit's
+  note?: string;                                 // why it was set to none, in words
+  fit: Fit;
+}
+interface Fit {                                  // face/model.ts: what its trials gave
+  version: number;                               // FIT_VERSION when it was fitted
+  trials: number;                                // how many it was fitted from
+  flags: Flag[];                                 // tooFew, noChannels, unreliable, firesAtRest { frames, ms }
+  template?: Template;                           // face/template.ts; with it, the gesture is fitted:
+  on?: number; release?: number;                 //   its fitted levels,
+  rest?: number; peaks?: number[];               //   its rest level and each rep's peak
+  missed?: Row[];                                // with no template: the clearest channels
+}
+```
+
+It is the device's own, like `tool-settings`. Missing is no gestures; so is the eight built-in
+gestures' shape of before version 5. A gesture without an id, a name or a fit is dropped when
+read, and values out of range are clamped. The reader reads only this key: a fit has all that
+turning needs. When a gesture was fitted by an earlier `FIT_VERSION`, every gesture is fitted again
+from its trials when the settings are next loaded (levels moved by hand are dropped), the conflicts
+are checked again, and the result is saved.
+
+### `face-trials:<gesture id>`: a face gesture's trials
+
+A `Trial[]` (`face/recording.ts`), read by the Face gestures dialog and when fitting again, never
+by the reader. A trial is `{ tUp, tDown, n, data }`: the times of its third rising and falling tones
+(ms from its start), and `n` frames in a `Float32Array`, each `STRIDE` (55) floats: its time in ms
+from the trial's start, the 52 scores in the template's channel order (`CHANNELS` in
+`face/template.ts`), and the head's yaw and pitch in degrees. Some 33 kB a trial. Deleted with the
+gesture, and when its trials are cleared.
 
 ### `last-read`: where to pick up
 

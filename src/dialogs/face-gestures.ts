@@ -1,33 +1,35 @@
-// The Face gestures dialog, from the library's ⋯ menu and the reader's face button: which gesture
-// turns which way, its on and release levels and how long a hold, with the camera on so they can be tried in
-// place, and calibration. Every change is saved at once.
+// The Face gestures dialog, from the library's ⋯ menu and the reader's face button: the gestures
+// the person defines, which way each turns, its on and release levels and hold, with the camera on
+// so they can be tried in place. Every change is saved at once.
 
-import { attempts, calibrated, restLevel, ATTEMPTS } from '../face/calibration';
 import { buttonState } from '../face/button-state';
 import { faceButton } from '../face/face-button';
-import { DEFAULT_FACE_SETTINGS, GESTURES, HOLD_RANGE, hasGestures, measure, thresholdRange, withLevels, type FaceFrame, type FaceGesture, type FaceSettings, type TurnDir } from '../face/gestures';
-import { loadFaceSettings, saveFaceSettings } from '../face/store';
+import { activeOf, HOLD_RANGE, LEVEL_RANGE, hasGestures, levelsOf, newGesture, withLevels, type FaceFrame, type FaceSettings, type Gesture, type TurnDir } from '../face/gestures';
+import { flagText } from '../face/model';
+import type { Trial } from '../face/recording';
+import { settled } from '../face/settling';
+import { deleteTrials, loadFaceSettings, loadTrials, saveFaceSettings } from '../face/store';
+import { score } from '../face/template';
 import { FaceWatcher, type CameraStatus } from '../face/watcher';
-import { button, el } from '../ui/dom';
-import { buttonRow, closeOverlay, showDialog, whenOverlayCloses } from '../ui/overlay';
+import { button, el, plural } from '../ui/dom';
 import { failed, failedOnce } from '../ui/failure';
-
-/** How long calibration's resting step lasts, and the most each gesture's step does. */
-const REST_MS = 10_000;
-const STEP_MS = 15_000;
+import { buttonRow, closeOverlay, showDialog, showOnTop, whenOverlayCloses } from '../ui/overlay';
 
 const DIRECTIONS: [value: string, label: string][] = [['next', 'Next'], ['prev', 'Back'], ['none', 'None']];
+
+/** What takes each frame the watcher gives: for meters (and, while recording, the recorder). */
+type FrameListener = (f: FaceFrame | null, x: Float32Array | null, now: number) => void;
 
 /** The Face gestures dialog: starts the camera while open; `closed` is called when it closes, however. */
 export function openFaceGestures(closed?: () => void): void {
   const d = showDialog('Face gestures', 'face-gestures');
-  let settings: FaceSettings = DEFAULT_FACE_SETTINGS;
+  let settings: FaceSettings = { gestures: [] };
+  let loaded = false;
   let camera: CameraStatus = 'stopped';
   let faceSeen = false;
   let trying = true;
   let page = 1;
-  /** Taking each frame, for the meters and for calibration. */
-  const frameListeners = new Set<(f: FaceFrame | null) => void>();
+  const frameListeners = new Set<FrameListener>();
 
   /* ---------- the preview ---------- */
 
@@ -38,7 +40,7 @@ export function openFaceGestures(closed?: () => void): void {
   const watcher = new FaceWatcher({
     status: (s) => { camera = s; showButton(); },
     face: (seen) => { faceSeen = seen; showButton(); },
-    frame: (f) => frameListeners.forEach((l) => l(f)),
+    frame: (f, x, now) => frameListeners.forEach((l) => l(f, x, now)),
     progress: (p) => preview.progress(p),
     turn: (dir) => {
       page = Math.max(1, page + (dir === 'next' ? 1 : -1));
@@ -50,7 +52,7 @@ export function openFaceGestures(closed?: () => void): void {
       problem.textContent = failed('start the camera', e);
       showButton();
     },
-  }, settings);
+  }, []);
   watcher.video.className = 'face-video';
   const stage = el('div', 'face-stage');
   stage.append(watcher.video, el('div', 'face-preview-button'), pageNumber);
@@ -58,19 +60,35 @@ export function openFaceGestures(closed?: () => void): void {
   showButton();
   d.append(stage, problem);
 
+  /* ---------- the settings ---------- */
+
+  /** Changes that wait their turn, so one that loads trials can't be overtaken by the next. */
+  let queue: Promise<void> = Promise.resolve();
+  const later = (f: () => Promise<void> | void) => { queue = queue.then(f).catch((e) => failedOnce('change the face gestures', e)); };
+
+  /** These settings, kept, tried and saved. */
+  const commit = (next: FaceSettings) => {
+    settings = next;
+    watcher.setGestures(activeOf(next));
+    showButton();
+    void saveFaceSettings(next).catch((e) => failedOnce('save the face gestures', e));
+  };
+  /** One gesture changed, in place. */
+  const change = (id: string, to: (g: Gesture) => Gesture) => commit({ gestures: settings.gestures.map((g) => (g.id === id ? to(g) : g)) });
+
+  /** The trials of every gesture that can turn a page, for the conflict check. */
+  async function trialsOfActive(s: FaceSettings): Promise<Map<string, Trial[]>> {
+    const map = new Map<string, Trial[]>();
+    for (const g of s.gestures) if (g.direction !== 'none') map.set(g.id, await loadTrials(g.id));
+    return map;
+  }
+
   /* ---------- the gestures ---------- */
 
   const rows = el('div', 'face-rows');
-  const meters = new Map<FaceGesture, (f: FaceFrame | null) => void>();
-  frameListeners.add((f) => meters.forEach((m) => m(f)));
+  const meters = new Map<string, (x: Float32Array | null) => void>();
+  frameListeners.add((_f, x) => meters.forEach((m) => m(x)));
   d.append(rows);
-
-  const change = (g: FaceGesture, to: Partial<FaceSettings[FaceGesture]>) => {
-    settings = { ...settings, [g]: { ...settings[g], ...to } };
-    watcher.setSettings(settings);
-    showButton();
-    void saveFaceSettings(settings).catch((e) => failedOnce('save the face gestures', e));
-  };
 
   /** A slider's row: its label, the slider and its value; `set` moves it to a value kept elsewhere. */
   const slider = (label: string, min: number, max: number, step: number, value: number, show: (v: number) => string, onInput: (v: number) => void) => {
@@ -84,145 +102,108 @@ export function openFaceGestures(closed?: () => void): void {
     return { row, set: (v: number) => { input.value = String(v); text.textContent = show(v); } };
   };
 
-  /** The rows, from `notes` (what calibration said of each gesture). */
-  const renderRows = (notes: Partial<Record<FaceGesture, string>> = {}) => {
+  /** Ask before `ok`, over the dialog (which stays). */
+  const confirm = (title: string, text: string, label: string, ok: () => void) => {
+    const { dialog, close } = showOnTop(title);
+    dialog.append(
+      el('p', '', text),
+      buttonRow(button('Cancel', close), button(label, () => { close(); ok(); }, 'danger')),
+    );
+  };
+
+  const remove = (g: Gesture) => confirm(`Remove “${g.name}”?`, 'Its trials are removed with it.', 'Remove', () => later(async () => {
+    commit({ gestures: settings.gestures.filter((x) => x.id !== g.id) });
+    await deleteTrials(g.id);
+    renderRows();
+  }));
+
+  const setDirection = (id: string, direction: TurnDir | 'none') => later(async () => {
+    // Its old note, if it was set to none for a conflict, goes.
+    const next: FaceSettings = { gestures: settings.gestures.map((g) => { if (g.id !== id) return g; const { note: _note, ...rest } = g; return { ...rest, direction }; }) };
+    // A gesture given a direction can conflict: it is the first to give way.
+    commit(direction === 'none' ? next : settled(next, await trialsOfActive(next), id));
+    renderRows();
+  });
+
+  const renderRows = () => {
     rows.replaceChildren();
     meters.clear();
-    for (const { id, name, kind } of GESTURES) {
+    if (loaded && !settings.gestures.length) rows.append(el('p', 'hint', 'No gestures yet. Add one, and record yourself doing it.'));
+    for (const g of settings.gestures) {
       const row = el('div', 'face-row');
       const select = document.createElement('select');
-      select.setAttribute('aria-label', `${name}: turns`);
-      for (const [value, label] of DIRECTIONS) select.append(new Option(label, value, false, settings[id].direction === value));
-      select.addEventListener('change', () => { change(id, { direction: select.value as TurnDir | 'none' }); renderRows(); });
+      select.setAttribute('aria-label', `${g.name}: turns`);
+      for (const [value, label] of DIRECTIONS) select.append(new Option(label, value, false, g.direction === value));
+      select.addEventListener('change', () => setDirection(g.id, select.value as TurnDir | 'none'));
       const head = el('div', 'face-row-head');
-      head.append(el('span', 'name', name), select);
-      row.append(head);
-      if (settings[id].direction !== 'none') {
-        const range = thresholdRange(id);
-        const scale = kind === 'angle' ? range.max : 1;
+      head.append(el('span', 'name', g.name), select);
+      const n = g.fit.trials;
+      const actions = el('div', 'face-row-actions');
+      actions.append(button('Remove', () => remove(g), 'quiet'));
+      row.append(head, el('p', 'hint', plural(n, 'trial') + (n < 10 ? ' (10 to 15 are best)' : '')), actions);
+      for (const f of g.fit.flags) row.append(el('p', 'hint error', flagText(f)));
+      if (g.note) row.append(el('p', 'hint error', g.note));
+      const levels = levelsOf(g);
+      if (levels) {
+        const template = g.fit.template!;
         const track = el('div', 'face-meter');
         const fill = el('div', 'fill');
         const mark = el('div', 'mark');
         const releaseMark = el('div', 'mark release');
         track.append(fill, mark, releaseMark);
         const placeMarks = () => {
-          mark.style.left = `${(settings[id].threshold / scale) * 100}%`;
-          releaseMark.style.left = `${(settings[id].release / scale) * 100}%`;
+          const l = levelsOf(settings.gestures.find((x) => x.id === g.id) ?? g)!;
+          mark.style.left = `${l.on * 100}%`;
+          releaseMark.style.left = `${l.release * 100}%`;
         };
         placeMarks();
-        meters.set(id, (f) => { fill.style.width = `${f ? Math.max(0, Math.min(1, measure(id, f) / scale)) * 100 : 0}%`; });
-        const step = kind === 'angle' ? 1 : 0.01;
-        const show = (v: number) => (kind === 'angle' ? `${v}°` : v.toFixed(2));
+        meters.set(g.id, (x) => { fill.style.width = `${x ? score(template, x) * 100 : 0}%`; });
+        const show = (v: number) => v.toFixed(2);
         // Moving either level can move the other (release stops at On, and follows it down).
-        const setLevels = (to: { threshold?: number; release?: number }) => {
-          change(id, withLevels(id, settings[id], to));
+        const setLevels = (to: { on?: number; release?: number }) => {
+          change(g.id, (x) => withLevels(x, to));
           placeMarks();
-          on.set(settings[id].threshold);
-          release.set(settings[id].release);
+          const l = levelsOf(settings.gestures.find((x) => x.id === g.id)!)!;
+          on.set(l.on);
+          release.set(l.release);
         };
-        const on = slider('On', range.min, range.max, step, settings[id].threshold, show, (v) => setLevels({ threshold: v }));
-        const release = slider('Release', range.min, range.max, step, settings[id].release, show, (v) => setLevels({ release: v }));
+        const on = slider('On', LEVEL_RANGE.min, LEVEL_RANGE.max, 0.01, levels.on, show, (v) => setLevels({ on: v }));
+        const release = slider('Release', LEVEL_RANGE.min, LEVEL_RANGE.max, 0.01, levels.release, show, (v) => setLevels({ release: v }));
         row.append(
           track,
           on.row,
           release.row,
-          slider('Hold', HOLD_RANGE.min, HOLD_RANGE.max, 50, settings[id].hold, (v) => `${v} ms`, (v) => change(id, { hold: v })).row,
+          slider('Hold', HOLD_RANGE.min, HOLD_RANGE.max, 50, g.hold, (v) => `${v} ms`, (v) => change(g.id, (x) => ({ ...x, hold: v }))).row,
         );
       }
-      if (notes[id]) row.append(el('p', 'hint error', notes[id]));
       rows.append(row);
     }
-    calibrate.disabled = !hasGestures(settings);
   };
 
-  /* ---------- calibration ---------- */
+  /* ---------- adding a gesture ---------- */
 
-  const calibrating = el('div', 'face-calibrating');
-  calibrating.hidden = true;
-  const instruction = el('p', 'instruction');
-  const countdown = el('p', 'hint');
-  let stopCalibrating = () => {};
-  calibrating.append(instruction, countdown, buttonRow(button('Cancel', () => stopCalibrating(), 'quiet')));
-  d.append(calibrating);
-
-  const calibrate = button('Calibrate', () => startCalibration(), '');
+  const nameRow = el('div', 'face-add');
+  nameRow.hidden = true;
+  const name = el('input', 'name');
+  name.type = 'text';
+  name.placeholder = 'For example, Wink right';
+  name.setAttribute('aria-label', 'Gesture name');
+  const addOk = button('Add', () => {
+    const text = name.value.trim();
+    if (!text) return;
+    name.value = '';
+    nameRow.hidden = true;
+    add.hidden = false;
+    later(() => { commit({ gestures: [...settings.gestures, newGesture(text)] }); renderRows(); });
+  }, 'primary');
+  name.addEventListener('keydown', (e) => { if (e.key === 'Enter') addOk.click(); });
+  nameRow.append(name, addOk, button('Cancel', () => { nameRow.hidden = true; add.hidden = false; }, 'quiet'));
+  const add = button('Add gesture…', () => { add.hidden = true; nameRow.hidden = false; name.focus(); });
+  add.disabled = true;
   const done = button('Done', closeOverlay, 'primary');
-  d.append(buttonRow(calibrate, done));
-
-  function startCalibration() {
-    const set = GESTURES.filter((g) => settings[g.id].direction !== 'none');
-    if (!set.length) return;
-    rows.hidden = true;
-    calibrate.hidden = true;
-    calibrating.hidden = false;
-    const rest = new Map<FaceGesture, number>();
-    const resting = new Map<FaceGesture, number[]>(set.map((g) => [g.id, []]));
-    const samples = new Map<FaceGesture, number[]>(set.map((g) => [g.id, []]));
-    // Step 0 is the rest; step i the i-th gesture.
-    let step = -1;
-    let stepStart = 0;
-    let timer: ReturnType<typeof setInterval>;
-
-    const onFrame = (f: FaceFrame | null) => {
-      if (!f) return;
-      if (step < 0) { for (const g of set) resting.get(g.id)!.push(measure(g.id, f)); return; }
-      const g = set[step].id;
-      samples.get(g)!.push(measure(g, f));
-      // Three attempts are in once the third has fallen back under the line.
-      const s = samples.get(g)!;
-      const found = attempts(s, rest.get(g)!);
-      if (found.length >= ATTEMPTS) {
-        const top = Math.max(...s);
-        if (f && measure(g, f) <= rest.get(g)! + (top - rest.get(g)!) / 2) next();
-      }
-    };
-    const finish = () => {
-      clearInterval(timer);
-      frameListeners.delete(onFrame);
-      stopCalibrating = () => {};
-      calibrating.hidden = true;
-      rows.hidden = false;
-      calibrate.hidden = false;
-    };
-    const next = () => {
-      step++;
-      stepStart = performance.now();
-      if (step === 0) {
-        for (const g of set) rest.set(g.id, restLevel(resting.get(g.id)!));
-      }
-      if (step >= set.length) { conclude(); return; }
-      instruction.textContent = `${set[step].name} three times`;
-    };
-    const conclude = () => {
-      const notes: Partial<Record<FaceGesture, string>> = {};
-      let updated = settings;
-      for (const g of set) {
-        const r = calibrated(g.id, settings[g.id], rest.get(g.id)!, attempts(samples.get(g.id)!, rest.get(g.id)!));
-        if ('tune' in r) updated = { ...updated, [g.id]: r.tune };
-        else notes[g.id] = `${g.name}: not reliable for you; try another gesture.`;
-      }
-      settings = updated;
-      watcher.setSettings(settings);
-      void saveFaceSettings(settings).catch((e) => failedOnce('save the face gestures', e));
-      finish();
-      renderRows(notes);
-    };
-    stopCalibrating = () => { finish(); renderRows(); };
-
-    instruction.textContent = 'Play as you normally would for 10 seconds, without gesturing.';
-    stepStart = performance.now();
-    frameListeners.add(onFrame);
-    timer = setInterval(() => {
-      const length = step < 0 ? REST_MS : STEP_MS;
-      const left = Math.max(0, length - (performance.now() - stepStart));
-      countdown.textContent = `${Math.ceil(left / 1000)} s`;
-      if (left > 0) return;
-      next();
-    }, 100);
-  }
+  d.append(nameRow, buttonRow(add, done));
 
   whenOverlayCloses(() => {
-    stopCalibrating();
     watcher.stop();
     closed?.();
   });
@@ -231,9 +212,9 @@ export function openFaceGestures(closed?: () => void): void {
   void watcher.start();
   void loadFaceSettings().then((s) => {
     if (!d.isConnected) return;
-    settings = s;
-    watcher.setSettings(s);
-    showButton();
+    loaded = true;
+    add.disabled = false;
+    commit(s);
     renderRows();
   }, (e) => failedOnce("load the face gestures' settings", e));
 }

@@ -93,12 +93,12 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   (**Pen**, **Highlight**, **Erase**, **Text**, **Symbols**), **Cuts**, **Undo**, **Redo** and **⋯**.
 - A long press on **Pen** or **Highlight** opens its colours (**Default** first, with a dashed ring, which
   follows the library's Marking colours); the button shows the colour in a short bar under its icon.
-- **Face gestures** turn the page from the front camera: a wink, the mouth pushed to one side, the
-  head turned or nodded, a long blink. Set each gesture to **Next**, **Back** or **None** in
-  **Face gestures…** in the library's **⋯** menu (with its sensitivity and hold, and **Calibrate**).
-  While the toolbar is hidden, a button at the top right turns watching on and off; a long press on
-  it opens the settings. The camera is only on while watching, and nothing leaves the device: the
-  model runs in the app.
+- **Face gestures** turn the page from the front camera, by gestures you define: in **Face gestures…**
+  in the library's **⋯** menu, add a gesture (a wink, the mouth pushed to one side), record yourself doing
+  it while playing, and set it to **Next**, **Back** or **None**, with its **On** and **Release** levels
+  and **Hold**. While the toolbar is hidden, a button at the top right turns watching on and off; a long
+  press on it opens the settings. The camera is only on while watching, and nothing leaves the device:
+  the model runs in the app.
 - Each tool's settings (Pen's and Highlight's colour, Text's font, colour and background, Symbols' colour)
   are kept across restarts. Highlights are drawn at full strength, multiplied, so the notes under
   them stay black.
