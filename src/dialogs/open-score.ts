@@ -1,9 +1,10 @@
-// Opening a score in the library, for a dialog that shows its pages (choosing an excerpt) without
-// the reader. The reader opens scores its own way, in reader/_open-scores.ts.
+// Opening a score for a dialog that shows its pages (choosing an excerpt) without the reader, used
+// by the library and by the reader's title menu. The reader opens the scores it reads its own way,
+// in reader/_open-scores.ts.
 
 import { canvasesOf } from '../page-cache/cache';
 import type { ExcerptSource } from './thumb-strip';
-import { askPassword } from '../dialogs/passwords';
+import { askPassword } from './passwords';
 import { type SourceFile } from '../originals/types';
 import { loadSavedScore, loadScore, saveScore } from '../scores/store';
 import { dpr } from '../ui/dom';
