@@ -11,11 +11,12 @@ import { readyTones } from '../face/tones';
 import type { Trial } from '../face/recording';
 import { settled } from '../face/settling';
 import { deleteTrials, loadFaceSettings, loadTrials, saveFaceSettings, saveTrials } from '../face/store';
-import { score } from '../face/template';
+import { MIN_SHIFT, score } from '../face/template';
 import { FaceWatcher, type CameraStatus } from '../face/watcher';
 import { button, el, plural } from '../ui/dom';
 import { failed, failedOnce } from '../ui/failure';
 import { buttonRow, closeOverlay, showDialog, showOnTop, whenOverlayCloses } from '../ui/overlay';
+import { faceDetails, nearest } from './_face-details';
 import { recordRound, type FrameListener, type Round } from './_face-recording';
 
 const DIRECTIONS: [value: string, label: string][] = [['next', 'Next'], ['prev', 'Back'], ['none', 'None']];
@@ -86,6 +87,8 @@ export function openFaceGestures(closed?: () => void): void {
   /* ---------- the gestures ---------- */
 
   const rows = el('div', 'face-rows');
+  /** The gestures whose Details are open, kept while the rows are shown again. */
+  const detailsOpen = new Set<string>();
   const meters = new Map<string, (x: Float32Array | null) => void>();
   frameListeners.add((_f, x) => meters.forEach((m) => m(x)));
   d.append(rows);
@@ -156,6 +159,7 @@ export function openFaceGestures(closed?: () => void): void {
       for (const f of g.fit.flags) row.append(el('p', 'hint error', flagText(f)));
       if (g.note) row.append(el('p', 'hint error', g.note));
       if (problems.has(g.id)) row.append(el('p', 'hint error', problems.get(g.id)));
+      if (!g.fit.template && g.fit.missed?.length) row.append(el('p', 'hint', nearest(g.fit.missed, MIN_SHIFT)));
       const levels = levelsOf(g);
       if (levels) {
         const template = g.fit.template!;
@@ -170,7 +174,10 @@ export function openFaceGestures(closed?: () => void): void {
           releaseMark.style.left = `${l.release * 100}%`;
         };
         placeMarks();
-        meters.set(g.id, (x) => { fill.style.width = `${x ? score(template, x) * 100 : 0}%`; });
+        const details = faceDetails(g);
+        details.el.open = detailsOpen.has(g.id);
+        details.el.addEventListener('toggle', () => { if (details.el.open) detailsOpen.add(g.id); else detailsOpen.delete(g.id); });
+        meters.set(g.id, (x) => { fill.style.width = `${x ? score(template, x) * 100 : 0}%`; details.update(x); });
         const show = (v: number) => v.toFixed(2);
         // Moving either level can move the other (release stops at On, and follows it down).
         const setLevels = (to: { on?: number; release?: number }) => {
@@ -187,6 +194,7 @@ export function openFaceGestures(closed?: () => void): void {
           on.row,
           release.row,
           slider('Hold', HOLD_RANGE.min, HOLD_RANGE.max, 50, g.hold, (v) => `${v} ms`, (v) => change(g.id, (x) => ({ ...x, hold: v }))).row,
+          details.el,
         );
       }
       rows.append(row);

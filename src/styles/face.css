@@ -59,6 +59,12 @@
 .face-slider input { width: 100%; accent-color: var(--accent); }
 .face-slider .value { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
 .face-row-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.face-details summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; }
+.face-table { overflow-x: auto; }
+.face-table table { border-collapse: collapse; font-size: 13px; }
+.face-table th, .face-table td { border-bottom: 1px solid var(--line); padding: 3px 8px; text-align: left; vertical-align: top; }
+.face-table td.n { text-align: right; font-variant-numeric: tabular-nums; }
+.face-table .bad { color: var(--warn); }
 .face-add { display: flex; gap: 8px; align-items: center; }
 .face-add input { flex: 1; min-width: 0; }
 .face-recording { display: grid; gap: 8px; }
