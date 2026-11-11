@@ -1,8 +1,8 @@
 // Recording a gesture's trials: a trial as stored, its held and rest frames, a trial's timetable of
 // tones, and a recorder that takes its frames. docs/face-classifier-spec.md says how a trial goes.
-// Pure: no DOM, no audio, no storage (face/tones.ts plays the tones, the dialog drives the round).
+// Pure: no DOM, no audio, no storage (_tones.ts plays the tones, the dialog drives the round).
 
-import { CHANNELS, type TrialFrames } from './template';
+import { CHANNELS, type TrialFrames } from './_template';
 
 /** What a stored frame holds: its time (ms from the trial's start), the 52 channels, yaw and pitch (degrees). */
 export const STRIDE = 55;

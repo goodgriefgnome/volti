@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { seeded, storedTrial, type Values } from './_test-frames';
-import { build, conflictOf, flagText, settle, type Contender } from './model';
-import { framesOf, type Trial } from './recording';
+import { build, conflictOf, flagText, settle, type Contender } from './_model';
+import { framesOf, type Trial } from './_recording';
 
 const random = seeded(7);
 const trials = (held: Values, rest: Values, n = 5): Trial[] => Array.from({ length: n }, () => storedTrial(held, rest, random));

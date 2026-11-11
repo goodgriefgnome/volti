@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { NEW_DETECTOR, step, type DetectorState } from './_detector';
 import type { Active, TurnDir } from './gestures';
-import { CHANNELS, channelsOf } from './template';
+import { CHANNELS, channelsOf } from './_template';
 
 // A one-row template on a channel: the score is the channel's value over its edge (0.8).
 const channel = (name: string) => CHANNELS.indexOf(name);

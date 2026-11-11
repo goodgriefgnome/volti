@@ -2,8 +2,8 @@
 // gestures turning pages don't conflict. A port of the `build`, `firesOn`, `conflictOf` and `settle`
 // of public/face-classifier.html; docs/face-classifier-spec.md says what they must be. Pure.
 
-import { framesOf, type Trial } from './recording';
-import { CHANNELS, fit, median, quantile, score, type Row, type Template } from './template';
+import { framesOf, type Trial } from './_recording';
+import { CHANNELS, fit, median, quantile, score, type Row, type Template } from './_template';
 
 /** Raised when fitting changes what it computes: stored fits of an earlier version are fitted again. */
 export const FIT_VERSION = 1;

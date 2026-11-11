@@ -1,10 +1,10 @@
 // Settling the conflicts of a set of gestures: those that can turn a page, checked against each
-// other (face/model.ts), and each one that conflicts set to none with why. Pure: the trials come in
+// other (_model.ts), and each one that conflicts set to none with why. Pure: the trials come in
 // as given (face/store.ts and the dialog load them).
 
-import { settle, type Contender } from './model';
+import { settle, type Contender } from './_model';
 import { levelsOf, type FaceSettings } from './gestures';
-import { framesOf, type Trial } from './recording';
+import { framesOf, type Trial } from './_recording';
 
 /** The settings with every gesture that conflicts set to none with its note; `changedId` gives way first. `trialsOf` has the trials of every gesture with a direction. */
 export function settled(s: FaceSettings, trialsOf: Map<string, Trial[]>, changedId?: string): FaceSettings {

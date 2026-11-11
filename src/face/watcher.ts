@@ -6,7 +6,7 @@ import { detect, landmarker } from './_landmarker';
 import { NEW_DETECTOR, step, type DetectorState, type Progress } from './_detector';
 import { hasGestures, type Active, type FaceFrame, type TurnDir } from './gestures';
 import { loadFaceSettings } from './store';
-import { channelsOf } from './template';
+import { channelsOf } from './_template';
 
 export type CameraStatus = 'stopped' | 'starting' | 'running' | 'paused';
 

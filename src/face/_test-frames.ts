@@ -2,9 +2,9 @@
 // jitter from a seeded generator (not Math.random, so the tests are the same every run). Not part
 // of the app; only tests import it.
 
-import { CHANNELS } from './template';
-import type { Trial } from './recording';
-import type { TrialFrames } from './template';
+import { CHANNELS } from './_template';
+import type { Trial } from './_recording';
+import type { TrialFrames } from './_template';
 
 /** A seeded generator, 0 to 1 (mulberry32). */
 export function seeded(seed: number): () => number {

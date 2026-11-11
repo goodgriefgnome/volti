@@ -2,7 +2,7 @@
 // direction is to turning, for the button's ring. Pure: the watcher gives it each frame.
 
 import type { Active, TurnDir } from './gestures';
-import { score } from './template';
+import { score } from './_template';
 
 /** How close a direction is to turning, each 0..1: `near` the signal from its release level to its on level, `hold` the time held. */
 export interface Progress { near: number; hold: number }

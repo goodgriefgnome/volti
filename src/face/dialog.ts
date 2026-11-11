@@ -2,22 +2,22 @@
 // the person defines, which way each turns, its on and release levels and hold, with the camera on
 // so they can be tried in place. Every change is saved at once.
 
-import { buttonState } from '../face/button-state';
-import { faceButton } from '../face/face-button';
-import { activeOf, HOLD_RANGE, LEVEL_RANGE, hasGestures, levelsOf, newGesture, withFit, withLevels, type FaceSettings, type Gesture, type TurnDir } from '../face/gestures';
-import { build, flagText } from '../face/model';
-import { ROUND } from '../face/recording';
-import { readyTones } from '../face/tones';
-import type { Trial } from '../face/recording';
-import { settled } from '../face/settling';
-import { deleteTrials, loadFaceSettings, loadTrials, saveFaceSettings, saveTrials } from '../face/store';
-import { MIN_SHIFT, score } from '../face/template';
-import { FaceWatcher, type CameraStatus } from '../face/watcher';
+import { buttonState } from './button-state';
+import { faceButton } from './face-button';
+import { activeOf, HOLD_RANGE, LEVEL_RANGE, hasGestures, levelsOf, newGesture, withFit, withLevels, type FaceSettings, type Gesture, type TurnDir } from './gestures';
+import { build, flagText } from './_model';
+import { ROUND } from './_recording';
+import { readyTones } from './_tones';
+import type { Trial } from './_recording';
+import { settled } from './_settling';
+import { deleteTrials, loadFaceSettings, loadTrials, saveFaceSettings, saveTrials } from './store';
+import { MIN_SHIFT, score } from './_template';
+import { FaceWatcher, type CameraStatus } from './watcher';
 import { button, el, plural } from '../ui/dom';
 import { failed, failedOnce } from '../ui/failure';
 import { buttonRow, closeOverlay, showDialog, showOnTop, whenOverlayCloses } from '../ui/overlay';
-import { faceDetails, nearest } from './_face-details';
-import { recordRound, type FrameListener, type Round } from './_face-recording';
+import { faceDetails, nearest } from './_details';
+import { recordRound, type FrameListener, type Round } from './_round';
 
 const DIRECTIONS: [value: string, label: string][] = [['next', 'Next'], ['prev', 'Back'], ['none', 'None']];
 

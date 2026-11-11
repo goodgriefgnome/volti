@@ -3,9 +3,9 @@
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
 import { faceSettingsFrom, withFit, type FaceSettings } from './gestures';
-import { build, FIT_VERSION } from './model';
-import type { Trial } from './recording';
-import { settled } from './settling';
+import { build, FIT_VERSION } from './_model';
+import type { Trial } from './_recording';
+import { settled } from './_settling';
 
 export const saveFaceSettings = (s: FaceSettings) => kv.set(keys.faceGestures, s);
 

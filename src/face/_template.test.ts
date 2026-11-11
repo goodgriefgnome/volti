@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { seeded, trialOf, type Values } from './_test-frames';
-import { CHANNELS, channelsOf, fit, partnerOf, quantile, score, shortOf, type TrialFrames } from './template';
+import { CHANNELS, channelsOf, fit, partnerOf, quantile, score, shortOf, type TrialFrames } from './_template';
 
 const name = (c: number) => CHANNELS[c];
 const trials = (held: Values, rest: Values, n = 5): TrialFrames[] => {

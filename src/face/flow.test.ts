@@ -5,8 +5,8 @@ import { describe, expect, it } from 'vitest';
 import { frameOf, seeded, type Values } from './_test-frames';
 import { NEW_DETECTOR, step, type DetectorState } from './_detector';
 import { activeOf, newGesture, type TurnDir } from './gestures';
-import { build } from './model';
-import { recorder, type Trial } from './recording';
+import { build } from './_model';
+import { recorder, type Trial } from './_recording';
 
 const random = seeded(3);
 const held: Values = { mouthRight: 0.8, jawOpen: 0.01 };

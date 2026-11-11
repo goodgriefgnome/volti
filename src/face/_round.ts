@@ -1,10 +1,10 @@
 // A round of trials recorded in the Face gestures dialog: the countdown, each trial's tones and the
 // instruction that follows them, and the frames taken as the watcher gives them. What a trial is
-// (its timetable, its frames) is face/recording.ts's; this is the clock and the words.
+// (its timetable, its frames) is _recording.ts's; this is the clock and the words.
 
-import { planTrial, recorder, ROUND, TONE_LONG_MS, TONE_MS, TONES, type Trial } from '../face/recording';
-import { stopTones, tone } from '../face/tones';
-import type { FaceFrame } from '../face/gestures';
+import { planTrial, recorder, ROUND, TONE_LONG_MS, TONE_MS, TONES, type Trial } from './_recording';
+import { stopTones, tone } from './_tones';
+import type { FaceFrame } from './gestures';
 import { button, el } from '../ui/dom';
 import { buttonRow } from '../ui/overlay';
 

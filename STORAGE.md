@@ -302,11 +302,11 @@ interface Gesture {
   note?: string;                                 // why it was set to none, in words
   fit: Fit;
 }
-interface Fit {                                  // face/model.ts: what its trials gave
+interface Fit {                                  // face/_model.ts: what its trials gave
   version: number;                               // FIT_VERSION when it was fitted
   trials: number;                                // how many it was fitted from
   flags: Flag[];                                 // tooFew, noChannels, unreliable, firesAtRest { frames, ms }
-  template?: Template;                           // face/template.ts; with it, the gesture is fitted:
+  template?: Template;                           // face/_template.ts; with it, the gesture is fitted:
   on?: number; release?: number;                 //   its fitted levels,
   rest?: number; peaks?: number[];               //   its rest level and each rep's peak
   missed?: Row[];                                // with no template: the clearest channels
@@ -322,11 +322,11 @@ are checked again, and the result is saved.
 
 ### `face-trials:<gesture id>`: a face gesture's trials
 
-A `Trial[]` (`face/recording.ts`), read by the Face gestures dialog and when fitting again, never
+A `Trial[]` (`face/_recording.ts`), read by the Face gestures dialog and when fitting again, never
 by the reader. A trial is `{ tUp, tDown, n, data }`: the times of its third rising and falling tones
 (ms from its start), and `n` frames in a `Float32Array`, each `STRIDE` (55) floats: its time in ms
 from the trial's start, the 52 scores in the template's channel order (`CHANNELS` in
-`face/template.ts`), and the head's yaw and pitch in degrees. Some 33 kB a trial. Deleted with the
+`face/_template.ts`), and the head's yaw and pitch in degrees. Some 33 kB a trial. Deleted with the
 gesture, and when its trials are cleared.
 
 ### `last-read`: where to pick up

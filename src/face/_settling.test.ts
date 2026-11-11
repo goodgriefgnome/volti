@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { seeded, storedTrial, type Values } from './_test-frames';
 import { newGesture, type FaceSettings, type Gesture } from './gestures';
-import { build } from './model';
-import type { Trial } from './recording';
-import { settled } from './settling';
+import { build } from './_model';
+import type { Trial } from './_recording';
+import { settled } from './_settling';
 
 const random = seeded(11);
 const trials = (held: Values, rest: Values): Trial[] => Array.from({ length: 5 }, () => storedTrial(held, rest, random));

@@ -1,8 +1,8 @@
 // A fitted face gesture's Details in its row: its rest level and each rep's peak, and a table of its
 // template's channels, with the channels' values now beside what they must be.
 
-import type { Gesture } from '../face/gestures';
-import { CHANNELS, overOf, shortOf, type Row } from '../face/template';
+import type { Gesture } from './gestures';
+import { CHANNELS, overOf, shortOf, type Row } from './_template';
 import { el } from '../ui/dom';
 
 const two = (v: number) => v.toFixed(2);

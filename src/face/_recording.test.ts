@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { planTrial, recorder, framesOf, STRIDE, type Trial } from './recording';
-import { CHANNELS } from './template';
+import { planTrial, recorder, framesOf, STRIDE, type Trial } from './_recording';
+import { CHANNELS } from './_template';
 
 /** A trial with a frame at each of `times`, its first channel the frame's time in seconds (to tell them apart). */
 function trialAt(times: number[], tUp: number, tDown: number): Trial {
