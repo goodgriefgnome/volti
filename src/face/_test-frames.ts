@@ -3,6 +3,7 @@
 // of the app; only tests import it.
 
 import { CHANNELS } from './template';
+import type { Trial } from './recording';
 import type { TrialFrames } from './template';
 
 /** A seeded generator, 0 to 1 (mulberry32). */
@@ -42,4 +43,20 @@ export function trialOf(held: Values, rest: Values, random: () => number, counts
     rest: Array.from({ length: counts.rest }, () => frameOf(restAt, random)),
     restT: Array.from({ length: counts.rest }, (_, i) => i * 67),
   };
+}
+
+/** A stored trial with its third tones at 3 s and 8 s, frames every 67 ms to 10 s; `burst` has `frames` of the held values from frame `at` on, at rest. */
+export function storedTrial(held: Values, rest: Values, random: () => number, burst?: { at: number; frames: number }): Trial {
+  const heldAt = { ...Object.fromEntries(Object.keys(rest).map((k) => [k, 0])), ...held };
+  const restAt = { ...Object.fromEntries(Object.keys(held).map((k) => [k, 0])), ...rest };
+  const tUp = 3000;
+  const tDown = 8000;
+  const rows: number[] = [];
+  let n = 0;
+  for (let t = 0; t <= 10000; t += 67, n++) {
+    const inBurst = burst && n >= burst.at && n < burst.at + burst.frames;
+    const on = (t > tUp && t < tDown) || inBurst;
+    rows.push(t, ...frameOf(on ? heldAt : restAt, random), 0, 0);
+  }
+  return { tUp, tDown, n, data: Float32Array.from(rows) };
 }
