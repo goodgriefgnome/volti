@@ -8,7 +8,7 @@ import { givePassword } from '../dialogs/passwords';
 import { openAddScores } from '../dialogs/add-scores';
 import { openExcerptPicker } from '../dialogs/excerpt-picker';
 import { openScore } from '../dialogs/open-score';
-import type { ExcerptSource } from '../dialogs/thumb-strip';
+import type { ExcerptSource } from '../dialogs/thumbnail-strip';
 import { titleOf } from '../originals/path-utils';
 import { ends, sameExcerpt, sortedExcerpts } from '../scores/excerpts';
 import type { NamedExcerpt, Score } from '../scores/model';
@@ -29,7 +29,7 @@ export interface TitleRow {
   name: string;
   current: boolean;
   go(): void;
-  /** The swap button: choose other cuts (and, for an excerpt, another name). */
+  /** The swap button: pick other cuts (and, for an excerpt, another name). */
   change?(): void;
   /** The bin. */
   remove?(): void;
@@ -240,8 +240,8 @@ async function addScores(h: MenusHost) {
     add: (entries, scores) => {
       const now = reading.setlist;
       if (!now) return;
-      // The scores excerpts were chosen from too, so the excerpts and the cuts they name agree.
-      for (const x of scores) void saveScore(x.state).catch((e) => h.say(failed('save the excerpts chosen', e)));
+      // The scores excerpts were picked from too, so the excerpts and the cuts they name agree.
+      for (const x of scores) void saveScore(x.state).catch((e) => h.say(failed('save the excerpts picked', e)));
       reading.setlists = withSetlist(reading.setlists, addEntries(now, entries));
       void saveLastAddedTo(now.id).catch((e) => failedOnce('save the setlist last added to', e));
       h.saver.soon();

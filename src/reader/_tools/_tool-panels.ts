@@ -1,4 +1,4 @@
-// The tools' long-press panels: what each shows, and what choosing in it does.
+// The tools' long-press panels: what each shows, and what picking in it does.
 
 import type { FontChoice } from '../../fonts/fonts';
 import { markingColors } from '../../markings/placed';
@@ -9,9 +9,9 @@ import { closeOverlay, showMenu } from '../../ui/overlay';
 import { shapeRow, swatchRow } from './_swatches';
 
 /** Pen's or Highlight's colours, under its button. */
-export function showStrokeColors(at: HTMLElement, tool: 'pen' | 'highlighter', chosen: ColorChoice, pick: (c: ColorChoice) => void): void {
+export function showStrokeColors(at: HTMLElement, tool: 'pen' | 'highlighter', picked: ColorChoice, pick: (c: ColorChoice) => void): void {
   const pen = tool === 'pen';
-  const row = swatchRow(pen ? PEN_COLORS : HIGHLIGHT_COLORS, pen ? markingColors().color : markingColors().background, chosen, (c) => { closeOverlay(); pick(c); });
+  const row = swatchRow(pen ? PEN_COLORS : HIGHLIGHT_COLORS, pen ? markingColors().color : markingColors().background, picked, (c) => { closeOverlay(); pick(c); });
   showMenu(at, pen ? 'Pen colour' : 'Highlight colour', [row]);
 }
 

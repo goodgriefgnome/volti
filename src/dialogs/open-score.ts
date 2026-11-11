@@ -1,9 +1,9 @@
-// Opening a score for a dialog that shows its pages (choosing an excerpt) without the reader, used
+// Opening a score for a dialog that shows its pages (picking an excerpt) without the reader, used
 // by the library and by the reader's title menu. The reader opens the scores it reads its own way,
 // in reader/_open-scores.ts.
 
 import { canvasesOf } from '../page-cache/cache';
-import type { ExcerptSource } from './thumb-strip';
+import type { ExcerptSource } from './thumbnail-strip';
 import { askPassword } from './passwords';
 import { type SourceFile } from '../originals/types';
 import { loadSavedScore, loadScore, saveScore } from '../scores/store';
@@ -14,7 +14,7 @@ export type LibraryScore = ExcerptSource & { close(): void };
 
 /**
  * Open a score and read its file, asking for its password if need be. A score opened for the first
- * time is saved straight away, so the cut ids an excerpt chosen now names are the ones the score keeps.
+ * time is saved straight away, so the cut ids an excerpt picked now names are the ones the score keeps.
  */
 export async function openScore(o: SourceFile): Promise<LibraryScore> {
   const original = await o.read(askPassword);

@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 
 /** The last stage of the vocabulary plan that is done: the entries of later stages are not yet checked. */
-const DONE = 4;
+const DONE = 5;
 
 interface Retired {
   /** Tested on the text with identifiers split into words ('words': `spreadEl` is "spread El") or as it is ('raw'). */
@@ -41,7 +41,7 @@ const RETIRED: Retired[] = [
   { on: 'words', goes: /\bmodel\b/i, wins: 'fit', stage: 4, in: /^face\/(?!_landmarker|watcher)/ },
   { on: 'raw', goes: /\b(FolderState|folderState|FaceButtonState|buttonState)\b|button-state/, wins: 'status', stage: 4 },
   // Stage 5: pickers and thumbnails.
-  { on: 'words', goes: /\b(choose|chooses|chooser|chosen)\b/i, wins: 'pick, picker', stage: 5 },
+  { on: 'words', goes: /\b(choose|chooses|choosing|chooser|chosen)\b/i, wins: 'pick, picker', stage: 5 },
   { on: 'words', goes: /\bthumbs?\b/i, wins: 'thumbnail', stage: 5 },
 ];
 

@@ -8,7 +8,7 @@ import { askText } from '../ui/ask-text';
 import { button, el, plural } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog } from '../ui/overlay';
 import { openExcerptPicker } from './excerpt-picker';
-import type { ExcerptSource } from './thumb-strip';
+import type { ExcerptSource } from './thumbnail-strip';
 
 /** Where a score's named excerpts are changed. */
 export interface NamedExcerptHost {
@@ -54,7 +54,7 @@ export function renameNamedExcerpt(score: Score, x: NamedExcerpt, h: NamedExcerp
 }
 
 /**
- * Choose other cuts for a named excerpt. Every entry that plays it moves with it. `moved` hears
+ * Pick other cuts for a named excerpt. Every entry that plays it moves with it. `moved` hears
  * where it went.
  */
 export function changeNamedExcerptCuts(src: ExcerptSource, x: NamedExcerpt, h: NamedExcerptHost, moved?: (to: Excerpt) => void) {

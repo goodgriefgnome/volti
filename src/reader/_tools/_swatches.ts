@@ -38,8 +38,8 @@ export function backgroundPicture(choice: BackgroundChoice, fill = markingColors
   return svg;
 }
 
-/** A row of swatches: Default first (a dashed ring, `defaultColor` its fill), then `colors`; `chosen` lit. */
-export function swatchRow(colors: readonly string[], defaultColor: string, chosen: ColorChoice, pick: (c: ColorChoice) => void): HTMLElement {
+/** A row of swatches: Default first (a dashed ring, `defaultColor` its fill), then `colors`; `picked` lit. */
+export function swatchRow(colors: readonly string[], defaultColor: string, picked: ColorChoice, pick: (c: ColorChoice) => void): HTMLElement {
   const row = el('div', 'swatch-row');
   row.setAttribute('role', 'group');
   const swatch = (choice: ColorChoice, fill: string, label: string, cls = '') => {
@@ -47,7 +47,7 @@ export function swatchRow(colors: readonly string[], defaultColor: string, chose
     b.type = 'button';
     b.style.setProperty('--swatch', fill);
     b.setAttribute('aria-label', label);
-    b.setAttribute('aria-pressed', String(chosen === choice));
+    b.setAttribute('aria-pressed', String(picked === choice));
     b.addEventListener('click', () => pick(choice));
     return b;
   };
@@ -55,8 +55,8 @@ export function swatchRow(colors: readonly string[], defaultColor: string, chose
   return row;
 }
 
-/** The background shapes (none, box, tags), `chosen` lit, filled with `fill`. */
-export function shapeRow(chosen: BackgroundChoice, fill: string, pick: (b: BackgroundChoice) => void): HTMLElement {
+/** The background shapes (none, box, tags), `picked` lit, filled with `fill`. */
+export function shapeRow(picked: BackgroundChoice, fill: string, pick: (b: BackgroundChoice) => void): HTMLElement {
   const row = el('div', 'shape-row');
   row.setAttribute('role', 'group');
   for (const [choice, label] of BACKGROUNDS) {
@@ -64,7 +64,7 @@ export function shapeRow(chosen: BackgroundChoice, fill: string, pick: (b: Backg
     b.type = 'button';
     b.setAttribute('aria-label', label);
     b.title = label;
-    b.setAttribute('aria-pressed', String(chosen === choice));
+    b.setAttribute('aria-pressed', String(picked === choice));
     b.append(backgroundPicture(choice, fill));
     b.addEventListener('click', () => pick(choice));
     row.append(b);

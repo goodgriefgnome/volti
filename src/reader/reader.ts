@@ -229,7 +229,7 @@ class Reader {
       ...view,
       commit: (s, focus) => this.commit(s, focus),
       preview: (s, frames, hatches) => this.preview(s, frames, hatches),
-      thumbs: (page, w) => canvasesOf(this.drawProgressive(page + 1, Math.round(w * dpr()))),
+      thumbnails: (page, w) => canvasesOf(this.drawProgressive(page + 1, Math.round(w * dpr()))),
       cancelGesture: () => this.input.cancelGesture(),
       say: (t) => this.say(t),
       changed: () => this.syncBar(),
@@ -368,7 +368,7 @@ class Reader {
     history.pushState({ reader: true }, '');
 
     // The first screen waits for full screen, to be drawn once at full size; the observer too, as
-    // its first report would show the screen before `goTo` has chosen it.
+    // its first report would show the screen before `goTo` has set it.
     const full = fullscreen ?? document.documentElement.requestFullscreen?.().catch(() => {}) ?? Promise.resolve();
     void this.requestWake();
     void full.then(() => { void this.goTo(k, position); this.observer.observe(this.stage); });
@@ -476,7 +476,7 @@ class Reader {
   }
 
   /** A long press on a tool's button makes it the tool, if it isn't; when it is, the press leaves it be. */
-  private chooseOnLongPress(tool: ToolName) {
+  private useOnLongPress(tool: ToolName) {
     if (this.tool === tool) return;
     this.useTool(tool);
     this.syncBar();
@@ -484,7 +484,7 @@ class Reader {
 
   /** A long press on a tool's button: it becomes the tool, and its panel shows under the button. */
   private panel(tool: Exclude<ToolName, 'hand'>) {
-    this.chooseOnLongPress(tool);
+    this.useOnLongPress(tool);
     this.tools[tool].showPanel?.(this.toolbar.anchor(tool));
   }
 
@@ -551,7 +551,7 @@ class Reader {
 
   /**
    * Tell the tools what is selected: a selection ends when its marking is gone from its page's ink,
-   * or the cut it was chosen in is no longer played or no longer shows it.
+   * or the cut it was selected in is no longer played or no longer shows it.
    */
   private refreshSelection() {
     const sel = this.selected, cur = this.current;
@@ -803,7 +803,7 @@ class Reader {
     return true;
   }
 
-  /** Do something that needs the PDFs (editing cuts, choosing an excerpt), asking for access first if need be. */
+  /** Do something that needs the PDFs (editing cuts, picking an excerpt), asking for access first if need be. */
   private async withAccess(f: () => void) {
     if (await this.allowAccess()) f();
   }

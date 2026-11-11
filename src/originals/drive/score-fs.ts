@@ -1,5 +1,5 @@
 // The Google Drive side of the scores folder: whether Drive is offered, signing in (which leaves
-// the page) and finishing it at start-up, the folders the chooser shows, a Drive folder's root,
+// the page) and finishing it at start-up, the folders the picker shows, a Drive folder's root,
 // and the copies of its files kept on the tablet.
 
 import { _byteCache } from './_byte-cache';

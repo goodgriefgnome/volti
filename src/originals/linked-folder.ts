@@ -61,7 +61,7 @@ export async function linkDeviceFolder(): Promise<boolean> {
   return true;
 }
 
-/** Link a folder in Google Drive, chosen after signing in. The same folder as before keeps its records. */
+/** Link a folder in Google Drive, picked after signing in. The same folder as before keeps its records. */
 export async function linkDriveFolder(folderId: string, name: string): Promise<void> {
   const old = await _storedLink();
   await switchTo({ kind: 'drive', folderId, name, linked: true }, old?.kind === 'drive' && old.folderId === folderId);

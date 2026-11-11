@@ -172,7 +172,7 @@ export function sortedExcerpts(score: Score): NamedExcerpt[] {
 /** Why a name can't go on an excerpt, or null if it can. `except` is a name being changed, which doesn't count. */
 export function nameProblem(score: Score, excerpt: Excerpt, name: string, except?: NamedExcerpt): string | null {
   if (!name.trim()) return 'Give it a name.';
-  if (excerptRange(score.cuts, excerpt).whole) return 'The whole score is the score itself; choose part of it.';
+  if (excerptRange(score.cuts, excerpt).whole) return 'The whole score is the score itself; pick part of it.';
   const there = namedExcerptOf(score, excerpt);
   if (there && there !== except) return `That’s already “${there.name}”.`;
   const taken = score.excerpts?.find((n) => n !== except && n.name.trim().toLowerCase() === name.trim().toLowerCase());

@@ -118,7 +118,7 @@
 .incoming-row + .incoming-row { border-top: 1px solid var(--line); }
 .incoming-row.have .incoming-preview { opacity: 0.5; }
 .incoming-preview { min-width: 0; }
-.incoming-preview .thumbs.excerpt { max-height: min(calc(var(--seen-height, 100vh) * 0.35), 320px); }
+.incoming-preview .thumbnails.excerpt { max-height: min(calc(var(--seen-height, 100vh) * 0.35), 320px); }
 .incoming-fields { display: grid; gap: 6px; align-content: start; }
 .incoming-fields .hint { margin: 0; }
 .incoming-fields > button { justify-self: start; }
@@ -126,6 +126,6 @@
 .marking-colors-row { display: flex; align-items: center; gap: 12px; padding: 6px 0; }
 .marking-colors-row .name { flex: 1; }
 
-/* The folder chooser for a Google Drive folder. */
+/* The folder picker for a Google Drive folder. */
 .drive-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; margin-bottom: 8px; }
 .drive-folders .removed-row > button { flex: 1; text-align: left; }

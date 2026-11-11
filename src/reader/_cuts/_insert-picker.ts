@@ -5,7 +5,7 @@ import { insertPages, passChoices, passesOf, type InsertAt } from '../../scores/
 import { button, el } from '../../ui/dom';
 import { buttonRow, closeOverlay, showDialog } from '../../ui/overlay';
 import type { EditorHost } from './_host';
-import { THUMB_W, thumbCanvas } from './_thumbs';
+import { THUMBNAIL_W, thumbnailCanvas } from './_thumbnails';
 
 /** Pick original pages, one or a range, and their pass, to insert at `at`; the strip opens at `page`. */
 export function openPicker(host: EditorHost, at: InsertAt, title: string, page: number) {
@@ -13,7 +13,7 @@ export function openPicker(host: EditorHost, at: InsertAt, title: string, page: 
   const n = host.aspects().length;
   const pick: { a: number; b: number; next: 'a' | 'b'; pass: number } = { a: page, b: page, next: 'a', pass: 1 };
 
-  const strip = el('div', 'thumbs');
+  const strip = el('div', 'thumbnails');
   const pageButtons: HTMLButtonElement[] = [];
   // Draw thumbnails one after another, nearest the selection first, so the ones you see come first.
   const order = Array.from({ length: n }, (_, i) => i).sort((x, y) => Math.abs(x - page) - Math.abs(y - page));
@@ -22,10 +22,10 @@ export function openPicker(host: EditorHost, at: InsertAt, title: string, page: 
       // A range always runs in page order: a page before the first one picked starts it instead.
       if (pick.next === 'a') { pick.a = pick.b = p; pick.next = 'b'; } else { [pick.a, pick.b] = [Math.min(pick.a, p), Math.max(pick.a, p)]; pick.next = 'a'; }
       sync();
-    }, 'thumb');
+    }, 'thumbnail');
     b.setAttribute('aria-label', `Original page ${p + 1}`);
-    const ph = el('div', 'thumb-space');
-    ph.style.height = THUMB_W * host.aspects()[p] + 'px';
+    const ph = el('div', 'thumbnail-space');
+    ph.style.height = THUMBNAIL_W * host.aspects()[p] + 'px';
     b.append(ph, el('span', '', String(p + 1)));
     pageButtons.push(b);
     strip.append(b);
@@ -33,14 +33,14 @@ export function openPicker(host: EditorHost, at: InsertAt, title: string, page: 
   void (async () => {
     for (const p of order) {
       if (!d.isConnected) return;
-      const c = thumbCanvas(host, d, p);
+      const c = thumbnailCanvas(host, d, p);
       pageButtons[p].firstChild!.replaceWith(c);
-      try { for await (const _ of host.thumbs(p, THUMB_W)) { /* drawn into its canvas by thumbCanvas */ } } catch { /* shown blank */ }
+      try { for await (const _ of host.thumbnails(p, THUMBNAIL_W)) { /* drawn into its canvas by thumbnailCanvas */ } } catch { /* shown blank */ }
     }
   })();
   d.append(strip);
 
-  // One button per pass the picked pages' cuts have, and one more: the last, chosen at first.
+  // One button per pass the picked pages' cuts have, and one more: the last, picked at first.
   const passes = el('div', 'pass-row');
   const passButtons: [number, HTMLButtonElement][] = [];
   const showPass = () => { for (const [n, b] of passButtons) b.setAttribute('aria-pressed', String(n === pick.pass)); };

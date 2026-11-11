@@ -3,7 +3,7 @@
 // show it and ask for changes.
 
 import type { NamedExcerptHost } from '../dialogs/named-excerpts';
-import type { ExcerptSource } from '../dialogs/thumb-strip';
+import type { ExcerptSource } from '../dialogs/thumbnail-strip';
 import type { LibraryScore } from '../dialogs/open-score';
 import type { Excerpt } from '../scores/excerpts';
 import type { FolderStatus, SourceFile } from '../originals/types';

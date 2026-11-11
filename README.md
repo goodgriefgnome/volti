@@ -23,7 +23,7 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   changed in place is noticed a little after the library shows.
 - **Link scores folder** also offers **A folder in Google Drive** (where this build has a Google
   client; browsers that can't pick a folder on the device, such as on an iPad, go straight to it).
-  It signs in to Google on Google's own page, then shows Volti's folder chooser, from My Drive down.
+  It signs in to Google on Google's own page, then shows Volti's folder picker, from My Drive down.
   Volti is not verified by Google, so the first sign-in shows "Google hasn't verified this app":
   choose **Advanced**, then continue. Volti asks for the full Drive scope, as it renames, moves,
   removes and writes files there; up to 100 accounts can sign in while it is unverified. Scans only
@@ -144,7 +144,7 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   (beside it, near the toolbar) shows the music and markings around it, magnified so the marking
   is about 48 px tall (never less than on screen), until the finger lifts. Its music is redrawn sharp
   for the magnification a moment after it appears.
-- A long press on **Text** opens its **Font**, **Colour**, **Background** and, once a shape is chosen,
+- A long press on **Text** opens its **Font**, **Colour**, **Background** and, once a shape is picked,
   **Background colour**; on **Symbols**, **Colour**, **Background** and **Background colour**.
   **Colour** is **Default** and the three pen colours. A choice changes the selected marking (of
   that tool) and what new ones get (for Symbols' background: the library symbol, which the next

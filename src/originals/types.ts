@@ -103,7 +103,7 @@ export class Unreachable extends Error {
   name = 'Unreachable';
 }
 
-/** The folder picker wouldn't give the folder chosen, as Android does for Download itself and the top of internal storage. */
+/** The folder picker wouldn't give the folder picked, as Android does for Download itself and the top of internal storage. */
 export class FolderRefused extends Error {
   name = 'FolderRefused';
 }

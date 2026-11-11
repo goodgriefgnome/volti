@@ -9,7 +9,7 @@ import { NoAccess, Unreachable } from '../types';
 /** A file or folder in Drive. `sha256` is Drive's checksum of a file's bytes (none for a folder). */
 export interface _DriveItem { id: string; name: string; folder: boolean; sha256?: string; created: string }
 
-/** What Volti asks of Drive. DriveRoot and the folder chooser use only this, so tests stand in for it. */
+/** What Volti asks of Drive. DriveRoot and the folder picker use only this, so tests stand in for it. */
 export interface _DriveApi {
   /** The folder's children, every page, not in the bin: files and folders. */
   children(folderId: string, signal?: AbortSignal): Promise<_DriveItem[]>;

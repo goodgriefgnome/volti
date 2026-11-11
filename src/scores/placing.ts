@@ -8,7 +8,7 @@ import type { Frame, Placed } from './frames';
 import { passOf, type Aspects, type Cut, type Score, type ScoreInk, type State } from './model';
 import { claimMarking, shownBy } from './ownership';
 
-/** A placed marking chosen on the music: the page whose ink holds it, the marking itself (found there by identity), and the cut it was chosen in, which shows it. */
+/** A placed marking selected on the music: the page whose ink holds it, the marking itself (found there by identity), and the cut it was selected in, which shows it. */
 export interface Selected { page: number; cut: string; mark: PlacedMarking }
 
 type Box = [x0: number, y0: number, x1: number, y1: number];

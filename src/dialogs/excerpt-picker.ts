@@ -1,4 +1,4 @@
-// Choosing an excerpt of a score: the score's frames as thumbnails with a band over each cut, and
+// Picking an excerpt of a score: the score's frames as thumbnails with a band over each cut, and
 // the dialog around them. The reader and the library both use it; where the pages come from is
 // the caller's business.
 
@@ -7,16 +7,16 @@ import { placeLabel, places, type Place } from '../scores/frames';
 import { type Score } from '../scores/model';
 import { button, el } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog } from '../ui/overlay';
-import { ThumbStrip, _u, type ExcerptSource } from './thumb-strip';
+import { ThumbnailStrip, _u, type ExcerptSource } from './thumbnail-strip';
 
 /**
  * The score's frames as thumbnails, with each cut a band over them. Tap the first cut to play,
- * then the last, as when choosing pages to insert. Cuts outside the excerpt are shaded. Pinch to
+ * then the last, as when picking pages to insert. Cuts outside the excerpt are shaded. Pinch to
  * zoom the thumbnails, and drag to move along them.
  */
 export class _ExcerptStrip {
   readonly el: HTMLElement;
-  /** Says what is chosen, and what a tap does next. */
+  /** Says what is picked, and what a tap does next. */
   readonly hint = el('p', 'hint');
   private i0: number;
   private i1: number;
@@ -26,7 +26,7 @@ export class _ExcerptStrip {
   /** Each cut's page and letter, for naming it. */
   private places: Place[];
 
-  /** Called whenever the excerpt chosen changes, or a tap starts choosing a new one. */
+  /** Called whenever the excerpt picked changes, or a tap starts picking a new one. */
   onChange: () => void = () => {};
 
   /** `verb` starts the hint: "Plays the whole score." */
@@ -36,7 +36,7 @@ export class _ExcerptStrip {
     ({ i0: this.i0, i1: this.i1 } = excerptRange(cuts, excerpt));
     this.hint.setAttribute('aria-live', 'polite');
 
-    const strip = new ThumbStrip(src);
+    const strip = new ThumbnailStrip(src);
     this.el = strip.el;
     this.places = places(cuts, aspects);
     strip.frames.forEach((f, i) => {
@@ -56,12 +56,12 @@ export class _ExcerptStrip {
     this.sync();
   }
 
-  /** The excerpt chosen. */
+  /** The excerpt picked. */
   get excerpt(): Excerpt { return excerptFor(this.src.state.score.cuts, this.i0, this.i1); }
 
   get whole() { return this.i0 === 0 && this.i1 === this.n - 1; }
 
-  /** Choose an excerpt, as if its first and last cut had been tapped. */
+  /** Pick an excerpt, as if its first and last cut had been tapped. */
   set(excerpt: Excerpt) {
     ({ i0: this.i0, i1: this.i1 } = excerptRange(this.src.state.score.cuts, excerpt));
     this.pending = null;
@@ -69,9 +69,9 @@ export class _ExcerptStrip {
   }
 
   /** Whether a tap has started a new excerpt, which a second tap will finish. */
-  get choosing() { return this.pending !== null; }
+  get picking() { return this.pending !== null; }
 
-  /** Bring the chosen cuts into view, once the strip is on the screen. */
+  /** Bring the picked cuts into view, once the strip is on the screen. */
   reveal() {
     this.bands[this.i0]?.scrollIntoView({ inline: 'center', block: 'nearest' });
   }
@@ -99,7 +99,7 @@ export class _ExcerptStrip {
 }
 
 /**
- * A dropdown of the score's named excerpts, with Whole score and Custom: choosing one selects its
+ * A dropdown of the score's named excerpts, with Whole score and Custom: picking one selects its
  * cuts in the strip, and tapping cuts shows the name of the excerpt they make, if it has one.
  */
 export function _namedExcerptMenu(strip: _ExcerptStrip, score: Score): HTMLSelectElement {
@@ -110,7 +110,7 @@ export function _namedExcerptMenu(strip: _ExcerptStrip, score: Score): HTMLSelec
   menu.append(option('whole', 'Whole score'), ...names.map((n, i) => option(String(i), n.name)), option('custom', 'Custom'));
   const follow = () => {
     const n = namedExcerptOf(score, strip.excerpt);
-    menu.value = strip.choosing ? 'custom' : strip.whole ? 'whole' : n ? String(names.indexOf(n)) : 'custom';
+    menu.value = strip.picking ? 'custom' : strip.whole ? 'whole' : n ? String(names.indexOf(n)) : 'custom';
   };
   menu.addEventListener('change', () => {
     if (menu.value === 'whole') strip.set({});
@@ -137,7 +137,7 @@ export interface _ExcerptPicker extends ExcerptSource {
   done(excerpt: Excerpt, name: string): void;
 }
 
-/** A dialog for choosing which of a score's cuts to play, and perhaps naming them. */
+/** A dialog for picking which of a score's cuts to play, and perhaps naming them. */
 export function openExcerptPicker(h: _ExcerptPicker) {
   const d = showDialog(h.question, 'wide');
   const strip = new _ExcerptStrip(h, h.excerpt, h.verb);

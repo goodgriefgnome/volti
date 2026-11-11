@@ -1,5 +1,5 @@
 // The "Add scores" dialog: picking scores to add to the end of a setlist, each whole, as its named
-// excerpts, or as excerpts chosen in its preview. The library ("New setlist", a setlist's ⋯ › Add
+// excerpts, or as excerpts picked in its preview. The library ("New setlist", a setlist's ⋯ › Add
 // scores) and a setlist's reader (⋯ › Add scores) both open it.
 
 import { type Excerpt, ends, excerptName, namedExcerptOf, sameExcerpt, sortedExcerpts } from '../scores/excerpts';
@@ -10,7 +10,7 @@ import type { Setlist } from '../setlists/model';
 import { button, el, plural } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog, whenOverlayCloses } from '../ui/overlay';
 import { _ExcerptStrip, _namedExcerptMenu } from './excerpt-picker';
-import type { ExcerptSource } from './thumb-strip';
+import type { ExcerptSource } from './thumbnail-strip';
 import type { LibraryScore } from './open-score';
 
 export interface _AddScoresHost {
@@ -23,12 +23,12 @@ export interface _AddScoresHost {
   open(o: SourceFile): Promise<LibraryScore | null>;
   /** Make sure a score's file can be read, asking for its password if need be; false when it isn't given. */
   givePassword(o: SourceFile): Promise<boolean>;
-  /** Add entries playing these to the end of the setlist; `scores` are the ones they choose excerpts of. */
+  /** Add entries playing these to the end of the setlist; `scores` are the ones they pick excerpts of. */
   add(entries: { scoreId: string; excerpt: Excerpt }[], scores: ExcerptSource[]): void;
 }
 
 /**
- * One entry to add: the whole score, a named excerpt ticked under it, or an excerpt chosen in its
+ * One entry to add: the whole score, a named excerpt ticked under it, or an excerpt picked in its
  * preview.
  */
 interface Choice { excerpt: Excerpt; label: string | null; named?: boolean; src?: ExcerptSource }
@@ -49,22 +49,22 @@ function pickText(title: string, meta = ''): HTMLElement {
  */
 export function openAddScores(h: _AddScoresHost) {
   const s = h.setlist;
-  /** By score, the entries to add, in the order chosen. */
-  const chosen = new Map<string, Choice[]>();
-  const count = () => [...chosen.values()].reduce((n, c) => n + c.length, 0);
+  /** By score, the entries to add, in the order picked. */
+  const picks = new Map<string, Choice[]>();
+  const count = () => [...picks.values()].reduce((n, c) => n + c.length, 0);
   const d = showDialog(`Add scores to “${s.title}”`);
   const heading = d.querySelector('h2')!;
   const listView = el('div', 'view');
   const list = el('div', 'picklist');
-  const add = button('Add', () => void addChosen(), 'primary');
-  const addChosen = async () => {
+  const add = button('Add', () => void addPicked(), 'primary');
+  const addPicked = async () => {
     // A score goes in only once its file can be read: one with a password not known yet asks for it now.
     for (const o of h.originals) {
-      if (chosen.has(o.id) && !(await h.givePassword(o))) chosen.delete(o.id);
+      if (picks.has(o.id) && !(await h.givePassword(o))) picks.delete(o.id);
     }
     if (!count()) { sync(); fill(find.value); return; }
     closeOverlay();
-    const picked = h.originals.flatMap((o) => (chosen.get(o.id) ?? []).map((c) => [o.id, c] as const));
+    const picked = h.originals.flatMap((o) => (picks.get(o.id) ?? []).map((c) => [o.id, c] as const));
     h.add(
       picked.map(([scoreId, c]) => ({ scoreId, excerpt: c.excerpt })),
       [...new Set(picked.flatMap(([, c]) => (c.src ? [c.src] : [])))],
@@ -115,9 +115,9 @@ export function openAddScores(h: _AddScoresHost) {
 
   /** Tick or untick one choice of a score. */
   const toggle = (scoreId: string, c: Choice, on: boolean, same: (x: Choice) => boolean) => {
-    const rest = (chosen.get(scoreId) ?? []).filter((x) => !same(x));
+    const rest = (picks.get(scoreId) ?? []).filter((x) => !same(x));
     const next = on ? [...rest, c] : rest;
-    if (next.length) chosen.set(scoreId, next); else chosen.delete(scoreId);
+    if (next.length) picks.set(scoreId, next); else picks.delete(scoreId);
   };
 
   const row = (sc: SourceFile, names: NamedExcerpt[]): HTMLElement => {
@@ -125,10 +125,10 @@ export function openAddScores(h: _AddScoresHost) {
     const label = el('label', 'check');
     const box = el('input');
     box.type = 'checkbox';
-    const mine = chosen.get(sc.id) ?? [];
+    const mine = picks.get(sc.id) ?? [];
     box.checked = mine.some((c) => !c.named);
     box.addEventListener('change', () => {
-      // Ticked alone, the whole score; unticked, it and the excerpts chosen in its preview.
+      // Ticked alone, the whole score; unticked, it and the excerpts picked in its preview.
       if (box.checked) toggle(sc.id, { excerpt: {}, label: null }, true, (c) => !c.label);
       else toggle(sc.id, { excerpt: {}, label: null }, false, (c) => !c.named);
       redraw();
@@ -158,10 +158,10 @@ export function openAddScores(h: _AddScoresHost) {
       sub.append(named, look);
       r.append(sub);
     }
-    // Excerpts chosen in the preview, each with a button to take it out again.
+    // Excerpts picked in the preview, each with a button to take it out again.
     const previewed = mine.filter((c) => c.label && !c.named);
     if (previewed.length) {
-      const pills = el('div', 'chosen');
+      const pills = el('div', 'picked');
       for (const c of previewed) {
         const pill = button(`${c.label} ×`, () => {
           toggle(sc.id, c, false, (x) => x === c);
@@ -184,7 +184,7 @@ export function openAddScores(h: _AddScoresHost) {
     heading.textContent = `Add scores to “${s.title}”`;
     fill(find.value);
   };
-  /** Show a score's pages to choose an excerpt of it, starting from `excerpt` (a named excerpt, say). */
+  /** Show a score's pages to pick an excerpt of it, starting from `excerpt` (a named excerpt, say). */
   const showPreview = async (o: SourceFile, excerpt: Excerpt = {}) => {
     const sc = await h.open(o);
     if (!sc) return;
@@ -195,9 +195,9 @@ export function openAddScores(h: _AddScoresHost) {
       const excerpt = strip.excerpt, score = sc.state.score, name = namedExcerptOf(score, excerpt);
       // An excerpt takes the place of the whole score ticked on its own; the same one twice is once.
       // A named excerpt is ticked under its score, rather than shown apart.
-      const was = (chosen.get(o.id) ?? []).filter((c) => c.label && !sameExcerpt(score.cuts, c.excerpt, excerpt));
+      const was = (picks.get(o.id) ?? []).filter((c) => c.label && !sameExcerpt(score.cuts, c.excerpt, excerpt));
       const choice: Choice = name ? { excerpt: ends(name), label: name.name, named: true, src: sc } : { excerpt, label: excerptName(score, excerpt, sc.aspects), src: sc };
-      chosen.set(o.id, [...was, choice]);
+      picks.set(o.id, [...was, choice]);
       sync();
       back();
     }, 'primary');

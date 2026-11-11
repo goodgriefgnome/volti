@@ -418,10 +418,10 @@ Two contexts write: the page, and the service worker (sharing). So:
 | **Reading a file of a Drive folder** | None. | Downloaded once into `bytes/<id>` (the hash of the bytes), then read from there, online or not. |
 | **Unlinking a Google Drive folder** | As for any folder. | The refresh token is revoked and deleted, and `bytes/` is emptied. |
 | **Locked folder** | None changed. The library is the `folder` records. | |
-| **Adding a file** (Add PDFs, a share, putting back, moving one left in Volti's folder) | `folder` or `internal` at the chosen path. | Written into the root, then the old place's bytes deleted. |
+| **Adding a file** (Add PDFs, a share, putting back, moving one left in Volti's folder) | `folder` or `internal` at the picked path. | Written into the root, then the old place's bytes deleted. |
 | **Renaming or moving a file** | `path` and the root's stamp. | Moved in the root. |
 | **Removing a file** | In a device folder or Volti's own: `removed`, with `removedAt` now; `path` unchanged. In a Drive folder: `binned`, with `removedAt` now and the Drive file's id, its folder and the linked folder's id. | Device: copied to `removed/`, then deleted from the root. Volti's own: moved to `removed/`. Drive: the file goes to Drive's bin; nothing is downloaded or written. |
-| **Putting a file back** | `folder` or `internal` at the path chosen. | A `removed` copy is written into the root, as for adding a file, then deleted. A `binned` file is taken out of Drive's bin and moved to the path in one request, by the root that has its bin (the linked Drive folder, only if it is the one it was removed from). |
+| **Putting a file back** | `folder` or `internal` at the path picked. | A `removed` copy is written into the root, as for adding a file, then deleted. A `binned` file is taken out of Drive's bin and moved to the path in one request, by the root that has its bin (the linked Drive folder, only if it is the one it was removed from). |
 | **Sharing a file** (service worker) | No record, `removed` or `gone`: `inbox` at `_importName(name)`, with `inboxAt` now. A better place already: unchanged. | Written to `inbox/<id>` first; a `removed` copy deleted. A file with a better place is dropped. |
 | **Leaving a shared file out**, or cancelling | `removed`, with `removedAt` now. | Moved from `inbox/` to `removed/`. |
 | **Purging** (at start-up) | `removed` or `binned` for 7 days or more: `gone`. | A `removed` copy is deleted. A `binned` file is left to Drive, which empties its bin itself. |

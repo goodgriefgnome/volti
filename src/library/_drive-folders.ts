@@ -1,4 +1,4 @@
-// The folder chooser for linking a Google Drive folder, from the library: My Drive's folders by
+// The folder picker for linking a Google Drive folder, from the library: My Drive's folders by
 // name, opening one to see its folders, and "Use this folder". Lists through the Drive API; no
 // Google Picker, so Volti loads no script from Google.
 
@@ -9,19 +9,19 @@ import { failed } from '../ui/failure';
 
 interface Place { id: string; name: string }
 
-/** Choose a folder in Google Drive, from My Drive down; null when cancelled. */
-export function chooseDriveFolder(): Promise<Place | null> {
+/** Pick a folder in Google Drive, from My Drive down; null when cancelled. */
+export function pickDriveFolder(): Promise<Place | null> {
   return new Promise((resolve) => {
-    const d = showDialog('Choose the scores folder', 'drive-folders');
-    let chosen: Place | null = null;
-    whenOverlayCloses(() => resolve(chosen));
+    const d = showDialog('Pick the scores folder', 'drive-folders');
+    let picked: Place | null = null;
+    whenOverlayCloses(() => resolve(picked));
     /** My Drive, then each folder opened, the last being where we are. */
     const trail: Place[] = [{ id: 'root', name: 'My Drive' }];
     const crumbs = el('div', 'drive-crumbs');
     const list = el('ul', 'removed-list');
     const note = el('p', 'hint');
     note.setAttribute('aria-live', 'polite');
-    const use = button('Use this folder', () => { chosen = trail.at(-1)!; closeOverlay(); }, 'primary');
+    const use = button('Use this folder', () => { picked = trail.at(-1)!; closeOverlay(); }, 'primary');
     d.append(crumbs, note, list, buttonRow(button('Cancel', closeOverlay), use));
     /** Taps are ignored for lists that are out of date. */
     let showing = 0;

@@ -1,5 +1,5 @@
 // Google Drive in memory, standing in for the Drive API in tests: the _DriveApi that DriveRoot
-// and the folder chooser use. Only tests import it.
+// and the folder picker use. Only tests import it.
 
 import type { _DriveApi, _DriveItem } from './_api';
 import { hashBytes } from '../_filesystem-utils';

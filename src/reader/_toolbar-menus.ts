@@ -2,7 +2,7 @@
 // library) and exporting. The menu under the title is in _title-menu.ts. What they change is the
 // Reading's, and the reader shows and saves it.
 
-import { askSetlistName, chooseSetlist } from '../dialogs/setlists';
+import { askSetlistName, pickSetlist } from '../dialogs/setlists';
 import { moveToFolder, renameFile, type ScoreFileHost } from '../dialogs/score-files';
 import { openExportPdf } from '../dialogs/export-pdf';
 import { type Excerpt, namedExcerptOf } from '../scores/excerpts';
@@ -107,7 +107,7 @@ export class ReaderMenus {
     const d = defaultSetlist(reading.setlists, lastAddedTo);
     return [
       ...(d ? [{ label: `Add to “${d.title}”`, run: () => add(d) }] : []),
-      { label: 'Add to setlist…', run: () => chooseSetlist(anchor, `Add “${what}” to`, reading.setlists, add, it.scoreId) },
+      { label: 'Add to setlist…', run: () => pickSetlist(anchor, `Add “${what}” to`, reading.setlists, add, it.scoreId) },
     ];
   }
 

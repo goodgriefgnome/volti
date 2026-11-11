@@ -75,7 +75,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 }
 .folder-head .chev { width: 8px; height: 8px; flex: none; }
 .empty { padding: 24px 4px; color: var(--muted); }
-.thumbs { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 8px; align-items: flex-start; }
+.thumbnails { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 8px; align-items: flex-start; }
 
 /* Sits in base.css to stay ahead of the ui/ rule it must lose to. */
 .dialog.glyph-picker { width: min(900px, calc(100vw - 32px)); }

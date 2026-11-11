@@ -51,8 +51,8 @@ async function start() {
   await loadMarkingColors().catch((e) => failedOnce('load the marking colours', e));
   await library.refresh();
   if (signInFailed) library.say(signInFailed);
-  // Signing in to link a folder goes on to choose it; signing in again was scanned by the refresh.
-  else if (signedIn === 'link') await library.chooseDriveFolder();
+  // Signing in to link a folder goes on to pick it; signing in again was scanned by the refresh.
+  else if (signedIn === 'link') await library.pickDriveFolder();
 }
 
 /**

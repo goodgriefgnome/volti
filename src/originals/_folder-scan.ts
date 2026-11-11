@@ -16,9 +16,9 @@ export interface _Seen { path: string; id: string; stamp?: Stamp }
  */
 export function _placeOf(before: Found | undefined, copies: readonly _Seen[]): Found | undefined {
   if (!copies.length) return undefined;
-  const chosen = copies.find((c) => c.path === before?.path)
+  const copy = copies.find((c) => c.path === before?.path)
     ?? (before ? copies.reduce((a, b) => (b.path < a.path ? b : a)) : copies[0]);
-  return { path: chosen.path, stamp: chosen.stamp };
+  return { path: copy.path, stamp: copy.stamp };
 }
 
 /** One scan's bookkeeping: what has been seen, and what each id was last said to be. */

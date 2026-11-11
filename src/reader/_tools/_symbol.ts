@@ -1,6 +1,6 @@
 // The Symbols tool: a tap on empty music, or a press dragged and lifted over a page, places the
 // current symbol there (unselected); the rest of a press is _placing.ts. It owns symbol markings
-// (selecting one lends it), the symbol library and each group's current symbol, and choosing,
+// (selecting one lends it), the symbol library and each group's current symbol, and picking,
 // adding, arranging and cycling symbols, with the library editor and the glyph picker it opens.
 
 import { addAdhoc, findSymbol, moveGroup, moveSymbol, nextSymbol, replaceSymbol, scaleOf, symbolsOf, type LibrarySymbol, type SymbolAt, type SymbolLibrary } from '../../markings/symbol-library';
@@ -117,7 +117,7 @@ export const symbolTool = (host: ToolHost): Tool => {
   };
 
   /** A symbol made current: by cycling, or picked in the panel or placed through + with no symbol selected. */
-  const choose = (g: number, index: number) => {
+  const makeCurrent = (g: number, index: number) => {
     setCurrent(g, index);
     group = g;
     setFace();
@@ -141,14 +141,14 @@ export const symbolTool = (host: ToolHost): Tool => {
     host.commit(setSymbolSize(replaceMarking(host.state(), sel.page, mark, replacement), size / sym.scale), sel.cut, { ...sel, mark: replacement });
     host.select({ ...sel, mark: replacement });
     const at = findSymbol(lib, sym.font, sym.text);
-    if (at) choose(at.group, at.index);
+    if (at) makeCurrent(at.group, at.index);
   };
 
   /** A symbol picked in the panel: the selected symbol becomes it, and with none selected it is current. */
   const pick = (g: number, index: number) => {
     const sel = selectedSymbol(), sym = lib && symbolsOf(lib, g)[index];
     if (sel && sym) replaceWith(sel, sym);
-    else choose(g, index);
+    else makeCurrent(g, index);
   };
 
   /**

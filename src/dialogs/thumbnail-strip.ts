@@ -9,10 +9,10 @@ import { type Aspects, type State } from '../scores/model';
 import { dpr, el } from '../ui/dom';
 
 /** How tall the thumbnails are, unzoomed, as a share of the screen's height; and how narrow they may get. */
-const THUMB_SHARE = 1 / 3;
-const MIN_THUMB_W = 112;
+const THUMBNAIL_SHARE = 1 / 3;
+const MIN_THUMBNAIL_W = 112;
 /** How far the thumbnails zoom in. */
-const MAX_THUMB_ZOOM = 4;
+const MAX_THUMBNAIL_ZOOM = 4;
 /** A finger that moves this far (CSS pixels) is panning, not tapping. */
 const SLOP = 8;
 
@@ -31,8 +31,8 @@ export const _u = (n: number) => `calc(var(--u) * ${n})`;
  * The score's frames as thumbnails, in boxes to put more over. Pinch to zoom them, and drag to
  * move along them; a click that ends a drag or a pinch doesn't reach what is over them.
  */
-export class ThumbStrip {
-  readonly el = el('div', 'thumbs excerpt');
+export class ThumbnailStrip {
+  readonly el = el('div', 'thumbnails excerpt');
   readonly frames: Frame[];
   /** Each frame's box, its thumbnail at the back. */
   readonly boxes: HTMLElement[];
@@ -40,16 +40,16 @@ export class ThumbStrip {
   readonly widths: number[];
   /** The width each frame's thumbnail was last drawn at, in CSS pixels; 0 while it draws. */
   private drawnAt: number[];
-  /** The thumbnails' zoom, 1 to MAX_THUMB_ZOOM. */
+  /** The thumbnails' zoom, 1 to MAX_THUMBNAIL_ZOOM. */
   private s = 1;
   private redrawTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor(private src: ExcerptSource) {
     const frames = this.frames = pack(src.state.score.cuts, src.aspects);
-    const widths = this.widths = frames.map((f) => Math.max(MIN_THUMB_W, Math.round(THUMB_SHARE * window.innerHeight / f.aspect)));
+    const widths = this.widths = frames.map((f) => Math.max(MIN_THUMBNAIL_W, Math.round(THUMBNAIL_SHARE * window.innerHeight / f.aspect)));
     this.drawnAt = frames.map(() => 0);
     this.boxes = frames.map((f, i) => {
-      const box = el('div', 'thumb-frame'), W = widths[i];
+      const box = el('div', 'thumbnail-frame'), W = widths[i];
       Object.assign(box.style, { width: _u(W), height: _u(W * f.aspect) });
       this.el.append(box);
       return box;
@@ -119,7 +119,7 @@ export class ThumbStrip {
   }
 
   private setZoom(s: number) {
-    this.s = Math.min(MAX_THUMB_ZOOM, Math.max(1, s));
+    this.s = Math.min(MAX_THUMBNAIL_ZOOM, Math.max(1, s));
     this.el.style.setProperty('--u', this.s + 'px');
     this.el.classList.toggle('zoomed', this.s > 1.001);
   }
@@ -132,7 +132,7 @@ export class ThumbStrip {
 
   private async redraw() {
     // Widths go in steps, so small pinches don't redraw, and the pages drawn can be reused.
-    const step = Math.min(MAX_THUMB_ZOOM, 2 ** Math.ceil(Math.log2(this.s - 0.001)));
+    const step = Math.min(MAX_THUMBNAIL_ZOOM, 2 ** Math.ceil(Math.log2(this.s - 0.001)));
     const view = this.el.getBoundingClientRect();
     for (const [i, box] of this.boxes.entries()) {
       const r = box.getBoundingClientRect(), w = this.widths[i] * step;

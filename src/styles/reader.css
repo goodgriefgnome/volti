@@ -131,7 +131,7 @@
 /* Pen's and Highlight's colour, a short bar under the icon. */
 .bar button:has(> .ink) { display: grid; justify-items: center; align-content: center; gap: 2px; }
 .bar .ink { width: 20px; height: 4px; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18); }
-/* Every menu and panel opened in the reader is the bar's off-white, and a button not chosen shows it; a chosen one is white with a blue ring (below). Dialogs keep their own. */
+/* Every menu and panel opened in the reader is the bar's off-white, and a button not picked shows it; a picked one is white with a blue ring (below). Dialogs keep their own. */
 body.reading .menu { background: var(--bar); }
 body.reading .menu button { background: transparent; }
 body.reading .menu button:not([aria-pressed="true"]):hover, body.reading .menu button:not([aria-pressed="true"]):focus-visible { background: rgba(0, 0, 0, 0.05); }
@@ -140,7 +140,7 @@ body.reading .menu button:not([aria-pressed="true"]):hover, body.reading .menu b
 .swatch-row .swatch { width: 44px; min-height: 44px; padding: 0; position: relative; }
 .swatch-row .swatch::after { content: ""; position: absolute; inset: 11px; border-radius: 50%; background: var(--swatch); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25); }
 .swatch-row .swatch.default::before { content: ""; position: absolute; inset: 8px; border-radius: 50%; border: 1.5px dashed #8d93a0; }
-/* The chosen colour, shape or symbol: white, with a ring in the selection blue; no dark fill, so colours read true. */
+/* The picked colour, shape or symbol: white, with a ring in the selection blue; no dark fill, so colours read true. */
 .swatch-row .swatch[aria-pressed="true"], .shape-row .shape[aria-pressed="true"], .symbol-panel .symbol-choice[aria-pressed="true"] { background: var(--bar-pressed); box-shadow: 0 0 0 2px var(--select); }
 .shape-row .shape { min-width: 44px; padding: 4px; display: grid; place-items: center; }
 
@@ -212,10 +212,10 @@ body.reading .menu button:not([aria-pressed="true"]):hover, body.reading .menu b
 /* Where "Cut here" would cut, while the menu is open. */
 .cut-mark { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--select); }
 
-.thumb { flex: none; display: grid; gap: 4px; justify-items: center; padding: 4px; min-height: 0; border: 2px solid transparent; background: transparent; }
-.thumb canvas, .thumb .thumb-space { width: 84px; background: #ffffff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); }
-.thumb span { font-size: 13px; color: var(--muted); }
-.thumb[aria-pressed="true"] { border-color: var(--select); background: color-mix(in srgb, var(--select) 12%, transparent); }
+.thumbnail { flex: none; display: grid; gap: 4px; justify-items: center; padding: 4px; min-height: 0; border: 2px solid transparent; background: transparent; }
+.thumbnail canvas, .thumbnail .thumbnail-space { width: 84px; background: #ffffff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); }
+.thumbnail span { font-size: 13px; color: var(--muted); }
+.thumbnail[aria-pressed="true"] { border-color: var(--select); background: color-mix(in srgb, var(--select) 12%, transparent); }
 /* The insert dialog's choice of pass, under the page strip. */
 .dialog .pass-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .dialog .pass-row .pass-label { color: var(--muted); margin-right: 4px; }

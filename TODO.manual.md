@@ -12,7 +12,7 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     it with two cuts of one page (shrink one, grow the next): the symbol shows on the other cut.
   - Remove a cut with markings: no "archived" message; insert the page again: the markings are
     there.
-  - Insert a page that is already played: the pass row offers 1 and 2 (new), 2 chosen. With Cuts
+  - Insert a page that is already played: the pass row offers 1 and 2 (new), 2 picked. With Cuts
     on, both cuts' top tabs say their pass; with Cuts off, nothing does.
   - Change a cut's pass with Pass…: the tab and the markings it shows change.
   - Select a symbol on a page played twice: "This time only" shows, off. Turn it on: the symbol
@@ -334,7 +334,7 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - There is no **Scores** button.
 - **The toolbar redesign: the title menu's controls:**
   - Drag an entry by its grip: it moves; the menu stays open with the new order.
-  - Swap on another entry: the excerpt picker for it; choose cuts; the menu comes back with its
+  - Swap on another entry: the excerpt picker for it; pick cuts; the menu comes back with its
     excerpt's name.
   - Bin on the current entry: asked first; **Remove** goes on to the next entry, and the menu
     comes back with that entry highlighted; **Undo** in the toast puts it back.

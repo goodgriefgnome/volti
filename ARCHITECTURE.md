@@ -27,7 +27,7 @@ The code uses these words, always in these senses.
 | **setlist**, **entry** | A setlist is a list of entries, read as one continuous score; each entry plays an excerpt of a score. | `Setlist`, `Entry` (`setlists/model.ts`) |
 | **pin** | To keep the pages (or, in a Drive folder, the files) that setlists play saved for good, whatever else is let go. | `pinSetlistPages` (`offline/pages.ts`), `pinPages` (`page-cache/cache.ts`), `pinOriginals` (`originals/drive/score-fs.ts`) |
 | **close-up** | The sharp drawing over the frames while zoomed in. | `CloseUp` (`reader/_close-up.ts`) |
-| **thumbnail** | A small picture of a frame or page, in a strip or a grid in a dialog. | |
+| **thumbnail** | A small picture of a frame or page, in a strip or a grid in a dialog. | `ThumbnailStrip` (`dialogs/thumbnail-strip.ts`) |
 | **Paint** | A fill or a stroke, as a path is drawn with: a graphics term for a different thing from drawing. | `Paint` (`markings/draw.ts`) |
 | **page cache** | The one cache of drawn original pages for the app: pages held in memory under a budget, and saved in OPFS (the pages setlists play, pinned; other pages worth saving, least recently used first). | `page-cache/` |
 
@@ -52,9 +52,9 @@ service worker takes `putInbox` without pdf.js): keep it true, and do any start-
 | Layer | Directory | What it holds |
 | --- | --- | --- |
 | 9 | `src/*.ts` | Start-up (`main.ts`), taking new versions (`updates.ts`), bringing the stored data up to the app's version (`stored-data.ts`), the service worker (`sw.ts`) |
-| 8 | `library/` | The Library screen; the folder chooser for linking a Google Drive folder (`_drive-folders`) |
+| 8 | `library/` | The Library screen; the folder picker for linking a Google Drive folder (`_drive-folders`) |
 | 7 | `reader/` | The score screen: reading a score, an excerpt or a setlist, writing on it, editing its cuts. The cut editor is in `reader/_cuts/`; the tools and their own interface (panels, swatches, the symbol library's editor and its glyph picker) are in `reader/_tools/` |
-| 6 | `dialogs/` | Dialogs both screens open: choosing an excerpt (over a strip of a score's frames, `thumb-strip`), the named excerpt dialogs, adding scores to a setlist, renaming and filing a score's file, exporting, setlist names and menus, a PDF's password; not the Face gestures dialog, which is `face/dialog.ts` |
+| 6 | `dialogs/` | Dialogs both screens open: picking an excerpt (over a strip of a score's frames, `thumbnail-strip`), the named excerpt dialogs, adding scores to a setlist, renaming and filing a score's file, exporting, setlist names and menus, a PDF's password; not the Face gestures dialog, which is `face/dialog.ts` |
 | 5 | `export/` | Exporting PDFs (with pdf-lib) |
 | 5 | `offline/` | Pinning the pages setlists play (`pages`), and how much of each is saved for offline (`status`) |
 | 4 | `render/` | What is on a screen: fitting frames to it (`layout`, `screen`), zoom maths (`zoom`), drawing a frame on a canvas (`draw`) |
@@ -91,7 +91,7 @@ linked one's scan (`_roots`), the device folder (picking it, asking for access, 
 **`originals/drive/`** holds Google Drive: the Google client given at build time (`_config`), signing
 in with PKCE and its tokens (`_auth`), the API requests (`_api`), copies of Drive files' bytes in
 OPFS (`_byte-cache`), the stand-in for Drive (`_fake`), the root over a Drive folder, listed by
-checksums (`_root`), and the Drive folder (signing in, the chooser's folders, its root, the copies
+checksums (`_root`), and the Drive folder (signing in, the picker's folders, its root, the copies
 kept) (`score-fs`).
 
 **`originals/read/`** holds reading a source file: everything only about PDFs (`_pdf`: pdf.js,

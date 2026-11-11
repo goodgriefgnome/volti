@@ -1,5 +1,5 @@
 // The library's setlists: the list of them, each opening to its scores, with their menus, and the
-// dialogs only they open (Add scores, choosing an entry's excerpt, deleting one).
+// dialogs only they open (Add scores, picking an entry's excerpt, deleting one).
 
 import { askSetlistName } from '../dialogs/setlists';
 import { openAddScores } from '../dialogs/add-scores';
@@ -148,7 +148,7 @@ export class SetlistsSection {
     const more = moreButton(title, (at) => showMenu(at, title, [
       i > 0 && { label: 'Move up', run: () => void lib.update(moveEntry(s, i, i - 1)) },
       i < s.entries.length - 1 && { label: 'Move down', run: () => void lib.update(moveEntry(s, i, i + 1)) },
-      !missing && { label: 'Change excerpt…', run: () => void this.chooseExcerpt(s, e) },
+      !missing && { label: 'Change excerpt…', run: () => void this.pickExcerpt(s, e) },
       { label: 'Remove from setlist', run: () => this.removeEntry(s, e) },
     ]));
     li.append(handle, el('span', 'num', String(i + 1)), open, more);
@@ -186,7 +186,7 @@ export class SetlistsSection {
     );
   }
 
-  /** Open "Add scores" for setlist `id`; what's chosen goes at the end. */
+  /** Open "Add scores" for setlist `id`; what's picked goes at the end. */
   private addScores(id: string) {
     const { lib } = this, s = lib.setlist(id);
     if (!s) return;
@@ -202,15 +202,15 @@ export class SetlistsSection {
         lib.openRows.add(id);
         lib.addedTo(id);
         for (const x of scores) lib.remember(x);
-        // The scores excerpts were chosen from too, so the excerpts and the cuts they name agree.
+        // The scores excerpts were picked from too, so the excerpts and the cuts they name agree.
         void lib.change(withSetlist(lib.setlists, addEntries(now, entries)), scores.flatMap((x) => scoreEntries(x.state)));
         lib.toast.say(`Added ${plural(entries.length, 'score')} to “${now.title}”.`);
       },
     });
   }
 
-  /** Choose the cuts an entry plays, over the library. */
-  private async chooseExcerpt(s: Setlist, e: Entry) {
+  /** Pick the cuts an entry plays, over the library. */
+  private async pickExcerpt(s: Setlist, e: Entry) {
     const { lib } = this, o = lib.originalOf(e.scoreId);
     if (!o) return;
     const sc = await lib.openForDialog(o);

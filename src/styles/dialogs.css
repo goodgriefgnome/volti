@@ -1,8 +1,8 @@
 /* What dialogs/ makes: the excerpt picker and its strip of thumbnails, adding scores to a setlist, and the score-file, setlist and export dialogs. */
 /* The Excerpt picker: each cut is a band over the score's frames, shaded when the excerpt leaves it out. */
-.thumb-frame { position: relative; flex: none; background: #ffffff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); }
-.thumb-frame canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-.thumb-frame canvas.under { mix-blend-mode: multiply; }
+.thumbnail-frame { position: relative; flex: none; background: #ffffff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); }
+.thumbnail-frame canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.thumbnail-frame canvas.under { mix-blend-mode: multiply; }
 .band {
   position: absolute; left: 0; right: 0; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent;
   border-top: 1px dashed rgba(138, 90, 18, 0.7);
@@ -18,12 +18,12 @@
 
 .picklist { display: grid; max-height: calc(var(--seen-height, 100vh) * 0.5); overflow: auto; border-block: 1px solid var(--line); }
 /* The picker's strip scrolls both ways once zoomed; its own gestures pan and pinch it. */
-.thumbs.excerpt { --u: 1px; gap: calc(var(--u) * 8); max-height: min(calc(var(--seen-height, 100vh) * 0.6), 640px); overflow: auto; touch-action: none; overscroll-behavior: contain; }
+.thumbnails.excerpt { --u: 1px; gap: calc(var(--u) * 8); max-height: min(calc(var(--seen-height, 100vh) * 0.6), 640px); overflow: auto; touch-action: none; overscroll-behavior: contain; }
 /* Add scores: a score to tick, and its Preview. */
 .dialog .view { display: grid; gap: 10px; }
 .pick-row { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-.pick-row .chosen { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px; padding: 0 0 8px 28px; }
-.pick-row .chosen .pill { min-height: 32px; padding: 2px 10px; background: transparent; border-color: currentColor; }
+.pick-row .picked { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px; padding: 0 0 8px 28px; }
+.pick-row .picked .pill { min-height: 32px; padding: 2px 10px; background: transparent; border-color: currentColor; }
 /* The checkboxes in a column, and beside each its title, which wraps within its own column. */
 .pick-row .check { flex: 1; min-width: 0; align-items: flex-start; padding-block: 10px; }
 .pick-row .check input { margin: 2px 0 0; }

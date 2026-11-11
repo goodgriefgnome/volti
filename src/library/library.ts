@@ -2,19 +2,19 @@
 // setlists), saving changes to them, and opening the reader. The parts it shows are their own
 // files: the folder banner, the setlists and the scores, each given this as its LibraryHost.
 
-import { chooseSetlist } from '../dialogs/setlists';
+import { pickSetlist } from '../dialogs/setlists';
 import { givePassword } from '../dialogs/passwords';
 import { openExportPdf } from '../dialogs/export-pdf';
 import { openScore, type LibraryScore } from '../dialogs/open-score';
 import { type NamedExcerptHost } from '../dialogs/named-excerpts';
-import { type ExcerptSource } from '../dialogs/thumb-strip';
+import { type ExcerptSource } from '../dialogs/thumbnail-strip';
 import type { Excerpt } from '../scores/excerpts';
 import type { ExportPart } from '../export/pdf';
 import { arrivals, byFolder, titleOf } from '../originals/path-utils';
 import { canLinkFolder } from '../originals/handles/device-score-fs';
 import { driveOffered, driveSignedIn, signInToDrive } from '../originals/drive/score-fs';
 import { folderStatus, linkDeviceFolder, linkDriveFolder, unlinkFolder, unlockFolder } from '../originals/linked-folder';
-import { chooseDriveFolder } from './_drive-folders';
+import { pickDriveFolder } from './_drive-folders';
 import { knownTitles, libraryFiles, scanRoot } from '../originals/library-files';
 import { inboxFiles, leftInApp } from '../originals/incoming-files';
 import { type FolderStatus, type SourceFile } from '../originals/types';
@@ -224,15 +224,15 @@ export class Library implements LibraryHost {
     else if (device) await this.linkOnDevice();
   }
 
-  /** From a tap: sign in to Google if need be (which leaves the page, coming back to the chooser), then choose the folder. */
+  /** From a tap: sign in to Google if need be (which leaves the page, coming back to the picker), then pick the folder. */
   private async linkInDrive() {
     if (!(await driveSignedIn())) { await signInToDrive('link'); return; }
-    await this.chooseDriveFolder();
+    await this.pickDriveFolder();
   }
 
-  /** The folder chooser, then linking what is chosen and reading it. */
-  async chooseDriveFolder() {
-    const picked = await chooseDriveFolder();
+  /** The folder picker, then linking what is picked and reading it. */
+  async pickDriveFolder() {
+    const picked = await pickDriveFolder();
     if (!picked) return;
     try {
       await linkDriveFolder(picked.id, picked.name);
@@ -405,7 +405,7 @@ export class Library implements LibraryHost {
     const d = defaultSetlist(this.setlists, this.lastAddedTo);
     return [
       ...(d ? [{ label: `Add to “${d.title}”`, run: () => void add(d) }] : []),
-      { label: 'Add to setlist…', run: () => chooseSetlist(anchor, `Add “${what}” to`, this.setlists, (s) => void add(s), scoreId) },
+      { label: 'Add to setlist…', run: () => pickSetlist(anchor, `Add “${what}” to`, this.setlists, (s) => void add(s), scoreId) },
     ];
   }
 

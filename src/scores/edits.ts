@@ -132,7 +132,7 @@ export function passesOf(score: Score, pages: readonly number[]): number[] {
   return [...passes].sort((a, b) => a - b);
 }
 
-/** The passes offered for cuts of `pages`: each they have, and one more (the highest plus 1); [1] when they have none. The last is the one chosen at first. */
+/** The passes offered for cuts of `pages`: each they have, and one more (the highest plus 1); [1] when they have none. The last is the one picked at first. */
 export function passChoices(score: Score, pages: readonly number[]): number[] {
   const passes = passesOf(score, pages);
   return passes.length ? [...passes, passes.at(-1)! + 1] : [1];

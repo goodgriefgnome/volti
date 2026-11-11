@@ -14,7 +14,7 @@ export interface EditorHost extends ReaderView {
   /** Show a drag in progress with the layout frozen, or (null) go back to the real layout. */
   preview(s: State | null, frames: Frame[] | null, hatches?: Hatches): void;
   /** A page thumbnail `width` CSS pixels wide: stand-ins first, then the page itself. */
-  thumbs(page: number, width: number): AsyncIterable<HTMLCanvasElement>;
+  thumbnails(page: number, width: number): AsyncIterable<HTMLCanvasElement>;
   /** Forget the tap or swipe that started with this pointer. */
   cancelGesture(): void;
   say(text: string): void;

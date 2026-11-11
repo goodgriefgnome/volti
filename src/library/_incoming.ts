@@ -6,7 +6,7 @@
 
 import { canvasesOf } from '../page-cache/cache';
 import { askPassword } from '../dialogs/passwords';
-import { ThumbStrip } from '../dialogs/thumb-strip';
+import { ThumbnailStrip } from '../dialogs/thumbnail-strip';
 import { arrivals, fileNameProblem, folderOf, pathInFolder, pathWithTitle, subfolders, titleOf, type Arrival } from '../originals/path-utils';
 import { PasswordNotGiven, type Original, type SourceFile } from '../originals/types';
 import { readIncoming } from '../originals/incoming-files';
@@ -19,7 +19,7 @@ import { failed } from '../ui/failure';
 /** A file coming in, and where it goes to start with (its own name at the top, by default); or one already read. */
 export type Arriving = { file: File; path?: string } | SourceFile;
 
-/** A row: a file coming in, and the name and folder chosen for it. */
+/** A row: a file coming in, and the name and folder picked for it. */
 interface Row {
   source: SourceFile;
   /** Its file name to start with, whose ending (".pdf", ".jpg") the name typed doesn't change. */
@@ -143,7 +143,7 @@ export async function openIncoming(lib: LibraryHost, files: readonly Arriving[],
     whenOverlayCloses(() => original.close());
     const aspects = await original.aspects();
     const state = { score: newScore(r.source.id, aspects), ink: {} };
-    const strip = new ThumbStrip({ state, aspects, pages: (p, w) => canvasesOf(original.drawProgressive(p + 1, Math.round(w * dpr()))) });
+    const strip = new ThumbnailStrip({ state, aspects, pages: (p, w) => canvasesOf(original.drawProgressive(p + 1, Math.round(w * dpr()))) });
     box.replaceChildren(strip.el);
   }
 
