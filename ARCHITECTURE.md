@@ -58,6 +58,8 @@ takes `putInbox` without pdf.js): keep it true, and do any start-up work from `m
 | 1 | `page-cache/`, `markings/`, `ui/` | The page cache: pages drawn in memory under a budget and saved in OPFS under an epoch, the scheduling of draws (two at once, `now` before `ahead` before `later`, a draw shared by its requesters), and stand-ins for progressive drawing; it knows nothing about files, and is given a `PageSource` to draw from (`cache`, with `_match`, `_budget`, `_memory`, `_scheduler` and `_disk`). What can be drawn on the music, and how (`draw`); generic pieces of the interface: elements (`dom`), menus and dialogs one at a time (`overlay`), asking for a line of text (`ask-text`), toasts |
 | 0 | `storage/`, `types/` | The IndexedDB key-value store, with every key in `keys.ts`, all described in `STORAGE.md`; missing DOM types |
 
+`public/lab/` holds prototype pages that are not the app; the service worker leaves them alone.
+
 **`originals/`** has twenty-six files, each importing only from those before it in `ORDER` in
 `originals/order.test.ts`, which holds the order. Two stand-ins that only tests import are
 `handles/_fake` (for the handle API) and `drive/_fake` (for Google Drive). The files at the top, in

@@ -1,6 +1,6 @@
 // A gesture's model: what its trials give (its template, its levels, its flags), and the check that
 // gestures turning pages don't conflict. A port of the `build`, `firesOn`, `conflictOf` and `settle`
-// of public/face-classifier.html; docs/face-classifier-spec.md says what they must be. Pure.
+// of public/lab/face-classifier.html; docs/face-classifier-spec.md says what they must be. Pure.
 
 import { framesOf, type Trial } from './_recording';
 import { CHANNELS, fit, median, quantile, score, type Row, type Template } from './_template';

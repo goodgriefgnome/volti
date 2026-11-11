@@ -205,7 +205,7 @@ up. A difference of one hold or one turn is within its noise.
 
 ## The prototype
 
-`public/face-classifier.html`, a page of its own like `face-signals.html`: MediaPipe's code from
+`public/lab/face-classifier.html`, a page of its own like `lab/face-signals.html`: MediaPipe's code from
 jsDelivr, its WASM and the face model the app's own (`mediapipe/`), nothing sent anywhere. The
 service worker leaves it alone. It has no tests.
 

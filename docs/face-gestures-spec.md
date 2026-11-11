@@ -230,6 +230,6 @@ version 5.
 
 ## The test pages
 
-`public/face-signals.html` and `public/face-classifier.html` (the prototype of
+`public/lab/face-signals.html` and `public/lab/face-classifier.html` (the prototype of
 `face-classifier-spec.md`) stay as they are, apart from the app: the service worker leaves them
 alone, and they keep their own recordings, not the app's.

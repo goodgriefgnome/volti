@@ -101,7 +101,7 @@ has three trials (10 to 15 are better). Then try it.</p>
 
 <script type="module">
 const CDN = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1';
-const LOCAL = new URL('mediapipe', location.href).href;
+const LOCAL = new URL('../mediapipe', location.href).href;
 const $ = (id) => document.getElementById(id);
 const video = $('video');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

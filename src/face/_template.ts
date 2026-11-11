@@ -1,6 +1,6 @@
 // A face gesture's template: the 52 channels, a template fitted from a gesture's held and rest
 // frames (its moving channels and caps), and a frame's score against it. A port of the `fit` and
-// `score` of public/face-classifier.html; docs/face-classifier-spec.md says what they must be.
+// `score` of public/lab/face-classifier.html; docs/face-classifier-spec.md says what they must be.
 // Pure: no DOM, no camera, no storage.
 
 const MIRROR = ['eyeBlink', 'eyeSquint', 'eyeWide', 'eyeLookUp', 'eyeLookDown', 'eyeLookIn', 'eyeLookOut', 'browDown',
