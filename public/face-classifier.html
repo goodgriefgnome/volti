@@ -6,13 +6,13 @@
 <title>Face classifier</title>
 <link rel="manifest" href="face-classifier.webmanifest">
 <!--
-  A throwaway prototype of gestures you define, as sparse templates: record trials of a gesture, and
-  it is fitted at once as a few channels (blendshape scores) whose held values are clear of their
-  values at rest; a frame's score is how far those channels have come from rest to the gesture,
-  from 0 to 1. No network and no training. MediaPipe's code comes from jsDelivr; its WASM and the
-  face model are the app's own, from mediapipe/. Recordings are kept in this page's own IndexedDB
-  database; nothing is sent anywhere. Not part of the app, and not tested.
-  (docs/face-classifier-spec.md still describes the network this replaced.)
+  A throwaway prototype of docs/face-classifier-spec.md, gestures you define as sparse templates:
+  record trials of a gesture, and it is fitted at once as a few channels (blendshape scores) whose
+  held values are clear of their values at rest; a frame's score is how far those channels have
+  come from rest to the gesture, from 0 to 1. No network and no training. MediaPipe's code comes
+  from jsDelivr; its WASM and the face model are the app's own, from mediapipe/. Recordings are kept
+  in this page's own IndexedDB database; nothing is sent anywhere. Not part of the app, and not
+  tested.
 -->
 <style>
   :root { color-scheme: dark; --bg: #15171c; --fg: #e8e8ea; --dim: #9a9ca3; --line: #2c2f37; --track: #23262e; --bar: #4c8dff; --hot: #ffb347; --bad: #ff6b6b; --good: #5fd38d; }
