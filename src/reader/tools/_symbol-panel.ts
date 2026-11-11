@@ -1,11 +1,11 @@
 // The Symbols tool's long-press panel: the library, to pick and arrange symbols, beside the
 // symbols' settings.
 
-import { symbolsOf, type SymbolAt, type SymbolLibrary } from '../markings/library';
-import { button, el, GRIP, icon } from '../ui/dom';
-import { dragToReorder } from '../ui/drag-reorder';
-import { closeOverlay, showMenu } from '../ui/overlay';
-import { isTap } from './_gestures';
+import { symbolsOf, type SymbolAt, type SymbolLibrary } from '../../markings/symbol-library';
+import { button, el, GRIP, icon } from '../../ui/dom';
+import { dragToReorder } from '../../ui/drag-reorder';
+import { closeOverlay, showMenu } from '../../ui/overlay';
+import { isTap } from '../_gestures';
 import { symbolPicture } from './_symbol-picture';
 import { lookParts, type LookActions, type SymbolSettingsView } from './_tool-panels';
 

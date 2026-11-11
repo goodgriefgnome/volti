@@ -3,7 +3,7 @@
 // (selecting one lends it), the symbol library and each group's current symbol, and choosing,
 // adding, arranging and cycling symbols, with the library editor and the glyph picker it opens.
 
-import { addAdhoc, findSymbol, moveGroup, moveSymbol, nextSymbol, replaceSymbol, scaleOf, symbolsOf, type LibrarySymbol, type SymbolAt, type SymbolLibrary } from '../../markings/library';
+import { addAdhoc, findSymbol, moveGroup, moveSymbol, nextSymbol, replaceSymbol, scaleOf, symbolsOf, type LibrarySymbol, type SymbolAt, type SymbolLibrary } from '../../markings/symbol-library';
 import { compactMarking, type Marking } from '../../markings/model';
 import { markColors, type Background, type PlacedMark } from '../../markings/placed';
 import { BRAVURA } from '../../fonts/fonts';
@@ -14,11 +14,11 @@ import { symbolSizeOf } from '../../scores/model';
 import { claimMarking } from '../../scores/ownership';
 import type { Selected } from '../../scores/placing';
 import { closeOverlay, showDialog } from '../../ui/overlay';
-import { glyphPicker } from '../_glyph-picker';
-import { editLibrary } from '../_library-editor';
-import { showSymbolPanel } from '../_symbol-panel';
-import { lastSymbol, makeSymbol, reorderedCurrents, savedLibrary, symbolLibrary } from '../_symbols';
-import type { SymbolSettingsView } from '../_tool-panels';
+import { glyphPicker } from './_glyph-picker';
+import { editLibrary } from './_symbol-library-editor';
+import { showSymbolPanel } from './_symbol-panel';
+import { lastSymbol, makeSymbol, reorderedCurrents, savedLibrary, symbolLibrary } from './_symbol-library';
+import type { SymbolSettingsView } from './_tool-panels';
 import { symbolFace, type Look } from './_faces';
 import { placingTool } from './_placing';
 import type { Tool, ToolHost } from './_tool';

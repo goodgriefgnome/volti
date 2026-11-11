@@ -1,20 +1,20 @@
 // The library editor: groups and their symbols, and a symbol's font, characters, scale and background. One
 // dialog whose content changes between views.
 
-import { BRAVURA, fontChoices, shapeWith, type FontChoice } from '../fonts/fonts';
-import { addGlyph, glyphKey } from '../markings/glyphs';
+import { BRAVURA, fontChoices, shapeWith, type FontChoice } from '../../fonts/fonts';
+import { addGlyph, glyphKey } from '../../markings/glyphs';
 import {
   addGroup, findSymbol, moveGroup, putSymbol, removeGroup, removeSymbol, replaceSymbol, symbolFrom, symbolsOf,
   type LibrarySymbol, type SymbolLibrary,
-} from '../markings/library';
-import { markColors, type Background } from '../markings/placed';
-import { button, el, plural } from '../ui/dom';
-import { buttonRow, closeOverlay, showDialog, showOnTop } from '../ui/overlay';
+} from '../../markings/symbol-library';
+import { markColors, type Background } from '../../markings/placed';
+import { button, el, plural } from '../../ui/dom';
+import { buttonRow, closeOverlay, showDialog, showOnTop } from '../../ui/overlay';
 import { glyphPicker } from './_glyph-picker';
 import { BACKGROUNDS, backgroundPicture } from './_swatches';
 import { hasInk, symbolPicture } from './_symbol-picture';
-import { makeSymbol } from './_symbols';
-import { failed, failedOnce } from '../ui/failure';
+import { makeSymbol } from './_symbol-library';
+import { failed, failedOnce } from '../../ui/failure';
 
 export interface LibraryEditorHost {
   library(): SymbolLibrary;

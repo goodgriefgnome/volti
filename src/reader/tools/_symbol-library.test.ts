@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { LibrarySymbol, SymbolLibrary } from '../markings/library';
-import { lastSymbol, reorderedCurrents } from './_symbols';
+import type { LibrarySymbol, SymbolLibrary } from '../../markings/symbol-library';
+import { lastSymbol, reorderedCurrents } from './_symbol-library';
 
 const sym = (text: string): LibrarySymbol => ({ font: 'Bravura', text, scale: 1, glyphs: [] });
 const lib = (groups: string[][], adhoc: string[] = []): SymbolLibrary => ({ groups: groups.map((g) => ({ symbols: g.map(sym) })), adhoc: adhoc.map(sym) });

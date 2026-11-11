@@ -3,11 +3,11 @@
 // its key changes.
 
 import { cssFamily } from '../../fonts/fonts';
-import type { LibrarySymbol } from '../../markings/library';
+import type { LibrarySymbol } from '../../markings/symbol-library';
 import { markColors, type Background } from '../../markings/placed';
 import { el } from '../../ui/dom';
-import { symbolPicture } from '../_symbol-picture';
-import { backgroundPicture } from '../_swatches';
+import { symbolPicture } from './_symbol-picture';
+import { backgroundPicture } from './_swatches';
 import type { ButtonFace } from './_tool';
 
 /** What a placing tool's button shows: the selected marking's look, or the next marking's. */

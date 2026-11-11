@@ -1,8 +1,8 @@
 // Rows of colour and background swatches, for the tools' long-press panels.
 
-import { markColors, type Background } from '../markings/placed';
-import type { BackgroundChoice, ColorChoice } from '../markings/tool-settings';
-import { el } from '../ui/dom';
+import { markColors, type Background } from '../../markings/placed';
+import type { BackgroundChoice, ColorChoice } from '../../markings/tool-settings';
+import { el } from '../../ui/dom';
 
 export const BACKGROUNDS: [choice: BackgroundChoice, label: string][] = [
   ['none', 'No background'], ['box', 'Box'], ['tag-left', 'Tag pointing left'], ['tag-right', 'Tag pointing right'],

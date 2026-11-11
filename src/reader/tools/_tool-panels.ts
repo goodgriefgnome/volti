@@ -1,11 +1,11 @@
 // The tools' long-press panels: what each shows, and what choosing in it does.
 
-import type { FontChoice } from '../fonts/fonts';
-import { markColors } from '../markings/placed';
-import { BACKGROUND_COLORS, HIGHLIGHT_COLORS, PEN_COLORS } from '../markings/stroke';
-import type { BackgroundChoice, ColorChoice } from '../markings/tool-settings';
-import { el } from '../ui/dom';
-import { closeOverlay, showMenu } from '../ui/overlay';
+import type { FontChoice } from '../../fonts/fonts';
+import { markColors } from '../../markings/placed';
+import { BACKGROUND_COLORS, HIGHLIGHT_COLORS, PEN_COLORS } from '../../markings/stroke';
+import type { BackgroundChoice, ColorChoice } from '../../markings/tool-settings';
+import { el } from '../../ui/dom';
+import { closeOverlay, showMenu } from '../../ui/overlay';
 import { shapeRow, swatchRow } from './_swatches';
 
 /** Pen's or Highlight's colours, under its button. */

@@ -1,8 +1,8 @@
 // The symbol library as the reader gets it, made from the starter the first time it is needed.
 
-import { BRAVURA, shapeWith } from '../fonts/fonts';
-import { symbolFrom, symbolsOf, type LibrarySymbol, type SymbolLibrary } from '../markings/library';
-import { loadLibrary, saveGlyphs, saveLibrary } from '../markings/store';
+import { BRAVURA, shapeWith } from '../../fonts/fonts';
+import { symbolFrom, symbolsOf, type LibrarySymbol, type SymbolLibrary } from '../../markings/symbol-library';
+import { loadLibrary, saveGlyphs, saveLibrary } from '../../markings/store';
 
 /** The starter library: fingerings 1 to 5, and pp to ff, all Bravura at scale 1. */
 const STARTER = [['', '', '', '', ''], ['', '', '', '', '', '']];

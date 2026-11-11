@@ -1,11 +1,11 @@
 // Drawing a symbol as a picture on a canvas: the toolbar's buttons and menus, the glyph picker's
 // preview and the library editor's.
 
-import { canvasDrawing } from '../markings/draw';
-import type { LibrarySymbol } from '../markings/library';
-import { drawMarkings } from '../markings/model';
-import { emExtent, type Background, type PlacedMark } from '../markings/placed';
-import { dpr, el } from '../ui/dom';
+import { canvasDrawing } from '../../markings/draw';
+import type { LibrarySymbol } from '../../markings/symbol-library';
+import { drawMarkings } from '../../markings/model';
+import { emExtent, type Background, type PlacedMark } from '../../markings/placed';
+import { dpr, el } from '../../ui/dom';
 
 /** The size of a symbol's picture, in CSS pixels. */
 export const PICTURE_PX = 48;

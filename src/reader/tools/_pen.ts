@@ -9,7 +9,7 @@ import { frameTarget } from '../../render/paint';
 import { claimMarking } from '../../scores/ownership';
 import { setInk } from '../../scores/edits';
 import type { FrameSlot } from '../_spread';
-import { showStrokeColors } from '../_tool-panels';
+import { showStrokeColors } from './_tool-panels';
 import { inkFace } from './_faces';
 import { TOOL_LABELS, type Tool, type ToolHost } from './_tool';
 

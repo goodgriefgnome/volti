@@ -13,7 +13,7 @@ import { replaceMarking, setInk, textResized, textSizeOf } from '../../scores/ed
 import { claimMarking } from '../../scores/ownership';
 import { centreOnFrame, movedTo, type Selected } from '../../scores/placing';
 import type { FrameSlot } from '../_spread';
-import { showTextPanel, type TextPanel } from '../_tool-panels';
+import { showTextPanel, type TextPanel } from './_tool-panels';
 import { textFace, type Look } from './_faces';
 import { placingTool } from './_placing';
 import type { Tool, ToolHost } from './_tool';

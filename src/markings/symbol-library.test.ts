@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { addGlyph } from './glyphs';
-import { addAdhoc, addGroup, findSymbol, moveGroup, moveSymbol, nextSymbol, putSymbol, removeGroup, removeSymbol, replaceSymbol, scaleOf, symbolFrom, symbolsOf, type LibrarySymbol, type SymbolLibrary } from './library';
+import { addAdhoc, addGroup, findSymbol, moveGroup, moveSymbol, nextSymbol, putSymbol, removeGroup, removeSymbol, replaceSymbol, scaleOf, symbolFrom, symbolsOf, type LibrarySymbol, type SymbolLibrary } from './symbol-library';
 
 beforeAll(() => {
   addGlyph('l:1', 'M 0 0 L 1 0 L 1 -1 L 0 -1 Z');

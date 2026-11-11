@@ -3,7 +3,7 @@
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
 import { addGlyph, glyphKey, glyphOf } from './glyphs';
-import type { SymbolLibrary } from './library';
+import type { SymbolLibrary } from './symbol-library';
 import { BUILT_IN_COLORS, setMarkColors, type MarkColors } from './placed';
 import { toolSettingsFrom, type ToolSettings } from './tool-settings';
 

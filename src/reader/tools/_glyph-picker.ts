@@ -1,14 +1,14 @@
 // The glyph picker: a font's glyphs in a grid, a search by SMuFL name, and the characters picked
 // so far, drawn as they will be.
 
-import { fontChoices, fontView, shapeWith, type FontView } from '../fonts/fonts';
-import { smuflNames, type SmuflNames } from '../fonts/smufl';
-import { addGlyph, glyphKey } from '../markings/glyphs';
-import { symbolFrom } from '../markings/library';
-import { button, el } from '../ui/dom';
-import { buttonRow } from '../ui/overlay';
+import { fontChoices, fontView, shapeWith, type FontView } from '../../fonts/fonts';
+import { smuflNames, type SmuflNames } from '../../fonts/smufl';
+import { addGlyph, glyphKey } from '../../markings/glyphs';
+import { symbolFrom } from '../../markings/symbol-library';
+import { button, el } from '../../ui/dom';
+import { buttonRow } from '../../ui/overlay';
 import { hasInk, symbolPicture } from './_symbol-picture';
-import { failed, failedOnce } from '../ui/failure';
+import { failed, failedOnce } from '../../ui/failure';
 
 export interface GlyphPickerOptions {
   /** The font to start with, and the characters already picked. */
