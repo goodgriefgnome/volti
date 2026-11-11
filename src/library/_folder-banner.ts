@@ -9,7 +9,7 @@ import { button, el } from '../ui/dom';
 import { showMenu } from '../ui/overlay';
 import type { LibraryHost } from './_host';
 import { openFaceGestures } from '../face/dialog';
-import { openMarkColors } from './_mark-colors';
+import { openMarkingColors } from './_marking-colors';
 import { openRecentlyRemoved } from './_removed';
 import { storageView } from './_storage';
 import { moreButton } from './_rows';
@@ -40,7 +40,7 @@ export class FolderBanner {
       f.kind !== 'none' && { label: 'Unlink', run: () => void lib.unlink() },
       f.kind !== 'none' && lib.leftIn > 0 && { label: `Move ${lib.leftIn === 1 ? 'the score' : `${lib.leftIn} scores`} left in Volti…`, run: () => void lib.moveLeftIn(true) },
       { label: 'Recently removed…', run: () => void openRecentlyRemoved(lib) },
-      { label: 'Marking colours…', run: openMarkColors },
+      { label: 'Marking colours…', run: openMarkingColors },
       { label: 'Face gestures…', run: () => openFaceGestures() },
       'Storage used on this tablet',
       storageView(),

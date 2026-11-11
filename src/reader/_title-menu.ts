@@ -3,7 +3,7 @@
 // delete a score's named excerpts). Opened by the title; it comes back after the dialogs it opens.
 
 import { canvasesOf } from '../page-cache/cache';
-import { addExcerpt, changeExcerpt, deleteExcerpt as askDeleteExcerpt, type ExcerptHost } from '../dialogs/excerpts';
+import { addNamedExcerpt, changeNamedExcerpt, deleteNamedExcerpt, type NamedExcerptHost } from '../dialogs/named-excerpts';
 import { givePassword } from '../dialogs/passwords';
 import { openAddScores } from '../dialogs/add-scores';
 import { openExcerptPicker } from '../dialogs/excerpt-picker';
@@ -69,7 +69,7 @@ export function _titleRows(h: MenusHost): TitleRow[] {
       current: !!read && sameExcerpt(score.cuts, x, read),
       go: () => h.playExcerpt(ends(x)),
       change: () => void changeNamed(h, x),
-      remove: () => deleteNamed(h, x),
+      remove: () => askToDeleteNamedExcerpt(h, x),
     });
   }
   return rows;
@@ -147,7 +147,7 @@ function source(cur: OpenScore): ExcerptSource {
 }
 
 /** Changing the open score's named excerpts from the reader, saved with the score. */
-function excerptHost(h: MenusHost, cur: OpenScore): ExcerptHost {
+function excerptHost(h: MenusHost, cur: OpenScore): NamedExcerptHost {
   return {
     setlists: h.reading.setlists,
     aspects: cur.aspects,
@@ -257,7 +257,7 @@ async function addNamed(h: MenusHost) {
   if (!(await h.access())) { showTitleMenu(h); return; }
   const cur = h.open(h.k());
   if (!cur?.draw) { showTitleMenu(h); return; }
-  addExcerpt(source(cur), h.reading.items[0].title, excerptHost(h, cur));
+  addNamedExcerpt(source(cur), h.reading.items[0].title, excerptHost(h, cur));
   reopenAfter(h);
 }
 
@@ -268,7 +268,7 @@ async function changeNamed(h: MenusHost, x: NamedExcerpt) {
   if (!cur?.draw) { showTitleMenu(h); return; }
   const { reading } = h, read = reading.what.kind === 'excerpt' ? reading.what.excerpt : undefined;
   const isRead = !!read && sameExcerpt(cur.state.score.cuts, x, read);
-  changeExcerpt(source(cur), x, excerptHost(h, cur), (to) => {
+  changeNamedExcerpt(source(cur), x, excerptHost(h, cur), (to) => {
     if (!isRead) return;
     reading.play(h.k(), to);
     h.saver.soon(cur);
@@ -281,14 +281,14 @@ async function changeNamed(h: MenusHost, x: NamedExcerpt) {
  * Delete a named excerpt, asking first. Deleting the one being read goes on to the next of the
  * score's (or the one before); with none left, back to the library.
  */
-function deleteNamed(h: MenusHost, x: NamedExcerpt) {
+function askToDeleteNamedExcerpt(h: MenusHost, x: NamedExcerpt) {
   const cur = h.open(h.k());
   if (!cur) return;
   const { reading } = h, host = excerptHost(h, cur), score = cur.state.score;
   const read = reading.what.kind === 'excerpt' ? reading.what.excerpt : undefined;
   const isRead = !!read && sameExcerpt(score.cuts, x, read);
   const at = sortedExcerpts(score).findIndex((n) => n.name === x.name);
-  askDeleteExcerpt(score, x, {
+  deleteNamedExcerpt(score, x, {
     ...host,
     save: (next, setlists) => {
       host.save(next, setlists);

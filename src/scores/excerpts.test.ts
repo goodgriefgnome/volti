@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { insertPages, joinNext, remove, setEdge, split } from './edits';
-import { excerptName, followEdit, followExcerpts, namedExcerptOf, nameProblem, removeName, sameExcerpt, setName, sortedExcerpts, excerptCuts, excerptFor, excerptLabel, excerptRange, type Excerpt } from './excerpts';
+import { excerptName, followEdit, followExcerpts, namedExcerptOf, nameProblem, deleteNamedExcerpt, sameExcerpt, setName, sortedExcerpts, excerptCuts, excerptFor, excerptLabel, excerptRange, type Excerpt } from './excerpts';
 import type { Score, State } from './model';
 import { A4, cut, state } from './testing';
 
@@ -44,7 +44,7 @@ describe('excerptFor and excerptLabel', () => {
     expect(excerptFor(cuts, 1, 3)).toEqual({ first: cuts[1].id });
     expect(excerptFor(cuts, 0, 2)).toEqual({ last: cuts[2].id });
   });
-  it('names the original pages played, without their shapes', () => {
+  it('names the original pages played, without their aspects', () => {
     expect(excerptLabel(cuts, {})).toBeNull();
     expect(excerptLabel(cuts, excerptFor(cuts, 0, 1))).toBe('Original pages 1–2');
     expect(excerptLabel(cuts, excerptFor(cuts, 2, 2))).toBe('Original page 3');
@@ -196,7 +196,7 @@ describe('names on excerpts', () => {
     const kyrie = namedExcerptOf(s.score, { last: b.id })!;
     const renamed = setName(s.score, kyrie, 'Kyrie eleison', kyrie);
     expect(sortedExcerpts(renamed).map((n) => n.name)).toEqual(['Kyrie eleison', 'Gloria']);
-    expect(namedExcerptOf(removeName(s.score, kyrie), { last: b.id })).toBeUndefined();
+    expect(namedExcerptOf(deleteNamedExcerpt(s.score, kyrie), { last: b.id })).toBeUndefined();
   });
 });
 

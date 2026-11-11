@@ -12,7 +12,7 @@ const GAP = 6;
 export interface ScreenBox { x: number; y: number; w: number; h: number; fw: number; fh: number }
 
 /**
- * Where a screen's frames, of these shapes (height / width), go on a W x H stage: as the first one
+ * Where a screen's frames, of these aspects (height / width), go on a W x H stage: as the first one
  * decides, side by side or one above the other, on whole device pixels so they are shown exactly as
  * drawn, without resampling.
  */

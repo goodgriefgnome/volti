@@ -20,7 +20,7 @@ export interface ExportPart { original: SourceFile; excerpt?: Excerpt }
 
 type PdfLib = typeof import('pdf-lib');
 
-/** An original open for exporting: its score, its pages' shapes as the reader has them, and its music as a PDF, in pdf-lib. */
+/** An original open for exporting: its score, its pages' aspects as the reader has them, and its music as a PDF, in pdf-lib. */
 interface Source {
   state: State;
   aspects: Aspects;

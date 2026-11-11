@@ -17,7 +17,7 @@ const stored = ({ id: _, ...rest }: Score): StoredScore => rest;
 /** A score as loaded: its id from the key. */
 const loaded = (id: string, s: StoredScore): Score => ({ ...s, id });
 
-/** A score as saved, or a new one for an original opened the first time, with the page shapes it is given. */
+/** A score as saved, or a new one for an original opened the first time, with the aspects it is given. */
 export async function loadScore(id: string, aspects: Aspects): Promise<{ state: State }> {
   const [score, ink] = await Promise.all([kv.get<StoredScore>(keys.score(id)), kv.get<ScoreInk>(keys.ink(id))]);
   if (!score) return { state: { score: newScore(id, aspects), ink: {} } };

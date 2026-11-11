@@ -1,7 +1,7 @@
 // Named excerpt dialogs that both the library and the reader use: adding one, renaming it, changing
 // its cuts and deleting it. Where the score comes from and how it is saved is the caller's.
 
-import { type Excerpt, nameProblem, removeName, sameExcerpt, setName, excerptLabel } from '../scores/excerpts';
+import { type Excerpt, nameProblem, deleteNamedExcerpt as deleteFromScore, sameExcerpt, setName, excerptLabel } from '../scores/excerpts';
 import type { Aspects, NamedExcerpt, Score } from '../scores/model';
 import { moveExcerpt, type Setlist } from '../setlists/model';
 import { askText } from '../ui/ask-text';
@@ -11,9 +11,9 @@ import { openExcerptPicker } from './excerpt-picker';
 import type { ExcerptSource } from './thumb-strip';
 
 /** Where a score's named excerpts are changed. */
-export interface ExcerptHost {
+export interface NamedExcerptHost {
   setlists: readonly Setlist[];
-  /** The original's page shapes, for naming excerpts by pages; by original pages without them. */
+  /** The original's aspects, for naming excerpts by pages; by original pages without them. */
   aspects?: Aspects;
   /** Keep a change to the score's names, with the setlists when they changed too. */
   save(score: Score, setlists?: Setlist[]): void;
@@ -25,7 +25,7 @@ export const _setlistsPlaying = (setlists: readonly Setlist[], score: Score, exc
   setlists.filter((s) => s.entries.some((e) => e.scoreId === score.id && sameExcerpt(score.cuts, e, excerpt)));
 
 /** Name part of a score, in the excerpt picker. */
-export function addExcerpt(src: ExcerptSource, title: string, h: ExcerptHost) {
+export function addNamedExcerpt(src: ExcerptSource, title: string, h: NamedExcerptHost) {
   const score = src.state.score;
   openExcerptPicker({
     ...src,
@@ -42,7 +42,7 @@ export function addExcerpt(src: ExcerptSource, title: string, h: ExcerptHost) {
   });
 }
 
-export function renameExcerpt(score: Score, x: NamedExcerpt, h: ExcerptHost) {
+export function renameNamedExcerpt(score: Score, x: NamedExcerpt, h: NamedExcerptHost) {
   askText({
     title: `Rename “${x.name}”`,
     value: x.name,
@@ -57,7 +57,7 @@ export function renameExcerpt(score: Score, x: NamedExcerpt, h: ExcerptHost) {
  * Choose other cuts for a named excerpt. Every entry that plays it moves with it. `moved` hears
  * where it went.
  */
-export function changeExcerptCuts(src: ExcerptSource, x: NamedExcerpt, h: ExcerptHost, moved?: (to: Excerpt) => void) {
+export function changeNamedExcerptCuts(src: ExcerptSource, x: NamedExcerpt, h: NamedExcerptHost, moved?: (to: Excerpt) => void) {
   const score = src.state.score, now = score.excerpts?.find((n) => n.name === x.name) ?? x;
   const using = _setlistsPlaying(h.setlists, score, now);
   openExcerptPicker({
@@ -81,7 +81,7 @@ export function changeExcerptCuts(src: ExcerptSource, x: NamedExcerpt, h: Excerp
  * Change a named excerpt's name and cuts together. Every entry that plays it moves with it.
  * `moved` hears where it went, when its cuts changed.
  */
-export function changeExcerpt(src: ExcerptSource, x: NamedExcerpt, h: ExcerptHost, moved?: (to: Excerpt) => void) {
+export function changeNamedExcerpt(src: ExcerptSource, x: NamedExcerpt, h: NamedExcerptHost, moved?: (to: Excerpt) => void) {
   const score = src.state.score, now = score.excerpts?.find((n) => n.name === x.name) ?? x;
   const using = _setlistsPlaying(h.setlists, score, now);
   openExcerptPicker({
@@ -104,7 +104,7 @@ export function changeExcerpt(src: ExcerptSource, x: NamedExcerpt, h: ExcerptHos
 }
 
 /** Take the name off an excerpt. Setlists that play it keep playing the same music. */
-export function deleteExcerpt(score: Score, x: NamedExcerpt, h: ExcerptHost) {
+export function deleteNamedExcerpt(score: Score, x: NamedExcerpt, h: NamedExcerptHost) {
   const using = _setlistsPlaying(h.setlists, score, x);
   const pages = excerptLabel(score.cuts, x, h.aspects);
   const d = showDialog(`Delete “${x.name}”?`);
@@ -114,7 +114,7 @@ export function deleteExcerpt(score: Score, x: NamedExcerpt, h: ExcerptHost) {
       : 'The score and its cuts stay as they are.'),
     buttonRow(button('Cancel', closeOverlay), button('Delete', () => {
       closeOverlay();
-      h.save(removeName(score, x));
+      h.save(deleteFromScore(score, x));
       h.say(`Deleted “${x.name}”.`);
     }, 'danger')),
   );

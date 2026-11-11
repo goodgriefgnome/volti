@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { addGlyph } from '../markings/glyphs';
 import type { Marking } from '../markings/model';
-import type { PlacedMark } from '../markings/placed';
+import type { PlacedMarking } from '../markings/placed';
 import type { ScoreInk } from './model';
 import { pack } from './frames';
 import { extentOnFrame, handleRadius, markingAt, movedTo, pressOnSelection, resizedFrom, selectionBox, setThisTimeOnly, thisTimeOnly } from './placing';
@@ -12,7 +12,7 @@ beforeAll(() => {
 });
 
 /** A one-glyph symbol, 1 em square, centred at (x, y) of its page, `size` page widths. */
-const mark = (x: number, y: number, size = 0.1): PlacedMark => ({ kind: 'symbol', text: 'x', font: 'p', glyphs: [[1, -0.5, 0.5]], at: [x, y], size });
+const mark = (x: number, y: number, size = 0.1): PlacedMarking => ({ kind: 'symbol', text: 'x', font: 'p', glyphs: [[1, -0.5, 0.5]], at: [x, y], size });
 
 describe('extentOnFrame', () => {
   it('is in frame widths from the top of the frame, for a cut that starts mid-page', () => {

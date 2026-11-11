@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { PlacedMark } from '../../markings/placed';
+import type { PlacedMarking } from '../../markings/placed';
 import { addGlyph } from '../../markings/glyphs';
 import { pack } from '../../scores/frames';
 import { A4, aspects, cut, state } from '../../scores/testing';
@@ -7,7 +7,7 @@ import type { FrameSlot } from '../_slots';
 import { _lifted, _tapAction, placingTool } from './_placing';
 import type { Press, ToolHost } from './_tool';
 
-const mark = (text: string): PlacedMark => ({ kind: 'symbol', text, font: 'f', glyphs: [], at: [0.5, 0.5], size: 0.05 });
+const mark = (text: string): PlacedMarking => ({ kind: 'symbol', text, font: 'f', glyphs: [], at: [0.5, 0.5], size: 0.05 });
 const a = mark('a'), b = mark('b');
 
 describe('_tapAction', () => {
@@ -30,11 +30,11 @@ describe('placingTool: the press', () => {
   vi.stubGlobal('cancelAnimationFrame', () => {});
   vi.stubGlobal('requestAnimationFrame', () => 1);
   addGlyph('p:1', 'M 0 0 L 1 0 L 1 -1 L 0 -1 Z');
-  const c = cut(0), m: PlacedMark = { kind: 'symbol', text: 'x', font: 'p', glyphs: [[1, -0.5, 0.5]], at: [0.5, 0.5], size: 0.1 };
+  const c = cut(0), m: PlacedMarking = { kind: 'symbol', text: 'x', font: 'p', glyphs: [[1, -0.5, 0.5]], at: [0.5, 0.5], size: 0.1 };
   const [frame] = pack([c], aspects);
   const slot = { frame, x: 0, y: 0, w: 1000, h: 1000 * A4, box: { getBoundingClientRect: () => ({ left: 0, top: 0, width: 1000, height: 1000 * A4 }) } } as unknown as FrameSlot;
   const y = A4 * 0.5;
-  const setup = (selected?: PlacedMark, ink: PlacedMark = m) => {
+  const setup = (selected?: PlacedMarking, ink: PlacedMarking = m) => {
     const calls: string[] = [];
     const host = {
       zoom: () => ({ s: 1 }), aspects: () => aspects, state: () => state([c], { [c.id]: [ink] }), slots: () => [slot],
@@ -99,14 +99,14 @@ describe('placingTool: its chrome', () => {
   const c = cut(0), [frame] = pack([c], aspects);
   const slot = { frame, w: 1000 } as FrameSlot;
   const y = A4 * 0.5;
-  const tool = (m: PlacedMark, selected: boolean) => {
+  const tool = (m: PlacedMarking, selected: boolean) => {
     const host = {
       zoom: () => ({ s: 1 }), aspects: () => aspects, state: () => state([c], { [c.id]: [m] }),
       selected: () => (selected ? { cut: c.id, mark: m } : undefined),
     } as unknown as ToolHost;
     return placingTool(host, { name: 'symbol', owns: () => true, place: () => {}, ghost: () => undefined, again: () => {}, resized: (s) => s });
   };
-  const big: PlacedMark = { kind: 'symbol', text: 'x', font: 'p', glyphs: [[1, -0.5, 0.5]], at: [0.5, 0.5], size: 0.1 };
+  const big: PlacedMarking = { kind: 'symbol', text: 'x', font: 'p', glyphs: [[1, -0.5, 0.5]], at: [0.5, 0.5], size: 0.1 };
   it('is on the selected marking\'s box and its handles, and nowhere else', () => {
     // The box is 0.1 wide (100 px): handles of 8 px at its corners (0.55, y - 0.05).
     const t = tool(big, true);

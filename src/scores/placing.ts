@@ -2,27 +2,27 @@
 // its cut's pass. Pure.
 
 import { compactMarking, hitDistance, type Marking, type Point } from '../markings/model';
-import { markExtent, type PlacedMark } from '../markings/placed';
+import { markingExtent, type PlacedMarking } from '../markings/placed';
 import { passesOf, replaceMarking, setInk } from './edits';
 import type { Frame, Placed } from './frames';
 import { passOf, type Aspects, type Cut, type Score, type ScoreInk, type State } from './model';
 import { claimMarking, shownBy } from './ownership';
 
 /** A placed marking chosen on the music: the page whose ink holds it, the marking itself (found there by identity), and the cut it was chosen in, which shows it. */
-export interface Selected { page: number; cut: string; mark: PlacedMark }
+export interface Selected { page: number; cut: string; mark: PlacedMarking }
 
 type Box = [x0: number, y0: number, x1: number, y1: number];
 
 /** A placed marking's extent on a frame, with its background: x in frame widths, y in frame widths from its top. */
-export function extentOnFrame(item: Placed, m: PlacedMark, aspect: number): Box | undefined {
-  const e = markExtent(m);
+export function extentOnFrame(item: Placed, m: PlacedMarking, aspect: number): Box | undefined {
+  const e = markingExtent(m);
   if (!e) return undefined;
   const x = m.at[0], y = item.top + (m.at[1] - item.cut.y0) * aspect;
   return [x + e[0] * m.size, y + e[1] * m.size, x + e[2] * m.size, y + e[3] * m.size];
 }
 
 /** A placed marking's centre on a frame, in the same coordinates as its extent. */
-export function centreOnFrame(item: Placed, m: PlacedMark, aspect: number): [number, number] {
+export function centreOnFrame(item: Placed, m: PlacedMarking, aspect: number): [number, number] {
   return [m.at[0], item.top + (m.at[1] - item.cut.y0) * aspect];
 }
 
@@ -105,11 +105,11 @@ export function resizedFrom(ext: Box, corner: 0 | 1 | 2 | 3, p: readonly [number
  * moved marking, for its new text, font and glyphs.
  */
 export function movedTo(
-  s: State, frame: Frame, from: Selected, at: readonly [number, number], aspects: Aspects, size = from.mark.size, content: Partial<PlacedMark> = {},
+  s: State, frame: Frame, from: Selected, at: readonly [number, number], aspects: Aspects, size = from.mark.size, content: Partial<PlacedMarking> = {},
 ): { state: State; selected: Selected } {
   const claimed = claimMarking(frame, { ...from.mark, ...content, at: [at[0], at[1]], size }, aspects);
   if (!claimed) return { state: s, selected: from };
-  const moved = compactMarking(claimed.marking) as PlacedMark;
+  const moved = compactMarking(claimed.marking) as PlacedMarking;
   const mark = moved.pass === undefined ? moved : { ...moved, pass: passOf(claimed.cut) };
   const page = claimed.cut.page;
   const state = page === from.page
@@ -131,6 +131,6 @@ export function thisTimeOnly(score: Score, sel: Selected): 'on' | 'off' | undefi
 export function setThisTimeOnly(s: State, sel: Selected, on: boolean): { state: State; selected: Selected } {
   const cut = s.score.cuts.find((c) => c.id === sel.cut);
   const { pass: _, ...rest } = sel.mark;
-  const mark: PlacedMark = on ? { ...rest, pass: cut ? passOf(cut) : 1 } : rest;
+  const mark: PlacedMarking = on ? { ...rest, pass: cut ? passOf(cut) : 1 } : rest;
   return { state: replaceMarking(s, sel.page, sel.mark, mark), selected: { ...sel, mark } };
 }

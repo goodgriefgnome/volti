@@ -1,7 +1,7 @@
 // The library's scores: searching them, adding PDFs, and the lists of them, by subfolder, each score
 // opening to its named excerpts, with their menus.
 
-import { addExcerpt, changeExcerptCuts, deleteExcerpt, renameExcerpt } from '../dialogs/excerpts';
+import { addNamedExcerpt, changeNamedExcerptCuts, deleteNamedExcerpt, renameNamedExcerpt } from '../dialogs/named-excerpts';
 import { moveToFolder, renameFile, type ScoreFileHost } from '../dialogs/score-files';
 import { sortedExcerpts, excerptLabel } from '../scores/excerpts';
 import { byFolder, folderOf, subfolders, titleOf } from '../originals/path-utils';
@@ -116,7 +116,7 @@ export class ScoresSection {
   private excerptHit(o: SourceFile, score: Score, x: NamedExcerpt): HTMLLIElement {
     const li = el('li', 'score hit');
     const open = button('', () => this.lib.readExcerpt(o, x), 'open');
-    const pages = excerptLabel(score.cuts, x, this.lib.shapes.get(score.id));
+    const pages = excerptLabel(score.cuts, x, this.lib.aspects.get(score.id));
     open.append(el('span', 'score-title', `${x.name} · ${titleOf(o.path)}`));
     if (pages) open.append(el('span', 'score-folder', pages));
     open.setAttribute('aria-label', `${x.name}, an excerpt of ${titleOf(o.path)}`);
@@ -137,7 +137,7 @@ export class ScoresSection {
 
     const more = moreButton(titleOf(s.path), (at) => showMenu(at, titleOf(s.path), [
       ...lib.addToItems(at, s.id, titleOf(s.path)),
-      { label: 'Add excerpt…', run: () => void lib.withPages(s, (sc) => addExcerpt(sc, titleOf(s.path), lib.excerptHost(s.id))) },
+      { label: 'Add excerpt…', run: () => void lib.withPages(s, (sc) => addNamedExcerpt(sc, titleOf(s.path), lib.excerptHost(s.id))) },
       { label: 'Rename…', run: () => renameFile(this.files, s) },
       { label: 'Export PDF…', run: () => lib.exportPdf(titleOf(s.path), [{ scoreId: s.id }]) },
       { label: 'Move to folder…', run: () => moveToFolder(this.files, s, subfolders(lib.originals)) },
@@ -172,7 +172,7 @@ export class ScoresSection {
   private excerptRow(o: SourceFile, score: Score, x: NamedExcerpt): HTMLLIElement {
     const { lib } = this;
     const li = el('li', 'excerpt');
-    const pages = excerptLabel(score.cuts, x, lib.shapes.get(score.id));
+    const pages = excerptLabel(score.cuts, x, lib.aspects.get(score.id));
     const open = button('', () => lib.readExcerpt(o, x), 'open');
     open.append(el('span', 'item-title', x.name));
     if (pages) open.append(el('span', 'meta', pages));
@@ -185,10 +185,10 @@ export class ScoresSection {
     const { lib } = this;
     return moreButton(x.name, (at) => showMenu(at, x.name, [
       ...lib.addToItems(at, o.id, x.name, x),
-      { label: 'Rename…', run: () => renameExcerpt(score, x, lib.excerptHost(o.id)) },
-      { label: 'Change cuts…', run: () => void lib.withPages(o, (sc) => changeExcerptCuts(sc, x, lib.excerptHost(o.id))) },
+      { label: 'Rename…', run: () => renameNamedExcerpt(score, x, lib.excerptHost(o.id)) },
+      { label: 'Change cuts…', run: () => void lib.withPages(o, (sc) => changeNamedExcerptCuts(sc, x, lib.excerptHost(o.id))) },
       { label: 'Export PDF…', run: () => lib.exportPdf(`${titleOf(o.path)} - ${x.name}`, [{ scoreId: o.id, first: x.first, last: x.last }]) },
-      { label: 'Delete…', run: () => deleteExcerpt(score, x, lib.excerptHost(o.id)) },
+      { label: 'Delete…', run: () => deleteNamedExcerpt(score, x, lib.excerptHost(o.id)) },
     ]));
   }
 }

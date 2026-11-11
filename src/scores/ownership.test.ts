@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { PlacedMark } from '../markings/placed';
+import type { PlacedMarking } from '../markings/placed';
 import type { Stroke } from '../markings/stroke';
 import { pack } from './frames';
 import { claimMarking, shownBy, shows } from './ownership';
@@ -68,6 +68,6 @@ describe('placed markings', () => {
     const seam = A4 / 3;
     const r = claimMarking(f, _mark(0.5, seam + 0.1), aspects)!;
     expect(r.cut.page).toBe(1);
-    expect((r.marking as PlacedMark).at[1]).toBeCloseTo(2 / 3 + 0.1 / A4);
+    expect((r.marking as PlacedMarking).at[1]).toBeCloseTo(2 / 3 + 0.1 / A4);
   });
 });

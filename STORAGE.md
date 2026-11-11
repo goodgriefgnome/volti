@@ -223,7 +223,7 @@ interface NamedExcerpt { first?: string; last?: string; name: string }
 
 ```ts
 type ScoreInk = Record<number /* original page, 0-based */, Marking[]>;
-type Marking = Stroke | PlacedMark;
+type Marking = Stroke | PlacedMarking;
 interface Stroke {
   tool: 'pen' | 'highlighter';
   color: string;
@@ -232,7 +232,7 @@ interface Stroke {
   pass?: number;                                         // the one pass of its page it belongs to; every pass when missing
 }
 /** A symbol or text: glyphs placed whole at a point. A stroke has no `kind`. */
-interface PlacedMark {
+interface PlacedMarking {
   kind: 'symbol' | 'text';
   text: string;                                          // a symbol's characters, as placed from the library; a text marking's, what was typed
   font: string;                                          // the font's id

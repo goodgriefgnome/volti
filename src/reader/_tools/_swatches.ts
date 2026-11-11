@@ -1,6 +1,6 @@
 // Rows of colour and background swatches, for the tools' long-press panels.
 
-import { markColors, type Background } from '../../markings/placed';
+import { markingColors, type Background } from '../../markings/placed';
 import type { BackgroundChoice, ColorChoice } from '../../markings/tool-settings';
 import { el } from '../../ui/dom';
 
@@ -16,7 +16,7 @@ const SHAPE_POINTS: Record<Background['shape'], string> = {
 };
 
 /** A small picture of a background shape in `fill` (the default background colour) (none: an empty square crossed by a line). */
-export function backgroundPicture(choice: BackgroundChoice, fill = markColors().background): SVGSVGElement {
+export function backgroundPicture(choice: BackgroundChoice, fill = markingColors().background): SVGSVGElement {
   const ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns, 'svg');
   svg.setAttribute('viewBox', '0 0 24 16');

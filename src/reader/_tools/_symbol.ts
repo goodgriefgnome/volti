@@ -5,7 +5,7 @@
 
 import { addAdhoc, findSymbol, moveGroup, moveSymbol, nextSymbol, replaceSymbol, scaleOf, symbolsOf, type LibrarySymbol, type SymbolAt, type SymbolLibrary } from '../../markings/symbol-library';
 import { compactMarking, type Marking } from '../../markings/model';
-import { markColors, type Background, type PlacedMark } from '../../markings/placed';
+import { markingColors, type Background, type PlacedMarking } from '../../markings/placed';
 import { BRAVURA } from '../../fonts/fonts';
 import { saveLibrary } from '../../markings/store';
 import { backgroundOf, ownColor, type BackgroundChoice, type ColorChoice } from '../../markings/tool-settings';
@@ -25,7 +25,7 @@ import type { Tool, ToolHost } from './_tool';
 import { failed } from '../../ui/failure';
 
 /** A placed symbol made from a library symbol, centred at `at` of its frame. */
-export const placed = (sym: LibrarySymbol, at: [number, number], size: number): PlacedMark => ({
+export const placed = (sym: LibrarySymbol, at: [number, number], size: number): PlacedMarking => ({
   kind: 'symbol', text: sym.text, font: sym.font, glyphs: sym.glyphs.map((g) => [...g]), at, size,
   ...(sym.background && { background: { ...sym.background } }),
 });
@@ -79,9 +79,9 @@ export const symbolTool = (host: ToolHost): Tool => {
   /** What the button shows: the selected symbol's look, else the settings for the next one. */
   const look = (): Look => {
     const m = selectedSymbol()?.mark;
-    if (m) return { color: m.color ?? markColors().color, ...(m.background ? { background: m.background } : {}) };
+    if (m) return { color: m.color ?? markingColors().color, ...(m.background ? { background: m.background } : {}) };
     const background = picked()?.background;
-    return { color: ownColor(host.settings().symbol.color) ?? markColors().color, ...(background ? { background } : {}) };
+    return { color: ownColor(host.settings().symbol.color) ?? markingColors().color, ...(background ? { background } : {}) };
   };
 
   const setFace = () => host.setButtonFace(symbolFace(buttonSymbol(), look()));
@@ -137,7 +137,7 @@ export const symbolTool = (host: ToolHost): Tool => {
     const replacement = compactMarking({
       ...fresh, ...(mark.color ? { color: mark.color } : {}), ...(mark.background ? { background: { ...mark.background } } : {}),
       ...(mark.pass !== undefined ? { pass: mark.pass } : {}),
-    }) as PlacedMark;
+    }) as PlacedMarking;
     host.commit(setSymbolSize(replaceMarking(host.state(), sel.page, mark, replacement), size / sym.scale), sel.cut, { ...sel, mark: replacement });
     host.select({ ...sel, mark: replacement });
     const at = findSymbol(lib, sym.font, sym.text);
@@ -211,7 +211,7 @@ export const symbolTool = (host: ToolHost): Tool => {
   /* ---------- placing and cycling ---------- */
 
   /** The current symbol as it would be placed, centred at `at`: its colour and background. */
-  const symbolMark = (at: [number, number]): PlacedMark | undefined => {
+  const symbolMark = (at: [number, number]): PlacedMarking | undefined => {
     const sym = picked();
     if (!sym) return undefined;
     const made = placed(sym, at, symbolSizeOf(host.state().score) * sym.scale), color = ownColor(host.settings().symbol.color);
@@ -231,7 +231,7 @@ export const symbolTool = (host: ToolHost): Tool => {
     const sel = selectedSymbol();
     if (sel && sel.mark.color !== ownColor(c)) {
       const { color: _, ...rest } = sel.mark, own = ownColor(c);
-      const marked: PlacedMark = own ? { ...rest, color: own } : rest;
+      const marked: PlacedMarking = own ? { ...rest, color: own } : rest;
       host.commit(replaceMarking(host.state(), sel.page, sel.mark, marked), sel.cut, { ...sel, mark: marked });
     }
     host.setSettings((s) => ({ ...s, symbol: { color: c } }));
@@ -250,7 +250,7 @@ export const symbolTool = (host: ToolHost): Tool => {
       next = resolve(sel.mark.background);
       if (JSON.stringify(next) !== JSON.stringify(sel.mark.background)) {
         const { background: _, ...rest } = sel.mark;
-        const marked: PlacedMark = next ? { ...rest, background: next } : rest;
+        const marked: PlacedMarking = next ? { ...rest, background: next } : rest;
         host.commit(replaceMarking(host.state(), sel.page, sel.mark, marked), sel.cut, { ...sel, mark: marked });
       }
     }

@@ -3,7 +3,7 @@
 // is in tools/.
 
 import type { Marking, Point } from '../markings/model';
-import type { PlacedMark } from '../markings/placed';
+import type { PlacedMarking } from '../markings/placed';
 import { markingAt } from '../scores/placing';
 import { pinch, type Pt, type View, type Zoom } from '../render/zoom';
 import { closeOverlay, overlayOpen } from '../ui/overlay';
@@ -219,7 +219,7 @@ export class Input {
     const owner = (m: Marking) => Object.values(this.tools).find((t) => t.ownsMarking?.(m));
     const found = markingAt(hit.slot.frame, host.state().ink, host.aspects(), [fp[0], fp[1]], SELECT_MARGIN_PX / (hit.slot.w * host.zoom().s), (m) => !!owner(m));
     if (found) {
-      const picked = { page: found.cut.page, cut: found.cut.id, mark: found.mark as PlacedMark };
+      const picked = { page: found.cut.page, cut: found.cut.id, mark: found.mark as PlacedMarking };
       host.select(picked);
       return { tool: owner(found.mark)!, on: { what: 'grabbed', sel: picked } };
     }

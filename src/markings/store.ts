@@ -4,7 +4,7 @@ import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
 import { addGlyph, glyphKey, glyphOf } from './glyphs';
 import type { SymbolLibrary } from './symbol-library';
-import { BUILT_IN_COLORS, setMarkColors, type MarkColors } from './placed';
+import { BUILT_IN_COLORS, setMarkingColors, type MarkingColors } from './placed';
 import { toolSettingsFrom, type ToolSettings } from './tool-settings';
 
 /** Load into the glyph table those of `keys` it hasn't got. */
@@ -34,18 +34,18 @@ export async function loadLibrary(): Promise<SymbolLibrary | undefined> {
 
 export const saveLibrary = (lib: SymbolLibrary) => kv.set(keys.symbols, lib);
 
-/** Load the default colours into markColors; nothing set leaves the built-in ones. */
-export async function loadMarkColors(): Promise<void> {
-  setMarkColors((await kv.get<Partial<MarkColors>>(keys.markColors)) ?? {});
+/** Load the default colours into markingColors; nothing set leaves the built-in ones. */
+export async function loadMarkingColors(): Promise<void> {
+  setMarkingColors((await kv.get<Partial<MarkingColors>>(keys.markingColors)) ?? {});
 }
 
 /** Store them (only those that differ from the built-in ones) and use them. */
-export async function saveMarkColors(c: Partial<MarkColors>): Promise<void> {
-  const own: Partial<MarkColors> = {};
+export async function saveMarkingColors(c: Partial<MarkingColors>): Promise<void> {
+  const own: Partial<MarkingColors> = {};
   if (c.color && c.color !== BUILT_IN_COLORS.color) own.color = c.color;
   if (c.background && c.background !== BUILT_IN_COLORS.background) own.background = c.background;
-  await kv.set(keys.markColors, own);
-  setMarkColors(own);
+  await kv.set(keys.markingColors, own);
+  setMarkingColors(own);
 }
 
 /** Each tool's settings; the defaults for what is missing. */

@@ -4,7 +4,7 @@
 import { canvasDrawing } from '../../markings/draw';
 import type { LibrarySymbol } from '../../markings/symbol-library';
 import { drawMarkings } from '../../markings/model';
-import { emExtent, type Background, type PlacedMark } from '../../markings/placed';
+import { emExtent, type Background, type PlacedMarking } from '../../markings/placed';
 import { dpr, el } from '../../ui/dom';
 
 /** The size of a symbol's picture, in CSS pixels. */
@@ -20,7 +20,7 @@ export function hasInk(sym: Pictured): boolean {
   return !!emExtent(placed(sym, 1, '#000000'));
 }
 
-const placed = (sym: Pictured, size: number, color: string): PlacedMark =>
+const placed = (sym: Pictured, size: number, color: string): PlacedMarking =>
   ({ kind: 'symbol', text: sym.text, font: sym.font, glyphs: sym.glyphs, at: [0.5, 0.5], size, color });
 
 /**

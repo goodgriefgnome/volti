@@ -135,7 +135,7 @@ export class SetlistsSection {
   private entryRow(s: Setlist, e: Entry, i: number, list: HTMLElement): HTMLLIElement {
     const { lib } = this;
     const title = lib.titleOf(e.scoreId), score = lib.saved.get(e.scoreId), missing = !lib.originalOf(e.scoreId);
-    const excerpt = score ? excerptName(score, e, lib.shapes.get(e.scoreId)) : null;
+    const excerpt = score ? excerptName(score, e, lib.aspects.get(e.scoreId)) : null;
     const li = el('li', 'entry');
     const handle = button('⋮⋮', () => {}, 'handle');
     handle.setAttribute('aria-label', `Move ${title}`);

@@ -6,14 +6,14 @@
 // pick it out in behaviour(), and add a tool to make it in reader/_tools/.
 
 import type { Drawing } from './draw';
-import { _placed, type PlacedMark } from './placed';
+import { _placed, type PlacedMarking } from './placed';
 import { _strokes, type Stroke } from './stroke';
 
 /** x and y as fractions of the page width and height, so ink survives any zoom; then pen pressure 0..1. */
 export type Point = [x: number, y: number, pressure: number];
 
 /** A stroke, or a symbol or text placed whole. */
-export type Marking = Stroke | PlacedMark;
+export type Marking = Stroke | PlacedMarking;
 
 /**
  * What markings are drawn on: a page drawn `w` x `h` in size (pixels on a canvas, points in a PDF);

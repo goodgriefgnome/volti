@@ -11,7 +11,7 @@ import type { FrameSlot } from './_slots';
 /** The reader as it is now: read each time, as the reader turns from score to score and redraws. */
 export interface ReaderView {
   stage: HTMLElement;
-  /** The current score's original's page shapes. */
+  /** The current score's original's aspects. */
   aspects(): Aspects;
   /** Draw a page of the current score. */
   draw(): DrawPage;

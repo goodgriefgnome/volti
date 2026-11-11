@@ -27,7 +27,7 @@ export interface FrameSlot {
   layers?: Partial<Record<ToolName, HTMLElement>>;
 }
 
-/** Put boxes where `placeScreen` says, with `aspects` their shapes. */
+/** Put boxes where `placeScreen` says, with `aspects` their heights over widths. */
 export function placeBoxes(boxes: HTMLElement[], aspects: readonly number[], W: number, H: number, scale: number): ScreenBox[] {
   const rects = placeScreen(aspects, W, H, scale);
   boxes.forEach((box, i) => Object.assign(box.style, { left: rects[i].x + 'px', top: rects[i].y + 'px', width: rects[i].w + 'px', height: rects[i].h + 'px' }));

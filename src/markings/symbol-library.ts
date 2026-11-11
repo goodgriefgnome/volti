@@ -81,7 +81,7 @@ export function addGroup(lib: SymbolLibrary): SymbolLibrary {
 }
 
 /** Without a group, and its symbols. */
-export function removeGroup(lib: SymbolLibrary, group: number): SymbolLibrary {
+export function deleteGroup(lib: SymbolLibrary, group: number): SymbolLibrary {
   return { ...lib, groups: lib.groups.filter((_, i) => i !== group) };
 }
 
@@ -115,7 +115,7 @@ export function replaceSymbol(lib: SymbolLibrary, was: { font: string; text: str
   return { groups: lib.groups.map((g) => ({ ...g, symbols: swap(g.symbols) })), adhoc: swap(lib.adhoc) };
 }
 
-export function removeSymbol(lib: SymbolLibrary, font: string, text: string): SymbolLibrary {
+export function deleteSymbol(lib: SymbolLibrary, font: string, text: string): SymbolLibrary {
   return without(lib, font, text);
 }
 

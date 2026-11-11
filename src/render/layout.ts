@@ -17,7 +17,7 @@ export function framesOnScreen(aspect: number, stageW: number, stageH: number): 
 export const _sideBySide = (firstAspect: number) => !isLandscape({ aspect: firstAspect });
 
 /**
- * Where frames of these shapes (height / width) go on a W x H stage, in whole pixels: each as
+ * Where frames of these aspects (height / width) go on a W x H stage, in whole pixels: each as
  * large as fits in its share of the stage (all of it, or half, side by side or one above the other),
  * together centred, `gap` apart.
  */

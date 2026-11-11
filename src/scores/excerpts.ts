@@ -34,7 +34,7 @@ export function excerptCuts<C extends { id: string }>(cuts: readonly C[], excerp
  * The name an excerpt goes by until it is given one, or null when the whole score is played. It
  * counts the score's pages (its frames), with a letter for a cut that shares its page: "Page 3b – 5"
  * starts at page 3's second cut and plays all of page 5; "Pages 3–5" plays those pages whole.
- * Without the original's page shapes it falls back to the original pages: "Original pages 2–3".
+ * Without the original's aspects it falls back to the original pages: "Original pages 2–3".
  */
 export function excerptLabel(cuts: readonly Cut[], excerpt: Excerpt, aspects?: Aspects): string | null {
   const { i0, i1, whole } = excerptRange(cuts, excerpt);
@@ -187,16 +187,16 @@ export function setName(score: Score, excerpt: Excerpt, name: string, was?: Name
   return { ...score, excerpts };
 }
 
-/** Take a name off its excerpt. Entries that play the excerpt keep playing it, under its generated name. */
-export function removeName(score: Score, name: NamedExcerpt): Score {
+/** Delete a named excerpt. Entries that play the excerpt keep playing it, under its generated name. */
+export function deleteNamedExcerpt(score: Score, name: NamedExcerpt): Score {
   return { ...score, excerpts: (score.excerpts ?? []).filter((n) => n !== name) };
 }
 
 /**
- * Keep a score's names on the same music after an edit to its cuts, as entries' excerpts are kept
- * (`followEdit`). Names on `grow`, the excerpt being read, take in pages inserted at its edges, as
- * its entries do. Names that come to play the same cuts are joined ("Kyrie / Christe"), and a
- * name left on the whole score goes, as the whole score isn't named.
+ * Keep a score's named excerpts on the same music after an edit to its cuts, as entries' excerpts are kept
+ * (`followEdit`). Named excerpts on `grow`, the excerpt being read, take in pages inserted at its
+ * edges, as its entries do. Those that come to play the same cuts are joined ("Kyrie / Christe"),
+ * and one left on the whole score goes, as the whole score isn't named.
  */
 export function followExcerpts(excerpts: readonly NamedExcerpt[] | undefined, before: readonly Cut[], after: readonly Cut[], grow?: Excerpt): NamedExcerpt[] | undefined {
   if (!excerpts || before === after) return excerpts as NamedExcerpt[] | undefined;

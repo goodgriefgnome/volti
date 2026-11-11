@@ -3,7 +3,7 @@
 
 import { compact, drawPenSegment, HIGHLIGHT_SIZE, PEN_SIZE, type Stroke } from '../../markings/stroke';
 import { type Point } from '../../markings/model';
-import { markColors } from '../../markings/placed';
+import { markingColors } from '../../markings/placed';
 import { strokeColor } from '../../markings/tool-settings';
 import { frameTarget } from '../../render/draw';
 import { claimMarking } from '../../scores/ownership';
@@ -27,7 +27,7 @@ const PEN_ICONS = { pen: 'M4 20l4-1 11-11-3-3L5 16z', highlighter: 'M5 20h7M7 16
 /** The pen, in the chosen colour, or the highlighter. A finished stroke goes on the page of the cut where it starts. */
 export const penTool = (host: ToolHost, kind: 'pen' | 'highlighter'): Tool => {
   /** The colour it draws in. */
-  const color = () => strokeColor(kind, host.settings()[kind].color, markColors());
+  const color = () => strokeColor(kind, host.settings()[kind].color, markingColors());
   const setFace = () => host.setButtonFace(inkFace(PEN_ICONS[kind], color()));
   setFace();
   return {

@@ -111,7 +111,7 @@ Gestures that can turn a page can't **conflict** (`face-classifier-spec.md`): on
 to none when it is recorded or given its direction, and its row says why. If two gestures reach
 their hold on the same frame, only the first, in the order they were added, turns the page.
 
-A new gesture starts set to Next. Names may repeat, and a gesture can't be renamed: remove it and
+A new gesture starts set to Next. Names may repeat, and a gesture can't be renamed: delete it and
 add it again.
 
 ### The settings
@@ -130,8 +130,8 @@ From the top:
    one, and record yourself doing it." A row has:
    - its name, and a choice of **Next**, **Back** or **None**;
    - how many trials it has ("5 trials"; under ten, "10 to 15 are best");
-   - **Record 5 trials**, **Clear trials** (asks first; not shown with no trials) and **Remove**
-     (asks first; removes the gesture and its trials);
+   - **Record 5 trials**, **Clear trials** (asks first; not shown with no trials) and **Delete**
+     (asks first; deletes the gesture and its trials);
    - what is wrong with it, each on a line of its own: its flags, in the words of
      `face-classifier-spec.md` ("Record at least three trials.", "Can't be told from playing: no
      channel's held values are clear of its values at rest.", "Unreliable: a rep left out of the fit

@@ -2,7 +2,7 @@
 // what it has read, and what they may ask it to do. The Library holds the data; the parts only
 // show it and ask for changes.
 
-import type { ExcerptHost } from '../dialogs/excerpts';
+import type { NamedExcerptHost } from '../dialogs/named-excerpts';
 import type { ExcerptSource } from '../dialogs/thumb-strip';
 import type { LibraryScore } from '../dialogs/open-score';
 import type { Excerpt } from '../scores/excerpts';
@@ -22,9 +22,9 @@ export interface LibraryHost {
   /** New PDFs are still being read. */
   readonly reading: boolean;
   readonly setlists: readonly Setlist[];
-  /** Scores as last saved, and their originals' page shapes: for their named excerpts, and the excerpt each entry plays. */
+  /** Scores as last saved, and their originals' aspects: for their named excerpts, and the excerpt each entry plays. */
   readonly saved: ReadonlyMap<string, Score>;
-  readonly shapes: ReadonlyMap<string, Aspects>;
+  readonly aspects: ReadonlyMap<string, Aspects>;
   /** The scores whose PDF needs a password not given yet, by id. */
   /** The rows opened (a setlist's scores, a score's named excerpts), by id, while the app runs. */
   readonly openRows: Set<string>;
@@ -65,7 +65,7 @@ export interface LibraryHost {
   /** Export scores (whole or excerpts of them) as one PDF, named `title` to start with. */
   exportPdf(title: string, what: (Excerpt & { scoreId: string })[]): void;
   /** Changing a score's named excerpts here, saving them as they change. */
-  excerptHost(scoreId: string): ExcerptHost;
+  excerptHost(scoreId: string): NamedExcerptHost;
   /** Open a score's original for a dialog over the library; null, having said why, when it can't be. */
   openForDialog(o: SourceFile): Promise<LibraryScore | null>;
   /** Open the score for a dialog, then `pick` from it; it closes with the dialog. */

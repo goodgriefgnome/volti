@@ -23,7 +23,7 @@ export class FileGone extends Error {
 /**
  * A score's pages, to read: drawn from its file where it can be read; where it can't (no file in
  * the library, no access to the scores folder yet, or no password given) but its pages are saved
- * and their shapes known, drawn by id, which can show only the pages saved. Only with `ask` is its
+ * and their aspects known, drawn by id, which can show only the pages saved. Only with `ask` is its
  * password asked for, and only with `askAccess` (a tap that opens it) access to the scores folder.
  * Whoever gets the pages calls their `close`, if there is one, when done.
  */

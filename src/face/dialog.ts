@@ -114,7 +114,7 @@ export function openFaceGestures(closed?: () => void): void {
     );
   };
 
-  const remove = (g: Gesture) => confirm(`Remove “${g.name}”?`, 'Its trials are removed with it.', 'Remove', () => later(async () => {
+  const deleteGesture = (g: Gesture) => confirm(`Delete “${g.name}”?`, 'Its trials are deleted with it.', 'Delete', () => later(async () => {
     commit({ gestures: settings.gestures.filter((x) => x.id !== g.id) });
     await deleteTrials(g.id);
     renderRows();
@@ -154,7 +154,7 @@ export function openFaceGestures(closed?: () => void): void {
       const actions = el('div', 'face-row-actions');
       actions.append(button(`Record ${ROUND} trials`, () => startRound(g)));
       if (n) actions.append(button('Clear trials', () => clearTrials(g), 'quiet'));
-      actions.append(button('Remove', () => remove(g), 'quiet'));
+      actions.append(button('Delete', () => deleteGesture(g), 'quiet'));
       row.append(head, el('p', 'hint', plural(n, 'trial') + (n < 10 ? ' (10 to 15 are best)' : '')), actions);
       for (const f of g.fit.flags) row.append(el('p', 'hint error', flagText(f)));
       if (g.note) row.append(el('p', 'hint error', g.note));
@@ -165,15 +165,15 @@ export function openFaceGestures(closed?: () => void): void {
         const template = g.fit.template!;
         const track = el('div', 'face-meter');
         const fill = el('div', 'fill');
-        const mark = el('div', 'mark');
-        const releaseMark = el('div', 'mark release');
-        track.append(fill, mark, releaseMark);
-        const placeMarks = () => {
+        const tick = el('div', 'tick');
+        const releaseTick = el('div', 'tick release');
+        track.append(fill, tick, releaseTick);
+        const placeTicks = () => {
           const l = levelsOf(settings.gestures.find((x) => x.id === g.id) ?? g)!;
-          mark.style.left = `${l.on * 100}%`;
-          releaseMark.style.left = `${l.release * 100}%`;
+          tick.style.left = `${l.on * 100}%`;
+          releaseTick.style.left = `${l.release * 100}%`;
         };
-        placeMarks();
+        placeTicks();
         const details = faceDetails(g);
         details.el.open = detailsOpen.has(g.id);
         details.el.addEventListener('toggle', () => { if (details.el.open) detailsOpen.add(g.id); else detailsOpen.delete(g.id); });
@@ -182,7 +182,7 @@ export function openFaceGestures(closed?: () => void): void {
         // Moving either level can move the other (release stops at On, and follows it down).
         const setLevels = (to: { on?: number; release?: number }) => {
           change(g.id, (x) => withLevels(x, to));
-          placeMarks();
+          placeTicks();
           const l = levelsOf(settings.gestures.find((x) => x.id === g.id)!)!;
           on.set(l.on);
           release.set(l.release);

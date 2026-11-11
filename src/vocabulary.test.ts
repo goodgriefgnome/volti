@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 
 /** The last stage of the vocabulary plan that is done: the entries of later stages are not yet checked. */
-const DONE = 2;
+const DONE = 3;
 
 interface Retired {
   /** Tested on the text with identifiers split into words ('words': `spreadEl` is "spread El") or as it is ('raw'). */
@@ -49,6 +49,7 @@ const RETIRED: Retired[] = [
 const ALLOWED: { text: string; in?: string }[] = [
   { text: 'Paint' }, // a fill or a stroke, as a path is drawn with (markings/draw.ts, export/_annotations.ts)
   { text: 'trashed' }, // Drive's query parameter
+  { text: 'placed-mark-colors' }, // a stored key, which is not renamed (STORAGE.md)
   { text: 'cut-mark' }, // a cut's mark on a thumbnail
   { text: 'paint', in: 'markings/draw.ts' }, // a variable of type Paint
   { text: 'paint', in: 'export/_annotations.ts' },

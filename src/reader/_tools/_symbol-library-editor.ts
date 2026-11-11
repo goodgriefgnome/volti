@@ -4,10 +4,10 @@
 import { BRAVURA, fontChoices, shapeWith, type FontChoice } from '../../fonts/fonts';
 import { addGlyph, glyphKey } from '../../markings/glyphs';
 import {
-  addGroup, findSymbol, moveGroup, putSymbol, removeGroup, removeSymbol, replaceSymbol, symbolFrom, symbolsOf,
+  addGroup, findSymbol, moveGroup, putSymbol, deleteGroup, deleteSymbol, replaceSymbol, symbolFrom, symbolsOf,
   type LibrarySymbol, type SymbolLibrary,
 } from '../../markings/symbol-library';
-import { markColors, type Background } from '../../markings/placed';
+import { markingColors, type Background } from '../../markings/placed';
 import { button, el, plural } from '../../ui/dom';
 import { buttonRow, closeOverlay, showDialog, showOnTop } from '../../ui/overlay';
 import { glyphPicker } from './_glyph-picker';
@@ -76,7 +76,7 @@ export function editLibrary(host: LibraryEditorHost): void {
       const down = button('Move down', () => { host.change(moveGroup(host.library(), i, i + 1)); groupsView(); });
       up.disabled = i === 0;
       down.disabled = i === lib.groups.length - 1;
-      actions.append(up, down, button('Delete group', () => deleteGroup(i)));
+      actions.append(up, down, button('Delete group', () => askToDeleteGroup(i)));
       const more = button('⋯', () => { actions.hidden = !actions.hidden; });
       more.setAttribute('aria-label', `Group ${i + 1} actions`);
       row.append(symbols, more, actions);
@@ -93,9 +93,9 @@ export function editLibrary(host: LibraryEditorHost): void {
     body.replaceChildren(list, buttonRow(add, button('Done', () => closeOverlay(), 'primary')));
   }
 
-  function deleteGroup(i: number) {
+  function askToDeleteGroup(i: number) {
     const n = symbolsOf(host.library(), i).length;
-    const remove = () => { host.change(removeGroup(host.library(), i)); groupsView(); };
+    const remove = () => { host.change(deleteGroup(host.library(), i)); groupsView(); };
     if (!n) { remove(); return; }
     const { dialog: ask, close } = showOnTop('Delete group');
     ask.append(
@@ -171,7 +171,7 @@ export function editLibrary(host: LibraryEditorHost): void {
       colorRow.hidden = !draft.background;
       own.checked = !draft.background?.color;
       tint.disabled = own.checked;
-      tint.value = draft.background?.color ?? markColors().background;
+      tint.value = draft.background?.color ?? markingColors().background;
     };
     const setShape = (choice: (typeof BACKGROUNDS)[number][0]) => {
       draft.background = choice === 'none' ? undefined : { shape: choice, ...(draft.background?.color ? { color: draft.background.color } : {}) };
@@ -203,7 +203,7 @@ export function editLibrary(host: LibraryEditorHost): void {
     const right = button('Move right', () => shift(1));
     const mine = el('div', 'preview-slot'), ref = el('div', 'preview-slot');
     const hint = el('p', 'hint');
-    const del = button('Delete', () => { if (was) { host.change(removeSymbol(lib(), was.font, was.text)); groupsView(); } });
+    const del = button('Delete', () => { if (was) { host.change(deleteSymbol(lib(), was.font, was.text)); groupsView(); } });
     const ok = button('OK', () => void save(), 'primary');
 
     /** The symbol as drafted, shaped when its font or characters aren't the old symbol's. */

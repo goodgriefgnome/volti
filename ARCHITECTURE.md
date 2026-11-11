@@ -184,7 +184,7 @@ does and what a resize sets (`_symbol.ts`, `_text.ts`). A tool changes the score
 
 **A new edit to the cuts**: a pure function from `State` to `State` in `scores/edits.ts`, with a
 test in `edits.test.ts`; then a menu item that calls `host.commit` with it, in `reader/_cuts/_menus.ts`.
-Excerpts and their names follow it by themselves, but check `followEdit`'s cases in `scores/excerpts.ts` if it
+Excerpts and named excerpts follow it by themselves, but check `followEdit`'s cases in `scores/excerpts.ts` if it
 moves cuts in a new way.
 
 **Something another directory needs**: drop the underscore from its name (and from its file's, if

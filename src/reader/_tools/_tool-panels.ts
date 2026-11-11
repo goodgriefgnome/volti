@@ -1,7 +1,7 @@
 // The tools' long-press panels: what each shows, and what choosing in it does.
 
 import type { FontChoice } from '../../fonts/fonts';
-import { markColors } from '../../markings/placed';
+import { markingColors } from '../../markings/placed';
 import { BACKGROUND_COLORS, HIGHLIGHT_COLORS, PEN_COLORS } from '../../markings/stroke';
 import type { BackgroundChoice, ColorChoice } from '../../markings/tool-settings';
 import { el } from '../../ui/dom';
@@ -11,7 +11,7 @@ import { shapeRow, swatchRow } from './_swatches';
 /** Pen's or Highlight's colours, under its button. */
 export function showStrokeColors(at: HTMLElement, tool: 'pen' | 'highlighter', chosen: ColorChoice, pick: (c: ColorChoice) => void): void {
   const pen = tool === 'pen';
-  const row = swatchRow(pen ? PEN_COLORS : HIGHLIGHT_COLORS, pen ? markColors().color : markColors().background, chosen, (c) => { closeOverlay(); pick(c); });
+  const row = swatchRow(pen ? PEN_COLORS : HIGHLIGHT_COLORS, pen ? markingColors().color : markingColors().background, chosen, (c) => { closeOverlay(); pick(c); });
   showMenu(at, pen ? 'Pen colour' : 'Highlight colour', [row]);
 }
 
@@ -40,13 +40,13 @@ const part = (label: string, content: HTMLElement) => {
  * have them; `v` is kept here and changed by each choice, so the rows redraw in place.
  */
 export function lookParts(v: SymbolSettingsView, act: LookActions, redraw: () => void): HTMLElement[] {
-  const fill = v.backgroundColor === 'default' ? markColors().background : v.backgroundColor;
+  const fill = v.backgroundColor === 'default' ? markingColors().background : v.backgroundColor;
   const parts = [
-    part('Colour', swatchRow(PEN_COLORS, markColors().color, v.color, (c) => { v.color = c; act.color(c); redraw(); })),
+    part('Colour', swatchRow(PEN_COLORS, markingColors().color, v.color, (c) => { v.color = c; act.color(c); redraw(); })),
     part('Background', shapeRow(v.background, fill, (b) => { v.background = b; act.background(b); redraw(); })),
   ];
   if (v.background !== 'none') {
-    parts.push(part('Background colour', swatchRow(BACKGROUND_COLORS, markColors().background, v.backgroundColor, (c) => { v.backgroundColor = c; act.backgroundColor(c); redraw(); })));
+    parts.push(part('Background colour', swatchRow(BACKGROUND_COLORS, markingColors().background, v.backgroundColor, (c) => { v.backgroundColor = c; act.backgroundColor(c); redraw(); })));
   }
   return parts;
 }

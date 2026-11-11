@@ -1,4 +1,4 @@
-// Everything that is only about PDFs: reading one with pdf.js (opening it, the shapes of its pages,
+// Everything that is only about PDFs: reading one with pdf.js (opening it, the aspects of its pages,
 // drawing them), the password flow, decryption (by our fork of pdf-decrypt), telling a PDF by its
 // first bytes and an encrypted one by its ends, and the music as a PDF pdf.js and pdf-lib can both
 // read: the PDF as it is, decrypted, or where it can't be had as it is (an encryption pdf-decrypt

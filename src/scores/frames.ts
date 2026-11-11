@@ -8,7 +8,7 @@ export interface Placed { cut: Cut; index: number; top: number; h: number }
 /** A frame: cuts stacked down it. `aspect` is its height / width: the shape of its first cut's page. */
 export interface Frame { items: Placed[]; fill: number; aspect: number }
 
-/** Pages whose shapes (height / width) are this far apart or less share frames: A4 and US Letter do. */
+/** Pages whose aspects (height / width) are this far apart or less share frames: A4 and US Letter do. */
 export const _SHAPE_TOLERANCE = 0.1;
 
 export const _sameShape = (a: number, b: number) => Math.max(a, b) / Math.min(a, b) <= 1 + _SHAPE_TOLERANCE + _EPS;

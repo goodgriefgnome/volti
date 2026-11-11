@@ -5,7 +5,7 @@ import type { PathCmd } from './draw';
 import { glyphKey, glyphOf } from './glyphs';
 import type { DrawTarget, Marking, Point, _KindBehaviour } from './model';
 
-export interface PlacedMark {
+export interface PlacedMarking {
   kind: 'symbol' | 'text';
   text: string;
   font: string;
@@ -29,18 +29,18 @@ export interface Background {
 }
 
 /** The app's colours for placed markings without their own: the marking, and its background. */
-export interface MarkColors { color: string; background: string }
+export interface MarkingColors { color: string; background: string }
 
 /** Until the user sets them: the first pen colour, and light blue. */
-export const BUILT_IN_COLORS: MarkColors = { color: '#1c1f26', background: '#cce0ff' };
+export const BUILT_IN_COLORS: MarkingColors = { color: '#1c1f26', background: '#cce0ff' };
 
-let colors: MarkColors = BUILT_IN_COLORS;
+let colors: MarkingColors = BUILT_IN_COLORS;
 
 /** The default colours now. */
-export const markColors = (): MarkColors => colors;
+export const markingColors = (): MarkingColors => colors;
 
 /** Set them, each missing one going back to its built-in colour. */
-export function setMarkColors(c: Partial<MarkColors>): void {
+export function setMarkingColors(c: Partial<MarkingColors>): void {
   colors = { ...BUILT_IN_COLORS, ...c };
 }
 
@@ -49,7 +49,7 @@ const round = (v: number) => Math.round(v * 10000) / 10000;
 type Box = [x0: number, y0: number, x1: number, y1: number];
 
 /** Its extent in em, from its centre; undefined when none of its glyphs has an outline (or is loaded). */
-export function emExtent(m: PlacedMark): Box | undefined {
+export function emExtent(m: PlacedMarking): Box | undefined {
   let box: Box | undefined;
   for (const [gid, x, y] of m.glyphs) {
     const b = glyphOf(glyphKey(m.font, gid))?.bounds;
@@ -70,7 +70,7 @@ const POINT = Math.tan(Math.PI / 6) / 2;
  * by the padding, with a point at the middle of its left or right end for a tag; undefined
  * without a background or ink.
  */
-export function backgroundOutline(m: PlacedMark): [number, number][] | undefined {
+export function backgroundOutline(m: PlacedMarking): [number, number][] | undefined {
   const e = m.background && emExtent(m);
   if (!e || !m.background) return undefined;
   const x0 = e[0] - PADDING, y0 = e[1] - PADDING, x1 = e[2] + PADDING, y1 = e[3] + PADDING;
@@ -82,7 +82,7 @@ export function backgroundOutline(m: PlacedMark): [number, number][] | undefined
 }
 
 /** What it covers, in em from its centre: its ink, and its background when it has one. */
-export function markExtent(m: PlacedMark): Box | undefined {
+export function markingExtent(m: PlacedMarking): Box | undefined {
   const o = backgroundOutline(m);
   if (!o) return emExtent(m);
   const xs = o.map((p) => p[0]), ys = o.map((p) => p[1]);
@@ -110,7 +110,7 @@ export function centred(
 }
 
 /** Where the start of its baseline is, in em from its centre (its first glyph's origin). */
-export function baselineStart(m: PlacedMark): [number, number] {
+export function baselineStart(m: PlacedMarking): [number, number] {
   return m.glyphs.length ? [m.glyphs[0][1], m.glyphs[0][2]] : [0, 0];
 }
 
@@ -121,7 +121,7 @@ export function baselineStart(m: PlacedMark): [number, number] {
  */
 export function textMark(
   font: string, text: string, glyphs: readonly { gid: number; x: number; y: number }[], start: readonly [number, number], size: number,
-): PlacedMark | undefined {
+): PlacedMarking | undefined {
   const c = centred(font, glyphs);
   if (!c) return undefined;
   return { kind: 'text', text, font, glyphs: c.glyphs, at: [start[0] + c.centre[0] * size, start[1] + c.centre[1] * size], size };
@@ -137,7 +137,7 @@ export function glyphKeysIn(ink: Record<string, readonly Marking[]>): Set<string
 }
 
 /** Every glyph's commands, placed on the target. */
-function placeGlyphs(t: DrawTarget, m: PlacedMark): PathCmd[] {
+function placeGlyphs(t: DrawTarget, m: PlacedMarking): PathCmd[] {
   const cx = m.at[0] * t.w - t.ox, cy = m.at[1] * t.h - t.oy, s = m.size * t.w;
   const out: PathCmd[] = [];
   for (const [gid, gx, gy] of m.glyphs) {
@@ -155,14 +155,14 @@ function placeGlyphs(t: DrawTarget, m: PlacedMark): PathCmd[] {
 }
 
 /** Its background's outline, placed on the target as a closed shape. */
-function placeBackground(t: DrawTarget, m: PlacedMark): PathCmd[] {
+function placeBackground(t: DrawTarget, m: PlacedMarking): PathCmd[] {
   const o = backgroundOutline(m);
   if (!o) return [];
   const cx = m.at[0] * t.w - t.ox, cy = m.at[1] * t.h - t.oy, s = m.size * t.w;
   return [...o.map(([x, y], i): PathCmd => [i ? 'L' : 'M', cx + x * s, cy + y * s]), ['Z']];
 }
 
-function drawPlaced(t: DrawTarget, m: PlacedMark) {
+function drawPlaced(t: DrawTarget, m: PlacedMarking) {
   const all = placeGlyphs(t, m);
   if (!all.length) return;
   const back = placeBackground(t, m);
@@ -172,14 +172,14 @@ function drawPlaced(t: DrawTarget, m: PlacedMark) {
 }
 
 /** What markings/model.ts needs to know about placed markings. */
-export const _placed: _KindBehaviour<PlacedMark> = {
+export const _placed: _KindBehaviour<PlacedMarking> = {
   anchor: (m): Point => [m.at[0], m.at[1], 0],
   map: (m, f) => {
     const [x, y] = f([m.at[0], m.at[1], 0]);
     return { ...m, at: [x, y] };
   },
   hitDistance: (m, p, radius, aspect) => {
-    const e = markExtent(m);
+    const e = markingExtent(m);
     if (!e) return undefined;
     const dx = p[0] - m.at[0], dy = (p[1] - m.at[1]) * aspect;
     const d = Math.hypot(Math.max(e[0] * m.size - dx, 0, dx - e[2] * m.size), Math.max(e[1] * m.size - dy, 0, dy - e[3] * m.size));

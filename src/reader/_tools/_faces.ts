@@ -4,7 +4,7 @@
 
 import { cssFamily } from '../../fonts/fonts';
 import type { LibrarySymbol } from '../../markings/symbol-library';
-import { markColors, type Background } from '../../markings/placed';
+import { markingColors, type Background } from '../../markings/placed';
 import { el } from '../../ui/dom';
 import { symbolPicture } from './_symbol-picture';
 import { backgroundPicture } from './_swatches';
@@ -44,11 +44,11 @@ export function inkFace(d: string, color: string): ButtonFace {
 /** The Text button's T: in the look's font and colour, on its background. */
 export function textFace(look: Look): ButtonFace {
   return {
-    key: `${look.font}|${look.color}|${JSON.stringify(look.background)}|${markColors().background}`,
+    key: `${look.font}|${look.color}|${JSON.stringify(look.background)}|${markingColors().background}`,
     draw() {
       const face = el('span', 'text-look');
       if (look.background) {
-        const back = backgroundPicture(look.background.shape, look.background.color ?? markColors().background);
+        const back = backgroundPicture(look.background.shape, look.background.color ?? markingColors().background);
         back.removeAttribute('width');
         back.removeAttribute('height');
         back.setAttribute('preserveAspectRatio', 'none');
@@ -67,7 +67,7 @@ export function textFace(look: Look): ButtonFace {
 /** The Symbols button's picture: the symbol in the look's colour, on its background, or a generic pp. */
 export function symbolFace(sym: LibrarySymbol | undefined, look: Look): ButtonFace {
   return {
-    key: `${sym?.font}|${sym?.text}|${sym?.scale}|${look.color}|${JSON.stringify(look.background)}|${markColors().background}`,
+    key: `${sym?.font}|${sym?.text}|${sym?.scale}|${look.color}|${JSON.stringify(look.background)}|${markingColors().background}`,
     draw: () => (sym ? symbolPicture(sym, look.color, 28, undefined, look.background) : el('span', 'pp', 'pp')),
   };
 }

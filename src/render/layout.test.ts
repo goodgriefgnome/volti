@@ -36,7 +36,7 @@ describe('placeFrames', () => {
     expect(b.y).toBe(a.y + a.h + 6);
     expect(a.w).toBeLessThanOrEqual(800);
   });
-  it('fits frames of different shapes each to its half', () => {
+  it('fits frames of different aspects each to its half', () => {
     const [a, b] = _placeFrames([A4, LETTER], 1280, 800, 6, true);
     expect(a.h).toBe(800);
     expect(b.w).toBeLessThanOrEqual((1280 - 6) / 2);

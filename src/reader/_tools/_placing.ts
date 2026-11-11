@@ -3,7 +3,7 @@
 // and a press on empty music shows a ghost and places. What differs is what a tool gives (`Placing`).
 
 import type { Marking, Point } from '../../markings/model';
-import { markExtent, type PlacedMark } from '../../markings/placed';
+import { markingExtent, type PlacedMarking } from '../../markings/placed';
 import type { Placed } from '../../scores/frames';
 import { symbolSizeOf, type Cut, type State } from '../../scores/model';
 import { centreOnFrame, extentOnFrame, handleRadius, MIN_BOX_PX, movedTo, pressOnSelection, resizedFrom, selectionBox, thisTimeOnly, type Selected } from '../../scores/placing';
@@ -26,7 +26,7 @@ function selectionOn(item: Placed, sel: Selected, aspect: number, px: number): {
 }
 
 /** What a tap does, from what was selected before the press and the marking it grabbed (undefined: empty music). */
-export function _tapAction(selected: PlacedMark | undefined, hit: PlacedMark | undefined): 'select' | 'again' | 'place' {
+export function _tapAction(selected: PlacedMarking | undefined, hit: PlacedMarking | undefined): 'select' | 'again' | 'place' {
   return !hit ? 'place' : hit === selected ? 'again' : 'select';
 }
 
@@ -53,11 +53,11 @@ export interface Placing {
   /** What a tap on empty music does, and what lifting after pressing on empty music and dragging does, on the slot the finger is over. */
   place(slot: FrameSlot, at: [number, number]): void;
   /** What the press shows under the finger meanwhile: a marking centred at `at`; undefined: nothing to place yet. */
-  ghost(at: [number, number]): PlacedMark | undefined;
+  ghost(at: [number, number]): PlacedMarking | undefined;
   /** The second tap on its selected marking. */
   again(sel: Selected): void;
   /** The state with the marking resized to `size`: what a resize sets on the score. */
-  resized(s: State, size: number, from: PlacedMark): State;
+  resized(s: State, size: number, from: PlacedMarking): State;
   /** Whether its chrome is hidden for now (its field is open on the marking). */
   chromeHidden?(): boolean;
   label?: string;
@@ -116,7 +116,7 @@ export function placingTool(host: ToolHost, spec: Placing): Tool {
       // What was selected before this press, read before anything else tells the tool of a change.
       const priorMark = on?.what === 'chrome' ? host.selected()?.mark : before?.mark;
       let grab: Grab | undefined;
-      let hit: { cut: Cut; mark: PlacedMark } | undefined;
+      let hit: { cut: Cut; mark: PlacedMarking } | undefined;
       const sel = host.selected(), selItem = sel && itemOf(sel.cut);
       if (on?.what === 'chrome' && sel && selItem) {
         const box = selectionOn(selItem, sel, aspects[selItem.cut.page], px);
@@ -127,8 +127,8 @@ export function placingTool(host: ToolHost, spec: Placing): Tool {
       } else if (on?.what === 'grabbed') {
         const item = itemOf(on.sel.cut);
         if (item) {
-          hit = { cut: item.cut, mark: on.sel.mark as PlacedMark };
-          grab = { kind: 'move', from: on.sel, centre: centreOnFrame(item, on.sel.mark as PlacedMark, aspects[item.cut.page]) };
+          hit = { cut: item.cut, mark: on.sel.mark as PlacedMarking };
+          grab = { kind: 'move', from: on.sel, centre: centreOnFrame(item, on.sel.mark as PlacedMarking, aspects[item.cut.page]) };
         }
       }
 
@@ -186,7 +186,7 @@ export function placingTool(host: ToolHost, spec: Placing): Tool {
           host.drawInk(now.slot, mark);
           over = now;
         }
-        const e = markExtent(mark);
+        const e = markingExtent(mark);
         magnify(now.slot, e && [now.at[0] + e[0] * mark.size, now.at[1] + e[1] * mark.size, now.at[0] + e[2] * mark.size, now.at[1] + e[3] * mark.size], client, { ink: host.state().ink, extra: { slot: now.slot, mark } });
       };
 

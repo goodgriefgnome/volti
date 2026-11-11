@@ -29,7 +29,7 @@ export function knownAspects(id: string): Promise<number[] | undefined> {
 
 /**
  * An original's saved pages, by id, whether or not its file can be read: drawn only from the
- * page cache. Null when its page shapes aren't known or none of its pages is saved.
+ * page cache. Null when its aspects aren't known or none of its pages is saved.
  */
 export async function savedPages(id: string): Promise<Pages | null> {
   const [aspects, saved] = await Promise.all([knownAspects(id), hasSaved(id)]);
@@ -98,17 +98,17 @@ class FileOriginal implements Original {
     if (!--this.got) this.shared.close();
   }
   pdf(): Promise<MusicPdf> { this.use(); return this.content.pdf(); }
-  private shapes?: number[];
+  private loadedAspects?: number[];
   async aspects(): Promise<number[]> {
     this.use();
-    if (this.shapes) return this.shapes;
+    if (this.loadedAspects) return this.loadedAspects;
     let aspects = await knownAspects(this.id);
     if (!aspects) {
       const pages = await this.shared.use();
       aspects = await Promise.all(Array.from({ length: pages.pages }, (_, i) => pages.aspect(i + 1)));
       await storeAspects(this.id, aspects);
     }
-    return (this.shapes = aspects);
+    return (this.loadedAspects = aspects);
   }
   private async request(page: number, pxWidth: number, o?: DrawOptions): Promise<DrawRequest> {
     this.use();

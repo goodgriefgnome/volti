@@ -484,5 +484,5 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     struck through if it was the only one.
   - In the reader, with the toolbar hidden: tap the face button, and turn pages with each gesture;
     turn watching off and on again; reload the app and do it again without opening the dialog.
-  - Remove a gesture: DevTools shows its `face-trials:` key gone; `face-gestures` is
+  - Delete a gesture: DevTools shows its `face-trials:` key gone; `face-gestures` is
     `{ gestures: [...] }` and `data-version` is 5.

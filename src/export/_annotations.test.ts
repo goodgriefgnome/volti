@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { drawMarkings, type Marking } from '../markings/model';
 import { type Drawing } from '../markings/draw';
 import { addGlyph } from '../markings/glyphs';
-import { type PlacedMark } from '../markings/placed';
+import { type PlacedMarking } from '../markings/placed';
 import { type Stroke } from '../markings/stroke';
 import { _namesFrom, smuflText } from '../fonts/smufl';
 import { annotate, PdfDrawing, rgb } from './_annotations';
@@ -99,7 +99,7 @@ describe('annotate', () => {
 describe('annotate a placed marking', () => {
   it('adds one FreeText with its text as Contents, a DA, an appearance and no C', async () => {
     addGlyph('t:1', 'M 0 0 L 1 0 L 1 -1 L 0 -1 Z');
-    const m: PlacedMark = { kind: 'text', text: 'rit.', font: 't', glyphs: [[1, -0.5, 0.5]], at: [0.5, 0.5], size: 0.05 };
+    const m: PlacedMarking = { kind: 'text', text: 'rit.', font: 't', glyphs: [[1, -0.5, 0.5]], at: [0.5, 0.5], size: 0.05 };
     const [a] = await exported(m);
     expect(a.get(lib.PDFName.of('Subtype'))).toEqual(lib.PDFName.of('FreeText'));
     expect(a.lookup(lib.PDFName.of('Contents'), lib.PDFHexString).decodeText()).toBe('rit.');
@@ -110,7 +110,7 @@ describe('annotate a placed marking', () => {
   });
   it('adds one Stamp with its characters as Contents and an appearance', async () => {
     addGlyph('t:1', 'M 0 0 L 1 0 L 1 -1 L 0 -1 Z');
-    const m: PlacedMark = { kind: 'symbol', text: '\uED14', font: 't', glyphs: [[1, -0.5, 0.5]], at: [0.5, 0.5], size: 0.05 };
+    const m: PlacedMarking = { kind: 'symbol', text: '\uED14', font: 't', glyphs: [[1, -0.5, 0.5]], at: [0.5, 0.5], size: 0.05 };
     const [a] = await exported(m);
     expect(a.get(lib.PDFName.of('Subtype'))).toEqual(lib.PDFName.of('Stamp'));
     expect(a.lookup(lib.PDFName.of('Contents'), lib.PDFHexString).decodeText()).toBe('\uED14');
@@ -120,7 +120,7 @@ describe('annotate a placed marking', () => {
   });
   it('includes a background in the box, drawn darkening only', async () => {
     addGlyph('t:1', 'M 0 0 L 1 0 L 1 -1 L 0 -1 Z');
-    const plain: PlacedMark = { kind: 'symbol', text: 'x', font: 't', glyphs: [[1, -0.5, 0.5]], at: [0.5, 0.5], size: 0.05 };
+    const plain: PlacedMarking = { kind: 'symbol', text: 'x', font: 't', glyphs: [[1, -0.5, 0.5]], at: [0.5, 0.5], size: 0.05 };
     const [a, b] = await exported(plain, { ...plain, background: { shape: 'box' } });
     const width = (d: lib.PDFDict) => d.lookup(lib.PDFName.of('Rect'), lib.PDFArray).asArray().map((n) => (n as lib.PDFNumber).asNumber()).reduce((w, v, i) => (i % 2 ? w : v - w), 0);
     expect(width(b)).toBeGreaterThan(width(a));
@@ -131,7 +131,7 @@ describe('annotate a placed marking', () => {
   });
   it('writes the Stamp\'s Private Use Area characters as the names it is given', async () => {
     addGlyph('t:1', 'M 0 0 L 1 0 L 1 -1 L 0 -1 Z');
-    const m: PlacedMark = { kind: 'symbol', text: '\uED14\uED22', font: 't', glyphs: [[1, -0.5, 0.5]], at: [0.5, 0.5], size: 0.05 };
+    const m: PlacedMarking = { kind: 'symbol', text: '\uED14\uED22', font: 't', glyphs: [[1, -0.5, 0.5]], at: [0.5, 0.5], size: 0.05 };
     const doc = await lib.PDFDocument.create();
     const page = doc.addPage([W, H]);
     const names = _namesFrom({ fingering4: 0xed14, fingeringSubstitutionDash: 0xed22 });

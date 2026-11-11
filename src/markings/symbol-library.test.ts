@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { addGlyph } from './glyphs';
-import { addAdhoc, addGroup, findSymbol, moveGroup, moveSymbol, nextSymbol, putSymbol, removeGroup, removeSymbol, replaceSymbol, scaleOf, symbolFrom, symbolsOf, type LibrarySymbol, type SymbolLibrary } from './symbol-library';
+import { addAdhoc, addGroup, findSymbol, moveGroup, moveSymbol, nextSymbol, putSymbol, deleteGroup, deleteSymbol, replaceSymbol, scaleOf, symbolFrom, symbolsOf, type LibrarySymbol, type SymbolLibrary } from './symbol-library';
 
 beforeAll(() => {
   addGlyph('l:1', 'M 0 0 L 1 0 L 1 -1 L 0 -1 Z');
@@ -66,8 +66,8 @@ describe('changing the library', () => {
     expect(texts(addGroup(lib))).toEqual([['abc', 'd', ''], 'ef']);
   });
   it('removes a group with its symbols, the last one too', () => {
-    expect(texts(removeGroup(lib, 0))).toEqual([['d'], 'ef']);
-    expect(texts(removeGroup(removeGroup(lib, 1), 0))).toEqual([[], 'ef']);
+    expect(texts(deleteGroup(lib, 0))).toEqual([['d'], 'ef']);
+    expect(texts(deleteGroup(deleteGroup(lib, 1), 0))).toEqual([[], 'ef']);
   });
   it('moves a group so it ends at the new place', () => {
     expect(texts(moveGroup(lib, 0, 1))).toEqual([['d', 'abc'], 'ef']);
@@ -98,8 +98,8 @@ describe('changing the library', () => {
     expect(texts(replaceSymbol(lib, { font: 'l', text: 'c' }, sym('f')))).toEqual([['abf', 'd'], 'e']);
   });
   it('removes a symbol wherever it is', () => {
-    expect(texts(removeSymbol(lib, 'l', 'b'))).toEqual([['ac', 'd'], 'ef']);
-    expect(texts(removeSymbol(lib, 'l', 'e'))).toEqual([['abc', 'd'], 'f']);
+    expect(texts(deleteSymbol(lib, 'l', 'b'))).toEqual([['ac', 'd'], 'ef']);
+    expect(texts(deleteSymbol(lib, 'l', 'e'))).toEqual([['abc', 'd'], 'f']);
   });
   it('puts an ad-hoc symbol at the front, keeping at most 8', () => {
     let out = lib;
@@ -111,8 +111,8 @@ describe('changing the library', () => {
     expect(addAdhoc(lib, sym('a'))).toBe(lib);
   });
   it('leaves its argument as it was', () => {
-    putSymbol(lib, sym('a'), 1, 0); removeGroup(lib, 0); moveGroup(lib, 0, 1); addGroup(lib);
-    replaceSymbol(lib, { font: 'l', text: 'b' }, sym('d')); removeSymbol(lib, 'l', 'a'); addAdhoc(lib, sym('z'));
+    putSymbol(lib, sym('a'), 1, 0); deleteGroup(lib, 0); moveGroup(lib, 0, 1); addGroup(lib);
+    replaceSymbol(lib, { font: 'l', text: 'b' }, sym('d')); deleteSymbol(lib, 'l', 'a'); addAdhoc(lib, sym('z'));
     expect(JSON.stringify(lib)).toBe(copy);
   });
 });

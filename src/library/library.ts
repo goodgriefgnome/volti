@@ -6,7 +6,7 @@ import { chooseSetlist } from '../dialogs/setlists';
 import { givePassword } from '../dialogs/passwords';
 import { openExportPdf } from '../dialogs/export-pdf';
 import { openScore, type LibraryScore } from '../dialogs/open-score';
-import { type ExcerptHost } from '../dialogs/excerpts';
+import { type NamedExcerptHost } from '../dialogs/named-excerpts';
 import { type ExcerptSource } from '../dialogs/thumb-strip';
 import type { Excerpt } from '../scores/excerpts';
 import type { ExportPart } from '../export/pdf';
@@ -50,7 +50,7 @@ export class Library implements LibraryHost {
   leftIn = 0;
   setlists: Setlist[] = [];
   saved = new Map<string, Score>();
-  shapes = new Map<string, Aspects>();
+  aspects = new Map<string, Aspects>();
   openRows = new Set<string>();
   toast = new Toast();
   offline = new Map<string, OfflineStatus>();
@@ -204,9 +204,9 @@ export class Library implements LibraryHost {
     this.loadedFor = this.originals.map((o) => o.id).join();
     // Every score's, for its named excerpts, and those of scores in setlists that are missing.
     const ids = [...new Set([...this.originals.map((o) => o.id), ...this.setlists.flatMap((s) => s.entries.map((e) => e.scoreId))])];
-    const [saved, shapes] = await Promise.all([Promise.all(ids.map(loadSavedScore)), Promise.all(ids.map(knownAspects))]);
+    const [saved, aspects] = await Promise.all([Promise.all(ids.map(loadSavedScore)), Promise.all(ids.map(knownAspects))]);
     this.saved = new Map(saved.filter((x): x is Score => !!x).map((x) => [x.id, x]));
-    this.shapes = new Map(ids.flatMap((id, i) => (shapes[i] ? [[id, shapes[i]] as const] : [])));
+    this.aspects = new Map(ids.flatMap((id, i) => (aspects[i] ? [[id, aspects[i]] as const] : [])));
     this.renderSetlists();
   }
 
@@ -437,10 +437,10 @@ export class Library implements LibraryHost {
     return this.change(setlists, [scoreEntry(score)]);
   }
 
-  excerptHost(scoreId: string): ExcerptHost {
+  excerptHost(scoreId: string): NamedExcerptHost {
     return {
       setlists: this.setlists,
-      aspects: this.shapes.get(scoreId),
+      aspects: this.aspects.get(scoreId),
       save: (score, setlists) => void this.saveScore(score, setlists),
       say: (t) => this.toast.say(t),
     };
@@ -456,7 +456,7 @@ export class Library implements LibraryHost {
 
   remember(sc: ExcerptSource) {
     this.saved.set(sc.state.score.id, sc.state.score);
-    this.shapes.set(sc.state.score.id, sc.aspects);
+    this.aspects.set(sc.state.score.id, sc.aspects);
   }
 
   async openForDialog(o: SourceFile): Promise<LibraryScore | null> {

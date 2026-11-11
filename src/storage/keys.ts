@@ -32,7 +32,7 @@ export const keys = {
   symbols: 'symbols',
 
   /** The default colours of placed markings and their backgrounds, { color?, background? } (markings/store.ts). */
-  markColors: 'placed-mark-colors',
+  markingColors: 'placed-mark-colors',
 
   /** Each tool's settings for new markings, a ToolSettings (markings/store.ts). */
   toolSettings: 'tool-settings',

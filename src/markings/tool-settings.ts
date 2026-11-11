@@ -1,7 +1,7 @@
 // Pure. Each tool's settings for the markings it makes, kept for the whole app: their types,
 // defaults, and what a choice resolves to.
 
-import type { Background, MarkColors } from './placed';
+import type { Background, MarkingColors } from './placed';
 
 /** A colour choice: 'default' follows the app's Marking colours. */
 export type ColorChoice = string | 'default';
@@ -47,7 +47,7 @@ export function toolSettingsFrom(stored: unknown): ToolSettings {
 }
 
 /** The colour a stroke is drawn in: Default is the marking colour for the pen, the background colour for the highlighter. */
-export function strokeColor(tool: 'pen' | 'highlighter', choice: ColorChoice, colors: MarkColors): string {
+export function strokeColor(tool: 'pen' | 'highlighter', choice: ColorChoice, colors: MarkingColors): string {
   if (choice !== 'default') return choice;
   return tool === 'pen' ? colors.color : colors.background;
 }

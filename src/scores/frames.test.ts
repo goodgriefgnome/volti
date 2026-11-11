@@ -24,7 +24,7 @@ describe('pack', () => {
   });
 });
 
-describe('pack, with pages of different shapes', () => {
+describe('pack, with pages of different aspects', () => {
   const LETTER = 11 / 8.5, WIDE = 210 / 297;
   it('gives each frame the shape of its first cut\'s page', () => {
     const frames = pack([cut(0), cut(1)], [A4, WIDE]);

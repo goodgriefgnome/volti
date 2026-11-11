@@ -1,7 +1,7 @@
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { Drawing, Paint, PathCmd } from './draw';
 import { addGlyph } from './glyphs';
-import { _placed, backgroundOutline, baselineStart, centred, emExtent, glyphKeysIn, markColors, markExtent, setMarkColors, textMark, type PlacedMark } from './placed';
+import { _placed, backgroundOutline, baselineStart, centred, emExtent, glyphKeysIn, markingColors, markingExtent, setMarkingColors, textMark, type PlacedMarking } from './placed';
 import { compactMarking, copyMarking, type DrawTarget } from './model';
 import type { Stroke } from './stroke';
 
@@ -11,7 +11,7 @@ beforeAll(() => {
 });
 
 // Glyph 1 spans -0.5..0.5 either way from the centre, glyph 2 0.5..2.5 across and -0.5..0 up.
-const mark: PlacedMark = { kind: 'symbol', text: 'ab', font: 't', glyphs: [[1, -0.5, 0.5], [2, 0.5, 0]], at: [0.5, 0.5], size: 0.1 };
+const mark: PlacedMarking = { kind: 'symbol', text: 'ab', font: 't', glyphs: [[1, -0.5, 0.5], [2, 0.5, 0]], at: [0.5, 0.5], size: 0.1 };
 
 describe('centred', () => {
   it('moves two glyphs side by side so the centre of their ink is the origin', () => {
@@ -98,7 +98,7 @@ describe('placed markings', () => {
     expect(shapes).toHaveLength(2);
     const [halo, fill] = shapes;
     expect(halo[1]).toEqual({ stroke: { color: '#ffffff', opacity: 0.5, multiply: false }, width: 0.04 * 0.1 * 1000 });
-    expect(fill[1]).toEqual({ fill: { color: markColors().color, opacity: 1, multiply: false } });
+    expect(fill[1]).toEqual({ fill: { color: markingColors().color, opacity: 1, multiply: false } });
     // Glyph 1's first point: the centre (500, 700) plus (-0.5, 0.5) em of 100 px.
     expect(halo[0][0]).toEqual(['M', 450, 750]);
     expect(halo[0]).toBe(fill[0]);
@@ -106,8 +106,8 @@ describe('placed markings', () => {
 });
 
 describe('default colours', () => {
-  afterEach(() => setMarkColors({}));
-  const fillColor = (m: PlacedMark) => {
+  afterEach(() => setMarkingColors({}));
+  const fillColor = (m: PlacedMarking) => {
     const paints: Paint[] = [];
     const draw: Drawing = { path() {}, shape: (_c, paint) => void paints.push(paint) };
     _placed.draw({ draw, w: 1000, h: 1400, ox: 0, oy: 0 }, m);
@@ -115,20 +115,20 @@ describe('default colours', () => {
     return fill && 'fill' in fill ? fill.fill.color : undefined;
   };
   it('leave the other built in when one is set, and both when none is', () => {
-    setMarkColors({ color: '#800000' });
-    expect(markColors()).toEqual({ color: '#800000', background: '#cce0ff' });
-    setMarkColors({});
-    expect(markColors()).toEqual({ color: '#1c1f26', background: '#cce0ff' });
+    setMarkingColors({ color: '#800000' });
+    expect(markingColors()).toEqual({ color: '#800000', background: '#cce0ff' });
+    setMarkingColors({});
+    expect(markingColors()).toEqual({ color: '#1c1f26', background: '#cce0ff' });
   });
   it('colour a marking without a colour of its own, and not one with its own', () => {
-    setMarkColors({ color: '#800000' });
+    setMarkingColors({ color: '#800000' });
     expect(fillColor(mark)).toBe('#800000');
     expect(fillColor({ ...mark, color: '#00ff00' })).toBe('#00ff00');
   });
 });
 
 describe('backgrounds', () => {
-  afterEach(() => setMarkColors({}));
+  afterEach(() => setMarkingColors({}));
   // Its ink spans -1..2 across and -0.5..0.5 up and down, so 3 × 1 em; the padding makes it 3.24 × 1.24.
   let ink: ReturnType<typeof emExtent> & {}, x0 = 0, y0 = 0, x1 = 0, y1 = 0, point = 0;
   beforeAll(() => {
@@ -136,7 +136,7 @@ describe('backgrounds', () => {
     [x0, y0, x1, y1] = [ink[0] - 0.12, ink[1] - 0.12, ink[2] + 0.12, ink[3] + 0.12];
     point = (y1 - y0) * (Math.tan(Math.PI / 6) / 2);
   });
-  const boxed = (shape: 'box' | 'tag-left' | 'tag-right', color?: string): PlacedMark => ({ ...mark, background: { shape, color } });
+  const boxed = (shape: 'box' | 'tag-left' | 'tag-right', color?: string): PlacedMarking => ({ ...mark, background: { shape, color } });
 
   it('have a box outline of the ink grown by the padding, clockwise from the top left', () => {
     expect(backgroundOutline(boxed('box'))).toEqual([[x0, y0], [x1, y0], [x1, y1], [x0, y1]]);
@@ -158,9 +158,9 @@ describe('backgrounds', () => {
     expect(backgroundOutline(mark)).toBeUndefined();
   });
   it('widen the extent by a tag\'s point, and leave it alone without a background', () => {
-    expect(markExtent(boxed('tag-right'))![2]).toBeCloseTo(x1 + point);
-    expect(markExtent(boxed('tag-right'))![0]).toBeCloseTo(x0);
-    expect(markExtent(mark)).toEqual(emExtent(mark));
+    expect(markingExtent(boxed('tag-right'))![2]).toBeCloseTo(x1 + point);
+    expect(markingExtent(boxed('tag-right'))![0]).toBeCloseTo(x0);
+    expect(markingExtent(mark)).toEqual(emExtent(mark));
   });
   it('are hit by a point in their padding only when there is one', () => {
     // 0.06 em beyond the ink, to the right: 0.006 page widths.
@@ -177,8 +177,8 @@ describe('backgrounds', () => {
     expect(shapes[0][1]).toEqual({ fill: { color: '#cce0ff', opacity: 1, multiply: true } });
     expect(shapes[0][0].at(-1)).toEqual(['Z']);
     expect('stroke' in shapes[1][1]).toBe(true);
-    expect(shapes[2][1]).toEqual({ fill: { color: markColors().color, opacity: 1, multiply: false } });
-    setMarkColors({ background: '#ffc0cb' });
+    expect(shapes[2][1]).toEqual({ fill: { color: markingColors().color, opacity: 1, multiply: false } });
+    setMarkingColors({ background: '#ffc0cb' });
     shapes.length = 0;
     _placed.draw(t, boxed('box'));
     expect(shapes[0][1]).toMatchObject({ fill: { color: '#ffc0cb' } });

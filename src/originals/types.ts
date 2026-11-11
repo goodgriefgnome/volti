@@ -32,7 +32,7 @@ export interface SourceFile {
   canReadNow(): Promise<boolean>;
 }
 
-/** What can be read of an original: its page shapes, and its pages drawn. */
+/** What can be read of an original: its aspects, and its pages drawn. */
 export interface Pages {
   readonly id: string;
   /** Each page's height / width, in order: as stored, else worked out by opening it, and stored. */

@@ -6,7 +6,7 @@
 import { ACADEMICO, fontChoices, fontMetrics, shapeWith, type FontChoice } from '../../fonts/fonts';
 import { mix } from '../../markings/draw';
 import { compactMarking, type Marking } from '../../markings/model';
-import { baselineStart, markColors, textMark, type Background, type PlacedMark } from '../../markings/placed';
+import { baselineStart, markingColors, textMark, type Background, type PlacedMarking } from '../../markings/placed';
 import { saveGlyphs } from '../../markings/store';
 import { backgroundOf, ownColor, type BackgroundChoice, type ColorChoice } from '../../markings/tool-settings';
 import { replaceMarking, setInk, textResized, textSizeOf } from '../../scores/edits';
@@ -39,9 +39,9 @@ export const textTool = (host: ToolHost): Tool => {
   /** What the button shows: the selected text marking's look, else the settings for the next one. */
   const look = (): Look => {
     const m = selectedText()?.mark;
-    if (m) return { font: m.font, color: m.color ?? markColors().color, ...(m.background ? { background: m.background } : {}) };
+    if (m) return { font: m.font, color: m.color ?? markingColors().color, ...(m.background ? { background: m.background } : {}) };
     const t = host.settings().text, background = backgroundOf(t.background, t.backgroundColor);
-    return { font: t.font ?? ACADEMICO, color: ownColor(t.color) ?? markColors().color, ...(background ? { background } : {}) };
+    return { font: t.font ?? ACADEMICO, color: ownColor(t.color) ?? markingColors().color, ...(background ? { background } : {}) };
   };
   const setFace = () => host.setButtonFace(textFace(look()));
   setFace();
@@ -68,14 +68,14 @@ export const textTool = (host: ToolHost): Tool => {
   };
 
   /** What a press shows under the finger: "Ag" where typing would start, in the text's size, font and background, its colour tinted towards the selection blue. */
-  const ghost = (at: [number, number]): PlacedMark | undefined => {
+  const ghost = (at: [number, number]): PlacedMarking | undefined => {
     const g = ghostText, t = host.settings().text;
     if (!g || g.font !== (t.font ?? ACADEMICO)) return undefined;
     const size = textSizeOf(host.state().score);
     const made = textMark(g.font, 'Ag', g.glyphs, [at[0], at[1] + (g.capHeight / 2) * size], size);
     if (!made) return undefined;
     const background = backgroundOf(t.background, t.backgroundColor);
-    return { ...made, color: mix(ownColor(t.color) ?? markColors().color, '#1f6fe0', 0.25), ...(background ? { background } : {}) };
+    return { ...made, color: mix(ownColor(t.color) ?? markingColors().color, '#1f6fe0', 0.25), ...(background ? { background } : {}) };
   };
 
   /* ---------- placing, editing and re-shaping ---------- */
@@ -99,7 +99,7 @@ export const textTool = (host: ToolHost): Tool => {
     const made = s && textMark(font, text, s.glyphs, start, size);
     if (!made) return;
     const t = host.settings().text, color = ownColor(t.color), background = backgroundOf(t.background, t.backgroundColor);
-    const mark: PlacedMark = { ...made, ...(color ? { color } : {}), ...(background ? { background } : {}) };
+    const mark: PlacedMarking = { ...made, ...(color ? { color } : {}), ...(background ? { background } : {}) };
     const claimed = claimMarking(slot.frame, compactMarking(mark), host.aspects());
     if (!claimed) return;
     const { cut, marking } = claimed, state = host.state();
@@ -115,7 +115,7 @@ export const textTool = (host: ToolHost): Tool => {
         const { capHeight } = await fontMetrics(font);
         const start: [number, number] = [at[0], at[1] + (capHeight / 2) * size];
         await typing.show({
-          slot, font, size, color: ownColor(host.settings().text.color) ?? markColors().color, start, text: '',
+          slot, font, size, color: ownColor(host.settings().text.color) ?? markingColors().color, start, text: '',
           done: (text, typed) => void placeText(slot, typed, size, text, start),
           cancel: () => {},
         });
@@ -162,7 +162,7 @@ export const textTool = (host: ToolHost): Tool => {
         // Without the marking while its field is open.
         host.drawState(slot, replaceMarking(host.state(), sel.page, sel.mark));
         await typing.show({
-          slot, font, size, color: mark.color ?? markColors().color, start, text: mark.text,
+          slot, font, size, color: mark.color ?? markingColors().color, start, text: mark.text,
           done: (text, typed) => void retext(sel, typed, text),
           cancel: () => { host.drawInk(slot); host.select(sel); },
         });
@@ -182,7 +182,7 @@ export const textTool = (host: ToolHost): Tool => {
     const sel = selectedText();
     if (sel && sel.mark.color !== ownColor(c)) {
       const { color: _, ...rest } = sel.mark, own = ownColor(c);
-      const marked: PlacedMark = own ? { ...rest, color: own } : rest;
+      const marked: PlacedMarking = own ? { ...rest, color: own } : rest;
       host.commit(replaceMarking(host.state(), sel.page, sel.mark, marked), sel.cut, { ...sel, mark: marked });
     }
     host.setSettings((s) => ({ ...s, text: { ...s.text, color: c } }));
@@ -196,7 +196,7 @@ export const textTool = (host: ToolHost): Tool => {
       const next = backgroundOf(change.shape ?? was?.shape ?? 'none', change.color ?? was?.color ?? 'default');
       if (JSON.stringify(next) !== JSON.stringify(was)) {
         const { background: _, ...rest } = sel.mark;
-        const marked: PlacedMark = next ? { ...rest, background: next } : rest;
+        const marked: PlacedMarking = next ? { ...rest, background: next } : rest;
         host.commit(replaceMarking(host.state(), sel.page, sel.mark, marked), sel.cut, { ...sel, mark: marked });
       }
     }

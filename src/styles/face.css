@@ -52,8 +52,8 @@
 .face-row-head .name { flex: 1; font-weight: 600; }
 .face-meter { position: relative; height: 10px; border-radius: 5px; background: var(--accent-soft); overflow: hidden; }
 .face-meter .fill { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--accent); }
-.face-meter .mark { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--fg); }
-.face-meter .mark.release { opacity: 0.45; }
+.face-meter .tick { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--fg); }
+.face-meter .tick.release { opacity: 0.45; }
 .face-slider { display: grid; grid-template-columns: 6.5em minmax(0, 1fr) 5em; gap: 8px; align-items: center; min-height: 44px; }
 .face-slider input { width: 100%; accent-color: var(--accent); }
 .face-slider .value { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
