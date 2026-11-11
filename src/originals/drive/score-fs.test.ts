@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { _makeByteCache } from './_byte-cache';
-import { DriveRoot } from './_drive-root';
-import { _fakeDrive } from './_fake-drive';
-import { _fakeFolder } from './_fake-handles';
-import { hashBytes } from './_filesystem-utils';
-import { _downloadMissing, _signInReturn } from './drive-score-fs';
-import { Unreachable } from './types';
+import { DriveRoot } from './_root';
+import { _fakeDrive } from './_fake';
+import { _fakeFolder } from '../handles/_fake';
+import { hashBytes } from '../_filesystem-utils';
+import { _downloadMissing, _signInReturn } from './score-fs';
+import { Unreachable } from '../types';
 
 const saved = { verifier: 'ver', state: 'st', intent: 'link' as const };
 

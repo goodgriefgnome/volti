@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { _httpDriveApi } from './_drive-api';
-import type { _DriveAuth } from './_drive-auth';
-import { NoAccess, Unreachable } from './types';
+import { _httpDriveApi } from './_api';
+import type { _DriveAuth } from './_auth';
+import { NoAccess, Unreachable } from '../types';
 
 const reply = (body: object, status = 200) => new Response(JSON.stringify(body), { status });
 const stub = (...answers: (Response | Error)[]) => {

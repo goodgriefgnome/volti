@@ -2,7 +2,7 @@
 // name, opening one to see its folders, and "Use this folder". Lists through the Drive API; no
 // Google Picker, so Volti loads no script from Google.
 
-import { driveFolders } from '../originals/drive-score-fs';
+import { driveFolders } from '../originals/drive/score-fs';
 import { button, el } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog, whenOverlayCloses } from '../ui/overlay';
 import { failed } from '../ui/failure';

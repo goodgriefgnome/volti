@@ -1,5 +1,5 @@
 // Source files over the library's root: the linked scores folder (linked-folder.ts) when there is
-// one, and Volti's own folder in OPFS (internal-score-fs.ts) when there isn't. Both are folders with
+// one, and Volti's own folder in OPFS (handles/internal-score-fs.ts) when there isn't. Both are folders with
 // true paths, read the same way. A file in the root is a source file that can be moved (renamed, or
 // into another folder) and removed (into Recently removed), asking for the access that needs. Also
 // listing the root's files, known by the hash of their contents, and tidying storage at start-up.
@@ -8,11 +8,11 @@ import { _isLinked } from './_folder-link';
 import { _linkedRoot } from './linked-folder';
 import { hashFile } from './_filesystem-utils';
 import { _dropInboxBytes } from './inbox-fs';
-import { _internalFiles, _internalRoot, _removeInternalFile } from './internal-score-fs';
+import { _internalFiles, _internalRoot, _removeInternalFile } from './handles/internal-score-fs';
 import { _applyUpdate, _bytesName, _folderWhere, _inRoot, _knownOf, _rank, type OriginalRecord, type Where } from './_record-model';
 import { _loadRecords, _onRecords, _record, _records, _updateRecord, _updateRecords } from './_record-store';
 import type { Readable, ScoreRoot, Stamp } from './_types';
-import { _readOriginal } from './original';
+import { _readOriginal } from './read/original';
 import { byTitle, folderOf, _nameOf, _shownFolder, _tidyPath, titleOf, _unfoundName } from './path-utils';
 import { _forgetRemovedBytes } from './trash-fs';
 import type { AskPassword, Original, SourceFile } from './types';

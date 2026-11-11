@@ -22,7 +22,7 @@ scores.
 - **Exporting works out each PDF's music twice, and draws a drawn one twice**:
   exporting a score or a setlist as a PDF (`dialogs/export-pdf.ts`, `export/pdf.ts`) needs each
   original's music as a PDF pdf-lib can read: `Original.pdf()`, for a PDF `pdfOf`
-  (`originals/_pdf-source.ts`). It reads the whole file, decrypts it if it is encrypted, and
+  (`originals/read/_pdf.ts`). It reads the whole file, decrypts it if it is encrypted, and
   parses it with pdf-lib; where pdf-decrypt doesn't know the encryption, or pdf-lib can't read it,
   it draws every page with pdf.js, 2000 px wide, into a PDF of pictures (`pagesDrawn`). Nothing
   keeps the result. (Reading scores doesn't go through `pdfOf`: only exporting does.)
@@ -121,7 +121,7 @@ scores.
   and for moving to another device; probably written into the linked scores folder.
 - **The first open of a PDF still lags**: the first time a PDF is opened since
   PDFs skipped pdf-lib is still noticeably slow, even for one opened before, whose aspects are
-  stored. What only that open does is `readPdf`'s check (`originals/_pdf-source.ts`): `f.file()`,
+  stored. What only that open does is `readPdf`'s check (`originals/read/_pdf.ts`): `f.file()`,
   then `encrypted`, which reads the file's first and last 64 KB (and for an encrypted one, a
   pdf.js open to check its password). Any read now stores what it finds (`''` for a PDF that
   opens without a password), so the check is paid once per file; the offline job only reads

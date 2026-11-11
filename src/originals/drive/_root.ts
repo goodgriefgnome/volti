@@ -3,12 +3,12 @@
 // the byte cache.
 
 import type { _ByteCache } from './_byte-cache';
-import type { _DriveApi, _DriveItem } from './_drive-api';
-import { hashBytes, inTurns } from './_filesystem-utils';
-import { _FolderScan } from './_folder-scan';
-import type { Known, Moved, ScoreRoot, Stamp, UndeleteInfo, Update, Updates } from './_types';
-import { folderOf, _isOriginalName, _nameOf } from './path-utils';
-import { NoAccess } from './types';
+import type { _DriveApi, _DriveItem } from './_api';
+import { hashBytes, inTurns } from '../_filesystem-utils';
+import { _FolderScan } from '../_folder-scan';
+import type { Known, Moved, ScoreRoot, Stamp, UndeleteInfo, Update, Updates } from '../_types';
+import { folderOf, _isOriginalName, _nameOf } from '../path-utils';
+import { NoAccess } from '../types';
 
 /** As deep as the device folder is listed: the linked folder, and four levels of folders in it. */
 const MAX_DEPTH = 4;

@@ -3,13 +3,13 @@
 // and the copies of its files kept on the tablet.
 
 import { _byteCache } from './_byte-cache';
-import { _httpDriveApi } from './_drive-api';
-import { _authUrl, _challenge, _driveAuth, _newVerifier } from './_drive-auth';
-import { _clientId, _redirectUri } from './_drive-config';
-import { DriveRoot } from './_drive-root';
-import { _storedLink } from './_folder-link';
-import { _record } from './_record-store';
-import { NoAccess, Unreachable } from './types';
+import { _httpDriveApi } from './_api';
+import { _authUrl, _challenge, _driveAuth, _newVerifier } from './_auth';
+import { _clientId, _redirectUri } from './_config';
+import { DriveRoot } from './_root';
+import { _storedLink } from '../_folder-link';
+import { _record } from '../_record-store';
+import { NoAccess, Unreachable } from '../types';
 
 /** What the page was doing when it left for Google's sign-in page. */
 type Intent = 'link' | 'unlock';
@@ -18,7 +18,7 @@ interface Waiting { verifier: string; state: string; intent: Intent }
 /** Where the verifier, state and intent wait while the page is away. */
 const WAITING = 'volti-drive-sign-in';
 
-/** Whether this build has a Google client (_drive-config.ts). */
+/** Whether this build has a Google client (drive/_config.ts). */
 export const driveOffered = (): boolean => _clientId !== '';
 
 /** Whether there is a sign-in to Google now. */

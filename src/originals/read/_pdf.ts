@@ -17,11 +17,11 @@ import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
-import { _contents, _noteContents } from './_record-store';
-import type { Crop } from '../page-cache/types';
-import type { Content, OpenPages, Readable } from './_types';
-import { titleOf } from './path-utils';
-import { PasswordNotGiven, type AskPassword, type RenderedPdf, type SourceFile } from './types';
+import { _contents, _noteContents } from '../_record-store';
+import type { Crop } from '../../page-cache/types';
+import type { Content, OpenPages, Readable } from '../_types';
+import { titleOf } from '../path-utils';
+import { PasswordNotGiven, type AskPassword, type RenderedPdf, type SourceFile } from '../types';
 
 /** How far into a file a PDF's header may start. */
 const PDF_HEADER_WITHIN = 1024;

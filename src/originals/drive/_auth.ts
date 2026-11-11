@@ -2,10 +2,10 @@
 // parts: the authorization URL, the verifier and its challenge), and the tokens: the refresh token
 // kept in storage, the access token in memory.
 
-import { keys } from '../storage/keys';
-import { kv } from '../storage/kv';
-import { _clientId, _clientSecret } from './_drive-config';
-import { NoAccess, Unreachable } from './types';
+import { keys } from '../../storage/keys';
+import { kv } from '../../storage/kv';
+import { _clientId, _clientSecret } from './_config';
+import { NoAccess, Unreachable } from '../types';
 
 const AUTH = 'https://accounts.google.com/o/oauth2/v2/auth';
 const TOKEN = 'https://oauth2.googleapis.com/token';

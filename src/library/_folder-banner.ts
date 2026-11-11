@@ -3,8 +3,8 @@
 // colours, the storage used, the version running, and the licences), and Update when a new version
 // of the app is ready.
 
-import { canLinkFolder } from '../originals/device-score-fs';
-import { driveOffered } from '../originals/drive-score-fs';
+import { canLinkFolder } from '../originals/handles/device-score-fs';
+import { driveOffered } from '../originals/drive/score-fs';
 import { button, el } from '../ui/dom';
 import { showMenu } from '../ui/overlay';
 import type { LibraryHost } from './_host';

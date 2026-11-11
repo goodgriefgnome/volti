@@ -4,8 +4,8 @@
 // telling how much of each setlist is saved. An original is read only while it is used.
 
 import { excerptCuts } from '../scores/excerpts';
-import { keepOriginalsOffline } from '../originals/drive-score-fs';
-import { knownAspects, savePageOffline } from '../originals/original';
+import { keepOriginalsOffline } from '../originals/drive/score-fs';
+import { knownAspects, savePageOffline } from '../originals/read/original';
 import { knownTitles } from '../originals/library-files';
 import { titleOf } from '../originals/path-utils';
 import { NoAccess, PasswordNotGiven, Unreachable, type Original, type SourceFile } from '../originals/types';

@@ -2,9 +2,9 @@
 // folder is linked (library-files.ts) and keeps the files left in it when one is. Which file is
 // which original is in the records (_record-store.ts).
 
-import { InternalDirectoryHandleRoot } from './_directory-handle-roots';
-import { walk } from './_filesystem-utils';
-import type { ScoreRoot } from './_types';
+import { InternalDirectoryHandleRoot } from './_roots';
+import { walk } from '../_filesystem-utils';
+import type { ScoreRoot } from '../_types';
 
 /** Volti's own folder in OPFS: the library's root while no folder is linked. */
 export const _opfsRoot = async () => (await navigator.storage.getDirectory()).getDirectoryHandle('library', { create: true });

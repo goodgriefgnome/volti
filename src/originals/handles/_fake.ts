@@ -1,5 +1,5 @@
 // A folder tree in memory, standing in for a FileSystemDirectoryHandle in tests: the parts of the
-// handle API that the roots in _directory-handle-roots.ts use. Only tests import it.
+// handle API that the roots in handles/_roots.ts use. Only tests import it.
 
 interface Options {
   /** Names match ignoring case, as in some of Android's folders. */

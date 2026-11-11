@@ -2,7 +2,7 @@
 // and the steps from each version to the next. A change to what is stored adds a step here and
 // raises DATA_VERSION.
 
-import { folderToVersion3 } from './originals/device-score-fs';
+import { folderToVersion3 } from './originals/handles/device-score-fs';
 import { scoresToVersion2, scoresToVersion3 } from './scores/store';
 import { keys } from './storage/keys';
 import { kv } from './storage/kv';

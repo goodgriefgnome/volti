@@ -3,10 +3,10 @@
 // one-page PDF, put in as it is where that loses nothing. Telling a JPEG or a PNG by its first bytes
 // and which way up a JPEG is meant to be shown is pure. pdf-lib is only loaded when it is needed.
 
-import type { Crop } from '../page-cache/types';
-import type { Content, OpenPages, Readable } from './_types';
-import { A4_W, encode } from './_pdf-source';
-import type { RenderedPdf } from './types';
+import type { Crop } from '../../page-cache/types';
+import type { Content, OpenPages, Readable } from '../_types';
+import { A4_W, encode } from './_pdf';
+import type { RenderedPdf } from '../types';
 
 export const isJpeg = (b: Uint8Array) => b[0] === 0xff && b[1] === 0xd8;
 export const isPng = (b: Uint8Array) => b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47;

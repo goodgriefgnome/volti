@@ -2,7 +2,7 @@
 // cache draws from. An id's pages open on the first use (measuring or drawing) and are shared by
 // every reference to the id; they close at once when the last reference closes. No timer.
 
-import type { Content, OpenPages } from './_types';
+import type { Content, OpenPages } from '../_types';
 
 /** One reference to an id's pages. */
 export interface SharedPages {

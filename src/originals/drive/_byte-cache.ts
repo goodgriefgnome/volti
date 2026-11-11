@@ -1,7 +1,7 @@
 // Copies of originals' bytes, by id, in OPFS bytes/ with an index (bytes/index.json): kept for
 // the Drive root, evicted least recently used over a budget, except those pinned.
 
-import { writeFile } from './_filesystem-utils';
+import { writeFile } from '../_filesystem-utils';
 
 export interface _ByteCache {
   /** The bytes kept for `id`, if any; noted as used. */

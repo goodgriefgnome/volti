@@ -5,7 +5,7 @@
 import { registerSW } from 'virtual:pwa-register';
 import { Library } from './library/library';
 import { loadMarkColors } from './markings/store';
-import { finishSignIn } from './originals/drive-score-fs';
+import { finishSignIn } from './originals/drive/score-fs';
 import { tidyStorage } from './originals/library-files';
 import { purgeRemoved } from './originals/trash-fs';
 import { upgradeStoredData } from './stored-data';

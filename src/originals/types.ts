@@ -60,7 +60,7 @@ export interface Original extends SourceFile, Pages {
   close(): void;
   /** The same original, got once more: to be closed once more. */
   read(ask?: AskPassword): Promise<Original>;
-  /** Its music as a PDF, for export (_pdf-source.ts, _image-source.ts). */
+  /** Its music as a PDF, for export (read/_pdf.ts, read/_image.ts). */
   pdf(): Promise<RenderedPdf>;
 }
 

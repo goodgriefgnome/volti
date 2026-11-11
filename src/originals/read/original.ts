@@ -1,16 +1,16 @@
 // Reading a source file into an original. `_readOriginal` picks how the file is read by its first
-// bytes (a PDF: _pdf-source.ts, else an image: _image-source.ts) and wraps what that gives with the
+// bytes (a PDF: _pdf.ts, else an image: _image.ts) and wraps what that gives with the
 // file in an original that passes its id, path, moving and removing to the file, draws its pages
 // through the page cache (page-cache/), and stores their aspects by id.
 
-import { readImage } from './_image-source';
-import { drawPage, drawPageProgressive, hasSaved, saveOffline } from '../page-cache/cache';
-import { NotSaved, type DrawRequest, type PinnedPage, type PageSource } from '../page-cache/types';
-import type { Content, Readable } from './_types';
-import { _contents, _noteContents } from './_record-store';
+import { readImage } from './_image';
+import { drawPage, drawPageProgressive, hasSaved, saveOffline } from '../../page-cache/cache';
+import { NotSaved, type DrawRequest, type PinnedPage, type PageSource } from '../../page-cache/types';
+import type { Content, Readable } from '../_types';
+import { _contents, _noteContents } from '../_record-store';
 import { sharePages, type SharedPages } from './_sources';
-import { isPdf, readPdf } from './_pdf-source';
-import type { AskPassword, DrawOptions, Original, Pages, RenderedPdf } from './types';
+import { isPdf, readPdf } from './_pdf';
+import type { AskPassword, DrawOptions, Original, Pages, RenderedPdf } from '../types';
 
 /**
  * Read a source file: an image as it is; a PDF has its password checked now (and asked for, if it

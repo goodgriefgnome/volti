@@ -1,9 +1,9 @@
 // Google Drive in memory, standing in for the Drive API in tests: the _DriveApi that DriveRoot
 // and the folder chooser use. Only tests import it.
 
-import type { _DriveApi, _DriveItem } from './_drive-api';
-import { hashBytes } from './_filesystem-utils';
-import { NoAccess, Unreachable } from './types';
+import type { _DriveApi, _DriveItem } from './_api';
+import { hashBytes } from '../_filesystem-utils';
+import { NoAccess, Unreachable } from '../types';
 
 interface Item { id: string; name: string; parent: string; folder: boolean; bytes: Uint8Array; created: number; trashed: boolean }
 

@@ -3,7 +3,7 @@
 
 import { askPassword } from '../dialogs/passwords';
 import { folderState } from '../originals/linked-folder';
-import { savedPages } from '../originals/original';
+import { savedPages } from '../originals/read/original';
 import { NoAccess, PasswordNotGiven, Unreachable, type DrawOptions, type Pages, type SourceFile } from '../originals/types';
 import type { Drawn } from '../page-cache/types';
 import { loadScore } from '../scores/store';

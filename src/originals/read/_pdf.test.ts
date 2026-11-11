@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { holds, isEncryptedPdf, isPdf, supersample } from './_pdf-source';
+import { holds, isEncryptedPdf, isPdf, supersample } from './_pdf';
 
 describe('supersample', () => {
   it('draws at twice the size on a typical tablet page', () => {

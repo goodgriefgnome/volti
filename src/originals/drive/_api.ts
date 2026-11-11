@@ -3,8 +3,8 @@
 // the access token and maps failures: no network is Unreachable, a token Google refuses twice is
 // NoAccess (and signs out).
 
-import type { _DriveAuth } from './_drive-auth';
-import { NoAccess, Unreachable } from './types';
+import type { _DriveAuth } from './_auth';
+import { NoAccess, Unreachable } from '../types';
 
 /** A file or folder in Drive. `sha256` is Drive's checksum of a file's bytes (none for a folder). */
 export interface _DriveItem { id: string; name: string; folder: boolean; sha256?: string; created: string }

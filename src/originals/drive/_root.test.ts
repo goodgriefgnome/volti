@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { _makeByteCache } from './_byte-cache';
-import { DriveRoot } from './_drive-root';
-import { _fakeDrive } from './_fake-drive';
-import { _fakeFolder } from './_fake-handles';
-import { hashBytes } from './_filesystem-utils';
-import type { Known, Update } from './_types';
-import { NoAccess, Unreachable } from './types';
+import { DriveRoot } from './_root';
+import { _fakeDrive } from './_fake';
+import { _fakeFolder } from '../handles/_fake';
+import { hashBytes } from '../_filesystem-utils';
+import type { Known, Update } from '../_types';
+import { NoAccess, Unreachable } from '../types';
 
 const hash = (text: string) => hashBytes(new TextEncoder().encode(text).buffer as ArrayBuffer);
 

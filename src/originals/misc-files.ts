@@ -6,13 +6,13 @@
 import { hashBytes } from './_filesystem-utils';
 import { _dropInboxBytes, _inboxFile } from './inbox-fs';
 import { _isLinked } from './_folder-link';
-import { _internalRoot, _removeInternalFile } from './internal-score-fs';
+import { _internalRoot, _removeInternalFile } from './handles/internal-score-fs';
 import { _linkedRoot } from './linked-folder';
 import { _placed, _root, _sourceFileOf } from './library-files';
 import { folderOf, _importName, _nameOf, _shownFolder, _tidyPath, _unfoundName } from './path-utils';
 import { _loadRecords, _record, _records, _updateRecord } from './_record-store';
 import type { Readable, Stamp } from './_types';
-import { _readOriginal } from './original';
+import { _readOriginal } from './read/original';
 import { _keepRemoved, _removedFile, recentlyRemoved } from './trash-fs';
 import { NoAccess, type AskPassword, type Original, type Removed, type SourceFile } from './types';
 

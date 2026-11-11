@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { hashBytes } from './_filesystem-utils';
-import { _fakeFolder } from './_fake-handles';
-import { InternalDirectoryHandleRoot, LinkedDirectoryHandleRoot } from './_directory-handle-roots';
-import type { Known, Update, Updates } from './_types';
+import { hashBytes } from '../_filesystem-utils';
+import { _fakeFolder } from './_fake';
+import { InternalDirectoryHandleRoot, LinkedDirectoryHandleRoot } from './_roots';
+import type { Known, Update, Updates } from '../_types';
 
 const as = (f: ReturnType<typeof _fakeFolder>) => f as unknown as FileSystemDirectoryHandle;
 const idOf = async (text: string) => hashBytes(new TextEncoder().encode(text).buffer as ArrayBuffer);

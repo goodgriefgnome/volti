@@ -1,6 +1,6 @@
 // The bookkeeping of one scan of the linked folder, with no files and no storage: where each id is
 // as the scan goes, and the rules for which of an id's copies is its place. The linked folder root
-// (_directory-handle-roots.ts) feeds it the files it sees, and says what it gives back.
+// (handles/_roots.ts) feeds it the files it sees, and says what it gives back.
 
 import { _sameStamp } from './_record-model';
 import type { Found, Known, Stamp, Update } from './_types';

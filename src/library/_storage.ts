@@ -1,8 +1,8 @@
 // How much room Volti takes on the tablet, for the library's ⋯ menu: its parts worked out from the
 // files' sizes and the browser's estimate, and shown as one stacked bar with each part's size.
 
-import { keptFromDriveBytes } from '../originals/drive-score-fs';
-import { internalBytes } from '../originals/internal-score-fs';
+import { keptFromDriveBytes } from '../originals/drive/score-fs';
+import { internalBytes } from '../originals/handles/internal-score-fs';
 import { removedBytes } from '../originals/trash-fs';
 import { savedBytes } from '../page-cache/cache';
 import { el } from '../ui/dom';

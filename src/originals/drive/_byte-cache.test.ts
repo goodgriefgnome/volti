@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { _makeByteCache } from './_byte-cache';
-import { _fakeFolder } from './_fake-handles';
+import { _fakeFolder } from '../handles/_fake';
 
 const blob = (n: number) => new Blob(['x'.repeat(n)]);
 

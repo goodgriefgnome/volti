@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { _authUrl, _challenge, _DriveAuth, type _AuthStore } from './_drive-auth';
-import { NoAccess, Unreachable } from './types';
+import { _authUrl, _challenge, _DriveAuth, type _AuthStore } from './_auth';
+import { NoAccess, Unreachable } from '../types';
 
 const store = (initial?: string): _AuthStore & { value?: string } => {
   const s: _AuthStore & { value?: string } = { value: initial, get: async () => s.value, set: async (t) => { s.value = t; }, del: async () => { s.value = undefined; } };

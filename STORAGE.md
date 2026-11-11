@@ -58,7 +58,7 @@ are done. Data from a newer version than the app's is not opened.
 | --- | --- | --- |
 | `original:<id>` | `OriginalRecord` | `originals/` |
 | `folder` | `FolderLink`, a folder on the device or in Google Drive | `originals/_folder-link.ts` |
-| `drive-auth` | `{ refreshToken: string }`, the Google Drive sign-in; missing when signed out | `originals/_drive-auth.ts` |
+| `drive-auth` | `{ refreshToken: string }`, the Google Drive sign-in; missing when signed out | `originals/drive/_auth.ts` |
 | `data-version` | `number`, the version of the stored data; 1 when missing | `stored-data.ts` |
 | `score:<id>` | `StoredScore` | `scores/store.ts` |
 | `ink:<id>` | `ScoreInk` | `scores/store.ts` |
@@ -194,7 +194,7 @@ on the device or in Google Drive.
 
 ### `drive-auth`: the Google Drive sign-in
 
-`{ refreshToken: string }`, kept while Volti is signed in to Google (`originals/_drive-auth.ts`).
+`{ refreshToken: string }`, kept while Volti is signed in to Google (`originals/drive/_auth.ts`).
 The access token is held in memory only. Google refusing the refresh token (`invalid_grant`) deletes
 it, and the folder shows as locked until the user signs in again. Unlinking a Drive folder revokes
 the token and deletes the key.
@@ -383,10 +383,10 @@ is ignored.
 
 | Directory | Holds | Owner |
 | --- | --- | --- |
-| `library/` | Volti's own folder: the root while no folder is linked. A file at library path `p` is at `library/p`. | `originals/internal-score-fs.ts` |
+| `library/` | Volti's own folder: the root while no folder is linked. A file at library path `p` is at `library/p`. | `originals/handles/internal-score-fs.ts` |
 | `inbox/` | Files shared to Volti, one per id, named by the id. | `originals/inbox-fs.ts` |
 | `removed/` | Recently removed, named `<removedAt>-<id>`. | `originals/trash-fs.ts` |
-| `bytes/` | Copies of the files of a Google Drive folder, named by id, with an index `bytes/index.json` (`{ [id]: { size, used, pinned } }`). Kept within a quarter of the storage quota, least recently used out first; those of setlists' scores are pinned. Emptied when the folder is unlinked. Belongs to no record: Drive's own checksums are the ids. | `originals/_byte-cache.ts` |
+| `bytes/` | Copies of the files of a Google Drive folder, named by id, with an index `bytes/index.json` (`{ [id]: { size, used, pinned } }`). Kept within a quarter of the storage quota, least recently used out first; those of setlists' scores are pinned. Emptied when the folder is unlinked. Belongs to no record: Drive's own checksums are the ids. | `originals/drive/_byte-cache.ts` |
 | the page cache's directories | Drawn pages | `page-cache/` (not covered here) |
 
 Each file in `library/`, `inbox/` and `removed/` belongs to the `original:` record pointing at it.

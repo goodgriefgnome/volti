@@ -1,11 +1,11 @@
 // The device side of the scores folder (File System Access): picking a folder, asking for access
-// to it, and its root (_directory-handle-roots.ts), which everything else works on its files
+// to it, and its root (_roots.ts), which everything else works on its files
 // through. The link itself, and which kind is linked, is linked-folder.ts's.
 
-import { keys } from '../storage/keys';
-import { kv } from '../storage/kv';
-import { LinkedDirectoryHandleRoot } from './_directory-handle-roots';
-import { FolderRefused } from './types';
+import { keys } from '../../storage/keys';
+import { kv } from '../../storage/kv';
+import { LinkedDirectoryHandleRoot } from './_roots';
+import { FolderRefused } from '../types';
 
 export const canLinkFolder = () => 'showDirectoryPicker' in window;
 

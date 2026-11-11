@@ -3,13 +3,13 @@
 // here; each adds its own access, stamps and scanning. Nothing else in originals/ holds a folder's
 // handle to work on its files.
 
-import { hashFile, inTurns, walk, writeFile } from './_filesystem-utils';
-import { _FolderScan } from './_folder-scan';
-import { _bytesName, _sameStamp } from './_record-model';
-import type { Known, Moved, ScoreRoot, Stamp, UndeleteInfo, Update, Updates } from './_types';
-import { folderOf, _nameOf } from './path-utils';
-import { _removedDir } from './trash-fs';
-import { NoAccess } from './types';
+import { hashFile, inTurns, walk, writeFile } from '../_filesystem-utils';
+import { _FolderScan } from '../_folder-scan';
+import { _bytesName, _sameStamp } from '../_record-model';
+import type { Known, Moved, ScoreRoot, Stamp, UndeleteInfo, Update, Updates } from '../_types';
+import { folderOf, _nameOf } from '../path-utils';
+import { _removedDir } from '../trash-fs';
+import { NoAccess } from '../types';
 
 /** New files are few and wanted soon, so their hashing goes this many at once. */
 const NEW_FILES_AT_ONCE = 8;

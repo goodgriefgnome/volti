@@ -1,12 +1,12 @@
 // The linked scores folder, of either kind: the link under `folder` (_folder-link.ts), linking and
-// unlinking, its state, and its root; each kind's own work is in device-score-fs.ts and
-// drive-score-fs.ts.
+// unlinking, its state, and its root; each kind's own work is in handles/device-score-fs.ts and
+// drive/score-fs.ts.
 
 import { _storedLink, _storeLink, type FolderLink } from './_folder-link';
 import { _loadRecords, _records, _updateRecords } from './_record-store';
 import type { ScoreRoot } from './_types';
-import { _deviceRoot, _pickFolder, _unlockDevice } from './device-score-fs';
-import { _driveRoot, _forgetDrive } from './drive-score-fs';
+import { _deviceRoot, _pickFolder, _unlockDevice } from './handles/device-score-fs';
+import { _driveRoot, _forgetDrive } from './drive/score-fs';
 import type { FolderState } from './types';
 
 /** The link, read once; undefined before it is read (`read` tells), and when there is none. */

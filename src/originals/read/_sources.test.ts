@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { resetPagesForTests, sharePages } from './_sources';
-import type { Content, OpenPages } from './_types';
+import type { Content, OpenPages } from '../_types';
 
 /** A content whose pages count how often they are opened and closed; `failFirst` makes the first opening fail. */
 function content(failFirst = false) {

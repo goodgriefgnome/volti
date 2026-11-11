@@ -52,10 +52,42 @@ takes `putInbox` without pdf.js): keep it true, and do any start-up work from `m
 | 4 | `render/` | What is on a screen: fitting frames to it (`layout`, `screen`), zoom maths (`zoom`), drawing a frame on a canvas (`paint`) |
 | 3 | `setlists/` | Setlists and their entries, and keeping them on the same music when a score's cuts change |
 | 2 | `face/` | Face gestures the person defines: a gesture and its settings (`gestures`), its template fitted from its trials and a frame's score (`template`, `model`, `recording`, `settling`), watching the front camera with MediaPipe (`watcher`), and the button that shows it |
-| 2 | `scores/`, `originals/` | A score: its data (`model`), edits (`edits`), frames (`frames`), excerpts of its cuts and their names (`excerpts`), which cut a marking is on and which cuts show it (`ownership`), storage (`store`). Originals, in twenty-six files (and two stand-ins that only tests import: for the handle API, `_fake-handles`, and for Google Drive, `_fake-drive`), each importing only from those before it: file names, folders, titles and what happens to files arriving at paths (`path-utils`), general helpers for walking and writing folders and hashing (`_filesystem-utils`), the public types (`types`) and those private to the directory (`_types`), what is recorded about each original and every rule about where its bytes are (`_record-model`, pure), the records in IndexedDB with a copy in memory (`_record-store`), the bytes of Recently removed, and the removals listed there, files in a root's own bin included (`trash-fs`), the bookkeeping of one scan of the linked folder with its duplicate rules (`_folder-scan`, pure), the roots that are folders of handles, Volti's own and the linked one, with the file operations on them and the linked one's scan (`_directory-handle-roots`), the Google client given at build time (`_drive-config`), signing in to Google with PKCE and its tokens (`_drive-auth`), the Drive API requests (`_drive-api`), copies of Drive files' bytes in OPFS (`_byte-cache`), the root over a Drive folder, listed by checksums (`_drive-root`), everything only about PDFs (`_pdf-source`: pdf.js, passwords, decryption, a PDF's music for export) and only about images (`_image-source`), the open pages of each original, one set per id for the whole app (`_sources`), a source file read into an original that draws through the page cache (`original`), the link under `folder`, on the device or in Drive, read by the service worker too (`_folder-link`), the device folder (picking it, asking for access, its root) (`device-score-fs`), the Drive folder (signing in, the chooser's folders, its root, the copies kept) (`drive-score-fs`), the linked folder of either kind (linking, unlinking, its state and root) (`linked-folder`), Volti's own folder in OPFS (`internal-score-fs`), the bytes of the inbox, which the service worker fills (`inbox-fs`), pointed to by a record, the library's root and its files, scanning the linked folder into the records, the library's files worked out from the records, Exports and start-up tidying (`library-files`), and files held outside the library (`misc-files`)|
+| 2 | `scores/`, `originals/` | A score: its data (`model`), edits (`edits`), frames (`frames`), excerpts of its cuts and their names (`excerpts`), which cut a marking is on and which cuts show it (`ownership`), storage (`store`). Originals, in twenty-six files in three subdirectories, described below the table |
 | 1 | `fonts/` | The bundled fonts, reading them and shaping text into glyphs (fontkit), SMuFL's glyph names (`smufl`); nothing about markings |
 | 1 | `page-cache/`, `markings/`, `ui/` | The page cache: pages drawn in memory under a budget and saved in OPFS under an epoch, the scheduling of draws (two at once, `now` before `ahead` before `later`, a draw shared by its requesters), and stand-ins for progressive drawing; it knows nothing about files, and is given a `PageSource` to draw from (`cache`, with `_match`, `_budget`, `_memory`, `_scheduler` and `_disk`). What can be drawn on the music, and how (`draw`); generic pieces of the interface: elements (`dom`), menus and dialogs one at a time (`overlay`), asking for a line of text (`ask-text`), toasts |
 | 0 | `storage/`, `types/` | The IndexedDB key-value store, with every key in `keys.ts`, all described in `STORAGE.md`; missing DOM types |
+
+**`originals/`** has twenty-six files, each importing only from those before it in `ORDER` in
+`originals/order.test.ts`, which holds the order. Two stand-ins that only tests import are
+`handles/_fake` (for the handle API) and `drive/_fake` (for Google Drive). The files at the top, in
+that order: file names, folders, titles and what happens to files arriving at paths (`path-utils`),
+general helpers for walking and writing folders and hashing (`_filesystem-utils`), the public types
+(`types`) and those private to the directory (`_types`), what is recorded about each original and
+every rule about where its bytes are (`_record-model`, pure), the records in IndexedDB with a copy in
+memory (`_record-store`), the bytes of Recently removed, and the removals listed there, files in a
+root's own bin included (`trash-fs`), the bookkeeping of one scan of the linked folder with its
+duplicate rules (`_folder-scan`, pure; both kinds of root use it), the link under `folder`, on the
+device or in Drive, read by the service worker too (`_folder-link`), the linked folder of either kind
+(linking, unlinking, its state and root) (`linked-folder`), the bytes of the inbox, which the service
+worker fills (`inbox-fs`), pointed to by a record, the library's root and its files, scanning the
+linked folder into the records, the library's files worked out from the records, Exports and
+start-up tidying (`library-files`), and files held outside the library (`misc-files`).
+
+**`originals/handles/`** holds the roots that are folders of handles, Volti's own and the linked
+one: the stand-in for the handle API (`_fake`), the roots with the file operations on them and the
+linked one's scan (`_roots`), the device folder (picking it, asking for access, its root)
+(`device-score-fs`) and Volti's own folder in OPFS (`internal-score-fs`).
+
+**`originals/drive/`** holds Google Drive: the Google client given at build time (`_config`), signing
+in with PKCE and its tokens (`_auth`), the API requests (`_api`), copies of Drive files' bytes in
+OPFS (`_byte-cache`), the stand-in for Drive (`_fake`), the root over a Drive folder, listed by
+checksums (`_root`), and the Drive folder (signing in, the chooser's folders, its root, the copies
+kept) (`score-fs`).
+
+**`originals/read/`** holds reading a source file: everything only about PDFs (`_pdf`: pdf.js,
+passwords, decryption, a PDF's music for export) and only about images (`_image`), the open pages of
+each original, one set per id for the whole app (`_sources`), and a source file read into an
+original that draws through the page cache (`original`).
 
 `styles/` holds the CSS, one file per part of the app, imported in order by `main.ts`.
 
