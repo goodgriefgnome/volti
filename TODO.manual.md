@@ -462,3 +462,27 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     main list again.
   - Remove a score from a device folder and from Volti's own folder: both still show in the main
     list and put back as before.
+- **Face gestures you define** (on the tablet, with the camera and the sound on; DevTools for the keys):
+  - After updating: the app opens ("Updating your scores…" may show briefly); the reader's face
+    button is struck through; Face gestures shows "No gestures yet. Add one, and record yourself
+    doing it."
+  - Add "Mouth left". Record 5 trials while playing: the tones are heard, the instruction follows
+    them, and after the fifth the row shows its meter and sliders, and no flag.
+  - The meter rises when the mouth is pushed left, and the preview's ring fills and its page number
+    goes up once, and again only after letting go.
+  - Add a wink of one eye and record it. It turns its own direction; an ordinary blink doesn't turn
+    it; the mouth gesture doesn't turn it, nor it the mouth gesture.
+  - Open the wink's Details: the winking eye's channels are rows, the other eye's are caps; the Now
+    column moves with the face, and goes red for the other eye during a blink.
+  - Add "Mouth left, brows up", record it: it is set to None, and its row says which gesture fires
+    on it and on which channels.
+  - Record a round with the face out of the camera's view: the round ends after the first trial,
+    saying the face wasn't seen.
+  - Cancel a round during the third trial: the gesture has two more trials than before.
+  - Move On and Release by hand, then record another round: they are back to the fitted ones.
+  - Clear a gesture's trials: its meter goes, its direction stays, and the reader's button is
+    struck through if it was the only one.
+  - In the reader, with the toolbar hidden: tap the face button, and turn pages with each gesture;
+    turn watching off and on again; reload the app and do it again without opening the dialog.
+  - Remove a gesture: DevTools shows its `face-trials:` key gone; `face-gestures` is
+    `{ gestures: [...] }` and `data-version` is 5.
