@@ -18,12 +18,17 @@ The code uses these words, always in these senses.
 | **cut** | A horizontal band of one original page (`y0`..`y1`, fractions of its height), and which pass of its page it plays. A score is its cuts, stacked in the order they are played. | `Cut` |
 | **pass** | Which time a page's music is played: each cut has one, from 1, and a marking may be limited to one. | `Cut.pass`, `passOf` |
 | **ink**, **marking** | A marking is one thing drawn on the music (pen and highlighter strokes, and symbols and text placed whole); a score's ink is its markings by page of the original; a marking may belong to one pass. A cut shows the markings of its page whose anchor it holds, of its pass or of none. | `Marking`, `ScoreInk` |
-| **state** | A score and its ink, which every edit keeps in step. | `State` |
-| **frame** | One of the score's own pages: cuts stacked down it until it is full, shaped like the original page of its first cut. What the user calls a score's "pages" are its frames. | `Frame` (`scores/frames.ts`) |
+| **state** | The data a thing holds: a score and its ink, which every edit keeps in step (`State`); what the detector remembers (`DetectorState`). Not an enumeration: that is a **status**. | `State` |
+| **status** | An enumeration saying how a thing is now: `FolderState` (ready, locked, …), `CameraStatus`, `OfflineStatus`, the face button's. | |
+| **frame** | One of the score's own pages: cuts stacked down it until it is full, shaped like the original page of its first cut. What the user calls a score's "pages" are its frames. A camera frame (`FaceFrame`) is another thing, and is always qualified. | `Frame` (`scores/frames.ts`) |
 | **screen** | The frames shown at once: one, or two of the other orientation, side by side or one above the other. | `render/screen.ts` |
 | **slot** | A frame on the reader's screen, with its canvases. | `FrameSlot` (`reader/_spread.ts`) |
 | **excerpt** | Which of a score's cuts are played, as the ids of the first and last; a missing end is the score's start or end, so no ends is the whole score. Excerpts follow edits to the cuts. A **named excerpt** ("Kyrie") is an excerpt with a name, kept on the score | `Excerpt`, `NamedExcerpt` (`scores/excerpts.ts`) |
 | **setlist**, **entry** | A setlist is a list of entries, read as one continuous score; each entry plays an excerpt of a score. | `Setlist`, `Entry` (`setlists/model.ts`) |
+| **pin** | To keep the pages (or, in a Drive folder, the files) that setlists play saved for good, whatever else is let go. | |
+| **close-up** | The sharp drawing over the frames while zoomed in. | |
+| **thumbnail** | A small picture of a frame or page, in a strip or a grid in a dialog. | |
+| **Paint** | A fill or a stroke, as a path is drawn with: a graphics term for a different thing from drawing. | `Paint` (`markings/draw.ts`) |
 | **page cache** | The one cache of drawn original pages for the app: pages held in memory under a budget, and saved in OPFS (the pages setlists play, kept for good; other pages worth saving, least recently used first). | `page-cache/` |
 
 ## Layers
@@ -97,6 +102,22 @@ original that draws through the page cache (`original`).
 `styles/` holds the CSS, one file per directory of `src/` whose modules make the elements it styles (`ui.css`, `library.css`, `dialogs.css`, `reader.css` with `reader/_cuts/` and `reader/_tools/`, `face.css`), and `base.css` for the tokens, the resets and whatever two or more directories share; `main.ts` imports them in that order. A rule that must lose to a `ui.css` rule at equal specificity stays in `base.css`, ahead of it.
 
 Other rules, the first also tested:
+
+- A concept has one spelling, in identifiers, file names, CSS classes, comments, docs and the words
+  on screen alike; an abbreviation is a second spelling (`thumb` for thumbnail), so there are none.
+  `src/vocabulary.test.ts` keeps the spellings the code has retired.
+- Prose and labels are British (colour, licence); identifiers and CSS are American (`color`),
+  because CSS is. That is one word in two dialects, not two words.
+- A browser or library API keeps its own names (`getDirectory`, `FileSystemDirectoryHandle`,
+  `pointerType === 'touch'`, Drive's `trashed`, pdf-lib's calls); Volti's own names for the same
+  things follow this list.
+- Tools are named in prose by their names in the code: the hand, the pen, the highlighter, the
+  eraser, text, symbols. Their button labels (Hand, Pen, Highlight, Erase, Text, Symbols) stay,
+  since `ToolName` is a key in stored tool settings.
+- **Delete** destroys a thing for good (a setlist, a named excerpt, a symbol or its group, a
+  gesture and its trials). **Remove** takes a thing out of a list or into Recently removed, where it
+  still exists (an entry from a setlist, a cut from the played order, a score's file from the
+  library). Labels and identifiers both follow this.
 
 - Only the `store.ts` files, `originals/` and `stored-data.ts` use the kv store, and `storage/keys.ts` names the
   module that reads and writes each key.
