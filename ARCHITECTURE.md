@@ -90,7 +90,7 @@ passwords, decryption, a PDF's music for export) and only about images (`_image`
 each original, one set per id for the whole app (`_sources`), and a source file read into an
 original that draws through the page cache (`original`).
 
-`styles/` holds the CSS, one file per part of the app, imported in order by `main.ts`.
+`styles/` holds the CSS, one file per directory of `src/` whose modules make the elements it styles (`ui.css`, `library.css`, `dialogs.css`, `reader.css` with `reader/cuts/` and `reader/tools/`, `face.css`), and `base.css` for the tokens, the resets and whatever two or more directories share; `main.ts` imports them in that order. A rule that must lose to a `ui.css` rule at equal specificity stays in `base.css`, ahead of it.
 
 Other rules, the first also tested:
 

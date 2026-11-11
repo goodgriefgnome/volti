@@ -75,10 +75,8 @@
 .selection-pass[hidden] { display: none; }
 
 /* The glyph picker: the characters and their preview above a search and the grid, which scrolls inside the dialog. */
-.dialog.glyph-picker { width: min(900px, calc(100vw - 32px)); }
 .glyph-picker-body { display: flex; flex-direction: column; gap: 10px; height: calc(var(--seen-height, 100vh) - 130px); min-height: 0; }
 .glyph-picker-body select[hidden] { display: none; }
-.glyph-picker-body .buttons { position: static; margin: 0; padding: 0; flex: none; }
 .glyph-picker-body .glyph-chars { display: flex; gap: 8px; align-items: center; }
 .glyph-picker-body .glyph-text { flex: 1; min-width: 0; font-size: 20px; }
 .glyph-picker-body .glyph-preview { flex: none; width: 72px; height: 72px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 8px; }
@@ -88,7 +86,6 @@
 .glyph-picker-body .glyph-caption { min-height: 1.5em; }
 
 /* The library editor: group rows wrapping their pictures; the symbol view's fields one per line. */
-.dialog.library-editor { width: min(720px, calc(100vw - 32px)); }
 .library-editor .editor-body { display: grid; gap: 10px; }
 .library-editor .group-list { display: grid; gap: 8px; }
 .library-editor .group-row { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 8px; border: 1px solid var(--line); border-radius: 8px; }
@@ -179,3 +176,75 @@ body.reading .menu button:not([aria-pressed="true"]):hover, body.reading .menu b
 .tool-layer { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
 .tool-layer[hidden] { display: none; }
 .tool-layer [data-own-presses] { pointer-events: auto; }
+
+/* Editing cuts: the tabs and marks over each frame, and the page thumbnails in their dialogs (reader/cuts/). */
+.reader { --select: #1f6fe0; --tab-grey: #5b6170; --cut: #8a5a12; }
+/* The layer over a frame passes taps through to the music, except on its tabs. */
+.cuts-ui { position: absolute; inset: 0; pointer-events: none; }
+.cuts-ui button { pointer-events: auto; position: absolute; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; touch-action: none; }
+/*
+ * A tab's touch area is 64 x 48 (Material Design's 48 dp at least); what shows is 40 x 28, flush
+ * with the frame's side and the seam, at 3:1 contrast with the white page (WCAG 1.4.11).
+ */
+.tab { width: 64px; height: 48px; }
+.tab::after { content: ""; position: absolute; width: 40px; height: 28px; background: var(--cut); opacity: 0.7; }
+.tab.top, .tab.pad { margin-top: -12px; }
+.tab.top { left: 0; }
+.tab.top::after { left: 0; top: 12px; border-radius: 0 0 8px 0; }
+.tab.bottom { right: 0; margin-top: -36px; }
+.tab.bottom::after { right: 0; bottom: 12px; border-radius: 8px 0 0 0; }
+.tab.pad { right: 0; }
+.tab.pad::after { right: 0; top: 12px; border-radius: 0 0 0 8px; background: var(--tab-grey); }
+.tab.dragging::after { background: var(--select); opacity: 1; }
+.tab:focus-visible { outline: none; }
+.tab:focus-visible::after { opacity: 1; outline: 3px solid var(--select); }
+/* A top tab's pass, on the tab itself, when its page is played in more than one pass. */
+.tab .tab-pass {
+  position: absolute; left: 0; top: 12px; z-index: 1; width: 40px; height: 28px; display: grid; place-items: center;
+  font-size: 10px; font-weight: 600; line-height: 1; white-space: nowrap; color: #ffffff;
+}
+/* Behind its pass, the tab is drawn solid, so the white text reads at 4.5:1 over the music. */
+.tab:has(.tab-pass)::after { opacity: 1; }
+
+.pad-line { position: absolute; left: 0; right: 0; border-top: 1px dashed rgba(0, 0, 0, 0.3); }
+/* The room left on the frame before: this much of the frame's top would fit there. */
+.room { position: absolute; left: 0; right: 0; top: 0; background: rgba(138, 90, 18, 0.06); }
+/* Where "Cut here" would cut, while the menu is open. */
+.cut-mark { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--select); }
+
+.thumb { flex: none; display: grid; gap: 4px; justify-items: center; padding: 4px; min-height: 0; border: 2px solid transparent; background: transparent; }
+.thumb canvas, .thumb .thumb-space { width: 84px; background: #ffffff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); }
+.thumb span { font-size: 13px; color: var(--muted); }
+.thumb[aria-pressed="true"] { border-color: var(--select); background: color-mix(in srgb, var(--select) 12%, transparent); }
+/* The insert dialog's choice of pass, under the page strip. */
+.dialog .pass-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.dialog .pass-row .pass-label { color: var(--muted); margin-right: 4px; }
+.dialog .pass-row button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+
+/* Setlists in the reader. */
+.bar .title b { font: inherit; font-style: normal; opacity: 0.6; }
+/* Fills the rest of a score's last screen: what comes next, or a score that can't be found. */
+.page.blank {
+  background: transparent; box-shadow: none; border: 1px dashed rgba(255, 255, 255, 0.2);
+  display: grid; place-content: center; text-align: center; gap: 6px; padding: 16px; color: rgba(236, 238, 242, 0.7);
+}
+.page.blank .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+.page.blank .t { font: italic 1.4rem var(--font-brand); color: var(--bar-fg); overflow-wrap: anywhere; }
+/* Names the score for a moment when the reader turns into it. */
+.score-card {
+  position: absolute; z-index: 12; left: 50%; bottom: max(16px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  margin: 0; pointer-events: none; background: var(--bar); color: var(--bar-fg); border-radius: 999px; padding: 6px 16px;
+  font: italic 1rem var(--font-brand); white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis;
+  transition: opacity 300ms ease;
+}
+.score-card b { font: 600 12px var(--font-ui); letter-spacing: 0.06em; opacity: 0.7; margin-right: 8px; }
+.score-card.gone { opacity: 0; }
+/* While editing cuts in a setlist: they change the score. */
+.scope {
+  position: absolute; z-index: 12; left: 50%; top: calc(var(--bar-h, 56px) + 8px); transform: translateX(-50%); margin: 0;
+  pointer-events: none; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: var(--cut); color: #ffffff; border-radius: 999px; padding: 4px 14px; font-size: 13px;
+}
+.chrome-hidden .scope { top: 8px; }
+
+@media (prefers-reduced-motion: reduce) { .bar, .score-card, .set-body, .chev { transition: none; } }

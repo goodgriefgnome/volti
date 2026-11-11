@@ -15,12 +15,11 @@ import { takeUpdate, watchForUpdates } from './updates';
 import { failed, failedOnce } from './ui/failure';
 // In this order: later files build on the earlier ones.
 import './styles/base.css';
+import './styles/ui.css';
 import './styles/library.css';
+import './styles/dialogs.css';
 import './styles/reader.css';
 import './styles/face.css';
-import './styles/cuts.css';
-import './styles/overlay.css';
-import './styles/setlists.css';
 
 // Reloading into a new version is takeUpdate's to do, at start-up only.
 registerSW({ immediate: true, onNeedReload: () => {} });

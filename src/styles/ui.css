@@ -1,4 +1,4 @@
-/* Menus and dialogs, one at a time over everything, and toasts. */
+/* What ui/ makes: menus and dialogs (overlay.ts, ask-text.ts), toasts and the drag handle. */
 .menu {
   position: fixed; z-index: 20; min-width: 220px; max-width: min(340px, calc(100vw - 16px)); display: grid;
   background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 10px;

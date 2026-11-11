@@ -12,15 +12,9 @@
 .banner-tools { margin-left: auto; }
 /* The status line takes no room while it has nothing to say. */
 .library > .status:empty { display: none; }
-.brand { font: italic 600 2.4rem/1 var(--font-brand); margin: 0; letter-spacing: 0.01em; }
 .tagline { margin: 0; color: var(--muted); font: italic 1rem var(--font-brand); }
 
 
-.tools { display: flex; gap: 10px; flex-wrap: wrap; }
-.search {
-  flex: 1 1 240px; min-width: 0; min-height: 44px; font: inherit; padding: 8px 14px;
-  border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg);
-}
 .status { margin: 0; color: var(--muted); min-height: 1.5em; }
 
 .section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: -10px; }
@@ -34,10 +28,6 @@
   border: 0; border-radius: 0; background: transparent; padding: 14px 4px; min-height: 56px;
 }
 .list button.open:active { background: var(--line); }
-.meta { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
-.pill { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; border: 1px solid currentColor; border-radius: 999px; padding: 0 8px; white-space: nowrap; color: var(--accent); }
-.pill.missing { color: var(--warn); }
-.more { flex: none; width: 48px; padding: 0; }
 
 /* How much of a setlist is saved for offline, by its ⋯ button: a ring filling as pages save, a green tick when all are, a dashed warning ring when some can't be. */
 .ring { flex: none; width: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
@@ -56,15 +46,9 @@
 .setlist-title { font: italic 1.15rem var(--font-brand); }
 .set.archived .setlist-title, .set.archived .entries .item-title { color: var(--muted); }
 .expand { flex: none; width: 44px; padding: 0; border: 0; background: transparent; color: var(--muted); }
-.chev { display: inline-block; width: 10px; height: 10px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform 200ms ease; }
 .set.open .chev, .folder-list.open .chev { transform: rotate(45deg); }
 /* A subfolder's scores under its heading, which opens and closes the list. */
 .list > li.folder-list { display: block; }
-.folder-head {
-  width: 100%; display: flex; align-items: center; gap: 14px; min-height: 48px; padding: 10px 4px 10px 17px;
-  border: 0; border-radius: 0; background: transparent; color: var(--muted); text-align: left; font-weight: 600; font-size: 14px;
-}
-.folder-head .chev { width: 8px; height: 8px; flex: none; }
 .list.sub { border-top: 1px solid var(--line); }
 .list.sub > li:last-child { border-bottom: 0; }
 .set-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 220ms ease; }
@@ -88,7 +72,6 @@
 .score-title { font-size: 17px; overflow-wrap: anywhere; }
 .score-folder { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
 .badge { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); border: 1px solid currentColor; border-radius: 999px; padding: 0 8px; }
-.empty { padding: 24px 4px; color: var(--muted); }
 /* An empty setlist, opened: a button to add its first scores. */
 .empty-set { padding: 8px 4px 12px; }
 /* A named excerpt found by searching, set in on a rail as under its score. */

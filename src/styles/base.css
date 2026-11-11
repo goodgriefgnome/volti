@@ -1,4 +1,4 @@
-/* Colours, type and buttons for the whole app. main.ts imports the style files in order: base, library, reader, cuts, overlay, setlists. */
+/* Tokens, resets, the document, the buttons, and what two or more directories share (the shared pieces of the library's rows and the add-scores picker, the toolbar and the library). main.ts imports the style files in order: base, ui, library, dialogs, reader, face. */
 :root {
   --bg: #f2f3f6;
   --surface: #ffffff;
@@ -56,3 +56,32 @@ button:disabled { opacity: 0.4; cursor: default; }
 .start { position: fixed; inset: 0; display: grid; place-content: center; justify-items: center; gap: 12px; background: var(--bg); }
 .start .brand { font: italic 600 2.4rem/1 var(--font-brand); margin: 0; }
 .start-note { margin: 0; color: var(--muted); min-height: 1.5em; }
+
+/* Used by more than one directory. */
+.brand { font: italic 600 2.4rem/1 var(--font-brand); margin: 0; letter-spacing: 0.01em; }
+.tools { display: flex; gap: 10px; flex-wrap: wrap; }
+.search {
+  flex: 1 1 240px; min-width: 0; min-height: 44px; font: inherit; padding: 8px 14px;
+  border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg);
+}
+.meta { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+.pill { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; border: 1px solid currentColor; border-radius: 999px; padding: 0 8px; white-space: nowrap; color: var(--accent); }
+.pill.missing { color: var(--warn); }
+.more { flex: none; width: 48px; padding: 0; }
+.chev { display: inline-block; width: 10px; height: 10px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform 200ms ease; }
+.folder-head {
+  width: 100%; display: flex; align-items: center; gap: 14px; min-height: 48px; padding: 10px 4px 10px 17px;
+  border: 0; border-radius: 0; background: transparent; color: var(--muted); text-align: left; font-weight: 600; font-size: 14px;
+}
+.folder-head .chev { width: 8px; height: 8px; flex: none; }
+.empty { padding: 24px 4px; color: var(--muted); }
+.thumbs { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 8px; align-items: flex-start; }
+
+/* Sits in base.css to stay ahead of the ui/ rule it must lose to. */
+.dialog.glyph-picker { width: min(900px, calc(100vw - 32px)); }
+/* Sits in base.css to stay ahead of the ui/ rule it must lose to. */
+.glyph-picker-body .buttons { position: static; margin: 0; padding: 0; flex: none; }
+/* Sits in base.css to stay ahead of the ui/ rule it must lose to. */
+.dialog.library-editor { width: min(720px, calc(100vw - 32px)); }
+/* Sits in base.css to stay ahead of the ui/ rule it must lose to. */
+.dialog.face-gestures { width: min(560px, calc(100vw - 32px)); }

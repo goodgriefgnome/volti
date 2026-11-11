@@ -42,7 +42,6 @@
 }
 
 /* The Face gestures dialog (face/dialog.ts). */
-.dialog.face-gestures { width: min(560px, calc(100vw - 32px)); }
 .face-stage { display: flex; gap: 14px; align-items: flex-start; }
 .face-video { width: 160px; border-radius: 8px; transform: scaleX(-1); background: #000; flex: none; }
 .face-preview-button { padding: 10px; flex: none; }
