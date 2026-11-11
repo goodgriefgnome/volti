@@ -19,16 +19,16 @@
 .face-button.pressing .face-press { display: block; animation: face-press linear forwards; }
 @keyframes face-press { to { stroke-dashoffset: 0; } }
 
-.face-button[data-state="unavailable"] .face-glyph { opacity: 0.4; }
-.face-button[data-state="starting"]::after {
+.face-button[data-status="unavailable"] .face-glyph { opacity: 0.4; }
+.face-button[data-status="starting"]::after {
   content: ''; position: absolute; inset: 0; border-radius: 50%; border: 2.5px solid transparent; border-top-color: var(--accent);
   animation: face-spin 0.9s linear infinite;
 }
-.face-button[data-state="watching"] { box-shadow: 0 0 0 2.5px var(--accent); }
-.face-button[data-state="noFace"] { box-shadow: 0 0 0 2.5px var(--warn); color: var(--warn); }
-.face-button[data-state="noFace"] .face-glyph { animation: face-blink 3.6s infinite; }
-.face-button[data-state="paused"] { box-shadow: 0 0 0 2.5px var(--paused); }
-.face-button[data-state="paused"] .face-glyph { opacity: 0.55; }
+.face-button[data-status="watching"] { box-shadow: 0 0 0 2.5px var(--accent); }
+.face-button[data-status="noFace"] { box-shadow: 0 0 0 2.5px var(--warn); color: var(--warn); }
+.face-button[data-status="noFace"] .face-glyph { animation: face-blink 3.6s infinite; }
+.face-button[data-status="paused"] { box-shadow: 0 0 0 2.5px var(--paused); }
+.face-button[data-status="paused"] .face-glyph { opacity: 0.55; }
 .face-button.pulse::before {
   content: ''; position: absolute; inset: 0; border-radius: 50%; animation: face-pulse 0.7s ease-out;
 }
@@ -38,7 +38,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .face-button::after, .face-button::before, .face-glyph { animation: none !important; }
-  .face-button[data-state="starting"]::after { border-color: var(--accent) transparent transparent; }
+  .face-button[data-status="starting"]::after { border-color: var(--accent) transparent transparent; }
 }
 
 /* The Face gestures dialog (face/dialog.ts). */

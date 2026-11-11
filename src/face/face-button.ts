@@ -93,7 +93,7 @@ export function faceButton(o: { tap?: () => void; longPress?: () => void; intera
   return {
     el: b,
     show(s) {
-      b.dataset.state = s;
+      b.dataset.status = s;
       b.setAttribute('aria-pressed', String(s === 'starting' || s === 'watching' || s === 'noFace' || s === 'paused'));
       slash.style.display = s === 'unavailable' ? '' : 'none';
     },
