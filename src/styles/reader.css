@@ -172,12 +172,12 @@ body.reading .menu button:not([aria-pressed="true"]):hover, body.reading .menu b
 /* The loupe: a round magnifier above the finger while a marking is dragged (reader/_loupe.ts). */
 .reader > .loupe { position: fixed; z-index: 8; pointer-events: none; border-radius: 50%; background: #ffffff; box-shadow: 0 0 0 2px #ffffff, 0 0 0 3px rgba(0, 0, 0, 0.25), 0 6px 18px rgba(0, 0, 0, 0.3); }
 
-/* A tool's chrome over a frame (reader/tools/): shown only for the tool in use; elements in it that take their own presses are marked data-own-presses. */
+/* A tool's chrome over a frame (reader/_tools/): shown only for the tool in use; elements in it that take their own presses are marked data-own-presses. */
 .tool-layer { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
 .tool-layer[hidden] { display: none; }
 .tool-layer [data-own-presses] { pointer-events: auto; }
 
-/* Editing cuts: the tabs and marks over each frame, and the page thumbnails in their dialogs (reader/cuts/). */
+/* Editing cuts: the tabs and marks over each frame, and the page thumbnails in their dialogs (reader/_cuts/). */
 .reader { --select: #1f6fe0; --tab-grey: #5b6170; --cut: #8a5a12; }
 /* The layer over a frame passes taps through to the music, except on its tabs. */
 .cuts-ui { position: absolute; inset: 0; pointer-events: none; }

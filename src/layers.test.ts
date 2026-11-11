@@ -1,7 +1,7 @@
 // The layers of src/, kept: each directory imports only from its own files and from directories in
 // lower layers, so code low down never depends on screens or dialogs above it, and from another
-// directory only from modules not marked internal with a leading underscore. ARCHITECTURE.md says what each layer is for. A new
-// directory goes in LAYERS.
+// directory only from modules, and subdirectories, not marked internal with a leading underscore.
+// ARCHITECTURE.md says what each layer is for. A new directory goes in LAYERS.
 
 import { describe, expect, it } from 'vitest';
 

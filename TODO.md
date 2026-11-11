@@ -158,21 +158,21 @@ scores.
   (`library/_removed.ts`) the file shows only after `lib.refresh()` has read the scores folder
   again; it should show at once, as a renamed file does.
 - **Tapping low on the page for text**: with a finger, the music sometimes moves
-  up too far, leaving a gap between the page and the keyboard (`lift`, `reader/tools/_typing.ts`); with
+  up too far, leaving a gap between the page and the keyboard (`lift`, `reader/_tools/_typing.ts`); with
   the pen, the keyboard shows and hides at once, so the field likely loses the focus as the pen
   lifts (its `blur` finishes the typing).
 - **Typing text keeps the zoom**: when the keyboard goes away the zoom resets. The
-  suspicion: `close` (`reader/tools/_typing.ts`) turns `overlaysContent` off, the stage resizes, and
+  suspicion: `close` (`reader/_tools/_typing.ts`) turns `overlaysContent` off, the stage resizes, and
   `show()` sets `NO_ZOOM` (`reader/reader.ts`).
 - **The selected marking's delete button keeps its size on screen**: it is 28 px in CSS
   (`.selection-delete`, `styles/reader.css`) inside the zoomed spread, so it grows with the zoom
   (84 px at 3×), while the box's line and handles keep their size (`SelectionBox.zoomed`,
-  `reader/tools/_selection.ts`). It should be scaled by `1 / s` there too, as they are.
+  `reader/_tools/_selection.ts`). It should be scaled by `1 / s` there too, as they are.
 - **What the tools' painting calls are for**: to be explained, then perhaps merged.
   `ToolHost` has `paintInk(slot, extra)` (the frame's ink as it is, plus a marking still being
   made: a stroke, a ghost), `paintState(slot, s)` (the frame's ink as it would be in `s`, not taken:
   a marking being moved or resized), and `erased(s, slot)` (`s` taken, without an undo step yet:
-  the eraser's sweep) (`reader/tools/_tool.ts`, `reader/reader.ts`). Perhaps one
+  the eraser's sweep) (`reader/_tools/_tool.ts`, `reader/reader.ts`). Perhaps one
   `paint(slot, { state?, extra? })` for the first two.
 
 ## Speculative future ideas
@@ -256,7 +256,7 @@ scores.
   `selected`.
   - Most edits spread the old marking, so the id comes along by itself (the panels, `movedTo`
     in `scores/placing.ts`). Cycling a symbol builds its replacement afresh (`cycle`,
-    `reader/tools/_placing.ts`) and must copy the id.
+    `reader/_tools/_placing.ts`) and must copy the id.
   - Every place a marking is made gives it a new id: loading a score (`scores/store.ts`), the pen,
     and placing a symbol or text.
   - Stripped when saving (`scoreEntries` in `scores/store.ts`), and kept out of the PDF export and

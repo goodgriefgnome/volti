@@ -34,19 +34,21 @@ that needs one is a sign the code belongs somewhere else.
 
 There are no index files that re-export a directory: other directories import from the file that
 defines a name (`'../originals/path-utils'`). A name starting with an underscore is internal: a file
-`_foo.ts` is imported only by files of its own directory (the test fails on one that isn't), and
-an export `_foo` is used only by its own directory's files. So the files without an underscore are
-what a directory offers the rest of the app, and a name that has to be used from another directory
-loses its underscore (and its file moves out of the `_` ones). Tests may reach into another
-directory for test helpers (`scores/testing.ts`). `package.json` says only the CSS does anything
-when loaded (`sideEffects`), so the build leaves out a module nothing uses (the service worker
-takes `putInbox` without pdf.js): keep it true, and do any start-up work from `main.ts`.
+`_foo.ts` is imported only by files of its own directory (the test fails on one that isn't), so is a
+subdirectory `_foo/` (`reader/_tools/`; one that another directory imports from has no underscore,
+`originals/drive/`), and an export `_foo` is used only by its own directory's files. So the files
+without an underscore are what a directory offers the rest of the app, and a name that has to be
+used from another directory loses its underscore (and its file moves out of the `_` ones). Tests may
+reach into another directory for test helpers (`scores/testing.ts`). `package.json` says only the
+CSS does anything when loaded (`sideEffects`), so the build leaves out a module nothing uses (the
+service worker takes `putInbox` without pdf.js): keep it true, and do any start-up work from
+`main.ts`.
 
 | Layer | Directory | What it holds |
 | --- | --- | --- |
 | 9 | `src/*.ts` | Start-up (`main.ts`), taking new versions (`updates.ts`), bringing the stored data up to the app's version (`stored-data.ts`), the service worker (`sw.ts`) |
 | 8 | `library/` | The Library screen; the folder chooser for linking a Google Drive folder (`_drive-folders`) |
-| 7 | `reader/` | The score screen: reading a score, an excerpt or a setlist, writing on it, editing its cuts. The cut editor is in `reader/cuts/`; the tools and their own interface (panels, swatches, the symbol library's editor and its glyph picker) are in `reader/tools/` |
+| 7 | `reader/` | The score screen: reading a score, an excerpt or a setlist, writing on it, editing its cuts. The cut editor is in `reader/_cuts/`; the tools and their own interface (panels, swatches, the symbol library's editor and its glyph picker) are in `reader/_tools/` |
 | 6 | `dialogs/` | Dialogs both screens open: choosing an excerpt (over a strip of a score's frames, `thumb-strip`), the named excerpt dialogs, adding scores to a setlist, renaming and filing a score's file, exporting, setlist names and menus, a PDF's password; not the Face gestures dialog, which is `face/dialog.ts` |
 | 5 | `export/` | Exporting PDFs (with pdf-lib) |
 | 5 | `offline/` | Keeping the pages setlists play offline (`pages`), and how much of each is saved (`status`) |
@@ -92,7 +94,7 @@ passwords, decryption, a PDF's music for export) and only about images (`_image`
 each original, one set per id for the whole app (`_sources`), and a source file read into an
 original that draws through the page cache (`original`).
 
-`styles/` holds the CSS, one file per directory of `src/` whose modules make the elements it styles (`ui.css`, `library.css`, `dialogs.css`, `reader.css` with `reader/cuts/` and `reader/tools/`, `face.css`), and `base.css` for the tokens, the resets and whatever two or more directories share; `main.ts` imports them in that order. A rule that must lose to a `ui.css` rule at equal specificity stays in `base.css`, ahead of it.
+`styles/` holds the CSS, one file per directory of `src/` whose modules make the elements it styles (`ui.css`, `library.css`, `dialogs.css`, `reader.css` with `reader/_cuts/` and `reader/_tools/`, `face.css`), and `base.css` for the tokens, the resets and whatever two or more directories share; `main.ts` imports them in that order. A rule that must lose to a `ui.css` rule at equal specificity stays in `base.css`, ahead of it.
 
 Other rules, the first also tested:
 
@@ -101,7 +103,7 @@ Other rules, the first also tested:
 - Files that say **Pure** at the top use no DOM and no storage, and are unit tested next to them
   (`*.test.ts`). Most of the rules of the app (`scores/edits.ts`, `scores/excerpts.ts`,
   `setlists/model.ts`, `reader/_reading.ts`) are pure; keep them so.
-- A dialog that only one screen opens lives with that screen (`reader/cuts/_insert-picker.ts`);
+- A dialog that only one screen opens lives with that screen (`reader/_cuts/_insert-picker.ts`);
   one both open goes in `dialogs/` (`dialogs/add-scores.ts`, `dialogs/score-files.ts`). A feature directory that is
   below both screens may hold its own settings dialog (`face/dialog.ts`).
 
@@ -114,20 +116,20 @@ Other rules, the first also tested:
   every setlist's entries. No DOM: tested in `_reading.test.ts`.
 - `_view.ts`: `ReaderView`, the reader as every part sees it (the current score's state, page
   shapes and pages, the frames and slots, the zoom), each read afresh. The cut editor
-  (`cuts/_host.ts`), the tools (`tools/_tool.ts`), pointer input (`_input.ts`) and the close-up
+  (`_cuts/_host.ts`), the tools (`_tools/_tool.ts`), pointer input (`_input.ts`) and the close-up
   (`_detail.ts`) each get the view plus the few things they may ask the reader to do.
-- The reader (`reader.ts`, `_input.ts`) has what is the same whatever the tool: deciding who gets each press, the selection (found in the ink by identity, ended when its marking is gone), lending, a chrome layer for each tool in each frame (only the tool in use shows it), telling tools when they are equipped, unequipped or the selection changes, and committing edits, undo, painting, the loupe and zoom. A tool (`tools/_tool.ts`, `Tool`) has its button's face and panel, which markings are its own (`ownsMarking`), what a press does on the music, its chrome (`drawChrome`, `isChromeAt`) and its own state: Text its typing field and ghost, Symbols the library and current symbols. `makeTools` (`tools/_tools.ts`) makes them for one reader, each with a host of its own (its layers, its button's face). A tool never asks whether a press is a finger or the stylus: only `Input` does, for palm rejection and the stylus's eraser button.
+- The reader (`reader.ts`, `_input.ts`) has what is the same whatever the tool: deciding who gets each press, the selection (found in the ink by identity, ended when its marking is gone), lending, a chrome layer for each tool in each frame (only the tool in use shows it), telling tools when they are equipped, unequipped or the selection changes, and committing edits, undo, painting, the loupe and zoom. A tool (`_tools/_tool.ts`, `Tool`) has its button's face and panel, which markings are its own (`ownsMarking`), what a press does on the music, its chrome (`drawChrome`, `isChromeAt`) and its own state: Text its typing field and ghost, Symbols the library and current symbols. `makeTools` (`_tools/_tools.ts`) makes them for one reader, each with a host of its own (its layers, its button's face). A tool never asks whether a press is a finger or the stylus: only `Input` does, for palm rejection and the stylus's eraser button.
 - `Input` decides who gets a press in this order: an open menu is only closed; chrome marked `data-own-presses` (the delete button, the typing field) keeps its presses; a tool that suppresses `allPresses` (Text while typing) takes them; palm rejection; a second finger pinches, unless the tool suppresses `pinching` (it holds a marking); cut tabs; page turns at the sides, with every tool and the stylus (`turnFor`); with the toolbar hidden only a tap in the middle; the stylus's eraser button lends Erase for the press; selecting, unless the tool suppresses `selecting` (Pen, Highlight, Erase): the active tool's chrome (`isChromeAt`), else the nearest marking some tool owns within 12 px (`markingAt`, by `hitDistance` from `markings/model.ts`), selected, which lends its owner, else a selection only ends; then the tool's `start`, and the hand tool's when it declines. `_route` (tested) is the order once the pointer is known to be a single press.
-- The hand tool (`tools/_hand.ts`) is the tool when no other is equipped by its button, and has no button: a press pans, a tap hides or shows the toolbar, a long press opens the cut menu while Cuts is on.
+- The hand tool (`_tools/_hand.ts`) is the tool when no other is equipped by its button, and has no button: a press pans, a tap hides or shows the toolbar, a long press opens the cut menu while Cuts is on.
 - Lending (`_lending.ts`, `LendStack`): the tool equipped by its button is at the bottom; selecting a marking lends its owner, and the eraser button lends Erase for its press. The toolbar lights the tool on top. A tool is equipped when it goes on the stack and unequipped when it leaves it (`onEquipped`, `onUnequipped`); being covered by a lend is neither.
 - The pages sit under the toolbar and are moved only by `drag` and `pinch` (`render/zoom.ts`), which keep or increase how much of the spread is in the view below the toolbar; a new screen is placed by `placeFresh`.
 - The reader sets `data-theme="light"` on the document while it is open and puts the app's theme back when it closes; its colours are the `--stage` and `--bar*` tokens in `styles/base.css`.
 - Each tool's settings for new markings (colours, text's font and background) are one `ToolSettings` (`markings/tool-settings.ts`), kept in the kv store under `tool-settings`; the reader holds them in `settings`, and tools read and change them through `host.settings()` and `host.setSettings`.
-- A tool sets its button's face (`host.setButtonFace`, a `ButtonFace` from `tools/_faces.ts`), and the toolbar draws it again only when its `key` changes. Text and Symbols show a `Look`: the selected marking's, else the settings'; each applies a choice from its panel to the selected marking, the settings and (for symbols' background) the library symbol.
-- The Symbols panel (`reader/tools/_symbol-panel.ts`) is the library (tap to pick, drag to arrange through `moveSymbol` in `markings/symbol-library.ts`) beside the symbols' settings; the Symbols tool (`tools/_symbol.ts`), which owns the library, keeps each group's current symbol and the tool's symbol in place across a move (`moveSymbolTo`).
-- A placing tool (`reader/tools/_placing.ts`) shows a `ghost` under a pressed finger that has moved on empty music, on whichever slot is under it (`slotUnder`, `reader/_spread.ts`), and places on lifting over a slot. Text's ghost is "Ag", shaped ahead by Text (`prepareGhost`, `tools/_text.ts`), which also owns its typing field (`tools/_typing.ts`, moving the music through `host.lift`).
+- A tool sets its button's face (`host.setButtonFace`, a `ButtonFace` from `_tools/_faces.ts`), and the toolbar draws it again only when its `key` changes. Text and Symbols show a `Look`: the selected marking's, else the settings'; each applies a choice from its panel to the selected marking, the settings and (for symbols' background) the library symbol.
+- The Symbols panel (`reader/_tools/_symbol-panel.ts`) is the library (tap to pick, drag to arrange through `moveSymbol` in `markings/symbol-library.ts`) beside the symbols' settings; the Symbols tool (`_tools/_symbol.ts`), which owns the library, keeps each group's current symbol and the tool's symbol in place across a move (`moveSymbolTo`).
+- A placing tool (`reader/_tools/_placing.ts`) shows a `ghost` under a pressed finger that has moved on empty music, on whichever slot is under it (`slotUnder`, `reader/_spread.ts`), and places on lifting over a slot. Text's ghost is "Ag", shaped ahead by Text (`prepareGhost`, `_tools/_text.ts`), which also owns its typing field (`_tools/_typing.ts`, moving the music through `host.lift`).
 - `reader/_loupe.ts` draws the loupe from the slots' canvases; `_placing.ts` shows it on every drag (placing, move, resize), given the finger's screen point that `Input` passes to `ToolPointer.move`. The loupe asks `draw` for the music around the finger at its own magnification (one region per slot at a time, up to 2048 px across) and draws the ink sharp itself.
-- A long press on a tool's button (`ui/long-press.ts`) opens that tool's panel when it has one (`showPanel`; `reader/tools/_tool-panels.ts`, with rows from `reader/tools/_swatches.ts`); a tap still picks the tool.
+- A long press on a tool's button (`ui/long-press.ts`) opens that tool's panel when it has one (`showPanel`; `reader/_tools/_tool-panels.ts`, with rows from `reader/_tools/_swatches.ts`); a tap still picks the tool.
 - Every page turn, from a tap, a key, a pedal or a face gesture, goes through `act` and the 100 ms gate (`_turn-gate.ts`, `gateTurn`). With the toolbar hidden, a button at the top right (`face/face-button.ts`) watches the front camera (`face/watcher.ts`) for the gestures defined in the Face gestures dialog (`face/dialog.ts`), where each is recorded and fitted; `_face-watch.ts` decides when watching is on, and `face/button-state.ts` what the button shows.
 - `_toolbar.ts` builds the toolbar; `_toolbar-menus.ts` holds what its menus and dialogs do; `_title-menu.ts` the menu under the title, with the controls that change a setlist's entries and a score's named excerpts.
 - `_open-scores.ts` reads each score's file and opens its pages when it is near the one read, `_saver.ts` saves
@@ -151,16 +153,16 @@ ask the Library to change it (`change`, `update`, `refresh`).
 beside `stroke.ts` and `placed.ts`; add a tool to make it (below). Which cuts show it, the eraser, drawing and exporting then
 work for it, through `markings/model.ts`.
 
-**A new tool**: a file in `reader/tools/` exporting a function from its host to a `Tool` (its name in
-`ToolName` and `TOOL_LABELS` in `tools/_tool.ts`, its button's face through `host.setButtonFace`, and
-what `start` does for a press, from going down to lifting), a line in `makeTools` in `tools/_tools.ts`,
+**A new tool**: a file in `reader/_tools/` exporting a function from its host to a `Tool` (its name in
+`ToolName` and `TOOL_LABELS` in `_tools/_tool.ts`, its button's face through `host.setButtonFace`, and
+what `start` does for a press, from going down to lifting), a line in `makeTools` in `_tools/_tools.ts`,
 and its place in `TOOLBAR`: its button then appears in the toolbar. A tool that places markings
 whole is `placingTool(host, spec)` (`_placing.ts`), given what it places, its ghost, what a second tap
 does and what a resize sets (`_symbol.ts`, `_text.ts`). A tool changes the score by calling
 `host.commit` with a new state.
 
 **A new edit to the cuts**: a pure function from `State` to `State` in `scores/edits.ts`, with a
-test in `edits.test.ts`; then a menu item that calls `host.commit` with it, in `reader/cuts/_menus.ts`.
+test in `edits.test.ts`; then a menu item that calls `host.commit` with it, in `reader/_cuts/_menus.ts`.
 Excerpts and their names follow it by themselves, but check `followEdit`'s cases in `scores/excerpts.ts` if it
 moves cuts in a new way.
 

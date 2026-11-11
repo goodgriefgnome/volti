@@ -3,9 +3,9 @@
 
 import { el } from '../ui/dom';
 import { onLongPress } from '../ui/long-press';
-import { icon } from './tools/_faces';
-import { TOOL_LABELS, type ButtonFace, type Tool, type ToolName } from './tools/_tool';
-import { TOOLBAR } from './tools/_tools';
+import { icon } from './_tools/_faces';
+import { TOOL_LABELS, type ButtonFace, type Tool, type ToolName } from './_tools/_tool';
+import { TOOLBAR } from './_tools/_tools';
 
 /** The back arrow that leaves the reader for the library, on the toolbar and when it is hidden. */
 export function backIcon(): SVGSVGElement {

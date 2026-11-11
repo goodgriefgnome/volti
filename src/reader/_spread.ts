@@ -7,7 +7,7 @@ import { placeScreen, type ScreenBox } from '../render/screen';
 import type { Aspects, ScoreInk } from '../scores/model';
 import type { Frame } from '../scores/frames';
 import { el } from '../ui/dom';
-import type { ToolName } from './tools/_tool';
+import type { ToolName } from './_tools/_tool';
 
 /** A frame on the screen. Sizes are CSS pixels in the unzoomed spread. */
 export interface FrameSlot {

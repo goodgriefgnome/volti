@@ -3,7 +3,7 @@
 // gives, and the functions the rest of the app uses on any marking, so cut edits, the eraser and
 // drawing work for every kind. Code for one kind goes in that kind's file (stroke.ts, placed.ts). To add a
 // kind, such as a post-it: add it to the Marking union, give its behaviour in a new file,
-// pick it out in behaviour(), and add a tool to make it in reader/tools/.
+// pick it out in behaviour(), and add a tool to make it in reader/_tools/.
 
 import type { Drawing } from './draw';
 import { _placed, type PlacedMark } from './placed';

@@ -42,7 +42,7 @@ Two pure modules go with them, unit tested:
   `_last-read.ts`, `_history.ts`, `_open-scores.ts`.
 
 The existing parts the reader joins keep their files and interfaces: `CutEditor`
-(`cuts/_editor.ts`), `Input` (`_input.ts`), `Detail` (`_detail.ts`), `Loupe` (`_loupe.ts`),
+(`_cuts/_editor.ts`), `Input` (`_input.ts`), `Detail` (`_detail.ts`), `Loupe` (`_loupe.ts`),
 `Toolbar` (`_toolbar.ts`), `ReaderMenus` (`_toolbar-menus.ts`), the tools (`tools/`), `OpenScores`
 and `Reading`. `ReaderView` (`_view.ts`), `ToolHost`, `HandHost`, `InputHost`, `EditorHost` and
 `MenusHost` keep their shape: the reader builds them from the parts.
