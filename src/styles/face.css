@@ -61,6 +61,6 @@
 .face-row-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .face-add { display: flex; gap: 8px; align-items: center; }
 .face-add input { flex: 1; min-width: 0; }
-.face-calibrating { display: grid; gap: 8px; }
-.face-calibrating .instruction { margin: 0; font-size: 18px; }
+.face-recording { display: grid; gap: 8px; }
+.face-recording .instruction { margin: 0; font-size: 18px; }
 @media (prefers-reduced-motion: reduce) { .face-video { transition: none; } }

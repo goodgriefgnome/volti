@@ -4,21 +4,21 @@
 
 import { buttonState } from '../face/button-state';
 import { faceButton } from '../face/face-button';
-import { activeOf, HOLD_RANGE, LEVEL_RANGE, hasGestures, levelsOf, newGesture, withLevels, type FaceFrame, type FaceSettings, type Gesture, type TurnDir } from '../face/gestures';
-import { flagText } from '../face/model';
+import { activeOf, HOLD_RANGE, LEVEL_RANGE, hasGestures, levelsOf, newGesture, withFit, withLevels, type FaceSettings, type Gesture, type TurnDir } from '../face/gestures';
+import { build, flagText } from '../face/model';
+import { ROUND } from '../face/recording';
+import { readyTones } from '../face/tones';
 import type { Trial } from '../face/recording';
 import { settled } from '../face/settling';
-import { deleteTrials, loadFaceSettings, loadTrials, saveFaceSettings } from '../face/store';
+import { deleteTrials, loadFaceSettings, loadTrials, saveFaceSettings, saveTrials } from '../face/store';
 import { score } from '../face/template';
 import { FaceWatcher, type CameraStatus } from '../face/watcher';
 import { button, el, plural } from '../ui/dom';
 import { failed, failedOnce } from '../ui/failure';
 import { buttonRow, closeOverlay, showDialog, showOnTop, whenOverlayCloses } from '../ui/overlay';
+import { recordRound, type FrameListener, type Round } from './_face-recording';
 
 const DIRECTIONS: [value: string, label: string][] = [['next', 'Next'], ['prev', 'Back'], ['none', 'None']];
-
-/** What takes each frame the watcher gives: for meters (and, while recording, the recorder). */
-type FrameListener = (f: FaceFrame | null, x: Float32Array | null, now: number) => void;
 
 /** The Face gestures dialog: starts the camera while open; `closed` is called when it closes, however. */
 export function openFaceGestures(closed?: () => void): void {
@@ -117,6 +117,16 @@ export function openFaceGestures(closed?: () => void): void {
     renderRows();
   }));
 
+  /** Why a round ended early, by the gesture it was for, until the next round. */
+  const problems = new Map<string, string>();
+
+  const clearTrials = (g: Gesture) => confirm(`Clear the trials of “${g.name}”?`, 'It will need recording again before it can turn pages.', 'Clear', () => later(async () => {
+    await deleteTrials(g.id);
+    problems.delete(g.id);
+    change(g.id, (x) => withFit(x, build([])));
+    renderRows();
+  }));
+
   const setDirection = (id: string, direction: TurnDir | 'none') => later(async () => {
     // Its old note, if it was set to none for a conflict, goes.
     const next: FaceSettings = { gestures: settings.gestures.map((g) => { if (g.id !== id) return g; const { note: _note, ...rest } = g; return { ...rest, direction }; }) };
@@ -139,10 +149,13 @@ export function openFaceGestures(closed?: () => void): void {
       head.append(el('span', 'name', g.name), select);
       const n = g.fit.trials;
       const actions = el('div', 'face-row-actions');
+      actions.append(button(`Record ${ROUND} trials`, () => startRound(g)));
+      if (n) actions.append(button('Clear trials', () => clearTrials(g), 'quiet'));
       actions.append(button('Remove', () => remove(g), 'quiet'));
       row.append(head, el('p', 'hint', plural(n, 'trial') + (n < 10 ? ' (10 to 15 are best)' : '')), actions);
       for (const f of g.fit.flags) row.append(el('p', 'hint error', flagText(f)));
       if (g.note) row.append(el('p', 'hint error', g.note));
+      if (problems.has(g.id)) row.append(el('p', 'hint error', problems.get(g.id)));
       const levels = levelsOf(g);
       if (levels) {
         const template = g.fit.template!;
@@ -201,11 +214,53 @@ export function openFaceGestures(closed?: () => void): void {
   const add = button('Add gesture…', () => { add.hidden = true; nameRow.hidden = false; name.focus(); });
   add.disabled = true;
   const done = button('Done', closeOverlay, 'primary');
-  d.append(nameRow, buttonRow(add, done));
+  const buttons = buttonRow(add, done);
+  d.append(nameRow, buttons);
+
+  /* ---------- recording ---------- */
+
+  const recording = el('div', 'face-recording');
+  recording.hidden = true;
+  d.append(recording);
+  let round: Round | undefined;
+
+  /** Show the rows, or the round. */
+  const showRound = (on: boolean) => {
+    rows.hidden = on;
+    buttons.hidden = on;
+    nameRow.hidden = true;
+    add.hidden = false;
+    recording.hidden = !on;
+  };
+
+  /** Record a round of trials of `g`; nothing turns meanwhile. */
+  function startRound(g: Gesture) {
+    problems.delete(g.id);
+    readyTones();
+    watcher.setGestures([]);
+    showRound(true);
+    round = recordRound(recording, frameListeners, (trials, why) => {
+      round = undefined;
+      if (d.isConnected) showRound(false);
+      later(async () => {
+        if (trials.length) {
+          const all = [...await loadTrials(g.id), ...trials];
+          await saveTrials(g.id, all);
+          // Fitted again from all its trials, its levels back to the fitted ones, and it is the first to give way.
+          const fitted: FaceSettings = { gestures: settings.gestures.map((x) => (x.id === g.id ? withFit(x, build(all)) : x)) };
+          commit(settled(fitted, await trialsOfActive(fitted), g.id));
+        } else commit(settings);
+        if (why) problems.set(g.id, why);
+        renderRows();
+      });
+    });
+  }
 
   whenOverlayCloses(() => {
+    round?.cancel();
     watcher.stop();
-    closed?.();
+    // What a round just kept is saved first.
+    void queue.then(() => closed?.());
   });
 
   renderRows();
