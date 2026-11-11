@@ -14,7 +14,7 @@ import { _loadRecords, _onRecords, _record, _records, _updateRecord, _updateReco
 import type { Readable, ScoreRoot, Stamp } from './_types';
 import { _readOriginal } from './read/original';
 import { byTitle, folderOf, _nameOf, _shownFolder, _tidyPath, titleOf, _unfoundName } from './path-utils';
-import { _forgetRemovedBytes } from './trash-fs';
+import { _forgetRemovedBytes } from './removed-fs';
 import type { AskPassword, Original, SourceFile } from './types';
 
 /** The library's root: the linked folder, or the app's own. Access to a linked one must be allowed. */
@@ -268,11 +268,11 @@ export async function tidyStorage(now = Date.now()): Promise<void> {
   const records = await _loadRecords();
   const pointedTo = (name: 'inbox' | 'removed') => new Set([...records].flatMap(([id, r]) => (r.where.kind === name ? [_bytesName(id, r.where)] : [])));
   for (const name of ['inbox', 'removed'] as const) {
-    const dir = await (await navigator.storage.getDirectory()).getDirectoryHandle(name, { create: true });
+    const folder = await (await navigator.storage.getDirectory()).getDirectoryHandle(name, { create: true });
     const kept = pointedTo(name);
-    for await (const [file, h] of dir.entries()) {
+    for await (const [file, h] of folder.entries()) {
       if (kept.has(file) || h.kind !== 'file') continue;
-      if (now - (await (h as FileSystemFileHandle).getFile()).lastModified > ORPHAN_MS) await dir.removeEntry(file).catch(() => {});
+      if (now - (await (h as FileSystemFileHandle).getFile()).lastModified > ORPHAN_MS) await folder.removeEntry(file).catch(() => {});
     }
   }
   await recordOrphans(records, now);

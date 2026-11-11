@@ -9,7 +9,7 @@ import { askPassword } from '../dialogs/passwords';
 import { ThumbStrip } from '../dialogs/thumb-strip';
 import { arrivals, fileNameProblem, folderOf, pathInFolder, pathWithTitle, subfolders, titleOf, type Arrival } from '../originals/path-utils';
 import { PasswordNotGiven, type Original, type SourceFile } from '../originals/types';
-import { readIncoming } from '../originals/misc-files';
+import { readIncoming } from '../originals/incoming-files';
 import { newScore } from '../scores/model';
 import { button, dpr, el, plural } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog, whenOverlayCloses } from '../ui/overlay';

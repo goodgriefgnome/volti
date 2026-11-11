@@ -13,11 +13,11 @@ import type { ExportPart } from '../export/pdf';
 import { arrivals, byFolder, titleOf } from '../originals/path-utils';
 import { canLinkFolder } from '../originals/handles/device-score-fs';
 import { driveOffered, driveSignedIn, signInToDrive } from '../originals/drive/score-fs';
-import { folderState, linkDeviceFolder, linkDriveFolder, unlinkFolder, unlockFolder } from '../originals/linked-folder';
+import { folderStatus, linkDeviceFolder, linkDriveFolder, unlinkFolder, unlockFolder } from '../originals/linked-folder';
 import { chooseDriveFolder } from './_drive-folders';
 import { knownTitles, libraryFiles, scanRoot } from '../originals/library-files';
-import { inboxFiles, leftInApp } from '../originals/misc-files';
-import { type FolderState, type SourceFile } from '../originals/types';
+import { inboxFiles, leftInApp } from '../originals/incoming-files';
+import { type FolderStatus, type SourceFile } from '../originals/types';
 import { openReader, type ToRead } from '../reader/reader';
 import { knownAspects } from '../originals/read/original';
 import { loadSavedScore, scoreEntry } from '../scores/store';
@@ -32,7 +32,7 @@ import { FolderBanner } from './_folder-banner';
 import type { LibraryHost } from './_host';
 import { openIncoming } from './_incoming';
 import { ScoresSection } from './_scores-section';
-import { keepSetlistPagesOffline } from '../offline/pages';
+import { pinSetlistPages } from '../offline/pages';
 import type { OfflineStatus } from '../offline/status';
 import { SetlistsSection } from './_setlists-section';
 import { hearPageCacheTrouble } from '../page-cache/cache';
@@ -43,7 +43,7 @@ const AWAY_MS = 30_000;
 
 /** The Library screen: setlists, the scores in its root (the scores folder, or the app's own), and the list to open them from. */
 export class Library implements LibraryHost {
-  folder: FolderState = { kind: 'none' };
+  folder: FolderStatus = { kind: 'none' };
   originals: SourceFile[] = [];
   reading = false;
   /** How many scores are left in Volti's own folder while a folder is linked. */
@@ -184,7 +184,7 @@ export class Library implements LibraryHost {
   }
 
   private async readOriginals() {
-    this.folder = await folderState();
+    this.folder = await folderStatus();
     this.leftIn = this.folder.kind === 'none' ? 0 : (await leftInApp().catch(() => [])).length;
     this.banner.render();
     try {
@@ -319,7 +319,7 @@ export class Library implements LibraryHost {
   async addShared() {
     const files = await inboxFiles();
     if (!files.length) return;
-    if ((await folderState()).kind === 'locked') { this.say('Files shared to Volti open here once access to the scores folder is allowed.'); return; }
+    if ((await folderStatus()).kind === 'locked') { this.say('Files shared to Volti open here once access to the scores folder is allowed.'); return; }
     void openIncoming(this, files, (added) => { for (const f of files) if (!added.includes(f)) void f.remove(); });
   }
 
@@ -336,8 +336,8 @@ export class Library implements LibraryHost {
   setlist(id: string) { return this.setlists.find((s) => s.id === id); }
 
   /** Keep the setlists' pages saved offline, and show how much is. */
-  private keepOffline() {
-    keepSetlistPagesOffline(this.originals, this.setlists, (s) => {
+  private pin() {
+    pinSetlistPages(this.originals, this.setlists, (s) => {
       this.offline = s;
       this.setlistsSection.showOffline();
     });
@@ -345,7 +345,7 @@ export class Library implements LibraryHost {
 
   private renderSetlists() {
     // Shown afresh whenever they change, or the scores do: keep their pages saved offline.
-    this.keepOffline();
+    this.pin();
     this.setlistsSection.render();
   }
 
@@ -488,7 +488,7 @@ export class Library implements LibraryHost {
   private accessAllowed() {
     if (this.folder.kind === 'locked') void this.refresh();
     // The scores can be read now, so the setlists' pages missing offline can be drawn.
-    this.keepOffline();
+    this.pin();
   }
 
   /* ---------- opening the reader ---------- */
@@ -525,7 +525,7 @@ export class Library implements LibraryHost {
     const back = () => {
       this.root.hidden = false;
       // Access allowed in the reader: read the scores folder now it can be.
-      void folderState().then((f) => { if (f.kind !== this.folder.kind) void this.refresh(); });
+      void folderStatus().then((f) => { if (f.kind !== this.folder.kind) void this.refresh(); });
       this.scoresSection.search.blur();
       window.scrollTo(0, scrolled);
       // Redrawn with what may have changed in the reader (a score renamed, moved or removed is in the records), then back where it was.

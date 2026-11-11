@@ -5,7 +5,7 @@
 
 import { folderOf, titleOf } from '../originals/path-utils';
 import { type Removed } from '../originals/types';
-import { removedLists, removedSource } from '../originals/misc-files';
+import { removedLists, removedSource } from '../originals/incoming-files';
 import { button, el } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog } from '../ui/overlay';
 import type { LibraryHost } from './_host';

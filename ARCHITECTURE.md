@@ -19,17 +19,17 @@ The code uses these words, always in these senses.
 | **pass** | Which time a page's music is played: each cut has one, from 1, and a marking may be limited to one. | `Cut.pass`, `passOf` |
 | **ink**, **marking** | A marking is one thing drawn on the music (pen and highlighter strokes, and symbols and text placed whole); a score's ink is its markings by page of the original; a marking may belong to one pass. A cut shows the markings of its page whose anchor it holds, of its pass or of none. | `Marking`, `ScoreInk` |
 | **state** | The data a thing holds: a score and its ink, which every edit keeps in step (`State`); what the detector remembers (`DetectorState`). Not an enumeration: that is a **status**. | `State` |
-| **status** | An enumeration saying how a thing is now: `FolderState` (ready, locked, …), `CameraStatus`, `OfflineStatus`, the face button's. | |
+| **status** | An enumeration saying how a thing is now: `FolderStatus` (ready, locked, …), `CameraStatus`, `OfflineStatus`, `FaceButtonStatus`. | |
 | **frame** | One of the score's own pages: cuts stacked down it until it is full, shaped like the original page of its first cut. What the user calls a score's "pages" are its frames. A camera frame (`FaceFrame`) is another thing, and is always qualified. | `Frame` (`scores/frames.ts`) |
 | **screen** | The frames shown at once: one, or two of the other orientation, side by side or one above the other. The reader's element for it is `screenEl`. | `render/screen.ts` |
 | **slot** | A frame on the reader's screen, with its canvases. | `FrameSlot` (`reader/_slots.ts`) |
 | **excerpt** | Which of a score's cuts are played, as the ids of the first and last; a missing end is the score's start or end, so no ends is the whole score. Excerpts follow edits to the cuts. A **named excerpt** ("Kyrie") is an excerpt with a name, kept on the score | `Excerpt`, `NamedExcerpt` (`scores/excerpts.ts`) |
 | **setlist**, **entry** | A setlist is a list of entries, read as one continuous score; each entry plays an excerpt of a score. | `Setlist`, `Entry` (`setlists/model.ts`) |
-| **pin** | To keep the pages (or, in a Drive folder, the files) that setlists play saved for good, whatever else is let go. | |
+| **pin** | To keep the pages (or, in a Drive folder, the files) that setlists play saved for good, whatever else is let go. | `pinSetlistPages` (`offline/pages.ts`), `pinPages` (`page-cache/cache.ts`), `pinOriginals` (`originals/drive/score-fs.ts`) |
 | **close-up** | The sharp drawing over the frames while zoomed in. | `CloseUp` (`reader/_close-up.ts`) |
 | **thumbnail** | A small picture of a frame or page, in a strip or a grid in a dialog. | |
 | **Paint** | A fill or a stroke, as a path is drawn with: a graphics term for a different thing from drawing. | `Paint` (`markings/draw.ts`) |
-| **page cache** | The one cache of drawn original pages for the app: pages held in memory under a budget, and saved in OPFS (the pages setlists play, kept for good; other pages worth saving, least recently used first). | `page-cache/` |
+| **page cache** | The one cache of drawn original pages for the app: pages held in memory under a budget, and saved in OPFS (the pages setlists play, pinned; other pages worth saving, least recently used first). | `page-cache/` |
 
 ## Layers
 
@@ -56,10 +56,10 @@ service worker takes `putInbox` without pdf.js): keep it true, and do any start-
 | 7 | `reader/` | The score screen: reading a score, an excerpt or a setlist, writing on it, editing its cuts. The cut editor is in `reader/_cuts/`; the tools and their own interface (panels, swatches, the symbol library's editor and its glyph picker) are in `reader/_tools/` |
 | 6 | `dialogs/` | Dialogs both screens open: choosing an excerpt (over a strip of a score's frames, `thumb-strip`), the named excerpt dialogs, adding scores to a setlist, renaming and filing a score's file, exporting, setlist names and menus, a PDF's password; not the Face gestures dialog, which is `face/dialog.ts` |
 | 5 | `export/` | Exporting PDFs (with pdf-lib) |
-| 5 | `offline/` | Keeping the pages setlists play offline (`pages`), and how much of each is saved (`status`) |
+| 5 | `offline/` | Pinning the pages setlists play (`pages`), and how much of each is saved for offline (`status`) |
 | 4 | `render/` | What is on a screen: fitting frames to it (`layout`, `screen`), zoom maths (`zoom`), drawing a frame on a canvas (`draw`) |
 | 3 | `setlists/` | Setlists and their entries, and keeping them on the same music when a score's cuts change |
-| 2 | `face/` | Face gestures the person defines: a gesture and its settings (`gestures`), its template fitted from its trials and a frame's score (`_template`, `_model`, `_recording`, `_settling`), watching the front camera with MediaPipe (`watcher`), the button that shows it (`face-button`), and the dialog that defines gestures, which only the reader's button and the library's ⋯ menu open (`dialog`) |
+| 2 | `face/` | Face gestures the person defines: a gesture and its settings (`gestures`), its template fitted from its trials and a frame's score (`_template`, `_fit`, `_recording`, `_settling`), watching the front camera with MediaPipe (`watcher`), the button that shows it (`face-button`), and the dialog that defines gestures, which only the reader's button and the library's ⋯ menu open (`dialog`) |
 | 2 | `scores/`, `originals/` | A score: its data (`model`), edits (`edits`), frames (`frames`), excerpts of its cuts and their names (`excerpts`), which cut a marking is on and which cuts show it (`ownership`), storage (`store`). Originals, in twenty-six files in three subdirectories, described below the table |
 | 1 | `fonts/` | The bundled fonts, reading them and shaping text into glyphs (fontkit), SMuFL's glyph names (`smufl`); nothing about markings |
 | 1 | `page-cache/`, `markings/`, `ui/` | The page cache: pages drawn in memory under a budget and saved in OPFS under an epoch, the scheduling of draws (two at once, `now` before `ahead` before `later`, a draw shared by its requesters), and stand-ins for progressive drawing; it knows nothing about files, and is given a `PageSource` to draw from (`cache`, with `_match`, `_budget`, `_memory`, `_scheduler` and `_disk`). What can be drawn on the music, and how (`draw`); generic pieces of the interface: elements (`dom`), menus and dialogs one at a time (`overlay`), asking for a line of text (`ask-text`), toasts |
@@ -75,13 +75,13 @@ general helpers for walking and writing folders and hashing (`_filesystem-utils`
 (`types`) and those private to the directory (`_types`), what is recorded about each original and
 every rule about where its bytes are (`_record-model`, pure), the records in IndexedDB with a copy in
 memory (`_record-store`), the bytes of Recently removed, and the removals listed there, files in a
-root's own bin included (`trash-fs`), the bookkeeping of one scan of the linked folder with its
+root's own bin included (`removed-fs`), the bookkeeping of one scan of the linked folder with its
 duplicate rules (`_folder-scan`, pure; both kinds of root use it), the link under `folder`, on the
 device or in Drive, read by the service worker too (`_folder-link`), the linked folder of either kind
 (linking, unlinking, its state and root) (`linked-folder`), the bytes of the inbox, which the service
 worker fills (`inbox-fs`), pointed to by a record, the library's root and its files, scanning the
 linked folder into the records, the library's files worked out from the records, Exports and
-start-up tidying (`library-files`), and files held outside the library (`misc-files`).
+start-up tidying (`library-files`), and files held outside the library (`incoming-files`).
 
 **`originals/handles/`** holds the roots that are folders of handles, Volti's own and the linked
 one: the stand-in for the handle API (`_fake`), the roots with the file operations on them and the
@@ -151,7 +151,7 @@ Other rules, the first also tested:
 - A placing tool (`reader/_tools/_placing.ts`) shows a `ghost` under a pressed finger that has moved on empty music, on whichever slot is under it (`slotUnder`, `reader/_slots.ts`), and places on lifting over a slot. Text's ghost is "Ag", shaped ahead by Text (`prepareGhost`, `_tools/_text.ts`), which also owns its typing field (`_tools/_typing.ts`, moving the music through `host.lift`).
 - `reader/_loupe.ts` draws the loupe from the slots' canvases; `_placing.ts` shows it on every drag (placing, move, resize), given the finger's screen point that `Input` passes to `ToolPointer.move`. The loupe asks `draw` for the music around the finger at its own magnification (one region per slot at a time, up to 2048 px across) and draws the ink sharp itself.
 - A long press on a tool's button (`ui/long-press.ts`) opens that tool's panel when it has one (`showPanel`; `reader/_tools/_tool-panels.ts`, with rows from `reader/_tools/_swatches.ts`); a tap still picks the tool.
-- Every page turn, from a tap, a key, a pedal or a face gesture, goes through `act` and the 100 ms gate (`_turn-gate.ts`, `gateTurn`). With the toolbar hidden, a button at the top right (`face/face-button.ts`) watches the front camera (`face/watcher.ts`) for the gestures defined in the Face gestures dialog (`face/dialog.ts`), where each is recorded and fitted; `_face-watch.ts` decides when watching is on, and `face/button-state.ts` what the button shows.
+- Every page turn, from a tap, a key, a pedal or a face gesture, goes through `act` and the 100 ms gate (`_turn-gate.ts`, `gateTurn`). With the toolbar hidden, a button at the top right (`face/face-button.ts`) watches the front camera (`face/watcher.ts`) for the gestures defined in the Face gestures dialog (`face/dialog.ts`), where each is recorded and fitted; `_face-watch.ts` decides when watching is on, and `face/button-status.ts` what the button shows.
 - `_toolbar.ts` builds the toolbar; `_toolbar-menus.ts` holds what its menus and dialogs do; `_title-menu.ts` the menu under the title, with the controls that change a setlist's entries and a score's named excerpts.
 - `_open-scores.ts` reads each score's file and opens its pages when it is near the one read, `_saver.ts` saves
   scores and setlists together (a change stays to be saved until a write of it succeeds), `_history.ts` keeps undo.

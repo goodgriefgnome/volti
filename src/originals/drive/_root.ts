@@ -183,7 +183,7 @@ export class DriveRoot implements ScoreRoot {
   async remove(path: string): Promise<UndeleteInfo> {
     const entry = await this.entryAt(path);
     if (!entry) throw missing(path);
-    await this.api.trash(entry.fileId);
+    await this.api.bin(entry.fileId);
     this.files.delete(path);
     return { binned: { fileId: entry.fileId, parent: entry.parent, folderId: this.folderId } };
   }
@@ -197,7 +197,7 @@ export class DriveRoot implements ScoreRoot {
   async undelete(binned: Stamp, to: string): Promise<Moved | 'taken'> {
     if (await this.exists(to)) return 'taken';
     const toFolder = (await this.folderIds(folderOf(to), true))[0];
-    await this.api.update(String(binned.fileId), { name: _nameOf(to), fromFolder: String(binned.parent), toFolder, untrash: true });
+    await this.api.update(String(binned.fileId), { name: _nameOf(to), fromFolder: String(binned.parent), toFolder, unbin: true });
     // Only the path matters to the library (the contents don't change), so no bytes are fetched for the file given.
     return { path: to, file: new File([], _nameOf(to)) };
   }

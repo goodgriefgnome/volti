@@ -6,7 +6,7 @@ import type { NamedExcerptHost } from '../dialogs/named-excerpts';
 import type { ExcerptSource } from '../dialogs/thumb-strip';
 import type { LibraryScore } from '../dialogs/open-score';
 import type { Excerpt } from '../scores/excerpts';
-import type { FolderState, SourceFile } from '../originals/types';
+import type { FolderStatus, SourceFile } from '../originals/types';
 import type { Aspects, NamedExcerpt, Score } from '../scores/model';
 import type { Setlist } from '../setlists/model';
 import type { MenuItem } from '../ui/overlay';
@@ -14,7 +14,7 @@ import type { Toast } from '../ui/toast';
 import type { OfflineStatus } from '../offline/status';
 
 export interface LibraryHost {
-  readonly folder: FolderState;
+  readonly folder: FolderStatus;
   /** How many scores are left in Volti's own folder while a folder is linked. */
   readonly leftIn: number;
   /** The library's scores' originals, by title. */

@@ -29,8 +29,8 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   removes and writes files there; up to 100 accounts can sign in while it is unverified. Scans only
   list the folder (nothing is downloaded); a score is downloaded the first time it is opened and
   kept on the tablet, so it opens offline after that, and setlists' scores are kept for good.
-  Removing a score puts its file in Drive's trash, and nothing is kept on the tablet: **Recently
-  removed** takes it out of the trash again (for as long as Drive keeps it there). When Google stops accepting the sign-in
+  Removing a score puts its file in Drive's bin, and nothing is kept on the tablet: **Recently
+  removed** takes it out of the bin again (for as long as Drive keeps it there). When Google stops accepting the sign-in
   (access removed, password changed, or long unused), the banner says **Sign in to Google Drive**.
 - Without a linked folder (before one is linked, or where the browser can't link one), the
   library is a folder of Volti's own, inside the app, read the same way. Linking a folder moves
@@ -41,7 +41,7 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
 - The **⋯** beside the name has the scores folder's **Check for new scores**, **Change folder…**
   and **Unlink**, **Recently removed…**, and the storage Volti uses on the tablet: metadata (cuts,
   markings, setlists), added scores (those in Volti's own folder), setlist pages (the pages
-  setlists play, saved so they show at once), the page cache (other pages saved), the trash (Recently removed) and the offline binary (the app itself,
+  setlists play, saved so they show at once), the page cache (other pages saved), removed files (Recently removed) and the offline binary (the app itself,
   kept for working offline).
 - The scores at the top of the folder come first, then a list for each subfolder ("Masses /
   Latin"), which its heading opens and closes; Volti remembers which are closed.
@@ -61,7 +61,7 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   is deleted for good; **Put back** there puts it back where it was (through the same screen,
   when another file is there now). Its cuts, markings and
   excerpts stay, as for any score whose file is missing. A score removed from a Drive folder is in
-  Drive's trash, not kept by Volti: it can be put back only while that folder is linked, and the
+  Drive's bin, not kept by Volti: it can be put back only while that folder is linked, and the
   list shows those of other folders apart, under **In another folder's bin**, without **Put back**.
 - A PDF protected by a password asks for it the first time it is opened. Volti remembers it on
   this tablet, so it asks only once. An exported PDF of it has no password. Adding one to a setlist

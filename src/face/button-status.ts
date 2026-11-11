@@ -3,10 +3,10 @@
 
 import type { CameraStatus } from './watcher';
 
-export type FaceButtonState = 'unavailable' | 'off' | 'starting' | 'watching' | 'noFace' | 'paused';
+export type FaceButtonStatus = 'unavailable' | 'off' | 'starting' | 'watching' | 'noFace' | 'paused';
 
 /** What the button shows. */
-export function buttonState(o: { available: boolean; watching: 'off' | 'on'; camera: CameraStatus; faceSeen: boolean }): FaceButtonState {
+export function buttonStatus(o: { available: boolean; watching: 'off' | 'on'; camera: CameraStatus; faceSeen: boolean }): FaceButtonStatus {
   if (!o.available) return 'unavailable';
   if (o.watching === 'off') return 'off';
   if (o.camera === 'paused') return 'paused';

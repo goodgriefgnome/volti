@@ -3,7 +3,7 @@
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
 import { faceSettingsFrom, withFit, type FaceSettings } from './gestures';
-import { build, FIT_VERSION } from './_model';
+import { buildFit, FIT_VERSION } from './_fit';
 import type { Trial } from './_recording';
 import { settled } from './_settling';
 
@@ -28,7 +28,7 @@ export async function refit(s: FaceSettings): Promise<FaceSettings> {
   for (const g of s.gestures) {
     const trials = await loadTrials(g.id);
     trialsOf.set(g.id, trials);
-    fitted.gestures.push(withFit(g, build(trials)));
+    fitted.gestures.push(withFit(g, buildFit(trials)));
   }
   return settled(fitted, trialsOf);
 }

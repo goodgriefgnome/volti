@@ -57,7 +57,7 @@ describe('_httpDriveApi', () => {
 
   it('throws other failures with the status and message', async () => {
     stub(reply({ error: { message: 'Rate limit' } }, 403));
-    await expect(_httpDriveApi(fakeAuth().auth).trash('x')).rejects.toThrow('403 Rate limit');
+    await expect(_httpDriveApi(fakeAuth().auth).bin('x')).rejects.toThrow('403 Rate limit');
   });
 
   it('moves a file between folders with addParents and removeParents', async () => {

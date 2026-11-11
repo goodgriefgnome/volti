@@ -2,10 +2,10 @@
 // the person defines, which way each turns, its on and release levels and hold, with the camera on
 // so they can be tried in place. Every change is saved at once.
 
-import { buttonState } from './button-state';
+import { buttonStatus } from './button-status';
 import { faceButton } from './face-button';
 import { activeOf, HOLD_RANGE, LEVEL_RANGE, hasGestures, levelsOf, newGesture, withFit, withLevels, type FaceSettings, type Gesture, type TurnDir } from './gestures';
-import { build, flagText } from './_model';
+import { buildFit, flagText } from './_fit';
 import { ROUND } from './_recording';
 import { readyTones } from './_tones';
 import type { Trial } from './_recording';
@@ -37,7 +37,7 @@ export function openFaceGestures(closed?: () => void): void {
   const preview = faceButton({ interactive: false });
   const pageNumber = el('div', 'face-page', '1');
   const problem = el('p', 'hint error');
-  const showButton = () => preview.show(buttonState({ available: hasGestures(settings), watching: trying ? 'on' : 'off', camera, faceSeen }));
+  const showButton = () => preview.show(buttonStatus({ available: hasGestures(settings), watching: trying ? 'on' : 'off', camera, faceSeen }));
   const watcher = new FaceWatcher({
     status: (s) => { camera = s; showButton(); },
     face: (seen) => { faceSeen = seen; showButton(); },
@@ -126,7 +126,7 @@ export function openFaceGestures(closed?: () => void): void {
   const clearTrials = (g: Gesture) => confirm(`Clear the trials of “${g.name}”?`, 'It will need recording again before it can turn pages.', 'Clear', () => later(async () => {
     await deleteTrials(g.id);
     problems.delete(g.id);
-    change(g.id, (x) => withFit(x, build([])));
+    change(g.id, (x) => withFit(x, buildFit([])));
     renderRows();
   }));
 
@@ -255,7 +255,7 @@ export function openFaceGestures(closed?: () => void): void {
           const all = [...await loadTrials(g.id), ...trials];
           await saveTrials(g.id, all);
           // Fitted again from all its trials, its levels back to the fitted ones, and it is the first to give way.
-          const fitted: FaceSettings = { gestures: settings.gestures.map((x) => (x.id === g.id ? withFit(x, build(all)) : x)) };
+          const fitted: FaceSettings = { gestures: settings.gestures.map((x) => (x.id === g.id ? withFit(x, buildFit(all)) : x)) };
           commit(settled(fitted, await trialsOfActive(fitted), g.id));
         } else commit(settings);
         if (why) problems.set(g.id, why);

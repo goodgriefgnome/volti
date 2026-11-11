@@ -24,8 +24,8 @@ type Index = Record<string, Entry>;
 
 const INDEX = 'index.json';
 
-/** A cache in `dir`, keeping unpinned bytes within `budget()` bytes; `now` is the clock for "last used". */
-export function _makeByteCache(dir: () => Promise<FileSystemDirectoryHandle>, budget: () => Promise<number>, now: () => number = Date.now): _ByteCache {
+/** A cache in `folder`, keeping unpinned bytes within `budget()` bytes; `now` is the clock for "last used". */
+export function _makeByteCache(folder: () => Promise<FileSystemDirectoryHandle>, budget: () => Promise<number>, now: () => number = Date.now): _ByteCache {
   let index: Index | undefined;
   /** Operations run one at a time, so the index is never changed by two at once. */
   let turn: Promise<unknown> = Promise.resolve();
@@ -35,7 +35,7 @@ export function _makeByteCache(dir: () => Promise<FileSystemDirectoryHandle>, bu
   const load = async (): Promise<Index> => {
     if (index) return index;
     try {
-      const file = await (await (await dir()).getFileHandle(INDEX)).getFile();
+      const file = await (await (await folder()).getFileHandle(INDEX)).getFile();
       index = JSON.parse(await file.text()) as Index;
     } catch (e) {
       // No index yet is the start; one that can't be read is taken as empty, and what it listed is swept.
@@ -44,7 +44,7 @@ export function _makeByteCache(dir: () => Promise<FileSystemDirectoryHandle>, bu
     }
     return index;
   };
-  const save = async () => writeFile(await dir(), INDEX, new Blob([JSON.stringify(index)]));
+  const save = async () => writeFile(await folder(), INDEX, new Blob([JSON.stringify(index)]));
 
   /** Run `f` after the operations before it, never failing: what goes wrong is logged, and `fallback` given. */
   const run = <T>(what: string, fallback: T, f: () => Promise<T>): Promise<T> => {
@@ -55,7 +55,7 @@ export function _makeByteCache(dir: () => Promise<FileSystemDirectoryHandle>, bu
 
   const remove = async (id: string) => {
     delete index![id];
-    await (await dir()).removeEntry(id).catch(() => {});
+    await (await folder()).removeEntry(id).catch(() => {});
   };
 
   /** Delete unpinned bytes, least recently used first, until what is kept fits the budget. */
@@ -76,7 +76,7 @@ export function _makeByteCache(dir: () => Promise<FileSystemDirectoryHandle>, bu
       if (!entry || entry.waiting) return undefined;
       let file: File;
       try {
-        file = await (await (await dir()).getFileHandle(id)).getFile();
+        file = await (await (await folder()).getFileHandle(id)).getFile();
       } catch (e) {
         // The bytes are gone: forget them, and say there are none.
         if (entry.pinned) index![id] = { ...entry, size: 0, waiting: true }; else delete index![id];
@@ -95,7 +95,7 @@ export function _makeByteCache(dir: () => Promise<FileSystemDirectoryHandle>, bu
 
     put: (id, bytes) => run('keep', undefined, async () => {
       await load();
-      const d = await dir();
+      const d = await folder();
       await writeFile(d, id, bytes);
       index![id] = { size: bytes.size, used: now(), pinned: index![id]?.pinned ?? false };
       await save();
@@ -123,7 +123,7 @@ export function _makeByteCache(dir: () => Promise<FileSystemDirectoryHandle>, bu
     size: () => run('measure', 0, async () => Object.values(await load()).reduce((n, e) => n + (e.waiting ? 0 : e.size), 0)),
 
     clear: () => run('clear', undefined, async () => {
-      const d = await dir();
+      const d = await folder();
       for await (const [name] of d.entries()) await d.removeEntry(name).catch(() => {});
       index = {};
       sweep = false;

@@ -7,7 +7,7 @@ import { moveToFolder, renameFile, type ScoreFileHost } from '../dialogs/score-f
 import { openExportPdf } from '../dialogs/export-pdf';
 import { type Excerpt, namedExcerptOf } from '../scores/excerpts';
 import type { ExportPart } from '../export/pdf';
-import { folderState } from '../originals/linked-folder';
+import { folderStatus } from '../originals/linked-folder';
 import type { SourceFile } from '../originals/types';
 import { subfolders, titleOf } from '../originals/path-utils';
 import { defaultSetlist, duplicate, withSetlist, type Setlist } from '../setlists/model';
@@ -200,7 +200,7 @@ export class ReaderMenus {
       title: reading.setlist?.title ?? (excerpt ? `${title} - ${excerpt}` : title),
       parts,
       missing,
-      toFolder: (await folderState()).kind !== 'none',
+      toFolder: (await folderStatus()).kind !== 'none',
       saved: (name) => this.h.say(`Saved “${name}.pdf” in Exports, in the scores folder.`),
     });
   }

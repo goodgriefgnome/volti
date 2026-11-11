@@ -13,7 +13,7 @@ import { folderOf, _importName, _nameOf, _shownFolder, _tidyPath, _unfoundName }
 import { _loadRecords, _record, _records, _updateRecord } from './_record-store';
 import type { Readable, Stamp } from './_types';
 import { _readOriginal } from './read/original';
-import { _keepRemoved, _removedFile, recentlyRemoved } from './trash-fs';
+import { _keepRemoved, _removedFile, recentlyRemoved } from './removed-fs';
 import { NoAccess, type AskPassword, type Original, type Removed, type SourceFile } from './types';
 
 /**
@@ -123,7 +123,7 @@ export async function leftInApp(): Promise<SourceFile[]> {
 }
 
 /**
- * A file in a root's own bin (Drive's trash), at the path it had: Volti keeps no bytes of it, so
+ * A file in a root's own bin (Drive's bin), at the path it had: Volti keeps no bytes of it, so
  * moving it asks the root to take it out of the bin, to the path chosen, and records it there.
  * Reading it, for the preview of the incoming screen, works only where the root kept a copy.
  */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { seeded, storedTrial, type Values } from './_test-frames';
-import { build, conflictOf, flagText, settle, type Contender } from './_model';
+import { buildFit, conflictOf, flagText, settle, type Contender } from './_fit';
 import { framesOf, type Trial } from './_recording';
 
 const random = seeded(7);
@@ -9,21 +9,21 @@ const trials = (held: Values, rest: Values, n = 5): Trial[] => Array.from({ leng
 const wink = { eyeBlinkLeft: 0.7, eyeBlinkRight: 0.25 };
 const quiet = { eyeBlinkLeft: 0.03, eyeBlinkRight: 0.03 };
 
-describe('build', () => {
+describe('buildFit', () => {
   it('gives too few and no template for two trials', () => {
-    const f = build(trials(wink, quiet, 2));
+    const f = buildFit(trials(wink, quiet, 2));
     expect(f.flags).toEqual([{ kind: 'tooFew' }]);
     expect(f.template).toBeUndefined();
     expect(f.trials).toBe(2);
   });
   it('gives no channels, no template and the clearest channels where nothing moves', () => {
-    const f = build(trials({ jawOpen: 0.3 }, { jawOpen: 0.3 }));
+    const f = buildFit(trials({ jawOpen: 0.3 }, { jawOpen: 0.3 }));
     expect(f.flags).toEqual([{ kind: 'noChannels' }]);
     expect(f.template).toBeUndefined();
     expect(f.missed).toBeDefined();
   });
   it('fits five clean trials of a wink, with its levels 0.65 of the way and then halfway', () => {
-    const f = build(trials(wink, quiet));
+    const f = buildFit(trials(wink, quiet));
     expect(f.flags).toEqual([]);
     expect(f.template!.rows).toHaveLength(1);
     const lowest = Math.min(...f.peaks!);
@@ -36,14 +36,14 @@ describe('build', () => {
   it('flags a gesture one rep of which does not do it as unreliable', () => {
     const rs = trials(wink, quiet, 11);
     rs.push(storedTrial(quiet, quiet, random));
-    const f = build(rs);
+    const f = buildFit(rs);
     expect(f.template).toBeDefined();
     expect(f.flags).toContainEqual({ kind: 'unreliable' });
   });
   it('flags a gesture done for five frames in a row at rest, with how long', () => {
     const rs = trials(wink, quiet, 4);
     rs.push(storedTrial(wink, quiet, random, { at: 10, frames: 5 }));
-    const f = build(rs);
+    const f = buildFit(rs);
     const hit = f.flags.find((x) => x.kind === 'firesAtRest');
     expect(hit).toMatchObject({ frames: 5 });
     expect((hit as { ms: number }).ms).toBeGreaterThan(320);
@@ -63,7 +63,7 @@ describe('flagText', () => {
 /** A gesture as the conflict check sees it, fitted from five trials. */
 function contender(id: string, name: string, held: Values, rest: Values): Contender {
   const ts = trials(held, rest);
-  const f = build(ts);
+  const f = buildFit(ts);
   return { id, name, template: f.template!, release: f.release!, held: ts.map((t) => framesOf(t).held) };
 }
 

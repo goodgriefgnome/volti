@@ -448,10 +448,10 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     could not be saved, once, not for every page.
 - **Removing from a Drive folder keeps no copy; Recently removed points at Drive's bin** (Drive
   folder linked):
-  - Remove a score: it goes at once, with no wait for a download. On the Storage screen the Trash
+  - Remove a score: it goes at once, with no wait for a download. On the Storage screen the Removed
     figure doesn't grow, and the file is in Drive's bin (drive.google.com).
   - Recently removed lists it with **Put back**. Tap it: it is back at its path, the same Drive
-    file (not a second one beside a trashed one) with its cuts and markings, and gone from Drive's bin.
+    file (not a second one beside one in the bin) with its cuts and markings, and gone from Drive's bin.
   - Remove a score, make a new file of the same name in Drive's website, Put back: the incoming
     screen says the name is taken; a new name or folder puts the file back there; Replace puts it
     there and the file it replaced is in the list, in Drive's bin.

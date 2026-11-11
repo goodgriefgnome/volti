@@ -71,10 +71,10 @@ export class FakeDrive implements _DriveApi {
     return this.add(parentId, name, new Uint8Array(), true);
   }
 
-  async update(fileId: string, change: { name?: string; fromFolder?: string; toFolder?: string; untrash?: boolean }): Promise<void> {
+  async update(fileId: string, change: { name?: string; fromFolder?: string; toFolder?: string; unbin?: boolean }): Promise<void> {
     this.gate(`update ${fileId}`);
     const i = this.item(fileId);
-    if (change.untrash) i.trashed = false;
+    if (change.unbin) i.trashed = false;
     if (change.name !== undefined) i.name = change.name;
     if (change.toFolder && change.toFolder !== change.fromFolder) {
       if (change.fromFolder !== i.parent) throw new Error('removeParents is not a parent');
@@ -82,8 +82,8 @@ export class FakeDrive implements _DriveApi {
     }
   }
 
-  async trash(fileId: string): Promise<void> {
-    this.gate(`trash ${fileId}`);
+  async bin(fileId: string): Promise<void> {
+    this.gate(`bin ${fileId}`);
     this.item(fileId).trashed = true;
   }
 
@@ -115,8 +115,8 @@ export class FakeDrive implements _DriveApi {
     return this.addFile(parent, parts.at(-1)!, text);
   }
 
-  /** Put a file, or a folder, in Drive's trash, as if by its website. */
-  trashItem(id: string): void {
+  /** Put a file, or a folder, in Drive's bin, as if by its website. */
+  binItem(id: string): void {
     this.item(id).trashed = true;
   }
 
@@ -125,13 +125,13 @@ export class FakeDrive implements _DriveApi {
     return i.parent === this.root ? i.name : `${this.pathOf(this.item(i.parent))}/${i.name}`;
   }
 
-  /** The paths of all the files not in the trash, sorted. */
+  /** The paths of all the files not in the bin, sorted. */
   paths(): string[] {
     return [...this.items.values()].filter((i) => !i.folder && !i.trashed).map((i) => this.pathOf(i)).sort();
   }
 
-  /** The paths of the files in the trash, sorted. */
-  trashed(): string[] {
+  /** The paths of the files in the bin, sorted. */
+  binned(): string[] {
     return [...this.items.values()].filter((i) => !i.folder && i.trashed).map((i) => this.pathOf(i)).sort();
   }
 

@@ -5,14 +5,14 @@
 import { LONG_PRESS_MS, onLongPress } from '../ui/long-press';
 import { el } from '../ui/dom';
 import type { Progress } from './_detector';
-import type { FaceButtonState } from './button-state';
+import type { FaceButtonStatus } from './button-status';
 import type { TurnDir } from './gestures';
 
-export type { FaceButtonState };
+export type { FaceButtonStatus };
 
 export interface FaceButton {
   el: HTMLElement;
-  show(s: FaceButtonState): void;
+  show(s: FaceButtonStatus): void;
   /** The split ring; no progress empties it. */
   progress(p?: Record<TurnDir, Progress>): void;
   /** One pulse. */

@@ -24,7 +24,7 @@ export type Where =
   | { kind: 'inbox'; inboxAt: number }
   /** In Recently removed, at OPFS removed/<removedAt>-<id>; `path` is where it was. */
   | { kind: 'removed'; removedAt: number }
-  /** In a root's own bin (Drive's trash), removed at `removedAt`; Volti keeps no bytes. `path` is where it was. */
+  /** In a root's own bin (Drive's bin), removed at `removedAt`; Volti keeps no bytes. `path` is where it was. */
   | { kind: 'binned'; removedAt: number; binned: Stamp }
   /** Nowhere Volti can find: deleted outside Volti, or purged from Recently removed. */
   | { kind: 'gone' };

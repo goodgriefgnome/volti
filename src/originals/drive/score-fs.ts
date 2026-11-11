@@ -113,7 +113,7 @@ export async function _downloadMissing(
  * Keep these originals' bytes on the tablet for good (the offline job's setlist scores): pinned,
  * and, in a Drive folder, downloaded when not kept yet. A device folder has its files already.
  */
-export async function keepOriginalsOffline(ids: readonly string[]): Promise<void> {
+export async function pinOriginals(ids: readonly string[]): Promise<void> {
   await _byteCache.pin(ids);
   const link = await _storedLink();
   if (link?.kind !== 'drive' || !link.linked) return;

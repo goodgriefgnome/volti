@@ -8,10 +8,10 @@
  * pinned ones too.
  */
 const EPOCH = 1;
-const DIR = `page-cache-${EPOCH}`;
+const FOLDER = `page-cache-${EPOCH}`;
 const INDEX = 'index.json';
 /** The folder of the saved pictures before the page cache, deleted. */
-const OLD_DIR = 'page-pictures';
+const OLD_FOLDER = 'page-pictures';
 const SAVE_DELAY_MS = 5000;
 
 /** Told what storage failed to do (`what` reads after "Could not"), as the page cache can't show anything itself: the library sets it. */
@@ -25,7 +25,7 @@ const nameOf = (id: string, page: number, w: number) => `${id}-${page}-${w}.webp
 const keyOf = (id: string, page: number, w: number) => `${id}/${page}/${w}`;
 
 export class Saved {
-  private loaded?: Promise<{ dir: FileSystemDirectoryHandle; index: Map<string, Entry> } | null>;
+  private loaded?: Promise<{ folder: FileSystemDirectoryHandle; index: Map<string, Entry> } | null>;
   private writing = new Map<string, Promise<void>>();
   private dirty = false;
   private saving: Promise<void> = Promise.resolve();
@@ -37,18 +37,18 @@ export class Saved {
       try {
         const root = await navigator.storage.getDirectory();
         for await (const name of root.keys()) {
-          const old = name === OLD_DIR || (/^page-cache-\d+$/.test(name) && name !== DIR);
+          const old = name === OLD_FOLDER || (/^page-cache-\d+$/.test(name) && name !== FOLDER);
           if (old) await root.removeEntry(name, { recursive: true }).catch(() => {});
         }
-        const dir = await root.getDirectoryHandle(DIR, { create: true });
+        const folder = await root.getDirectoryHandle(FOLDER, { create: true });
         const index = new Map<string, Entry>();
         try {
-          const text = await (await (await dir.getFileHandle(INDEX)).getFile()).text();
+          const text = await (await (await folder.getFileHandle(INDEX)).getFile()).text();
           for (const e of JSON.parse(text) as Entry[]) index.set(nameOf(e.id, e.page, e.w), e);
         } catch { /* none yet, or unreadable: nothing is known saved */ }
         // Files not in the index (a crash before it was written) are of no use.
-        for await (const name of dir.keys()) if (name !== INDEX && !index.has(name)) await dir.removeEntry(name).catch(() => {});
-        return { dir, index };
+        for await (const name of folder.keys()) if (name !== INDEX && !index.has(name)) await folder.removeEntry(name).catch(() => {});
+        return { folder, index };
       } catch (e) {
         trouble('keep saved pages', e);
         return null;
@@ -56,8 +56,8 @@ export class Saved {
     })());
   }
 
-  /** Write index.json soon (at once when `now`), after any write before it. */
-  private persist(now: boolean) {
+  /** Save index.json soon (at once when `now`), after any save before it. */
+  private saveIndex(now: boolean) {
     this.dirty = true;
     clearTimeout(this.timer);
     const go = () => {
@@ -66,7 +66,7 @@ export class Saved {
         if (!l || !this.dirty) return;
         this.dirty = false;
         try {
-          const w = await (await l.dir.getFileHandle(INDEX, { create: true })).createWritable();
+          const w = await (await l.folder.getFileHandle(INDEX, { create: true })).createWritable();
           await w.write(JSON.stringify([...l.index.values()]));
           await w.close();
         } catch (e) {
@@ -90,18 +90,18 @@ export class Saved {
     const name = nameOf(id, page, pxWidth), e = l?.index.get(name);
     if (!l || !e) return null;
     try {
-      const bitmap = await createImageBitmap(await (await l.dir.getFileHandle(name)).getFile());
+      const bitmap = await createImageBitmap(await (await l.folder.getFileHandle(name)).getFile());
       const canvas = Object.assign(document.createElement('canvas'), { width: bitmap.width, height: bitmap.height });
       canvas.getContext('2d', { alpha: false })!.drawImage(bitmap, 0, 0);
       bitmap.close();
       e.used = Date.now();
-      this.persist(false);
+      this.saveIndex(false);
       return canvas;
     } catch (err) {
       trouble('read a saved page', err);
       l.index.delete(name);
-      void l.dir.removeEntry(name).catch(() => {});
-      this.persist(false);
+      void l.folder.removeEntry(name).catch(() => {});
+      this.saveIndex(false);
       return null;
     }
   }
@@ -113,7 +113,7 @@ export class Saved {
     const name = nameOf(id, page, pxWidth), have = l.index.get(name);
     if (have) {
       have.used = Date.now();
-      if (pinned && !have.pinned) { have.pinned = true; this.persist(true); }
+      if (pinned && !have.pinned) { have.pinned = true; this.saveIndex(true); }
       return;
     }
     const going = this.writing.get(name);
@@ -125,14 +125,14 @@ export class Saved {
       try {
         const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.9));
         if (!blob) throw new Error('Could not encode it');
-        const w = await (await l.dir.getFileHandle(name, { create: true })).createWritable();
+        const w = await (await l.folder.getFileHandle(name, { create: true })).createWritable();
         await w.write(blob);
         await w.close();
         l.index.set(name, { id, page, w: pxWidth, bytes: blob.size, pinned, used: Date.now() });
-        this.persist(true);
+        this.saveIndex(true);
       } catch (e) {
         trouble('save a page', e);
-        void l.dir.removeEntry(name).catch(() => {});
+        void l.folder.removeEntry(name).catch(() => {});
       }
     })();
     this.writing.set(name, job);
@@ -147,7 +147,7 @@ export class Saved {
     const l = await this.load();
     if (!l) return;
     for (const e of l.index.values()) if (!keep.has(e.id)) e.pinned = set.has(keyOf(e.id, e.page, e.w));
-    this.persist(true);
+    this.saveIndex(true);
   }
 
   /** Whether any page of `id` is saved. */
@@ -177,8 +177,8 @@ export class Saved {
       const name = nameOf(e.id, e.page, e.w);
       l.index.delete(name);
       total -= e.bytes;
-      await l.dir.removeEntry(name).catch(() => {});
+      await l.folder.removeEntry(name).catch(() => {});
     }
-    this.persist(true);
+    this.saveIndex(true);
   }
 }

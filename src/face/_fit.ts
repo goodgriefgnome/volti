@@ -1,5 +1,5 @@
-// A gesture's model: what its trials give (its template, its levels, its flags), and the check that
-// gestures turning pages don't conflict. A port of the `build`, `firesOn`, `conflictOf` and `settle`
+// A gesture's fit: what its trials give (its template, its levels, its flags), and the check that
+// gestures turning pages don't conflict. A port of the prototype's `build`, `firesOn`, `conflictOf` and `settle`
 // of public/lab/face-classifier.html; docs/face-classifier-spec.md says what they must be. Pure.
 
 import { framesOf, type Trial } from './_recording';
@@ -47,7 +47,7 @@ const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
  * of the score over rest frames; each rep's peak is its median held score against a template fitted
  * without it), and what is wrong with it.
  */
-export function build(trials: Trial[]): Fit {
+export function buildFit(trials: Trial[]): Fit {
   const out: Fit = { version: FIT_VERSION, trials: trials.length, flags: [] };
   if (trials.length < MIN_TRIALS) {
     out.flags.push({ kind: 'tooFew' });

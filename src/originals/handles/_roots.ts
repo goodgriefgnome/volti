@@ -8,7 +8,7 @@ import { _FolderScan } from '../_folder-scan';
 import { _bytesName, _sameStamp } from '../_record-model';
 import type { Known, Moved, ScoreRoot, Stamp, UndeleteInfo, Update, Updates } from '../_types';
 import { folderOf, _nameOf } from '../path-utils';
-import { _removedDir } from '../trash-fs';
+import { _removedFolder } from '../removed-fs';
 import { NoAccess } from '../types';
 
 /** New files are few and wanted soon, so their hashing goes this many at once. */
@@ -16,7 +16,7 @@ const NEW_FILES_AT_ONCE = 8;
 
 abstract class DirectoryHandleRoot implements ScoreRoot {
   /** `bin` is Volti's removed folder, where a removed file's copy goes. */
-  constructor(protected dir: FileSystemDirectoryHandle, protected bin: () => Promise<FileSystemDirectoryHandle> = _removedDir) {}
+  constructor(protected folder: FileSystemDirectoryHandle, protected bin: () => Promise<FileSystemDirectoryHandle> = _removedFolder) {}
 
   abstract access(): Promise<'ready' | 'locked'>;
   abstract needAccess(mode: 'read' | 'readwrite'): Promise<void>;
@@ -105,14 +105,14 @@ abstract class DirectoryHandleRoot implements ScoreRoot {
   /** The folder a path in the root is in, and the file's name. */
   protected async placeOf(path: string): Promise<[FileSystemDirectoryHandle, string]> {
     const parts = path.split('/');
-    let d = this.dir;
+    let d = this.folder;
     for (const p of parts.slice(0, -1)) d = await d.getDirectoryHandle(p);
     return [d, parts.at(-1)!];
   }
 
   /** The subfolder `path` of the root ('' for the root itself), making the folders on it that aren't there yet. */
   protected async makeFolder(path: string): Promise<FileSystemDirectoryHandle> {
-    let d = this.dir;
+    let d = this.folder;
     for (const p of path ? path.split('/') : []) d = await d.getDirectoryHandle(p, { create: true });
     return d;
   }
@@ -147,13 +147,13 @@ export class LinkedDirectoryHandleRoot extends DirectoryHandleRoot {
   private hidden = new Map<string, { id: string; stamp?: Stamp }>();
 
   async access(): Promise<'ready' | 'locked'> {
-    return (await this.dir.queryPermission({ mode: 'read' })) === 'granted' ? 'ready' : 'locked';
+    return (await this.folder.queryPermission({ mode: 'read' })) === 'granted' ? 'ready' : 'locked';
   }
 
   /** Asking works only from a tap: elsewhere, or when it is refused, throws NoAccess. */
   async needAccess(mode: 'read' | 'readwrite'): Promise<void> {
-    if ((await this.dir.queryPermission({ mode })) === 'granted') return;
-    if ((await this.dir.requestPermission({ mode }).catch(() => 'denied')) !== 'granted') throw new NoAccess('Volti has no access to the scores folder.');
+    if ((await this.folder.queryPermission({ mode })) === 'granted') return;
+    if ((await this.folder.requestPermission({ mode }).catch(() => 'denied')) !== 'granted') throw new NoAccess('Volti has no access to the scores folder.');
   }
 
   protected stampOf(file: File): Stamp {
@@ -168,7 +168,7 @@ export class LinkedDirectoryHandleRoot extends DirectoryHandleRoot {
    */
   async *getUpdates(known: Known, signal: AbortSignal): AsyncIterable<Updates> {
     const walked: [string, FileSystemFileHandle][] = [];
-    await walk(this.dir, '', 0, walked);
+    await walk(this.folder, '', 0, walked);
     if (signal.aborted) return;
     const handles = new Map(walked);
 

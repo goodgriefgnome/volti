@@ -7,7 +7,7 @@ import { Library } from './library/library';
 import { loadMarkingColors } from './markings/store';
 import { finishSignIn } from './originals/drive/score-fs';
 import { tidyStorage } from './originals/library-files';
-import { purgeRemoved } from './originals/trash-fs';
+import { purgeRemoved } from './originals/removed-fs';
 import { upgradeStoredData } from './stored-data';
 import { button, el } from './ui/dom';
 import { followVisibleArea } from './ui/overlay';

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { seeded, storedTrial, type Values } from './_test-frames';
 import { newGesture, type FaceSettings, type Gesture } from './gestures';
-import { build } from './_model';
+import { buildFit } from './_fit';
 import type { Trial } from './_recording';
 import { settled } from './_settling';
 
@@ -11,7 +11,7 @@ const none = { mouthLeft: 0, browInnerUp: 0, browOuterUpLeft: 0, browOuterUpRigh
 
 function made(id: string, name: string, held: Values, direction: Gesture['direction'] = 'next'): { g: Gesture; trials: Trial[] } {
   const ts = trials(held, none);
-  return { g: { ...newGesture(name), id, direction, fit: build(ts) }, trials: ts };
+  return { g: { ...newGesture(name), id, direction, fit: buildFit(ts) }, trials: ts };
 }
 
 describe('settled', () => {

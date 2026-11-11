@@ -101,7 +101,7 @@
 .part-drive { background: var(--part-drive); }
 .part-setlists { background: var(--part-setlists); }
 .part-cache { background: var(--part-cache); }
-.part-trash { background: var(--part-trash); }
+.part-removed { background: var(--part-removed); }
 .part-app { background: var(--part-app); }
 .part-other { background: var(--muted); }
 

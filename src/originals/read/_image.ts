@@ -88,7 +88,7 @@ function drawUpright(bitmap: ImageBitmap): HTMLCanvasElement {
 }
 
 /** A blank canvas `w` × `h`, white, to draw an image on. */
-function sheet(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
+function blankCanvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
   const canvas = Object.assign(document.createElement('canvas'), { width: w, height: h });
   const ctx = canvas.getContext('2d', { alpha: false })!;
   ctx.fillStyle = '#ffffff';
@@ -111,7 +111,7 @@ export class ImageSource implements OpenPages {
     signal.throwIfAborted();
     if (crop) {
       const s = this.bitmap.width / pxWidth;
-      const [canvas, ctx] = sheet(crop.w, crop.h);
+      const [canvas, ctx] = blankCanvas(crop.w, crop.h);
       ctx.drawImage(this.bitmap, crop.x * s, crop.y * s, crop.w * s, crop.h * s, 0, 0, crop.w, crop.h);
       return canvas;
     }
@@ -119,7 +119,7 @@ export class ImageSource implements OpenPages {
     const resized = await createImageBitmap(this.bitmap, { resizeWidth: pxWidth, resizeHeight: height, resizeQuality: 'high' });
     try {
       signal.throwIfAborted();
-      const [canvas, ctx] = sheet(pxWidth, height);
+      const [canvas, ctx] = blankCanvas(pxWidth, height);
       ctx.drawImage(resized, 0, 0);
       return canvas;
     } finally {

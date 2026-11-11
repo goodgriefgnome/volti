@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { activeOf, faceSettingsFrom, hasGestures, levelsOf, newGesture, NO_GESTURES, withFit, withLevels, type Gesture } from './gestures';
-import { FIT_VERSION, type Fit } from './_model';
+import { FIT_VERSION, type Fit } from './_fit';
 
 const template = { rows: [{ c: 0, side: 1 as const, edge: 0.8, far: 0.1, rest: 0.02, span: 0.78, clear: 0.9 }], caps: [], missed: [] };
 const fitted: Fit = { version: FIT_VERSION, trials: 5, flags: [], template, on: 0.6, release: 0.3, rest: 0.05, peaks: [0.9, 0.95] };

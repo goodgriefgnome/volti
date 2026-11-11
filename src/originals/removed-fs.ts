@@ -1,6 +1,6 @@
 // Recently removed: a score's file removed from the library is kept here, in the app's own store
 // (OPFS removed/), with where it was and when, for a week; then it is deleted for good, as Volti
-// starts. One is put back by moving it into the library (misc-files.ts, `removedSource`). The score
+// starts. One is put back by moving it into the library (incoming-files.ts, `removedSource`). The score
 // made from it (cuts, markings, named excerpts) is kept by its id all along, as for any score whose
 // file is missing. Which files are here is in the records (_record-store.ts). Files deleted
 // outside Volti aren't here. A file removed from a Drive folder isn't kept here: it is in Drive's
@@ -12,11 +12,11 @@ import { _loadRecords, _records, _updateRecord, _updateRecords } from './_record
 import type { Removed } from './types';
 
 /** The folder of Recently removed's bytes. */
-export const _removedDir = async () => (await navigator.storage.getDirectory()).getDirectoryHandle('removed', { create: true });
+export const _removedFolder = async () => (await navigator.storage.getDirectory()).getDirectoryHandle('removed', { create: true });
 
 /** Delete the bytes kept of a removed file, once its record no longer says they are there. */
 export async function _forgetRemovedBytes(id: string, at: number): Promise<void> {
-  await (await _removedDir()).removeEntry(_bytesName(id, { kind: 'removed', removedAt: at })).catch(() => {});
+  await (await _removedFolder()).removeEntry(_bytesName(id, { kind: 'removed', removedAt: at })).catch(() => {});
 }
 
 /**
@@ -26,7 +26,7 @@ export async function _forgetRemovedBytes(id: string, at: number): Promise<void>
  */
 export async function _keepRemoved(id: string, path: string, file: File): Promise<void> {
   const at = Date.now();
-  await writeFile(await _removedDir(), _bytesName(id, { kind: 'removed', removedAt: at }), file);
+  await writeFile(await _removedFolder(), _bytesName(id, { kind: 'removed', removedAt: at }), file);
   await _updateRecord(id, (r) => ({ ...r, path, where: { kind: 'removed', removedAt: at } }));
 }
 
@@ -41,7 +41,7 @@ export async function recentlyRemoved(): Promise<Removed[]> {
 }
 
 /** A removed file's file, as it was. */
-export const _removedFile = async (r: Removed) => (await (await _removedDir()).getFileHandle(_bytesName(r.id, { kind: 'removed', removedAt: r.at }))).getFile();
+export const _removedFile = async (r: Removed) => (await (await _removedFolder()).getFileHandle(_bytesName(r.id, { kind: 'removed', removedAt: r.at }))).getFile();
 
 /** A place that is a removal, kept here or in a bin; else nothing. */
 const removal = (where?: Where) => (where?.kind === 'removed' || where?.kind === 'binned' ? where : undefined);
@@ -66,6 +66,6 @@ export async function purgeRemoved(now = Date.now()): Promise<void> {
 /** How much room the removed files take, in bytes. */
 export async function removedBytes(): Promise<number> {
   let n = 0;
-  for await (const [, h] of (await _removedDir()).entries()) if (h.kind === 'file') n += (await (h as FileSystemFileHandle).getFile()).size;
+  for await (const [, h] of (await _removedFolder()).entries()) if (h.kind === 'file') n += (await (h as FileSystemFileHandle).getFile()).size;
   return n;
 }

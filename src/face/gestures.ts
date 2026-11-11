@@ -2,7 +2,7 @@
 // levels, the fit its trials gave, and what can turn a page. Pure: no DOM, no camera, no storage
 // (face/store.ts stores them).
 
-import { FIT_VERSION, type Fit, type Flag } from './_model';
+import { FIT_VERSION, type Fit, type Flag } from './_fit';
 import type { Cap, Row, Template } from './_template';
 
 export type TurnDir = 'next' | 'prev';

@@ -1,5 +1,5 @@
-// Writing the reader's changes to storage: scores and setlists, together, at most twice a second,
-// and again until a write that failed succeeds.
+// Saving the reader's changes: scores and setlists, together, at most twice a second, and again
+// until a save that failed succeeds.
 
 import { scoreEntries } from '../scores/store';
 import { saveChanged } from '../setlists/store';

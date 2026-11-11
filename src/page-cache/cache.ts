@@ -120,7 +120,7 @@ export async function* canvasesOf(drawn: AsyncIterable<Drawn>): AsyncGenerator<H
  * other pinned page becomes an ordinary saved one. Gives those of `pages` already saved at exactly
  * their width.
  */
-export async function pinOffline(pages: readonly PinnedKey[], unknown: readonly string[]): Promise<PinnedKey[]> {
+export async function pinPages(pages: readonly PinnedKey[], unknown: readonly string[]): Promise<PinnedKey[]> {
   pinned = new Set(pages.map((p) => keyOf(p.id, p.page, p.pxWidth)));
   await saved.pin(pinned, new Set(unknown));
   const already: PinnedKey[] = [];

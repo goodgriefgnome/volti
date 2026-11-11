@@ -104,7 +104,7 @@ type Where =
   | { kind: 'inbox'; inboxAt: number }
   /** In Recently removed, at OPFS removed/<removedAt>-<id>; `path` is where it was. */
   | { kind: 'removed'; removedAt: number }
-  /** In a root's own bin (Drive's trash), removed at `removedAt`; Volti keeps no bytes. `binned` is what that root needs to take it out again (Drive: `fileId`, `parent`, `folderId`). `path` is where it was. */
+  /** In a root's own bin (Drive's bin), removed at `removedAt`; Volti keeps no bytes. `binned` is what that root needs to take it out again (Drive: `fileId`, `parent`, `folderId`). `path` is where it was. */
   | { kind: 'binned'; removedAt: number; binned: Readonly<Record<string, string | number>> }
   /** Nowhere Volti can find: deleted outside Volti, or purged from Recently removed. */
   | { kind: 'gone' };
@@ -302,7 +302,7 @@ interface Gesture {
   note?: string;                                 // why it was set to none, in words
   fit: Fit;
 }
-interface Fit {                                  // face/_model.ts: what its trials gave
+interface Fit {                                  // face/_fit.ts: what its trials gave
   version: number;                               // FIT_VERSION when it was fitted
   trials: number;                                // how many it was fitted from
   flags: Flag[];                                 // tooFew, noChannels, unreliable, firesAtRest { frames, ms }
@@ -385,7 +385,7 @@ is ignored.
 | --- | --- | --- |
 | `library/` | Volti's own folder: the root while no folder is linked. A file at library path `p` is at `library/p`. | `originals/handles/internal-score-fs.ts` |
 | `inbox/` | Files shared to Volti, one per id, named by the id. | `originals/inbox-fs.ts` |
-| `removed/` | Recently removed, named `<removedAt>-<id>`. | `originals/trash-fs.ts` |
+| `removed/` | Recently removed, named `<removedAt>-<id>`. | `originals/removed-fs.ts` |
 | `bytes/` | Copies of the files of a Google Drive folder, named by id, with an index `bytes/index.json` (`{ [id]: { size, used, pinned } }`). Kept within a quarter of the storage quota, least recently used out first; those of setlists' scores are pinned. Emptied when the folder is unlinked. Belongs to no record: Drive's own checksums are the ids. | `originals/drive/_byte-cache.ts` |
 | the page cache's directories | Drawn pages | `page-cache/` (not covered here) |
 
@@ -420,8 +420,8 @@ Two contexts write: the page, and the service worker (sharing). So:
 | **Locked folder** | None changed. The library is the `folder` records. | |
 | **Adding a file** (Add PDFs, a share, putting back, moving one left in Volti's folder) | `folder` or `internal` at the chosen path. | Written into the root, then the old place's bytes deleted. |
 | **Renaming or moving a file** | `path` and the root's stamp. | Moved in the root. |
-| **Removing a file** | In a device folder or Volti's own: `removed`, with `removedAt` now; `path` unchanged. In a Drive folder: `binned`, with `removedAt` now and the Drive file's id, its folder and the linked folder's id. | Device: copied to `removed/`, then deleted from the root. Volti's own: moved to `removed/`. Drive: the file goes to Drive's trash; nothing is downloaded or written. |
-| **Putting a file back** | `folder` or `internal` at the path chosen. | A `removed` copy is written into the root, as for adding a file, then deleted. A `binned` file is taken out of Drive's trash and moved to the path in one request, by the root that has its bin (the linked Drive folder, only if it is the one it was removed from). |
+| **Removing a file** | In a device folder or Volti's own: `removed`, with `removedAt` now; `path` unchanged. In a Drive folder: `binned`, with `removedAt` now and the Drive file's id, its folder and the linked folder's id. | Device: copied to `removed/`, then deleted from the root. Volti's own: moved to `removed/`. Drive: the file goes to Drive's bin; nothing is downloaded or written. |
+| **Putting a file back** | `folder` or `internal` at the path chosen. | A `removed` copy is written into the root, as for adding a file, then deleted. A `binned` file is taken out of Drive's bin and moved to the path in one request, by the root that has its bin (the linked Drive folder, only if it is the one it was removed from). |
 | **Sharing a file** (service worker) | No record, `removed` or `gone`: `inbox` at `_importName(name)`, with `inboxAt` now. A better place already: unchanged. | Written to `inbox/<id>` first; a `removed` copy deleted. A file with a better place is dropped. |
 | **Leaving a shared file out**, or cancelling | `removed`, with `removedAt` now. | Moved from `inbox/` to `removed/`. |
 | **Purging** (at start-up) | `removed` or `binned` for 7 days or more: `gone`. | A `removed` copy is deleted. A `binned` file is left to Drive, which empties its bin itself. |

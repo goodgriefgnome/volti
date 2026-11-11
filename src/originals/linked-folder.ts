@@ -7,7 +7,7 @@ import { _loadRecords, _records, _updateRecords } from './_record-store';
 import type { ScoreRoot } from './_types';
 import { _deviceRoot, _pickFolder, _unlockDevice } from './handles/device-score-fs';
 import { _driveRoot, _forgetDrive } from './drive/score-fs';
-import type { FolderState } from './types';
+import type { FolderStatus } from './types';
 
 /** The link, read once; undefined before it is read (`read` tells), and when there is none. */
 let link: FolderLink | undefined;
@@ -26,7 +26,7 @@ export async function _linkedRoot(): Promise<ScoreRoot | undefined> {
   return undefined;
 }
 
-export async function folderState(): Promise<FolderState> {
+export async function folderStatus(): Promise<FolderStatus> {
   const l = await current();
   if (!l) return { kind: 'none' };
   const name = l.kind === 'device' ? l.handle.name : l.name;

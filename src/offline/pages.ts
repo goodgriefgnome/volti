@@ -5,12 +5,12 @@
 // original is read only while it is used.
 
 import { excerptCuts } from '../scores/excerpts';
-import { keepOriginalsOffline } from '../originals/drive/score-fs';
+import { pinOriginals } from '../originals/drive/score-fs';
 import { knownAspects, savePageOffline } from '../originals/read/original';
 import { knownTitles } from '../originals/library-files';
 import { titleOf } from '../originals/path-utils';
 import { NoAccess, PasswordNotGiven, Unreachable, type Original, type SourceFile } from '../originals/types';
-import { pinOffline } from '../page-cache/cache';
+import { pinPages } from '../page-cache/cache';
 import type { PinnedKey, PinnedPage } from '../page-cache/types';
 import { offlinePageWidths } from '../render/screen';
 import { loadScore } from '../scores/store';
@@ -35,7 +35,7 @@ let running: AbortController | undefined;
  * progress, at most every 250 ms, and once more when the run ends. Archived setlists aren't kept,
  * so they get none.
  */
-export function keepSetlistPagesOffline(originals: readonly SourceFile[], setlists: readonly Setlist[], heard: (s: Map<string, OfflineStatus>) => void) {
+export function pinSetlistPages(originals: readonly SourceFile[], setlists: readonly Setlist[], heard: (s: Map<string, OfflineStatus>) => void) {
   clearTimeout(timer);
   running?.abort();
   const mine = running = new AbortController();
@@ -48,7 +48,7 @@ async function make(signal: AbortSignal, originals: readonly SourceFile[], setli
   const live = setlists.filter((s) => !s.archived);
   const entries = live.flatMap((s) => s.entries);
   // The originals of these scores are kept on the tablet for good, as their pages are (only a Drive folder keeps copies; a device folder has its files).
-  await keepOriginalsOffline([...new Set(entries.map((e) => e.scoreId))]);
+  await pinOriginals([...new Set(entries.map((e) => e.scoreId))]);
   // The screen's size, not the library's window: the reader fills the screen (status bar and address
   // bar included), which the library doesn't, and a saved page only serves a request of about its width.
   // Either way up, as Android swaps the two with the orientation.
@@ -117,7 +117,7 @@ async function make(signal: AbortSignal, originals: readonly SourceFile[], setli
     heard(statuses(finished));
   };
   const keyed = (id: string, p: PinnedPage): PinnedKey => ({ id, page: p.page, pxWidth: p.pxWidth });
-  for (const k of await pinOffline([...scores].flatMap(([id, pages]) => pages.map((p) => keyed(id, p))), unknown)) saved.add(pageKey(k.id, k.page, k.pxWidth));
+  for (const k of await pinPages([...scores].flatMap(([id, pages]) => pages.map((p) => keyed(id, p))), unknown)) saved.add(pageKey(k.id, k.page, k.pxWidth));
   if (signal.aborted) return;
   tell(false);
 

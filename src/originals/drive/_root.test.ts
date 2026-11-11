@@ -45,7 +45,7 @@ describe('DriveRoot getUpdates', () => {
       'a.pdf': 'a', 'B/b.pdf': 'b', 'B/C/c.png': 'c', 'B/C/D/d.pdf': 'd', 'B/C/D/E/e.pdf': 'e', 'B/C/D/E/F/f.pdf': 'f',
       'notes.txt': 'n', 'B/x.pdf': 'trashed',
     });
-    drive.trashItem(drive.put('t.pdf', 'trashed too'));
+    drive.binItem(drive.put('t.pdf', 'trashed too'));
     const slash = drive.addFile(drive.root, 'a/b.pdf', 'slash');
     expect(slash).toBeTruthy();
     const changes = await scan(root);
@@ -53,9 +53,9 @@ describe('DriveRoot getUpdates', () => {
     expect(changes.find((c) => c.found?.path === 'a.pdf')!.id).toBe(await hash('a'));
   });
 
-  it('leaves out a file in the trash', async () => {
+  it('leaves out a file in the bin', async () => {
     const { drive, root } = setup({ 'a.pdf': 'a' });
-    drive.trashItem(drive.put('b.pdf', 'b'));
+    drive.binItem(drive.put('b.pdf', 'b'));
     expect(paths(await scan(root))).toEqual(['a.pdf']);
   });
 
@@ -197,41 +197,41 @@ describe('DriveRoot changes', () => {
     expect(drive.paths()).toEqual(['c.pdf']);
   });
 
-  it('puts a removed file in the trash, downloading and writing nothing', async () => {
+  it('puts a removed file in the bin, downloading and writing nothing', async () => {
     const { drive, root, cache } = setup({ 'a.pdf': 'a', 'b.pdf': 'b' });
     const info = await root.remove('a.pdf');
     expect(drive.paths()).toEqual(['b.pdf']);
-    expect(drive.trashed()).toEqual(['a.pdf']);
+    expect(drive.binned()).toEqual(['a.pdf']);
     expect(info).toHaveProperty('binned');
     expect(drive.count('download')).toBe(0);
     expect(drive.count('upload')).toBe(0);
     expect(await cache.size()).toBe(0);
   });
 
-  it('takes a removed file out of the trash, to another path, with its own Drive id', async () => {
+  it('takes a removed file out of the bin, to another path, with its own Drive id', async () => {
     const { drive, root } = setup({ 'A/a.pdf': 'a' });
     const fileId = drive.put('keep.pdf', 'k');
     const info = await root.remove('A/a.pdf') as { binned: Record<string, string> };
     expect(info.binned.fileId).not.toBe(fileId);
     expect(await root.undelete(info.binned, 'New/b.pdf')).toMatchObject({ path: 'New/b.pdf' });
     expect(drive.paths()).toEqual(['New/b.pdf', 'keep.pdf']);
-    expect(drive.trashed()).toEqual([]);
+    expect(drive.binned()).toEqual([]);
     expect(drive.text('New/b.pdf')).toBe('a');
   });
 
-  it('takes a removed file out of the trash to where it was', async () => {
+  it('takes a removed file out of the bin to where it was', async () => {
     const { drive, root } = setup({ 'A/a.pdf': 'a' });
     const info = await root.remove('A/a.pdf') as { binned: Record<string, string> };
     expect(await root.undelete(info.binned, 'A/a.pdf')).toMatchObject({ path: 'A/a.pdf' });
     expect(drive.paths()).toEqual(['A/a.pdf']);
   });
 
-  it('says taken, and leaves the file in the trash, when a file is at the path', async () => {
+  it('says taken, and leaves the file in the bin, when a file is at the path', async () => {
     const { drive, root } = setup({ 'a.pdf': 'a' });
     const info = await root.remove('a.pdf') as { binned: Record<string, string> };
     drive.put('a.pdf', 'other');
     expect(await root.undelete(info.binned, 'a.pdf')).toBe('taken');
-    expect(drive.trashed()).toEqual(['a.pdf']);
+    expect(drive.binned()).toEqual(['a.pdf']);
   });
 
   it('fails to take out a file Drive no longer has, and says which bin a file is in', async () => {
@@ -240,7 +240,7 @@ describe('DriveRoot changes', () => {
     expect(root.canUndelete(info.binned)).toBe(true);
     expect(root.canUndelete({ ...info.binned, folderId: 'another' })).toBe(false);
     await expect(root.undelete({ ...info.binned, fileId: 'gone' }, 'b.pdf')).rejects.toThrow('404');
-    expect(drive.trashed()).toEqual(['a.pdf']);
+    expect(drive.binned()).toEqual(['a.pdf']);
   });
 });
 

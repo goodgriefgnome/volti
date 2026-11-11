@@ -65,7 +65,7 @@ export interface Original extends SourceFile, Pages {
 }
 
 /** Whether a scores folder is linked, and whether this session may read it. */
-export type FolderState =
+export type FolderStatus =
   | { kind: 'none' }
   | { kind: 'ready'; name: string; place: 'device' | 'drive' }
   | { kind: 'locked'; name: string; place: 'device' | 'drive' }; // linked, but needs a tap to allow access this session

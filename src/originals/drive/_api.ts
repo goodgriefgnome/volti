@@ -11,17 +11,17 @@ export interface _DriveItem { id: string; name: string; folder: boolean; sha256?
 
 /** What Volti asks of Drive. DriveRoot and the folder chooser use only this, so tests stand in for it. */
 export interface _DriveApi {
-  /** The folder's children, every page, not trashed: files and folders. */
+  /** The folder's children, every page, not in the bin: files and folders. */
   children(folderId: string, signal?: AbortSignal): Promise<_DriveItem[]>;
-  /** The children called `name`, not trashed. */
+  /** The children called `name`, not in the bin. */
   named(folderId: string, name: string): Promise<_DriveItem[]>;
   download(fileId: string): Promise<Blob>;
   /** A new file in `folderId`, or new contents for `over`. Gives its id. */
   upload(folderId: string, name: string, data: Blob, over?: string): Promise<string>;
   createFolder(parentId: string, name: string): Promise<string>;
-  /** Rename and/or move a file (from `fromFolder` to `toFolder`), and/or take it out of the trash (`untrash`), in one request. */
-  update(fileId: string, change: { name?: string; fromFolder?: string; toFolder?: string; untrash?: boolean }): Promise<void>;
-  trash(fileId: string): Promise<void>;
+  /** Rename and/or move a file (from `fromFolder` to `toFolder`), and/or take it out of the bin (`unbin`), in one request. */
+  update(fileId: string, change: { name?: string; fromFolder?: string; toFolder?: string; unbin?: boolean }): Promise<void>;
+  bin(fileId: string): Promise<void>;
 }
 
 const API = 'https://www.googleapis.com/drive/v3/files';
@@ -94,11 +94,11 @@ export function _httpDriveApi(auth: _DriveAuth): _DriveApi {
       const res = await send(`${API}?fields=id`, { method: 'POST', headers: json, body: JSON.stringify({ name, mimeType: FOLDER, parents: [parentId] }) });
       return ((await res.json()) as { id: string }).id;
     },
-    async update(fileId, { name, fromFolder, toFolder, untrash }) {
+    async update(fileId, { name, fromFolder, toFolder, unbin }) {
       const params = new URLSearchParams({ fields: 'id', ...(toFolder && toFolder !== fromFolder ? { addParents: toFolder, removeParents: fromFolder ?? '' } : {}) });
-      await send(`${API}/${fileId}?${params}`, { method: 'PATCH', headers: json, body: JSON.stringify({ ...(name === undefined ? {} : { name }), ...(untrash ? { trashed: false } : {}) }) });
+      await send(`${API}/${fileId}?${params}`, { method: 'PATCH', headers: json, body: JSON.stringify({ ...(name === undefined ? {} : { name }), ...(unbin ? { trashed: false } : {}) }) });
     },
-    async trash(fileId) {
+    async bin(fileId) {
       await send(`${API}/${fileId}?fields=id`, { method: 'PATCH', headers: json, body: JSON.stringify({ trashed: true }) });
     },
   };

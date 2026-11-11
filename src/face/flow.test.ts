@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { frameOf, seeded, type Values } from './_test-frames';
 import { NEW_DETECTOR, step, type DetectorState } from './_detector';
 import { activeOf, newGesture, type TurnDir } from './gestures';
-import { build } from './_model';
+import { buildFit } from './_fit';
 import { recorder, type Trial } from './_recording';
 
 const random = seeded(3);
@@ -21,7 +21,7 @@ function record(): Trial {
 
 describe('recording to turning', () => {
   const trials = [record(), record(), record()];
-  const gesture = { ...newGesture('Mouth right'), direction: 'prev' as const, fit: build(trials) };
+  const gesture = { ...newGesture('Mouth right'), direction: 'prev' as const, fit: buildFit(trials) };
   const active = activeOf({ gestures: [gesture] });
 
   /** Frames of `values` at 67 ms from 0: the times at which a page turned. */

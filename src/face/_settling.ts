@@ -1,8 +1,8 @@
 // Settling the conflicts of a set of gestures: those that can turn a page, checked against each
-// other (_model.ts), and each one that conflicts set to none with why. Pure: the trials come in
+// other (_fit.ts), and each one that conflicts set to none with why. Pure: the trials come in
 // as given (face/store.ts and the dialog load them).
 
-import { settle, type Contender } from './_model';
+import { settle, type Contender } from './_fit';
 import { levelsOf, type FaceSettings } from './gestures';
 import { framesOf, type Trial } from './_recording';
 

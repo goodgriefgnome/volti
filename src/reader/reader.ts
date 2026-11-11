@@ -5,7 +5,7 @@
 
 import { ends } from '../scores/excerpts';
 import { type Marking } from '../markings/model';
-import { folderState, unlockFolder } from '../originals/linked-folder';
+import { folderStatus, unlockFolder } from '../originals/linked-folder';
 import { knownTitles } from '../originals/library-files';
 import { NoAccess, type SourceFile } from '../originals/types';
 import { canvasesOf } from '../page-cache/cache';
@@ -25,7 +25,7 @@ import { loadSetlists } from '../setlists/store';
 import { type Setlist } from '../setlists/model';
 import { closeOverlay } from '../ui/overlay';
 import { loadToolSettings, saveToolSettings } from '../markings/store';
-import { buttonState } from '../face/button-state';
+import { buttonStatus } from '../face/button-status';
 import { openFaceGestures } from '../face/dialog';
 import { faceButton, type FaceButton } from '../face/face-button';
 import { activeOf, hasGestures, NO_GESTURES, type FaceSettings } from '../face/gestures';
@@ -607,7 +607,7 @@ class Reader {
   }
 
   private showFaceButton() {
-    this.faceButton.show(buttonState({ available: hasGestures(this.faceSettings), watching: this.watching, camera: this.camera, faceSeen: this.faceSeen }));
+    this.faceButton.show(buttonStatus({ available: hasGestures(this.faceSettings), watching: this.watching, camera: this.camera, faceSeen: this.faceSeen }));
   }
 
   /** Open the Face gestures dialog; watching stops while it is open. */
@@ -792,7 +792,7 @@ class Reader {
     this.scores.accessAllowed();
     await this.scores.ensure(this.k, true);
     if (!(await this.readable())) {
-      const folder = await folderState();
+      const folder = await folderStatus();
       this.say(folder.kind !== 'none' && folder.place === 'drive'
         ? 'Sign in to Google Drive from the library to read this score.'
         : 'Volti can’t read the scores folder without access.');

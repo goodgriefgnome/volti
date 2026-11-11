@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 
 /** The last stage of the vocabulary plan that is done: the entries of later stages are not yet checked. */
-const DONE = 3;
+const DONE = 4;
 
 interface Retired {
   /** Tested on the text with identifiers split into words ('words': `spreadEl` is "spread El") or as it is ('raw'). */
@@ -34,11 +34,11 @@ const RETIRED: Retired[] = [
   // Stage 4: originals, face, status.
   { on: 'words', goes: /\b(trash|untrash)\b/i, wins: 'removed, bin', stage: 4 },
   { on: 'words', goes: /\bmisc\b/i, wins: 'incoming', stage: 4 },
-  { on: 'words', goes: /\b(dir|dirs)\b/i, wins: 'folder', stage: 4 },
+  { on: 'words', goes: /\b(dir|dirs)\b/i, wins: 'folder', stage: 4, in: /^(originals\/(?!read\/)|page-cache\/)/ },
   { on: 'words', goes: /\bpersist(s|ed|ing)?\b/i, wins: 'save', stage: 4 },
   { on: 'words', goes: /\bsheet\b/i, wins: 'blankCanvas', stage: 4 },
   { on: 'raw', goes: /\b(keepOriginalsOffline|keepSetlistPagesOffline|pinOffline|keepOffline)\b/, wins: 'pin', stage: 4 },
-  { on: 'words', goes: /\bmodel\b/i, wins: 'fit', stage: 4, in: /^face\/(?!_landmarker)/ },
+  { on: 'words', goes: /\bmodel\b/i, wins: 'fit', stage: 4, in: /^face\/(?!_landmarker|watcher)/ },
   { on: 'raw', goes: /\b(FolderState|folderState|FaceButtonState|buttonState)\b|button-state/, wins: 'status', stage: 4 },
   // Stage 5: pickers and thumbnails.
   { on: 'words', goes: /\b(choose|chooses|chooser|chosen)\b/i, wins: 'pick, picker', stage: 5 },
@@ -50,6 +50,7 @@ const ALLOWED: { text: string; in?: string }[] = [
   { text: 'Paint' }, // a fill or a stroke, as a path is drawn with (markings/draw.ts, export/_annotations.ts)
   { text: 'trashed' }, // Drive's query parameter
   { text: 'placed-mark-colors' }, // a stored key, which is not renamed (STORAGE.md)
+  { text: 'storage?.persist?.()', in: 'main.ts' }, // the browser's own
   { text: 'cut-mark' }, // a cut's mark on a thumbnail
   { text: 'paint', in: 'markings/draw.ts' }, // a variable of type Paint
   { text: 'paint', in: 'export/_annotations.ts' },
