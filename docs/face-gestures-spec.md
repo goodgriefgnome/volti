@@ -147,7 +147,8 @@ Each is changed by its channel name:
 
 Each of these, and disabling or enabling a trial, fits the gesture again from its enabled trials,
 with its channel changes. Its On goes back to the fitted one, as after a recording. Channel changes
-are kept across recordings and changes to trials. **Reset** beside Channels drops them all.
+are kept across recordings and changes to trials. **Reset** beside Channels drops them all, and
+fits the gesture again but leaves its On as it is.
 `face-classifier-spec.md` says how the fit takes them.
 
 ### The dialog
