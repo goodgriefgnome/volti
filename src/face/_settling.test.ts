@@ -19,17 +19,17 @@ describe('settled', () => {
   const b = made('b', 'Mouth left, brows up', { mouthLeft: 0.8, browInnerUp: 0.7, browOuterUpLeft: 0.6, browOuterUpRight: 0.6 });
   const trialsOf = new Map([['a', a.trials], ['b', b.trials]]);
   it('sets the later of two that conflict to none, with why', () => {
-    const s = settled({ gestures: [a.g, b.g] }, trialsOf);
+    const s = settled({ hold: 500, gestures: [a.g, b.g] }, trialsOf);
     expect(s.gestures.map((g) => g.direction)).toEqual(['next', 'none']);
     expect(s.gestures[1].note).toMatch(/^Set to None: .*mouthLeft.*\.$/);
     expect(s.gestures[0].note).toBeUndefined();
   });
   it('sets the changed one to none, though it is the earlier', () => {
-    const s = settled({ gestures: [a.g, b.g] }, trialsOf, 'a');
+    const s = settled({ hold: 500, gestures: [a.g, b.g] }, trialsOf, 'a');
     expect(s.gestures.map((g) => g.direction)).toEqual(['none', 'next']);
   });
   it('leaves gestures set to none, and those not fitted, alone', () => {
-    const s: FaceSettings = { gestures: [a.g, { ...b.g, direction: 'none' }, newGesture('c')] };
+    const s: FaceSettings = { hold: 500, gestures: [a.g, { ...b.g, direction: 'none' }, newGesture('c')] };
     expect(settled(s, trialsOf)).toBe(s);
   });
 });

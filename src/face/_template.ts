@@ -50,8 +50,6 @@ export const MIN_SHIFT = 0.1;
 const MAX_SUPPORT = 10;
 /** How far short of a moving channel's edge its counterpart must stay held, to have a limit. */
 const MIN_LIMIT = 0.1;
-/** How many channels that just missed are kept, for saying what nearly moved. */
-const MISSED = 4;
 /** With this many moving channels or more, a frame's largest shortfall is left out. */
 const SPARE = 4;
 
@@ -62,8 +60,7 @@ export interface TrialFrames { held: Float32Array[]; rest: Float32Array[]; restT
 export interface Row { c: number; side: 1 | -1; edge: number; far: number; rest: number; span: number; separation: number }
 /** A limit, on a channel that must not pass it: the way its partner moves, the limit, where it is wholly out, its rest value. */
 export interface Limit { c: number; side: 1 | -1; limit: number; full: number; rest: number }
-/** `missed` are rows that didn't make it (their `separation` may be 0 or less). */
-export interface Template { rows: Row[]; limits: Limit[]; missed: Row[] }
+export interface Template { rows: Row[]; limits: Limit[] }
 
 /**
  * A gesture's template from its trials:
@@ -75,12 +72,11 @@ export interface Template { rows: Row[]; limits: Limit[]; missed: Row[] }
  *   edge (`full`), as it does when both sides do the gesture (a blink, for a wink). Only when `limit`
  *   is MIN_LIMIT or more short of `full`. A counterpart that moves the same way itself has a limit
  *   in place of its row; one that moves the other way keeps its row.
- * - `missed`: the clearest channels left out.
  */
 export function fit(trials: TrialFrames[]): Template {
   const held = trials.flatMap((t) => t.held);
   const rest = trials.flatMap((t) => t.rest);
-  if (!held.length || !rest.length) return { rows: [], limits: [], missed: [] };
+  if (!held.length || !rest.length) return { rows: [], limits: [] };
   const all: Row[] = [];
   const heldOf: number[][] = [];
   for (let c = 0; c < CHANNELS.length; c++) {
@@ -108,12 +104,7 @@ export function fit(trials: TrialFrames[]): Template {
     limited.add(p);
     limits.push({ c: p, side: r.side, limit, full: r.edge, rest: all[p].rest });
   }
-  const used = new Set([...moving.keys(), ...limited]);
-  return {
-    rows: picked.filter((r) => !limited.has(r.c)),
-    limits,
-    missed: bySeparation.filter((r) => !used.has(r.c) && Number.isFinite(r.separation)).slice(0, MISSED),
-  };
+  return { rows: picked.filter((r) => !limited.has(r.c)), limits };
 }
 
 /** How far short of the gesture a moving channel is, 0 to 1: 1 at its rest value, 0 at its held edge or past it. */

@@ -21,10 +21,28 @@ export function saveTrials(id: string, trials: Trial[]): Promise<void> {
 
 export const deleteTrials = (id: string) => kv.del(keys.faceTrials(id));
 
-/** Every gesture fitted again from its stored trials, levels by hand dropped, and conflicts settled. */
+/** Disable or enable one of a gesture's trials (`index` in stored order); gives its trials as saved. */
+export async function setTrialDisabled(id: string, index: number, disabled: boolean): Promise<Trial[]> {
+  const trials = await loadTrials(id);
+  const t = trials[index];
+  if (!t) return trials;
+  const { disabled: _was, ...rest } = t;
+  trials[index] = disabled ? { ...rest, disabled: true } : rest;
+  await saveTrials(id, trials);
+  return trials;
+}
+
+/** Delete a gesture's disabled trials for good; gives the trials left. */
+export async function deleteDisabledTrials(id: string): Promise<Trial[]> {
+  const trials = (await loadTrials(id)).filter((t) => !t.disabled);
+  await saveTrials(id, trials);
+  return trials;
+}
+
+/** Every gesture fitted again from its enabled trials, On by hand dropped, and conflicts settled. */
 export async function refit(s: FaceSettings): Promise<FaceSettings> {
   const trialsOf = new Map<string, Trial[]>();
-  const fitted: FaceSettings = { gestures: [] };
+  const fitted: FaceSettings = { ...s, gestures: [] };
   for (const g of s.gestures) {
     const trials = await loadTrials(g.id);
     trialsOf.set(g.id, trials);

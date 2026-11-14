@@ -7,7 +7,7 @@ import { CHANNELS, type TrialFrames } from './_template';
 /** What a stored frame holds: its time (ms from the trial's start), the 52 channels, yaw and pitch (degrees). */
 export const STRIDE = 55;
 /** A trial as stored: the times of its third tones (ms from its start), its frames, and how many. */
-export interface Trial { tUp: number; tDown: number; n: number; data: Float32Array }
+export interface Trial { tUp: number; tDown: number; n: number; data: Float32Array; /** Kept, but left out of the fit. */ disabled?: true }
 
 /** Frames this close to a third tone (ms) are left out: the change is expected within that second. */
 const GUARD = 500;

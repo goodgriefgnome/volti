@@ -16,13 +16,12 @@ describe('buildFit', () => {
     expect(f.template).toBeUndefined();
     expect(f.trials).toBe(2);
   });
-  it('gives no channels, no template and the clearest channels where nothing moves', () => {
+  it('gives no channels and no template where nothing moves', () => {
     const f = buildFit(trials({ jawOpen: 0.3 }, { jawOpen: 0.3 }));
     expect(f.flags).toEqual([{ kind: 'noChannels' }]);
     expect(f.template).toBeUndefined();
-    expect(f.missed).toBeDefined();
   });
-  it('fits five clean trials of a wink, with its levels 0.65 of the way and then halfway', () => {
+  it('fits five clean trials of a wink, with On 0.65 of the way', () => {
     const f = buildFit(trials(wink, quiet));
     expect(f.flags).toEqual([]);
     expect(f.template!.rows).toHaveLength(1);
@@ -31,7 +30,17 @@ describe('buildFit', () => {
     expect(f.on!).toBeCloseTo(f.rest! + 0.65 * (lowest - f.rest!));
     expect(f.on!).toBeGreaterThan(f.rest!);
     expect(f.on!).toBeLessThan(lowest);
-    expect(f.release!).toBeCloseTo(f.rest! + 0.5 * (f.on! - f.rest!));
+  });
+  it('fits from the enabled trials only, and counts them', () => {
+    const rs = trials(wink, quiet, 5);
+    const only = buildFit(rs.slice(0, 3));
+    const f = buildFit([...rs.slice(0, 3), { ...rs[3], disabled: true }, { ...rs[4], disabled: true }]);
+    expect(f.trials).toBe(3);
+    expect(f).toEqual(only);
+  });
+  it('is too few with two enabled of five', () => {
+    const rs = trials(wink, quiet, 5).map((t, i) => (i < 3 ? { ...t, disabled: true as const } : t));
+    expect(buildFit(rs).flags).toEqual([{ kind: 'tooFew' }]);
   });
   it('flags a gesture one rep of which does not do it as unreliable', () => {
     const rs = trials(wink, quiet, 11);
@@ -64,7 +73,7 @@ describe('flagText', () => {
 function contender(id: string, name: string, held: Values, rest: Values): Contender {
   const ts = trials(held, rest);
   const f = buildFit(ts);
-  return { id, name, template: f.template!, release: f.release!, held: ts.map((t) => framesOf(t).held) };
+  return { id, name, template: f.template!, release: f.rest! + 0.5 * (f.on! - f.rest!), held: ts.map((t) => framesOf(t).held) };
 }
 
 const mouth = { mouthLeft: 0.8 };

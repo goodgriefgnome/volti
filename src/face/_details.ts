@@ -2,14 +2,12 @@
 // template's channels, with the channels' values now beside what they must be.
 
 import type { Gesture } from './gestures';
-import { CHANNELS, pastLimit, shortOf, type Row } from './_template';
+import { CHANNELS, pastLimit, shortOf } from './_template';
 import { el } from '../ui/dom';
 
 const two = (v: number) => v.toFixed(2);
 /** How far short or past a limit a channel must be, over this, to show in the warning colour. */
 const BAD = 0.25;
-
-const missedText = (rows: Row[]) => rows.map((r) => `${CHANNELS[r.c]} (${two(r.separation)}, ${two(r.span)})`).join(', ');
 
 /** A fitted gesture's Details: the line and the table; `update` shows a frame's values in the Now column. */
 export function faceDetails(g: Gesture): { el: HTMLDetailsElement; update(x: Float32Array | null): void } {
@@ -49,12 +47,6 @@ export function faceDetails(g: Gesture): { el: HTMLDetailsElement; update(x: Flo
   const wrap = el('div', 'face-table');
   wrap.append(table);
   details.append(wrap);
-  if (t.missed.length) details.append(el('p', 'hint', `Just missed: ${missedText(t.missed)}.`));
   updates.forEach((u) => u(null));
   return { el: details, update: (x) => { if (details.open) updates.forEach((u) => u(x)); } };
-}
-
-/** What a gesture with no template for want of channels shows under its flag: the channels that came nearest. */
-export function nearest(rows: Row[], minShift: number): string {
-  return `The clearest channels: ${missedText(rows)}; over 0 and ${minShift} are needed.`;
 }

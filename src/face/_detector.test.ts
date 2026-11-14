@@ -11,7 +11,7 @@ const gesture = (id: string, name: string, direction: TurnDir, over: Partial<Act
   on: 0.5,
   release: 0.25,
   hold: 250,
-  template: { rows: [{ c: channel(name), side: 1, edge: 0.8, far: 0.1, rest: 0, span: 0.8, separation: 0.8 }], limits: [], missed: [] },
+  template: { rows: [{ c: channel(name), side: 1, edge: 0.8, far: 0.1, rest: 0, span: 0.8, separation: 0.8 }], limits: [] },
   ...over,
 });
 const wink = gesture('wink', 'eyeBlinkLeft', 'prev');

@@ -22,7 +22,7 @@ function record(): Trial {
 describe('recording to turning', () => {
   const trials = [record(), record(), record()];
   const gesture = { ...newGesture('Mouth right'), direction: 'prev' as const, fit: buildFit(trials) };
-  const active = activeOf({ gestures: [gesture] });
+  const active = activeOf({ hold: 250, gestures: [gesture] });
 
   /** Frames of `values` at 67 ms from 0: the times at which a page turned. */
   const turns = (values: Values, n: number) => {

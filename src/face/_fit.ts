@@ -3,7 +3,7 @@
 // of public/lab/face-classifier.html; docs/face-classifier-spec.md says what they must be. Pure.
 
 import { framesOf, type Trial } from './_recording';
-import { CHANNELS, fit, median, quantile, strength, type Row, type Template } from './_template';
+import { CHANNELS, fit, median, quantile, strength, type Template } from './_template';
 
 /** Raised when fitting changes what it computes: stored fits of an earlier version are fitted again. */
 export const FIT_VERSION = 2;
@@ -11,9 +11,8 @@ export const MIN_TRIALS = 3;
 
 /** How far over the rest level the lowest rep must be. */
 const MIN_GAP = 0.15;
-/** On and Release as shares of the way: On from the rest level to the lowest rep's peak, Release from the rest level to On. */
+/** On is this share of the way from the rest level to the lowest rep's peak. */
 const ON_FRAC = 0.65;
-const REL_FRAC = 0.5;
 /** Rest frames more than this far apart (ms) are not one run. */
 const RUN_GAP = 200;
 /** What one frame stands for, in ms: the app's 15 frames a second. */
@@ -25,29 +24,27 @@ export type Flag =
   | { kind: 'unreliable' }
   | { kind: 'firesAtRest'; frames: number; ms: number };
 
-/** What a gesture's trials give: stored with the gesture. Fitted when it has `template`. */
+/** What a gesture's trials give: stored with the gesture. Fitted when it has `template`. `trials` counts the enabled ones. */
 export interface Fit {
   version: number;
   trials: number;
   flags: Flag[];
   template?: Template;
-  /** The fitted levels, the rest level, and each rep's peak; with `template`. */
+  /** The fitted On level, the rest level, and each trial's peak; with `template`. Release is halfway from the rest level to On (gestures.ts). */
   on?: number;
-  release?: number;
   rest?: number;
   peaks?: number[];
-  /** With no template: the clearest channels, for saying what nearly moved. */
-  missed?: Row[];
 }
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
 /**
- * A gesture's fit from its trials: its template, its levels (the rest level is the 95th percentile
- * of the strength over rest frames; each rep's peak is its median held strength against a template fitted
- * without it), and what is wrong with it.
+ * A gesture's fit from its enabled trials (a disabled one is kept but left out): its template, its
+ * levels (the rest level is the 95th percentile of the strength over rest frames; each trial's peak
+ * is its median held strength against a template fitted without it), and what is wrong with it.
  */
-export function buildFit(trials: Trial[]): Fit {
+export function buildFit(all: Trial[]): Fit {
+  const trials = all.filter((t) => !t.disabled);
   const out: Fit = { version: FIT_VERSION, trials: trials.length, flags: [] };
   if (trials.length < MIN_TRIALS) {
     out.flags.push({ kind: 'tooFew' });
@@ -57,7 +54,6 @@ export function buildFit(trials: Trial[]): Fit {
   const template = fit(frames);
   if (!template.rows.length) {
     out.flags.push({ kind: 'noChannels' });
-    out.missed = template.missed;
     return out;
   }
   const rest = quantile(frames.flatMap((t) => t.rest.map((x) => strength(template, x))), 0.95);
@@ -68,7 +64,6 @@ export function buildFit(trials: Trial[]): Fit {
   const lowest = Math.min(...peaks);
   if (lowest - rest < MIN_GAP) out.flags.push({ kind: 'unreliable' });
   const on = clamp(rest + ON_FRAC * (lowest - rest), 0.05, 0.95);
-  const release = rest + REL_FRAC * (on - rest);
   // Rest frames that match, each on its own: how many, and the longest run of them.
   let restHits = 0;
   let longest = 0;
@@ -86,7 +81,7 @@ export function buildFit(trials: Trial[]): Fit {
     });
   }
   if (restHits) out.flags.push({ kind: 'firesAtRest', frames: restHits, ms: Math.round(longest) });
-  return { ...out, template, on, release, rest, peaks };
+  return { ...out, template, on, rest, peaks };
 }
 
 /** A flag in words, as face-gestures-spec.md has them. */

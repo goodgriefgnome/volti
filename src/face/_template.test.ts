@@ -53,10 +53,9 @@ describe('fit', () => {
     expect(t.rows).toHaveLength(1);
     expect(t.rows[0].side).toBe(-1);
   });
-  it('leaves a channel that moves under 0.1 out of the rows, in missed', () => {
+  it('leaves a channel that moves under 0.1 out of the rows', () => {
     const t = fit(trials({ jawOpen: 0.12 }, { jawOpen: 0.05 }));
     expect(t.rows).toEqual([]);
-    expect(t.missed.map((r) => name(r.c))).toContain('jawOpen');
   });
   it('leaves a channel out when its rest values reach past its held edge', () => {
     // Held 0.5 steady; at rest it is 0.05 half the time and 0.6 the other half.
@@ -114,7 +113,7 @@ describe('strength', () => {
     expect(shortOf(t.rows[0], 1)).toBe(0);
   });
   it('is 0 for a template with no rows', () => {
-    expect(strength({ rows: [], limits: [], missed: [] }, frame({ mouthRight: 1 }))).toBe(0);
+    expect(strength({ rows: [], limits: [] }, frame({ mouthRight: 1 }))).toBe(0);
   });
   it('leaves the largest shortfall out of four rows or more, and not of three', () => {
     const four = fit(trials({ jawOpen: 0.6, browInnerUp: 0.6, cheekPuff: 0.6, mouthPucker: 0.6 }, { jawOpen: 0.02, browInnerUp: 0.02, cheekPuff: 0.02, mouthPucker: 0.02 }));

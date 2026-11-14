@@ -10,11 +10,11 @@ import { framesOf, type Trial } from './_recording';
 export function settled(s: FaceSettings, trialsOf: Map<string, Trial[]>, changedId?: string): FaceSettings {
   const contenders: Contender[] = [];
   for (const g of s.gestures) {
-    const l = levelsOf(g);
+    const l = levelsOf(g, s.hold);
     if (!l || g.direction === 'none') continue;
-    contenders.push({ id: g.id, name: g.name, template: g.fit.template!, release: l.release, held: (trialsOf.get(g.id) ?? []).map((t) => framesOf(t).held) });
+    contenders.push({ id: g.id, name: g.name, template: g.fit.template!, release: l.release, held: (trialsOf.get(g.id) ?? []).filter((t) => !t.disabled).map((t) => framesOf(t).held) });
   }
   const conflicts = settle(contenders, changedId);
   if (!conflicts.size) return s;
-  return { gestures: s.gestures.map((g) => (conflicts.has(g.id) ? { ...g, direction: 'none', note: `Set to None: ${conflicts.get(g.id)}.` } : g)) };
+  return { ...s, gestures: s.gestures.map((g) => (conflicts.has(g.id) ? { ...g, direction: 'none', note: `Set to None: ${conflicts.get(g.id)}.` } : g)) };
 }
