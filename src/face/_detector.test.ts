@@ -10,98 +10,135 @@ const gesture = (id: string, name: string, direction: TurnDir, over: Partial<Act
   direction,
   on: 0.5,
   release: 0.25,
-  hold: 250,
+  zero: 0.1,
+  hold: 500,
   template: { rows: [{ c: channel(name), side: 1, edge: 0.8, far: 0.1, rest: 0, span: 0.8, separation: 0.8 }], limits: [] },
   ...over,
 });
 const wink = gesture('wink', 'eyeBlinkLeft', 'prev');
-const mouth = gesture('mouth', 'mouthLeft', 'next');
+const next = gesture('wink', 'eyeBlinkLeft', 'next');
 
-/** A frame whose channel `name` scores `y`. */
+/** A frame whose channel `name` has strength `y`. */
 const frame = (name: string, y: number) => channelsOf({ [name]: y * 0.8 });
-const rest = frame('eyeBlinkLeft', 0);
-const held = frame('eyeBlinkLeft', 1);
+const FRAME = 67;
+/** A frame with the channels of a wink (eyeBlinkLeft) and a mouth (mouthLeft) at their strengths. */
+const both = (w: number, m: number) => channelsOf({ eyeBlinkLeft: w * 0.8, mouthLeft: m * 0.8 });
+const ON = frame('eyeBlinkLeft', 1);
+const OFF = frame('eyeBlinkLeft', 0);
 
-/** Feed frames at 50 ms steps from 0; the times (ms) at which a turn was made, and the last result. */
-function run(frames: (Float32Array | null)[], active: Active[]) {
+/** Feed frames 67 ms apart from 0 (or at `at`); each frame's result, and the indexes at which a page turned. */
+function run(frames: (Float32Array | null)[], active: Active[], at?: number[]) {
   let state: DetectorState = NEW_DETECTOR;
-  const turns: { at: number; dir: TurnDir }[] = [];
-  let last!: ReturnType<typeof step>;
+  const results: ReturnType<typeof step>[] = [];
+  const turns: { i: number; dir: TurnDir }[] = [];
   frames.forEach((x, i) => {
-    last = step(state, x, active, i * 50);
-    state = last.state;
-    if (last.turn) turns.push({ at: i * 50, dir: last.turn });
+    const r = step(state, x, active, at ? at[i] : i * FRAME);
+    state = r.state;
+    results.push(r);
+    if (r.turn) turns.push({ i, dir: r.turn });
   });
-  return { turns, last };
+  return { results, turns, last: results[results.length - 1] };
 }
-
 const times = (x: Float32Array | null, n: number) => Array<Float32Array | null>(n).fill(x);
 
-describe('the detector', () => {
-  it('turns once when a gesture has been held for its hold, in its direction', () => {
-    const { turns } = run([...times(rest, 2), ...times(held, 12)], [wink]);
-    // On from 100 ms; the hold is 250 ms.
-    expect(turns).toEqual([{ at: 350, dir: 'prev' }]);
+describe('the detector, by direction', () => {
+  it('turns at the first frame at or past the hold, once, and not again while held', () => {
+    const { turns } = run(times(ON, 40), [next]);
+    // 67 ms a frame from the second: 536 ms is the ninth frame.
+    expect(turns).toEqual([{ i: 8, dir: 'next' }]);
   });
-  it('comes on at its on level, and not under it', () => {
-    expect(run(times(frame('eyeBlinkLeft', 0.5), 8), [wink]).turns).toHaveLength(1);
-    expect(run(times(frame('eyeBlinkLeft', 0.49), 8), [wink]).turns).toEqual([]);
+  it('is late by three frames for one under On in the middle of a hold', () => {
+    const frames = [...times(ON, 4), OFF, ...times(ON, 12)];
+    expect(run(frames, [next]).turns).toEqual([{ i: 8 + 3, dir: 'next' }]);
   });
-  it('turns again once let go and done again', () => {
-    const { turns } = run([...times(held, 8), ...times(rest, 2), ...times(held, 8)], [{ ...wink, direction: 'next' }]);
-    expect(turns.map((t) => t.at)).toEqual([250, 750]);
+  it('never turns for a gesture on less than two thirds of the time', () => {
+    const pattern = [ON, ON, ON, OFF, OFF];
+    const frames = Array.from({ length: 300 }, (_, i) => pattern[i % 5]);
+    expect(run(frames, [next]).turns).toEqual([]);
   });
-  it('does not turn for a gesture shorter than its hold', () => {
-    expect(run([...times(held, 5), ...times(rest, 5)], [wink]).turns).toEqual([]);
+  it('turns, later, for a gesture on nine frames in ten', () => {
+    const frames = [...times(ON, 4), OFF, ...times(ON, 5), ...times(ON, 20)];
+    const { turns } = run(frames, [next]);
+    expect(turns).toHaveLength(1);
+    expect(turns[0].i * FRAME).toBeGreaterThan(500);
   });
-  it('shows no progress for a frame of rest', () => {
-    const { turns, last } = run(times(rest, 12), [wink, mouth]);
+  it('is armed again only after the hold let go, not before', () => {
+    const held = times(ON, 9); // turns on the last
+    const early = run([...held, ...times(OFF, 7), ...times(ON, 30)], [next]);
+    expect(early.turns).toHaveLength(1); // 7 frames let go is under the hold: still spent
+    const late = run([...held, ...times(OFF, 8), ...times(ON, 12)], [next]);
+    expect(late.turns.map((t) => t.i)).toEqual([8, 8 + 8 + 8]);
+  });
+  it('is late by three frames for a flicker above On while letting go', () => {
+    const base = run([...times(ON, 9), ...times(OFF, 30)], [next]);
+    const baseGone = base.results.findIndex((r, i) => i > 8 && r.progress.next.hold === 0);
+    expect(baseGone).toBe(8 + 8);
+    const flick = run([...times(ON, 9), ...times(OFF, 4), ON, ...times(OFF, 30)], [next]);
+    const gone = flick.results.findIndex((r, i) => i > 12 && r.progress.next.hold === 0);
+    expect(gone).toBe(baseGone + 3);
+    // And then a new hold turns again.
+    expect(run([...times(ON, 9), ...times(OFF, 30), ...times(ON, 12)], [next]).turns).toHaveLength(2);
+  });
+  it('adds up two gestures of one direction: either on counts, and they turn once', () => {
+    const a = gesture('a', 'eyeBlinkLeft', 'next');
+    const b = gesture('b', 'mouthLeft', 'next');
+    const frames = Array.from({ length: 40 }, (_, i) => (i % 2 ? both(0, 1) : both(1, 0)));
+    expect(run(frames, [a, b]).turns).toEqual([{ i: 8, dir: 'next' }]);
+  });
+  it('spends the other direction when one turns', () => {
+    // Next held from the start, Back from the fifth frame: Next turns, and Back never does while held.
+    const frames = Array.from({ length: 40 }, (_, i) => both(1, i >= 4 ? 1 : 0));
+    const back = gesture('mouth', 'mouthLeft', 'prev');
+    const { turns } = run(frames, [gesture('wink', 'eyeBlinkLeft', 'next'), back]);
+    expect(turns).toEqual([{ i: 8, dir: 'next' }]);
+    // Let go for the hold, and hold Back alone: it turns.
+    const more = run([...frames, ...times(both(0, 0), 8), ...Array.from({ length: 12 }, () => both(0, 1))], [gesture('wink', 'eyeBlinkLeft', 'next'), back]);
+    expect(more.turns.map((t) => t.dir)).toEqual(['next', 'prev']);
+  });
+  it('turns Next, and spends Back, when both are full on one frame', () => {
+    const back = gesture('mouth', 'mouthLeft', 'prev');
+    const { turns } = run(times(both(1, 1), 40), [gesture('wink', 'eyeBlinkLeft', 'next'), back]);
+    expect(turns).toEqual([{ i: 8, dir: 'next' }]);
+  });
+  it('lets both go on a frame without a face: armed at 0, then a hold turns after the hold', () => {
+    const { turns, results } = run([...times(ON, 5), null, ...times(ON, 20)], [next]);
+    expect(results[5].progress.next).toEqual({ near: 0, hold: 0 });
+    expect(turns).toEqual([{ i: 5 + 8, dir: 'next' }]);
+  });
+  it('counts a gap of 2 s between frames as 200 ms', () => {
+    const { last } = run([ON, ON], [next], [0, 2000]);
+    expect(last.progress.next.hold).toBeCloseTo(200 / 500);
+  });
+  it('has no turn or progress for no gestures', () => {
+    const { turns, last } = run(times(ON, 12), []);
     expect(turns).toEqual([]);
     expect(last.progress.next).toEqual({ near: 0, hold: 0 });
-    expect(last.progress.prev).toEqual({ near: 0, hold: 0 });
   });
-  it('shows the nearer of two gestures going the same way', () => {
-    const f = channelsOf({ eyeBlinkLeft: 0.8 * 0.4, mouthLeft: 0.8 * 0.3 });
-    const { last } = run([f], [gesture('a', 'eyeBlinkLeft', 'next'), gesture('b', 'mouthLeft', 'next')]);
-    expect(last.progress.next.near).toBeCloseTo(0.6);
-    expect(last.progress.prev.near).toBe(0);
+  it('shows near from the zero point to On: 0, a half, 1', () => {
+    const near = (y: number) => run([frame('eyeBlinkLeft', y)], [wink]).last.progress.prev.near;
+    expect(near(0.1)).toBeCloseTo(0);
+    expect(near(0.3)).toBeCloseTo(0.5);
+    expect(near(0.5)).toBe(1);
+    expect(near(0.9)).toBe(1);
   });
-  it('shows how long an over-on gesture has been held, and nothing after it turned', () => {
-    const next = { ...wink, direction: 'next' as const };
-    expect(run(times(held, 4), [next]).last.progress.next).toEqual({ near: 1, hold: 150 / 250 });
-    expect(run(times(held, 6), [next]).last.progress.next).toEqual({ near: 0, hold: 0 });
+  it('is 1 or 0 when On is at or under the zero point', () => {
+    const g = { ...wink, zero: 0.5 };
+    expect(run([frame('eyeBlinkLeft', 0.4)], [g]).last.progress.prev.near).toBe(0);
+    expect(run([frame('eyeBlinkLeft', 0.6)], [g]).last.progress.prev.near).toBe(1);
   });
-  it('lets every gesture go on a frame without a face', () => {
-    expect(run([...times(held, 4), null, ...times(held, 4)], [wink]).turns).toEqual([]);
+  it('shows the nearer of two gestures of one direction', () => {
+    const a = gesture('a', 'eyeBlinkLeft', 'next');
+    const b = gesture('b', 'mouthLeft', 'next');
+    expect(run([both(0.3, 0.1)], [a, b]).last.progress.next.near).toBeCloseTo(0.5);
   });
-  it('turns only one gesture in a frame, the first in order', () => {
-    const f = channelsOf({ eyeBlinkLeft: 0.8, mouthLeft: 0.8 });
-    expect(run(times(f, 6), [wink, mouth]).turns[0]).toEqual({ at: 250, dir: 'prev' });
+  it('shows the fill over the hold, and keeps it 1 while spent and held', () => {
+    expect(run(times(ON, 4), [next]).last.progress.next.hold).toBeCloseTo((3 * FRAME) / 500);
+    expect(run(times(ON, 30), [next]).last.progress.next).toEqual({ near: 1, hold: 1 });
   });
-  const dip = frame('eyeBlinkLeft', 0.35); // between release and on
-  it('keeps a gesture on through a dip between release and on', () => {
-    expect(run([...times(held, 2), ...times(dip, 2), ...times(held, 6)], [wink]).turns).toEqual(run(times(held, 8), [wink]).turns);
-  });
-  it('restarts the hold on a dip under release', () => {
-    expect(run([...times(held, 4), rest, ...times(held, 8)], [wink]).turns).toEqual([{ at: 250 + 250, dir: 'prev' }]);
-  });
-  it('lets go only under release once turned', () => {
-    expect(run([...times(held, 8), ...times(dip, 2), ...times(held, 8)], [wink]).turns).toHaveLength(1);
-    expect(run([...times(held, 8), ...times(rest, 2), ...times(held, 8)], [wink]).turns).toHaveLength(2);
-  });
-  it('shows near from release to on, then full with the hold growing', () => {
-    expect(run([frame('eyeBlinkLeft', 0.25)], [wink]).last.progress.prev.near).toBeCloseTo(0);
-    expect(run([frame('eyeBlinkLeft', 0.375)], [wink]).last.progress.prev.near).toBeCloseTo(0.5);
-    expect(run(times(held, 3), [wink]).last.progress.prev).toEqual({ near: 1, hold: 100 / 250 });
-  });
-  it('is 1 or 0 when release equals the on level', () => {
-    const g = { ...mouth, release: 0.5 };
-    expect(run([frame('mouthLeft', 0.4)], [g]).last.progress.next.near).toBe(0);
-    expect(run([frame('mouthLeft', 0.6)], [g]).last.progress.next.near).toBe(1);
-  });
-  it('shows nothing for no gestures that can turn', () => {
-    const { turns, last } = run(times(held, 12), []);
-    expect(turns).toEqual([]);
-    expect(last.progress.next).toEqual({ near: 0, hold: 0 });
+  it('shows the fill with the faint arc short of full', () => {
+    const slight = frame('eyeBlinkLeft', 0.3);
+    const f = run([...times(ON, 5), slight], [next]).last.progress.next;
+    expect(f.near).toBeLessThan(1);
+    expect(f.hold).toBeGreaterThan(0);
   });
 });

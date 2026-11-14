@@ -79,7 +79,7 @@ export function withLevels(g: Gesture, on: number): Gesture {
 }
 
 /** A gesture that can turn a page, as the detector takes it. */
-export interface Active { id: string; direction: TurnDir; on: number; release: number; hold: number; template: Template }
+export interface Active { id: string; direction: TurnDir; on: number; release: number; zero: number; hold: number; template: Template }
 
 /** The gestures that can turn a page: fitted, with a direction. */
 export function activeOf(s: FaceSettings): Active[] {
