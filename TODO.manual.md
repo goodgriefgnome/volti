@@ -486,3 +486,27 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     turn watching off and on again; reload the app and do it again without opening the dialog.
   - Delete a gesture: DevTools shows its `face-trials:` key gone; `face-gestures` is
     `{ gestures: [...] }` and `data-version` is 5.
+- **Face gestures dialog, redesigned** (on the tablet, with the camera and the sound on):
+  - After updating: every gesture is kept, with its trials; Gesture hold shows 500 ms; each fitted
+    gesture's On is the fitted one, and Release is halfway between rest and On.
+  - The list: fitted gestures first; one with two trials shows only its name, pencil, Record and
+    "Record 1 more trial", and tapping it opens nothing. Rename one with the pencil.
+  - Drag On on a list row's meter: its dashed Release follows; open its details: On is where it was
+    left, and Reset beside On level puts it back.
+  - In the details, wink: the right eye's dot passes the pennant and fills; blink: the left eye's
+    ring passes the bracket and turns orange, and the strength stays low.
+  - Tap `eyeBlinkLeft`'s chip: it greys and strikes through; blink: the strength now rises. Tap it
+    again. Switch `eyeBlinkRight`'s row off: the whole row greys, pennant and bracket in place.
+  - Drag a pennant: the meter and the ring follow at once; let go: the gesture is fitted again, On
+    goes back to the fitted one, and Reset shows beside Channels; Reset puts it all back.
+  - Add channel…: the list is by separation, those that don't move greyed at the end; add one: it
+    shows as a row.
+  - Trials: the latest first, all of them scrolling; Show a channel: the traces and numbers change.
+    Disable a trial: it fades, the gesture is fitted again, and "Delete 1 disabled trial…" shows;
+    delete it, asked first.
+  - A trial done badly at rest shows red ticks under its trace, and the what-is-wrong box names it.
+  - Record: Play from asks for a page the first time; pick a score and a page. The screen shows it
+    still, with the instruction at the top; record three trials and tap: the dialog comes back with
+    three more trials. Record again: Play from offers the same page; Start goes straight to it.
+  - With the library empty, Change… offers only Empty staves.
+  - In the reader, turn pages with each gesture: each turns after about half a second's hold.
