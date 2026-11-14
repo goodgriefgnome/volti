@@ -99,7 +99,7 @@ passwords, decryption, a PDF's music for export) and only about images (`_image`
 each original, one set per id for the whole app (`_sources`), and a source file read into an
 original that draws through the page cache (`original`).
 
-`styles/` holds the CSS, one file per directory of `src/` whose modules make the elements it styles (`ui.css`, `library.css`, `dialogs.css`, `reader.css` with `reader/_cuts/` and `reader/_tools/`, `face.css`), and `base.css` for the tokens, the resets and whatever two or more directories share; `main.ts` imports them in that order. A rule that must lose to a `ui.css` rule at equal specificity stays in `base.css`, ahead of it.
+`styles/` holds the CSS, one file per directory of `src/` whose modules make the elements it styles (`ui.css`, `library.css`, `dialogs.css`, `reader.css` with `reader/_cuts/` and `reader/_tools/`, `face.css`), and `base.css` for the tokens, the resets and whatever two or more directories share; `main.ts` imports them in that order. How to style something, and the tokens and shared parts to use, are in `STYLES.md`: read it before writing CSS.
 
 Other rules, the first also tested:
 
@@ -144,7 +144,7 @@ Other rules, the first also tested:
 - The hand tool (`_tools/_hand.ts`) is the tool when no other is equipped by its button, and has no button: a press pans, a tap hides or shows the toolbar, a long press opens the cut menu while Cuts is on.
 - Lending (`_lending.ts`, `LendStack`): the tool equipped by its button is at the bottom; selecting a marking lends its owner, and the eraser button lends Erase for its press. The toolbar lights the active tool, the one on top of the stack. A tool is equipped when it goes on the stack and unequipped when it leaves it (`onEquipped`, `onUnequipped`); being covered by a lend is neither.
 - The pages sit under the toolbar and are moved only by `drag` and `pinch` (`render/zoom.ts`), which keep or increase how much of the screen is in the view below the toolbar; a new screen is placed by `placeFresh`.
-- The reader sets `data-theme="light"` on the document while it is open and puts the app's theme back when it closes; its colours are the `--stage` and `--bar*` tokens in `styles/base.css`.
+- The reader sets `data-theme="light"` on the document while it is open and puts the app's theme back when it closes, so every colour token takes its light value.
 - Each tool's settings for new markings (colours, text's font and background) are one `ToolSettings` (`markings/tool-settings.ts`), kept in the kv store under `tool-settings`; the reader holds them in `settings`, and tools read and change them through `host.settings()` and `host.setSettings`.
 - A tool sets its button's face (`host.setButtonFace`, a `ButtonFace` from `_tools/_faces.ts`), and the toolbar draws it again only when its `key` changes. Text and Symbols show a `Look`: the selected marking's, else the settings'; each applies a choice from its panel to the selected marking, the settings and (for symbols' background) the library symbol.
 - The Symbols panel (`reader/_tools/_symbol-panel.ts`) is the library (tap to pick, drag to arrange through `moveSymbol` in `markings/symbol-library.ts`) beside the symbols' settings; the Symbols tool (`_tools/_symbol.ts`), which owns the library, keeps each group's current symbol and the tool's symbol in place across a move (`moveSymbolTo`).
@@ -210,8 +210,14 @@ has the same items for what it reads, so add the item there too.
 `ui/overlay.ts`, filled with `el`, `button` and `buttonRow` from `ui/dom.ts` and `ui/overlay.ts`.
 It goes with the screen that opens it, or in `dialogs/` when both do.
 
+**Styling a new element**: reuse a shared part from `styles/base.css` (a button, a toggle with
+`aria-pressed`, a field, a chip, an icon), then the tokens for spacing, text, corners and
+colours; add CSS of its own only for where it sits, in its directory's style file. `STYLES.md`
+says which part and which token is for what.
+
 ## Checking a change
 
-`npm test` runs the unit tests and `layers.test.ts`; `npm run build` type-checks and builds. Then
+`npm test` runs the unit tests and `layers.test.ts`; `npm run build` type-checks and builds. `npm test` also checks the
+styles against the tokens (`styles/styles.test.ts`). Then
 try the change in the app (`npm run dev`), on a tablet where it matters: the manual checks waiting
 to be done are in `TODO.md`.

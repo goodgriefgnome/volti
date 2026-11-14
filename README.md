@@ -233,7 +233,8 @@ Every push to `main` is tested, built and published to GitHub Pages by
 `.github/workflows/deploy.yml`.
 
 How the code is put together (the words it uses, which directory holds what and may use what, and
-where to start on the usual changes) is in [ARCHITECTURE.md](ARCHITECTURE.md).
+where to start on the usual changes) is in [ARCHITECTURE.md](ARCHITECTURE.md); how the styles are made
+is in [STYLES.md](STYLES.md).
 
 pdf.js comes from its legacy build, which carries fallbacks for JavaScript features newer than some
 Android Chrome versions. Its fonts and image decoders are copied into `public/pdfjs/` before each

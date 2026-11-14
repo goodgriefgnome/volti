@@ -60,6 +60,9 @@ No colour is written outside the token block at the top of `base.css`: no hex, n
 Accent and select mean different things: the accent is the brand and the action to take, the blue
 is what has been chosen. A pressed button is blue, a primary button is the accent.
 
+Fonts are `--font-ui` (everything), `--font-brand` (the name, titles in the reader) and `--font-mono`
+(channel names and chips that show one).
+
 ## Scales
 
 | Scale | Tokens | For |
@@ -82,7 +85,8 @@ up with something else, may be a literal.
 
 ## Shared parts
 
-All in `base.css`. Use them, and don't restate what they set.
+All in `base.css`, except the dialog width's default, which `ui.css` keeps with the dialog. Use them, and
+don't restate what they set.
 
 | Part | Use it for |
 | --- | --- |
@@ -94,7 +98,7 @@ All in `base.css`. Use them, and don't restate what they set.
 | `.caps` | Small capitals: section heads, labels over a value |
 | `.icon` | A line icon (an SVG drawn with strokes); size it by where it sits |
 | `.float-button` | A round button over the score |
-| `--dialog-w` | A dialog's width: set it on the dialog's class only when the default (720 px) is too narrow; `.wide` is 900 px |
+| `--dialog-w` | A dialog's width (`.dialog` in `ui.css` reads it, default 720 px): set it on the dialog's class only when that is too narrow; `.wide` is 900 px |
 | Divided lists | A list of rows has a line above and below it and one between rows; a list nested in a row has only the lines between rows |
 
 Dialogs, menus and toasts are made by `ui/` (`showDialog` in `ui/overlay.ts`, `ask-text.ts`,
