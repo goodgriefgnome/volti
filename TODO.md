@@ -13,14 +13,23 @@ scores.
 
 ## Work for the immediate future
 
-- **A gesture's details keep their head on screen, without the camera:** in a gesture's details
-  (Face gestures dialog), the camera's picture and the face button over it go
-  (`.face-stage`, `face/dialog.ts`; the hold slider already hides there), and so does the line
-  saying the camera failed to start. The camera keeps running, as the meter and the channel rows
-  still follow the face. The head (back, the name, the direction, Delete…: `.face-view-head`,
-  `face/_details.ts`) stays at the top of the dialog while the rest scrolls under it. The trials no
-  longer scroll in a box of their own (`.face-trials-box`, `styles/face.css`): they scroll with the
-  dialog.
+- **A gesture's details keep their head on screen, without the camera's picture:** in a gesture's
+  details (Face gestures dialog), the camera's picture goes (`.face-stage`, `face/dialog.ts`; the
+  hold slider already hides there). The face button stays, to the right of the On level meter, so
+  starting, paused and no face still show (`buttonStatus`, `face/button-status.ts`); for a
+  gesture with no On level yet (not fitted), it sits at the right end of the head instead. A
+  camera that failed to start only turns the button off, so the line saying why stays too. The
+  head (back, the name, the direction, Delete…: `.face-view-head`, `face/_details.ts`) stays at
+  the top of the dialog while the rest scrolls under it. The trials no longer scroll in a box of
+  their own (`.face-trials-box`, `styles/face.css`): they scroll with the dialog.
+- **A trial's trace marks the frames left out round each tone:** the shaded part of a trial's
+  trace runs from its third rising tone to its third falling one (`trialView`'s `held`,
+  `face/_dialog-helpers.ts`; drawn in `trace`, `face/_trials.ts`), but the fit leaves out every
+  frame within 500 ms of either tone (`framesOf`, `face/_recording.ts`). The trace shades three
+  kinds of time: held (from the rising tone + 500 ms to the falling tone − 500 ms) solid, as now;
+  the 500 ms either side of each tone lightly hatched; rest not at all. No line marks the tones
+  themselves, which sit in the middle of their hatched bands. `docs/face-gestures-spec.md` (the
+  trace) says so too.
 
 ## Confirmed features which require more thought
 
