@@ -4,7 +4,7 @@
 
 import { MIN_TRIALS } from './_fit';
 import { STRIDE, framesOf, type Trial } from './_recording';
-import { CHANNELS, median, quantile, strength, type Template } from './_template';
+import { CHANNELS, median, quantile, strength, type Template, type TrialFrames } from './_template';
 import { HOLD_DEFAULT, levelsOf, type Gesture } from './gestures';
 
 /** Whether a gesture has the enabled trials it is fitted from. */
@@ -125,3 +125,12 @@ export function blameLine(g: Gesture, trials: Trial[]): string | undefined {
   return `${where} Disable ${what} if ${they} went wrong; otherwise force off a channel that rest reaches, or move its threshold away from the hatching.`;
 }
 
+
+/** Where a channel's values lie in the enabled trials' frames, from the 10th to the 90th percentile: at rest and held. A channel with no frames at rest or held has a band at 0. */
+export function bandsOf(frames: TrialFrames[], c: number): { rest: [number, number]; held: [number, number] } {
+  const band = (xs: Float32Array[]): [number, number] => {
+    const v = xs.map((x) => x[c]);
+    return v.length ? [quantile(v, 0.1), quantile(v, 0.9)] : [0, 0];
+  };
+  return { rest: band(frames.flatMap((t) => t.rest)), held: band(frames.flatMap((t) => t.held)) };
+}

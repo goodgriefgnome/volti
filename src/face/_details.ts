@@ -5,7 +5,7 @@
 import { button, el } from '../ui/dom';
 import { buttonRow, closeOverlay, showOnTop } from '../ui/overlay';
 import { channelRow, type ChannelRow } from './_channel-row';
-import { blameLine } from './_dialog-helpers';
+import { bandsOf, blameLine } from './_dialog-helpers';
 import { flagText } from './_fit';
 import { strengthMeter } from './_meter';
 import { trialsPanel, type Shown } from './_trials';
@@ -137,7 +137,9 @@ export function openDetails(host: DetailsHost, g: Gesture, trials: Trial[]): Det
     const limit = shown.limits.find((k) => partnerOf(k.c) === row.c);
     const ui = channelRow({
       row,
+      bands: bandsOf(frames, row.c),
       limit,
+      limitBands: limit && bandsOf(frames, limit.c),
       off: off.has(CHANNELS[row.c]),
       limitOff: !!limit && off.has(CHANNELS[limit.c]),
       useChannel: (on) => forceOff(row.c, !on),

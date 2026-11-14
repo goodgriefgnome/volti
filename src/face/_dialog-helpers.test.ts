@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { blameLine, listOrder, statusOf, trialView } from './_dialog-helpers';
+import { bandsOf, blameLine, listOrder, statusOf, trialView } from './_dialog-helpers';
 import { seeded, storedTrial } from './_test-frames';
 import { buildFit } from './_fit';
 import { newGesture, type Gesture } from './gestures';
-import type { Trial } from './_recording';
+import { framesOf, type Trial } from './_recording';
 import { CHANNELS } from './_template';
 
 const random = seeded(21);
@@ -135,5 +135,22 @@ describe('blameLine', () => {
     const bad = trials(10, { 2: 4, 8: 4 });
     const g = made(bad);
     expect(blameLine(g, bad)).toBe('In trials 3 and 9. Disable them if they went wrong; otherwise force off a channel that rest reaches, or move its threshold away from the hatching.');
+  });
+});
+
+describe('bandsOf', () => {
+  it('gives the 10th to the 90th percentile of a channel at rest and held, over the enabled trials', () => {
+    const all = ts.map((t, i) => (i === 4 ? { ...t, disabled: true as const } : t));
+    const frames = all.filter((t) => !t.disabled).map(framesOf);
+    const b = bandsOf(frames, idx('eyeBlinkLeft'));
+    expect(b.rest[0]).toBeLessThanOrEqual(b.rest[1]);
+    expect(b.rest[1]).toBeLessThan(0.06);
+    expect(b.held[0]).toBeGreaterThan(0.65);
+    expect(b.held[1]).toBeLessThan(0.75);
+    const limit = bandsOf(frames, idx('eyeBlinkRight'));
+    expect(limit.held[1]).toBeLessThan(0.3);
+  });
+  it('is 0 to 0 with no frames', () => {
+    expect(bandsOf([], 0)).toEqual({ rest: [0, 0], held: [0, 0] });
   });
 });
