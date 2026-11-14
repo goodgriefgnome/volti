@@ -1,0 +1,762 @@
+<title>Face Gestures Redesign</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: a reading column of prose, with each mockup as a live dialog on a dimmed backdrop and its notes beside it. */
+:root {
+  /* Volti's own tokens (src/styles/base.css), so the mockups look as the app will. */
+  --bg: #f2f3f6; --surface: #ffffff; --fg: #16181d; --muted: #5b6170; --line: #dde0e7;
+  --accent: #8a5a12; --accent-soft: rgba(138, 90, 18, 0.12); --accent-fg: #ffffff;
+  --warn: #a8461c; --warn-soft: rgba(168, 70, 28, 0.1); --paused: #8b8f97;
+  --backdrop: #c9ccd4; --camera: #23262d; --camera-fg: #8b909c;
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-brand: "Iowan Old Style", "Palatino Linotype", Palatino, "Noto Serif", Georgia, serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121419; --surface: #1b1e25; --fg: #e9eaee; --muted: #9aa0ad; --line: #2c313b;
+  --accent: #d6a64a; --accent-soft: rgba(214, 166, 74, 0.16); --accent-fg: #17130a;
+  --warn: #e58a5c; --warn-soft: rgba(229, 138, 92, 0.12); --backdrop: #08090c; --camera: #0d0e12; --camera-fg: #5d6270;
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #121419; --surface: #1b1e25; --fg: #e9eaee; --muted: #9aa0ad; --line: #2c313b;
+  --accent: #d6a64a; --accent-soft: rgba(214, 166, 74, 0.16); --accent-fg: #17130a;
+  --warn: #e58a5c; --warn-soft: rgba(229, 138, 92, 0.12); --backdrop: #08090c; --camera: #0d0e12; --camera-fg: #5d6270;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font: 16px/1.5 var(--font-ui); }
+.page { max-width: 1180px; margin: 0 auto; padding-block: 32px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 40px; }
+.prose { max-width: 68ch; display: grid; gap: 12px; }
+.prose p, .prose ul, .prose ol { margin: 0; }
+.prose li + li { margin-top: 6px; }
+h1, h2.sec { font-family: var(--font-brand); font-weight: 600; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.1; }
+h2.sec { font-size: 26px; }
+.eyebrow { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+code { font-family: var(--font-mono); font-size: 0.88em; }
+.lede { font-size: 18px; color: var(--muted); }
+
+/* A mockup and its notes. */
+.shot { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 28px; align-items: start; }
+@media (max-width: 1000px) { .shot { grid-template-columns: minmax(0, 1fr); } }
+.backdrop { background: var(--backdrop); border-radius: 14px; padding: 28px 20px; display: grid; justify-items: center; min-width: 0; }
+.notes { display: grid; gap: 10px; font-size: 15px; min-width: 0; }
+.notes h3 { margin: 0; font-family: var(--font-brand); font-size: 20px; font-weight: 600; }
+.notes p, .notes ul { margin: 0; }
+.notes ul { padding-left: 18px; }
+.notes li + li { margin-top: 6px; }
+.sample { font-size: 13px; color: var(--muted); }
+
+/* ---------- The app's dialog, as styles/ui.css and base.css have it ---------- */
+.dialog { width: 100%; max-width: 560px; background: var(--surface); color: var(--fg); border-radius: 12px; padding: 16px 18px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35); display: grid; gap: 12px; }
+.dialog.wide { max-width: 720px; }
+.dialog h2 { margin: 0; font-size: 18px; }
+.dialog h3 { margin: 6px 0 0; font-size: 13px; color: var(--muted); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.dialog .hint { margin: 0; color: var(--muted); font-size: 15px; }
+.dialog button { font: inherit; font-size: 15px; min-height: 44px; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.dialog button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.dialog button.quiet { border-color: transparent; background: transparent; color: var(--muted); }
+.dialog button.quiet.warn { color: var(--warn); }
+.dialog button:focus-visible, [role="slider"]:focus-visible, [role="switch"]:focus-visible, .g-row:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.buttons { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.buttons .spacer { flex: 1; }
+
+/* The head of a gesture's view. */
+.view-head { display: flex; align-items: center; gap: 4px; }
+.view-head h2 { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
+.view-head .back { padding: 8px 10px; font-size: 22px; line-height: 1; }
+.rename { font-size: 13px; color: var(--muted); font-weight: 400; }
+
+/* The preview: the camera, the button as the reader shows it, the page number. */
+.stage { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.camera { width: 160px; aspect-ratio: 4 / 3; border-radius: 8px; background: var(--camera); flex: none; display: grid; place-items: center; max-width: 100%; }
+.camera svg { width: 70%; height: 70%; }
+.camera.small { width: 112px; }
+.fb-wrap { padding: 10px; flex: none; }
+.fb { position: relative; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, 0.85); color: #1d2026; box-shadow: 0 0 0 2.5px var(--accent); }
+.fb svg.glyph { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.fb svg.rings { position: absolute; left: -10px; top: -10px; width: 64px; height: 64px; overflow: visible; }
+.fb .faint, .fb .solid { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; }
+.fb .faint { opacity: 0.35; }
+.fb.pulse::before { content: ''; position: absolute; inset: 0; border-radius: 50%; animation: pulse 0.7s ease-out; }
+@keyframes pulse { from { box-shadow: 0 0 0 0 var(--accent); opacity: 1; } to { box-shadow: 0 0 0 12px var(--accent); opacity: 0; } }
+.pageno { flex: 1; min-width: 80px; align-self: stretch; min-height: 88px; display: grid; place-items: center; font-size: 40px; border: 1px solid var(--line); border-radius: 8px; font-variant-numeric: tabular-nums; }
+.stage .seg { margin-left: auto; }
+
+/* Back / None / Next. */
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; flex: none; }
+.dialog .seg button { border: 0; border-radius: 0; min-width: 60px; padding: 8px 12px; background: var(--surface); color: var(--fg); }
+.dialog .seg button + button { border-left: 1px solid var(--line); }
+.dialog .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+
+/* The list's rows. */
+.g-list { display: grid; }
+.g-row { display: grid; grid-template-columns: minmax(0, 1fr) auto 20px; gap: 6px 12px; align-items: center; padding: 10px 4px; border-top: 1px solid var(--line); cursor: pointer; border-radius: 4px; }
+.g-row:hover { background: var(--accent-soft); }
+.g-row .name { font-weight: 600; }
+.g-row .status { grid-column: 1 / 3; display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--muted); min-width: 0; }
+.g-row .status.bad { color: var(--warn); }
+.g-row .chev { grid-row: 1 / 3; grid-column: 3; color: var(--muted); font-size: 22px; }
+.mini { position: relative; width: 140px; height: 6px; border-radius: 3px; background: var(--accent-soft); overflow: hidden; flex: none; }
+.mini .fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); }
+.mini .mark { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--fg); }
+.mini .mark.rel { opacity: 0.45; }
+
+/* What is wrong with a gesture, at the top of its view. */
+.issue { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; padding: 10px 12px; border-radius: 8px; background: var(--warn-soft); color: var(--fg); font-size: 15px; }
+.issue .ic { color: var(--warn); font-weight: 700; }
+.issue .what { font-weight: 600; color: var(--warn); }
+.issue .do { grid-column: 2; color: var(--muted); }
+
+/* The levels: the meter is the control. */
+.levels { display: grid; gap: 6px; }
+.meter-wrap { position: relative; padding-top: 30px; padding-bottom: 26px; touch-action: none; user-select: none; }
+.meter { position: relative; height: 24px; border-radius: 6px; background: var(--accent-soft); overflow: hidden; }
+.meter .fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); }
+.handle { position: absolute; top: 0; width: 44px; margin-left: -22px; height: 84px; display: grid; justify-items: center; cursor: ew-resize; outline: none; }
+.handle .tag { font-size: 12px; font-weight: 600; padding: 1px 6px; border-radius: 4px; background: var(--fg); color: var(--surface); font-variant-numeric: tabular-nums; white-space: nowrap; height: 20px; line-height: 18px; }
+.handle .line { width: 3px; height: 34px; margin-top: 2px; background: var(--fg); border-radius: 2px; }
+.handle.rel .tag { background: var(--muted); }
+.handle.rel .line { background: var(--muted); }
+.ticks { position: absolute; left: 0; right: 0; bottom: 0; height: 22px; }
+.tick { position: absolute; top: 0; width: 2px; height: 8px; margin-left: -1px; background: var(--muted); }
+.tick.peak { background: var(--accent); height: 10px; }
+.tick.peak.low { background: var(--warn); }
+.tick.rest { height: 10px; background: var(--fg); }
+.tick-label { position: absolute; top: 10px; font-size: 11px; color: var(--muted); transform: translateX(-50%); white-space: nowrap; }
+.levels-text { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 15px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.levels-text .sp { flex: 1; }
+.hold { display: grid; grid-template-columns: 4em minmax(0, 1fr) 5em; gap: 8px; align-items: center; min-height: 44px; }
+.hold input { width: 100%; accent-color: var(--accent); }
+.hold .value { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* The channels. */
+.channels { display: grid; }
+.ch { display: grid; grid-template-columns: 52px minmax(130px, 11em) minmax(0, 1fr) 4.5em; gap: 4px 12px; align-items: center; min-height: 56px; border-top: 1px solid var(--line); }
+.ch:last-child { border-bottom: 1px solid var(--line); }
+.ch .label { display: grid; line-height: 1.25; min-width: 0; }
+.ch .label .raw { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); overflow-wrap: anywhere; }
+.ch .label .kind { font-size: 12px; color: var(--muted); }
+.ch .thr { text-align: right; font-variant-numeric: tabular-nums; font-size: 14px; }
+.ch.off .bar, .ch.off .thr { display: none; }
+.ch.off .out { display: block; }
+.ch .out { display: none; grid-column: 3 / 5; color: var(--muted); font-size: 14px; font-style: italic; }
+.ch.off .label { opacity: 0.6; }
+.ch.changed .thr { color: var(--accent); font-weight: 600; }
+@media (max-width: 560px) {
+  .ch { grid-template-columns: 52px minmax(0, 1fr) 4.5em; padding-block: 6px; }
+  .ch .bar { grid-column: 1 / 4; }
+  .ch .out { grid-column: 2 / 4; }
+  .ch .thr { grid-column: 3; grid-row: 1; }
+}
+.switch { width: 44px; height: 26px; border-radius: 13px; background: var(--line); position: relative; cursor: pointer; border: 0; padding: 0; }
+.switch::after { content: ''; position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); transition: left 0.15s; }
+.switch[aria-checked="true"] { background: var(--accent); }
+.switch[aria-checked="true"]::after { left: 21px; }
+.bar { position: relative; height: 44px; touch-action: none; cursor: ew-resize; user-select: none; }
+.bar .track { position: absolute; left: 0; right: 0; top: 18px; height: 8px; border-radius: 4px; background: var(--bg); box-shadow: inset 0 0 0 1px var(--line); }
+.bar .band { position: absolute; top: 15px; height: 14px; border-radius: 3px; background: repeating-linear-gradient(135deg, var(--muted) 0 2px, transparent 2px 5px); opacity: 0.55; }
+.bar .zone { position: absolute; top: 18px; height: 8px; background: var(--accent-soft); }
+.bar .zone.cap { background: var(--warn-soft); }
+.bar .knob { position: absolute; top: 6px; width: 4px; height: 32px; margin-left: -2px; background: var(--fg); border-radius: 2px; }
+.bar .knob::after { content: ''; position: absolute; left: -6px; top: -4px; width: 16px; height: 8px; border-radius: 3px; background: var(--fg); }
+.bar .now { position: absolute; top: 16px; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: var(--paused); border: 2px solid var(--surface); }
+.bar .now.good { background: var(--accent); }
+.bar .now.bad { background: var(--warn); }
+.ch-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: space-between; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); align-items: center; }
+.legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 4px; }
+.legend .l-band { background: repeating-linear-gradient(135deg, var(--muted) 0 2px, transparent 2px 5px); opacity: 0.7; }
+.legend .l-zone { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.legend .l-now { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.fitting { font-size: 14px; color: var(--accent); min-height: 21px; }
+.trials { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.trials .count { flex: 1; min-width: 10em; }
+
+/* Recording. */
+.rec { display: grid; gap: 14px; }
+.rec-top { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.dots { display: flex; gap: 8px; }
+.dots span { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--accent); }
+.dots span.done { background: var(--accent); }
+.dots span.now { animation: blinkdot 1s infinite; }
+@keyframes blinkdot { 50% { background: var(--accent-soft); } }
+.instruction { font-size: 26px; font-family: var(--font-brand); font-weight: 600; margin: 0; min-height: 2.6em; line-height: 1.25; text-wrap: balance; }
+.timeline { position: relative; height: 40px; }
+.timeline .tl-track { position: absolute; left: 0; right: 0; top: 16px; height: 8px; border-radius: 4px; background: var(--bg); box-shadow: inset 0 0 0 1px var(--line); }
+.timeline .tl-held { position: absolute; top: 16px; height: 8px; background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.timeline .tone { position: absolute; top: 8px; width: 2px; height: 24px; margin-left: -1px; background: var(--muted); }
+.timeline .tone.third { width: 3px; background: var(--fg); }
+.timeline .head { position: absolute; top: 2px; width: 2px; height: 36px; background: var(--accent); }
+.timeline .head::before { content: ''; position: absolute; left: -5px; top: -2px; border: 6px solid transparent; border-top-color: var(--accent); }
+.tl-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; font-size: 15px; }
+th, td { text-align: left; border-bottom: 1px solid var(--line); padding: 6px 12px 6px 0; vertical-align: top; }
+th { font-size: 13px; color: var(--muted); font-weight: 600; }
+.decisions li::marker { color: var(--accent); font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .fb.pulse::before, .dots span.now { animation: none; } .switch::after { transition: none; } }
+</style>
+
+<div class="page">
+  <header class="prose">
+    <div class="eyebrow">Volti · proposal · not built</div>
+    <h1>Face gestures, redesigned</h1>
+    <p class="lede">A new layout for the Face gestures dialog (<code>dialogs/face-gestures.ts</code>), and two new controls: each of a gesture's channels can be turned off, and each one's threshold moved.</p>
+    <p>The mockups below are live. Their camera is simulated: a made-up face plays, winks every seven seconds and blinks both eyes now and then, so the meters, the ring and the page number move as they would. Drag the handles and flip the switches to try them. The gestures, numbers and trials are examples.</p>
+  </header>
+
+  <section class="prose">
+    <h2 class="sec">What is wrong now</h2>
+    <ul>
+      <li><strong>It is one long column.</strong> Every gesture is fully open: its name, direction, trial count, three buttons, flags, meter, three sliders and Details (<code>face-gestures.ts:144-209</code>). With three gestures it runs to several screens, and the camera preview has scrolled away before you reach a gesture's sliders, though trying a gesture in place is the point of the preview.</li>
+      <li><strong>On and Release are sliders under the meter they mark</strong> (<code>face-gestures.ts:160-207</code>). Your eye goes back and forth, and nothing shows where they ought to go. The fit knows: the rest level and each rep's peak (<code>model.ts:72-78</code>), but they only appear in Details, as numbers.</li>
+      <li><strong>What a gesture is made of is a read-only table</strong> of six numeric columns (<code>_face-details.ts:19-56</code>). It's where you'd judge a gesture, and where you'd want to change it, but nothing in it can be changed.</li>
+      <li><strong>A gesture's state is a stack of red lines</strong> (flags, the conflict note, the round's problem, <code>face-gestures.ts:152-155</code>). Nothing says at a glance whether it works.</li>
+      <li><strong>The direction is a select</strong> (<code>face-gestures.ts:140-143</code>): two taps, and the choices are hidden until it opens.</li>
+    </ul>
+  </section>
+
+  <!-- ===================== The list ===================== -->
+  <section class="shot" id="shot-list">
+    <div class="backdrop">
+      <div class="dialog" id="list">
+        <h2>Face gestures</h2>
+        <div class="stage">
+          <div class="camera" data-camera></div>
+          <div class="fb-wrap" data-fb></div>
+          <div class="pageno" data-pageno>12</div>
+        </div>
+        <div class="g-list">
+          <div class="g-row" tabindex="0" data-open>
+            <span class="name">Wink right</span>
+            <span data-seg="next"></span>
+            <span class="status"><span class="mini" data-mini="wink"><span class="fill"></span><span class="mark"></span><span class="mark rel"></span></span><span data-wink-status>Ready · 12 trials</span></span>
+            <span class="chev" aria-hidden="true">›</span>
+          </div>
+          <div class="g-row" tabindex="0" data-open>
+            <span class="name">Mouth left</span>
+            <span data-seg="prev"></span>
+            <span class="status bad"><span class="mini" data-mini="mouth"><span class="fill"></span><span class="mark"></span><span class="mark rel"></span></span>⚠ Fires while resting</span>
+            <span class="chev" aria-hidden="true">›</span>
+          </div>
+          <div class="g-row" tabindex="0" data-open>
+            <span class="name">Brows up</span>
+            <span data-seg="none"></span>
+            <span class="status bad">Off: “Wink right” also fires on it</span>
+            <span class="chev" aria-hidden="true">›</span>
+          </div>
+          <div class="g-row" tabindex="0" data-open>
+            <span class="name">Smile</span>
+            <span data-seg="next"></span>
+            <span class="status">Record 3 more trials</span>
+            <span class="chev" aria-hidden="true">›</span>
+          </div>
+        </div>
+        <div class="buttons"><button type="button">Add gesture…</button><span class="spacer"></span><button type="button" class="primary">Done</button></div>
+      </div>
+    </div>
+    <div class="notes">
+      <h3>The list</h3>
+      <p>Every gesture in one row, so the list fits on a screen and the preview stays in sight.</p>
+      <ul>
+        <li><strong>Back / None / Next</strong> as three buttons, in place of the select: one tap, all three choices showing.</li>
+        <li>A <strong>thin live meter</strong> for each fitted gesture, with its On and Release marks, so you can watch them all at once while trying them.</li>
+        <li><strong>One status line</strong>, the worst that applies (table below). The full wording is on the gesture's own view.</li>
+        <li>Tap a row (anywhere but the direction) to open the gesture. <strong>Add gesture…</strong> asks for a name, then opens the new gesture ready to record.</li>
+      </ul>
+      <p class="sample">Tap a row to jump to the gesture view below.</p>
+    </div>
+  </section>
+
+  <section class="prose">
+    <h2 class="sec">The status line</h2>
+    <div class="tbl"><table>
+      <tr><th>Shows</th><th>When</th></tr>
+      <tr><td>Not recorded yet</td><td>No trials</td></tr>
+      <tr><td>Record 2 more trials</td><td>Fewer than three</td></tr>
+      <tr><td>Can't be told from playing</td><td>Flag <code>noChannels</code></td></tr>
+      <tr><td>Off: “X” also fires on it</td><td>Set to None by the conflict check (its note, shortened)</td></tr>
+      <tr><td>⚠ Fires while resting</td><td>Flag <code>firesAtRest</code></td></tr>
+      <tr><td>⚠ Unreliable</td><td>Flag <code>unreliable</code></td></tr>
+      <tr><td>Ready · 12 trials</td><td>Fitted, nothing wrong</td></tr>
+    </table></div>
+  </section>
+
+  <!-- ===================== A gesture ===================== -->
+  <section class="shot" id="shot-gesture">
+    <div class="backdrop">
+      <div class="dialog wide" id="gesture">
+        <div class="view-head">
+          <button type="button" class="quiet back" aria-label="Back to the gestures">‹</button>
+          <h2>Wink right <span class="rename">Rename</span></h2>
+          <button type="button" class="quiet warn">Remove</button>
+        </div>
+        <div class="stage">
+          <div class="camera" data-camera></div>
+          <div class="fb-wrap" data-fb></div>
+          <div class="pageno" data-pageno>12</div>
+          <span data-seg="next"></span>
+        </div>
+
+        <div class="issue" id="issue">
+          <span class="ic">⚠</span><span class="what">Fires while resting: 4 frames, 130 ms at the longest.</span>
+          <span class="do">A channel that rest reaches is too close to its threshold. Turn it off, or move its threshold away from the hatched band.</span>
+        </div>
+
+        <h3>Levels</h3>
+        <div class="levels">
+          <div class="meter-wrap" id="meter-wrap">
+            <div class="meter"><div class="fill" id="meter-fill"></div></div>
+            <div class="handle rel" id="h-rel" role="slider" tabindex="0" aria-label="Release level" aria-valuemin="0.05" aria-valuemax="0.95"><span class="tag"></span><span class="line"></span></div>
+            <div class="handle on" id="h-on" role="slider" tabindex="0" aria-label="On level" aria-valuemin="0.05" aria-valuemax="0.95"><span class="tag"></span><span class="line"></span></div>
+            <div class="ticks" id="ticks"></div>
+          </div>
+          <div class="levels-text">
+            <span>Drag <strong>On</strong> and <strong>Release</strong> on the meter.</span><span class="sp"></span>
+            <button type="button" class="quiet" id="fitted-levels" hidden>Fitted levels</button>
+          </div>
+          <label class="hold"><span>Hold</span><input type="range" id="hold" min="100" max="1500" step="50" value="250"><span class="value" id="hold-v">250 ms</span></label>
+        </div>
+
+        <h3>Channels</h3>
+        <div class="channels" id="channels"></div>
+        <div class="ch-foot">
+          <div class="legend"><span><i class="l-band"></i>rest's range</span><span><i class="l-zone"></i>the gesture's side</span><span><i class="l-now"></i>now</span></div>
+          <button type="button" class="quiet" id="reset-ch" hidden>Reset channels</button>
+        </div>
+        <div class="fitting" id="fitting" aria-live="polite"></div>
+        <p class="hint">Not used: Smile, right (clear 0.31, span 0.12) · Jaw to the left (0.12, 0.08) · Squint, left eye (0.05, 0.11)</p>
+
+        <h3>Trials</h3>
+        <div class="trials"><span class="count">12 trials</span><button type="button" class="quiet">Clear trials</button><button type="button" class="primary">Record 5 trials</button></div>
+        <div class="buttons"><button type="button" class="primary">Done</button></div>
+      </div>
+    </div>
+    <div class="notes">
+      <h3>A gesture</h3>
+      <ul>
+        <li><strong>The header</strong>: ‹ back to the list, the name (tap to rename, which isn't possible now) and Remove, which asks first.</li>
+        <li><strong>What is wrong</strong>, at the top, in full words, with what to do about it.</li>
+        <li><strong>Levels</strong>: the meter is the control. Drag On and Release on it. Release can't pass On, and dragging On below Release takes Release down too, as <code>withLevels</code> does now. Under the meter: the <em>rest</em> level and each rep's peak. A peak below On is in the warning colour, because that rep, done that way, wouldn't have turned the page. <strong>Fitted levels</strong> appears once you move one.</li>
+        <li><strong>Channels</strong> replace Details. Each row has a switch, the channel's name in words, a bar with the rest's range hatched, the threshold as a handle you can drag, and a dot for its value now. The gap between the hatching and the handle shows how clear the channel is, so the Clear column goes.</li>
+        <li>In the example, <em>Brow down, right</em> has been switched off: frowning while sight-reading kept reaching it.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="prose">
+    <h2 class="sec">What changing a channel does</h2>
+    <p><strong>Turning a channel off fits the gesture again from its trials, with that channel barred.</strong> It can't be a moving channel or a cap. A cap whose moving channel is turned off goes with it, because a cap only exists to stop the gesture being done on both sides. The next clearest channel may take the freed place among the ten kept (<code>MAX_SUPPORT</code>, <code>template.ts:52</code>), and shows up as a new row.</p>
+    <p><strong>Moving a threshold</strong> does the same, with that channel's edge (or cap) fixed where you put it; its span and clearness follow from it. While you drag, the meters and the ring score with the new threshold straight away. The fit runs again when you let go.</p>
+    <p><strong>Why fit again</strong> rather than just take the channel out of the score: the score's scale is the levels' scale. Remove a channel or move a threshold, and the rest level and the reps' peaks move, so the old On and Release would be wrong, and so would the flags and the conflict check. Fitting again keeps them all true. So <strong>a channel change puts the levels back to the fitted ones</strong>, as recording does. Set the channels first, then the levels; the view's order says so.</p>
+    <p>Channel changes are <strong>kept across rounds</strong>: recording more trials fits again with the same channels off and the same thresholds. Clear trials keeps them too; <strong>Reset channels</strong> drops them.</p>
+  </section>
+
+  <!-- ===================== Recording ===================== -->
+  <section class="shot" id="shot-rec">
+    <div class="backdrop">
+      <div class="dialog wide" id="rec">
+        <div class="view-head">
+          <h2>Wink right</h2>
+        </div>
+        <div class="rec">
+          <div class="rec-top">
+            <div class="camera small" data-camera></div>
+            <div class="dots" id="dots" aria-label="Trials"><span></span><span></span><span></span><span></span><span></span></div>
+            <span class="hint" id="trial-n">Trial 3 of 5</span>
+          </div>
+          <p class="instruction" id="instr">Keep playing. Wait for the rising tones.</p>
+          <div>
+            <div class="timeline" id="timeline"><div class="tl-track"></div></div>
+            <div class="tl-labels"><span>lead-in</span><span>hold</span><span>let go</span></div>
+          </div>
+          <div class="mini" style="width: 100%; height: 10px; border-radius: 5px" data-mini="wink"><span class="fill"></span><span class="mark"></span><span class="mark rel"></span></div>
+          <div class="buttons"><button type="button" class="quiet">Cancel</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <h3>Recording</h3>
+      <p>As now (<code>_face-recording.ts</code>), with the same instructions, tones and rules, plus:</p>
+      <ul>
+        <li><strong>Five dots</strong> for the round, filled as each trial is kept.</li>
+        <li><strong>A timeline</strong> of the trial under way: the six tones marked (the third of each set heavier), the held part shaded, and a moving playhead, so you can see how long each part has left without counting.</li>
+        <li>The instruction in large type.</li>
+        <li>For a gesture that's already fitted, its <strong>meter</strong> stays live. Nothing turns, as now.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="prose">
+    <h2 class="sec">What is stored</h2>
+    <p>A gesture gains an optional field:</p>
+    <p><code>channels?: { off: string[]; at: Record&lt;string, number&gt; }</code>: your changes to the template, by channel name, kept whenever the gesture is fitted again.</p>
+    <p><code>build(trials)</code> becomes <code>build(trials, channels?)</code>, and <code>fit(frames)</code> takes the barred channels and fixed edges. They're keyed by name, not index, so a change to the channel order can't shift them. Gestures stored without the field read as they do now, so there's nothing to migrate and the data version stays 5. <code>FIT_VERSION</code> doesn't change either: a gesture with no channel changes fits exactly as before.</p>
+    <p><code>face-gestures-spec.md</code> would get the two views in “The settings”, the channel changes in “The gestures”, and the new field in “What is stored”. <code>face-classifier-spec.md</code> would get the barred channels and fixed edges in “The template”.</p>
+  </section>
+
+  <section class="prose">
+    <h2 class="sec">Decisions made here, to overrule</h2>
+    <ol class="decisions">
+      <li>Two views (the list, and one gesture), rather than rows that expand in one list.</li>
+      <li>The meter becomes the On and Release control, and their sliders go. Hold stays a slider.</li>
+      <li>Changing a channel fits the gesture again and puts the levels back to the fitted ones, rather than keeping levels you set by hand.</li>
+      <li>A channel you turn off can be replaced by the next clearest one, rather than leaving the template a channel short.</li>
+      <li>Channel changes survive new rounds and Clear trials; only Reset channels drops them.</li>
+      <li>You can only turn channels off and move them: a “just missed” channel can't be forced in.</li>
+      <li>Details' numbers (Clear, Rest reaches, each rep's peak) go, shown instead as the bars' hatching and the meter's ticks.</li>
+      <li>A gesture can be renamed.</li>
+      <li>Channels get names in words, with the raw name in small type under each.</li>
+      <li>The gesture's view is the wide dialog (720 px); the list stays 560 px.</li>
+    </ol>
+  </section>
+
+  <section class="prose">
+    <h2 class="sec">Questions</h2>
+    <ol>
+      <li>By “adjust the thresholds”, did you mean each channel's threshold, as proposed here, or On and Release being easier to set? This does both.</li>
+      <li>When you turn a channel off and another takes its place: is that welcome, or should turning one off only ever shrink a gesture?</li>
+      <li>MediaPipe's <code>Left</code> and <code>Right</code>: are they your own left and right, or the picture's? The names in words have to say the right side, and that needs checking on the tablet.</li>
+      <li>Should the reader say which gesture turned the page (a label beside the button, briefly)? It's outside this dialog, but it's the other place where a misfire is hard to trace.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const two = (v) => v.toFixed(2);
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- The example gesture: Wink right ---------- */
+  // Moving channels (side +1: must reach the edge) and a cap (the other eye must stay under its cap).
+  const rows = [
+    { key: 'eyeBlinkRight', name: 'Blink, right eye', rest: 0.05, far: 0.17, edge: 0.58, held: 0.84 },
+    { key: 'eyeSquintRight', name: 'Squint, right eye', rest: 0.08, far: 0.22, edge: 0.34, held: 0.52 },
+    { key: 'cheekSquintRight', name: 'Cheek squint, right', rest: 0.03, far: 0.08, edge: 0.18, held: 0.29 },
+    { key: 'browDownRight', name: 'Brow down, right', rest: 0.04, far: 0.2, edge: 0.22, held: 0.27, off: true },
+  ];
+  const caps = [{ key: 'eyeBlinkLeft', name: 'Blink, left eye', rest: 0.05, far: 0.12, cap: 0.39, full: 0.58, held: 0.2 }];
+  for (const c of [...rows, ...caps]) { c.fitted = c.edge ?? c.cap; c.offAtFit = !!c.off; }
+  const FIT = { on: 0.61, release: 0.4, rest: 0.18, peaks: [0.92, 0.97, 0.88, 0.95, 0.9, 0.94, 0.58, 0.96, 0.91, 0.93, 0.89, 0.95] };
+  const lv = { on: FIT.on, release: FIT.release, hold: 250 };
+
+  /* ---------- The simulated face ---------- */
+  // A smooth wobble per channel, standing in for playing.
+  const wob = (t, k) => 0.5 + 0.25 * Math.sin(t * 1.3 + k * 1.7) + 0.25 * Math.sin(t * 2.9 + k * 4.1);
+  const CYCLE = 7;
+  /** How far into the wink the face is, 0 to 1. */
+  const winkOf = (t) => {
+    const p = t % CYCLE;
+    if (p < 4) return 0;
+    if (p < 4.25) return (p - 4) / 0.25;
+    if (p < 5.7) return 1;
+    if (p < 5.95) return 1 - (p - 5.7) / 0.25;
+    return 0;
+  };
+  /** Both eyes blinking, now and then. */
+  const blinkOf = (t) => { const p = (t + 2.2) % 9.5; return p < 0.18 ? Math.sin((p / 0.18) * Math.PI) : 0; };
+  /** A frown while reading, which reaches Brow down's threshold. */
+  const frownOf = (t) => { const p = t % 13; return p > 8 && p < 9.6 ? Math.sin(((p - 8) / 1.6) * Math.PI) : 0; };
+  const frame = (t) => {
+    const w = winkOf(t);
+    const b = blinkOf(t);
+    const f = frownOf(t);
+    const x = {};
+    rows.forEach((r, i) => {
+      const noise = (r.far - r.rest) * wob(t, i) * 1.1;
+      x[r.key] = clamp(r.rest + noise + w * (r.held - r.rest), 0, 1);
+    });
+    x.eyeBlinkRight = Math.max(x.eyeBlinkRight, b * 0.9);
+    x.browDownRight = Math.max(x.browDownRight, f * 0.32);
+    const c = caps[0];
+    x[c.key] = clamp(c.rest + (c.far - c.rest) * wob(t, 9) + w * (c.held - c.rest) + b * 0.85, 0, 1);
+    return x;
+  };
+  const shortOf = (r, v) => clamp((r.edge - v) / (r.edge - r.rest), 0, 1);
+  const overOf = (k, v) => clamp((v - k.cap) / (k.full - k.cap), 0, 1);
+  const score = (x) => {
+    const on = rows.filter((r) => !r.off);
+    if (!on.length) return 0;
+    let sum = 0, worst = 0;
+    for (const r of on) { const z = shortOf(r, x[r.key]); sum += z; worst = Math.max(worst, z); }
+    const short = on.length >= 4 ? (sum - worst) / (on.length - 1) : sum / on.length;
+    const cs = caps.filter((k) => !k.off);
+    const over = cs.length ? Math.sqrt(cs.reduce((a, k) => a + overOf(k, x[k.key]) ** 2, 0) / cs.length) : 0;
+    return (1 - short) * (1 - over);
+  };
+  /** Mouth left: a second, made-up signal that sometimes fires at rest. */
+  const mouthScore = (t) => {
+    const p = (t + 3) % 8;
+    const g = p > 5 && p < 6.5 ? 0.9 : 0;
+    const spike = (t % 11) > 2 && (t % 11) < 2.3 ? 0.7 : 0;
+    return clamp(0.15 + 0.1 * wob(t, 3) + g + spike, 0, 1);
+  };
+
+  /* ---------- The face button, as the reader draws it ---------- */
+  const GLYPH = 'M4 8V5.5C4 4.7 4.7 4 5.5 4H8M16 4h2.5c.8 0 1.5.7 1.5 1.5V8M20 16v2.5c0 .8-.7 1.5-1.5 1.5H16M8 20H5.5c-.8 0-1.5-.7-1.5-1.5V16M14.5 10.5a2.5 2.5 0 1 1-5 0a2.5 2.5 0 1 1 5 0M7.8 16.5c.9-1.6 2.4-2.5 4.2-2.5s3.3.9 4.2 2.5';
+  const arc = (frac) => {
+    if (frac <= 0) return '';
+    const a = (-90 + 170 * Math.min(1, frac)) * Math.PI / 180;
+    const R = 28.5, x = 32 + R * Math.cos(a), y = 32 + R * Math.sin(a);
+    return `M32 3.5A${R} ${R} 0 0 1 ${x.toFixed(2)} ${y.toFixed(2)}`;
+  };
+  const buttons = $$('[data-fb]').map((host) => {
+    host.innerHTML = `<div class="fb"><svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="${GLYPH}"/></svg><svg class="rings" viewBox="0 0 64 64" aria-hidden="true"><path class="faint"/><path class="solid"/></svg></div>`;
+    return { el: $('.fb', host), faint: $('.faint', host), solid: $('.solid', host) };
+  });
+  const FACE = '<svg viewBox="0 0 100 80" aria-hidden="true"><ellipse cx="50" cy="34" rx="18" ry="22" fill="none" stroke="var(--camera-fg)" stroke-width="2"/><path d="M22 80c4-14 15-20 28-20s24 6 28 20" fill="none" stroke="var(--camera-fg)" stroke-width="2"/><line class="eyeL" x1="41" y1="30" x2="45" y2="30" stroke="var(--camera-fg)" stroke-width="3" stroke-linecap="round"/><line class="eyeR" x1="55" y1="30" x2="59" y2="30" stroke="var(--camera-fg)" stroke-width="3" stroke-linecap="round"/><path d="M44 45q6 3 12 0" fill="none" stroke="var(--camera-fg)" stroke-width="2" stroke-linecap="round"/></svg>';
+  const cams = $$('[data-camera]').map((c) => { c.innerHTML = FACE; return c; });
+
+  /* ---------- Back / None / Next ---------- */
+  $$('[data-seg]').forEach((host) => {
+    const seg = document.createElement('span');
+    seg.className = 'seg';
+    seg.setAttribute('role', 'group');
+    seg.setAttribute('aria-label', 'Turns');
+    for (const [v, label] of [['prev', 'Back'], ['none', 'None'], ['next', 'Next']]) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = label;
+      b.setAttribute('aria-pressed', String(host.dataset.seg === v));
+      b.addEventListener('click', (e) => { e.stopPropagation(); $$('button', seg).forEach((o) => o.setAttribute('aria-pressed', String(o === b))); });
+      seg.append(b);
+    }
+    host.replaceWith(seg);
+  });
+  $$('[data-open]').forEach((r) => {
+    const go = () => $('#shot-gesture').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+    r.addEventListener('click', go);
+    r.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+  });
+
+  /* ---------- Levels: the meter's handles ---------- */
+  const wrap = $('#meter-wrap');
+  const hOn = $('#h-on'), hRel = $('#h-rel');
+  const fittedBtn = $('#fitted-levels');
+  const ticks = $('#ticks');
+  const drawTicks = () => {
+    ticks.innerHTML = '';
+    const add = (cls, v, label) => {
+      const t = document.createElement('span');
+      t.className = `tick ${cls}`;
+      t.style.left = `${v * 100}%`;
+      ticks.append(t);
+      if (label) { const l = document.createElement('span'); l.className = 'tick-label'; l.style.left = `${v * 100}%`; l.textContent = label; ticks.append(l); }
+    };
+    add('rest', FIT.rest, 'rest');
+    FIT.peaks.forEach((p) => add(`peak${p < lv.on ? ' low' : ''}`, p));
+    const low = FIT.peaks.filter((p) => p < lv.on).length;
+    const mid = FIT.peaks.reduce((a, b) => a + b, 0) / FIT.peaks.length;
+    const l = document.createElement('span');
+    l.className = 'tick-label';
+    l.style.left = `${mid * 100}%`;
+    l.textContent = low ? `reps (${low} under On)` : 'reps';
+    ticks.append(l);
+  };
+  const placeLevels = () => {
+    hOn.style.left = `${lv.on * 100}%`;
+    hRel.style.left = `${lv.release * 100}%`;
+    $('.tag', hOn).textContent = `On ${two(lv.on)}`;
+    $('.tag', hRel).textContent = `Release ${two(lv.release)}`;
+    hOn.setAttribute('aria-valuenow', two(lv.on));
+    hRel.setAttribute('aria-valuenow', two(lv.release));
+    // Keep the two tags from overlapping when the handles are close.
+    const close = (lv.on - lv.release) * wrap.clientWidth < 110;
+    $('.tag', hRel).style.transform = close ? 'translateX(-40px)' : '';
+    $('.tag', hOn).style.transform = close ? 'translateX(30px)' : '';
+    fittedBtn.hidden = lv.on === FIT.on && lv.release === FIT.release;
+    $$('[data-mini="wink"]').forEach((m) => {
+      m.querySelector('.mark').style.left = `${lv.on * 100}%`;
+      m.querySelector('.mark.rel').style.left = `${lv.release * 100}%`;
+    });
+    drawTicks();
+  };
+  const setLevels = (to) => {
+    const on = clamp(to.on ?? lv.on, 0.05, 0.95);
+    lv.on = Math.round(on * 100) / 100;
+    lv.release = Math.round(Math.min(lv.on, clamp(to.release ?? lv.release, 0.05, 0.95)) * 100) / 100;
+    placeLevels();
+  };
+  let dragging = null;
+  const valueAt = (el, e) => { const r = el.getBoundingClientRect(); return clamp((e.clientX - r.left) / r.width, 0, 1); };
+  wrap.addEventListener('pointerdown', (e) => {
+    const v = valueAt(wrap, e);
+    dragging = Math.abs(v - lv.on) <= Math.abs(v - lv.release) ? 'on' : 'release';
+    if (lv.on === lv.release) dragging = v > lv.on ? 'on' : 'release';
+    wrap.setPointerCapture(e.pointerId);
+    setLevels({ [dragging]: v });
+    (dragging === 'on' ? hOn : hRel).focus({ preventScroll: true });
+  });
+  wrap.addEventListener('pointermove', (e) => { if (dragging) setLevels({ [dragging]: valueAt(wrap, e) }); });
+  wrap.addEventListener('pointerup', () => { dragging = null; });
+  for (const [h, k] of [[hOn, 'on'], [hRel, 'release']]) {
+    h.addEventListener('keydown', (e) => {
+      const d = { ArrowRight: 0.01, ArrowUp: 0.01, ArrowLeft: -0.01, ArrowDown: -0.01 }[e.key];
+      if (d) { e.preventDefault(); setLevels({ [k]: lv[k] + d }); }
+    });
+  }
+  fittedBtn.addEventListener('click', () => setLevels({ on: FIT.on, release: FIT.release }));
+  $('#hold').addEventListener('input', (e) => { lv.hold = Number(e.target.value); $('#hold-v').textContent = `${lv.hold} ms`; });
+
+  /* ---------- Channels ---------- */
+  const list = $('#channels');
+  const fitting = $('#fitting');
+  const resetBtn = $('#reset-ch');
+  let fitTimer;
+  /** What the real dialog would do on a change: fit again, and put the levels back. */
+  const refit = (what) => {
+    fitting.textContent = `${what}. Fitting again from 12 trials…`;
+    clearTimeout(fitTimer);
+    fitTimer = setTimeout(() => {
+      setLevels({ on: FIT.on, release: FIT.release });
+      fitting.textContent = `${what}. Fitted again: the levels are back to the fitted ones.`;
+    }, 600);
+    resetBtn.hidden = ![...rows, ...caps].some((c) => !!c.off !== c.offAtFit || (c.edge ?? c.cap) !== c.fitted);
+  };
+  const chEls = [];
+  const addChannel = (c, isCap) => {
+    const row = document.createElement('div');
+    row.className = 'ch';
+    row.innerHTML = `<button type="button" class="switch" role="switch" aria-label="Use ${c.name}"></button>
+      <span class="label"><span>${c.name}${isCap ? ' <span class="kind">(cap)</span>' : ''}</span><span class="raw">${c.key}</span></span>
+      <div class="bar" role="slider" tabindex="0" aria-label="${c.name}: ${isCap ? 'cap' : 'threshold'}"><div class="track"></div><div class="zone${isCap ? ' cap' : ''}"></div><div class="band"></div><div class="knob"></div><div class="now"></div></div>
+      <span class="thr"></span><span class="out">Left out by you</span>`;
+    const sw = $('.switch', row), bar = $('.bar', row), knob = $('.knob', row), zone = $('.zone', row), band = $('.band', row), now = $('.now', row), thr = $('.thr', row);
+    const lo = Math.min(c.rest, c.far), hi = Math.max(c.rest, c.far);
+    band.style.left = `${lo * 100}%`;
+    band.style.width = `${(hi - lo) * 100}%`;
+    const place = () => {
+      const v = isCap ? c.cap : c.edge;
+      knob.style.left = `${v * 100}%`;
+      // A moving channel's side runs from its threshold up; a cap's out-zone from its cap up.
+      zone.style.left = `${v * 100}%`;
+      zone.style.width = `${(1 - v) * 100}%`;
+      thr.textContent = `${isCap ? '≤' : '≥'} ${two(v)}`;
+      bar.setAttribute('aria-valuenow', two(v));
+      row.classList.toggle('changed', v !== c.fitted);
+      row.classList.toggle('off', !!c.off);
+      sw.setAttribute('aria-checked', String(!c.off));
+    };
+    const setThr = (v) => {
+      const min = c.rest + 0.02;
+      const val = Math.round(clamp(v, min, isCap ? c.full - 0.02 : 0.98) * 100) / 100;
+      if (isCap) c.cap = val; else c.edge = val;
+      place();
+    };
+    let drag = false;
+    bar.addEventListener('pointerdown', (e) => { drag = true; bar.setPointerCapture(e.pointerId); setThr(valueAt(bar, e)); });
+    bar.addEventListener('pointermove', (e) => { if (drag) setThr(valueAt(bar, e)); });
+    bar.addEventListener('pointerup', () => { if (!drag) return; drag = false; refit(`${c.name} ${isCap ? 'capped' : 'set'} at ${two(isCap ? c.cap : c.edge)}`); });
+    bar.addEventListener('keydown', (e) => {
+      const d = { ArrowRight: 0.01, ArrowUp: 0.01, ArrowLeft: -0.01, ArrowDown: -0.01 }[e.key];
+      if (!d) return;
+      e.preventDefault();
+      setThr((isCap ? c.cap : c.edge) + d);
+      refit(`${c.name} ${isCap ? 'capped' : 'set'} at ${two(isCap ? c.cap : c.edge)}`);
+    });
+    sw.addEventListener('click', () => { c.off = !c.off; place(); refit(`${c.name} ${c.off ? 'turned off' : 'turned back on'}`); });
+    place();
+    list.append(row);
+    chEls.push({ c, isCap, now, place });
+  };
+  rows.forEach((r) => addChannel(r, false));
+  caps.forEach((k) => addChannel(k, true));
+  resetBtn.addEventListener('click', () => {
+    for (const { c, isCap, place } of chEls) { c.off = c.offAtFit; if (isCap) c.cap = c.fitted; else c.edge = c.fitted; place(); }
+    refit('Channels reset');
+    resetBtn.hidden = true;
+  });
+
+  /* ---------- Recording's timeline ---------- */
+  const REC = 12; // s: lead-in 3, rising tones at 3, 4, 5, falling at 8, 9, 10, 2 s more.
+  const UPS = [3, 4, 5], DOWNS = [8, 9, 10];
+  const tl = $('#timeline');
+  const pct = (s) => `${(s / REC) * 100}%`;
+  const held = document.createElement('div');
+  held.className = 'tl-held';
+  held.style.left = pct(5.5);
+  held.style.width = pct(4);
+  tl.append(held);
+  [...UPS, ...DOWNS].forEach((s, i) => { const t = document.createElement('div'); t.className = `tone${i % 3 === 2 ? ' third' : ''}`; t.style.left = pct(s); tl.append(t); });
+  const head = document.createElement('div');
+  head.className = 'head';
+  tl.append(head);
+  const dots = $$('#dots span');
+
+  /* ---------- The clock ---------- */
+  const t0 = performance.now();
+  let page = 12, isOn = false, heldMs = 0, fired = false, last = t0;
+  const pagenos = $$('[data-pageno]');
+  const tick = (now) => {
+    const dt = now - last;
+    last = now;
+    const t = (now - t0) / 1000;
+    const x = frame(t);
+    const s = score(x);
+
+    // The detector, as the reader's: on at On, let go under Release, turns after Hold.
+    if (s >= lv.on) isOn = true;
+    if (s < lv.release) { isOn = false; fired = false; heldMs = 0; }
+    if (isOn && !fired) {
+      heldMs += dt;
+      if (heldMs >= lv.hold) {
+        fired = true;
+        page += 1;
+        pagenos.forEach((p) => { p.textContent = String(page); });
+        buttons.forEach((b) => { b.el.classList.remove('pulse'); void b.el.offsetWidth; if (!reduced) b.el.classList.add('pulse'); });
+      }
+    }
+    const faint = isOn ? 1 : clamp((s - lv.release) / Math.max(0.001, lv.on - lv.release), 0, 1);
+    const solid = isOn && !fired ? heldMs / lv.hold : 0;
+    const showFaint = fired ? 0 : faint;
+    buttons.forEach((b) => { b.faint.setAttribute('d', arc(showFaint)); b.solid.setAttribute('d', arc(solid)); });
+
+    $('#meter-fill').style.width = `${s * 100}%`;
+    $$('[data-mini="wink"] .fill').forEach((f) => { f.style.width = `${s * 100}%`; });
+    const ms = mouthScore(t);
+    const mm = $('[data-mini="mouth"]');
+    mm.querySelector('.fill').style.width = `${ms * 100}%`;
+    mm.querySelector('.mark').style.left = '55%';
+    mm.querySelector('.mark.rel').style.left = '36%';
+
+    for (const { c, isCap, now: dot } of chEls) {
+      const v = x[c.key];
+      dot.style.left = `${v * 100}%`;
+      const past = isCap ? v > c.cap : v >= c.edge;
+      dot.className = `now${past ? (isCap ? ' bad' : ' good') : ''}`;
+    }
+
+    // The simulated camera's eyes close with the wink and the blinks.
+    const wr = Math.max(winkOf(t), blinkOf(t)), wl = blinkOf(t);
+    cams.forEach((cm) => {
+      const r = cm.querySelector('.eyeR'), l = cm.querySelector('.eyeL');
+      if (r) r.setAttribute('stroke-width', String(3 - 2 * wr));
+      if (l) l.setAttribute('stroke-width', String(3 - 2 * wl));
+    });
+
+    // Recording: the playhead, the instruction, the dots.
+    const p = t % REC;
+    const k = Math.floor(t / REC) % 5;
+    head.style.left = pct(p);
+    const instr = p < UPS[0] ? 'Keep playing. Wait for the rising tones.'
+      : p < UPS[2] ? 'Ready: on the third tone'
+      : p < DOWNS[0] ? 'Hold it'
+      : p < DOWNS[2] ? 'Let go on the third tone'
+      : 'Let go. Keep playing.';
+    const el = $('#instr');
+    if (el.textContent !== instr) el.textContent = instr;
+    dots.forEach((d, i) => { d.className = i < k ? 'done' : i === k ? 'now' : ''; });
+    $('#trial-n').textContent = `Trial ${k + 1} of 5`;
+
+    requestAnimationFrame(tick);
+  };
+  placeLevels();
+  addEventListener('resize', placeLevels);
+  requestAnimationFrame(tick);
+})();
+</script>
