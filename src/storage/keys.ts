@@ -41,6 +41,8 @@ export const keys = {
   faceGestures: 'face-gestures',
   /** A face gesture's trials, a Trial[], by the gesture's id; deleted with the gesture (face/store.ts). */
   faceTrials: (id: string) => 'face-trials:' + id,
+  /** The page face gesture recordings play over, a RecordingPage: one for every gesture (face/store.ts). */
+  faceRecordingPage: 'face-recording-page',
 
   /* Setlists (setlists/store.ts). Cuts and markings are only ever stored in the score. */
   /** Setlist ids, newest first. */

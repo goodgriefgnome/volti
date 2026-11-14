@@ -1,6 +1,6 @@
 // Recording a gesture's trials: a trial as stored, its held and rest frames, a trial's timetable of
 // tones, and a recorder that takes its frames. docs/face-classifier-spec.md says how a trial goes.
-// Pure: no DOM, no audio, no storage (_tones.ts plays the tones, the dialog drives the round).
+// Pure: no DOM, no audio, no storage (_tones.ts plays the tones, _recording-screen.ts drives the recording).
 
 import { CHANNELS, type TrialFrames } from './_template';
 
@@ -45,8 +45,7 @@ export function planTrial(random: () => number): TrialPlan {
 export const TONES: readonly number[] = [523, 659, 784];
 export const TONE_MS = 120;
 export const TONE_LONG_MS = 250;
-/** How many trials a round records, and the least held and rest frames a trial must have to be kept. */
-export const ROUND = 5;
+/** The least held and rest frames a trial must have to be kept. */
 export const MIN_FRAMES = 15;
 
 /** Collects one trial's frames. */

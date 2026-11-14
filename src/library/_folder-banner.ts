@@ -8,7 +8,7 @@ import { driveOffered } from '../originals/drive/score-fs';
 import { button, el } from '../ui/dom';
 import { showMenu } from '../ui/overlay';
 import type { LibraryHost } from './_host';
-import { openFaceGestures } from '../face/dialog';
+import { openFaceGestures } from '../dialogs/face-gestures';
 import { openMarkingColors } from './_marking-colors';
 import { openRecentlyRemoved } from './_removed';
 import { storageView } from './_storage';

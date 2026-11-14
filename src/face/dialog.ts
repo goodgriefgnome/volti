@@ -19,12 +19,22 @@ import { FaceWatcher, type CameraStatus } from './watcher';
 import { button, el } from '../ui/dom';
 import { failed, failedOnce } from '../ui/failure';
 import { buttonRow, closeOverlay, showDialog, showOnTop, whenOverlayCloses } from '../ui/overlay';
-import { recordRound, type FrameListener, type Round } from './_round';
+import { recordUntilTapped, type FrameListener, type RecordingScreen } from './_recording-screen';
 
 const DIRECTIONS: [value: string, label: string][] = [['next', 'Next'], ['prev', 'Back'], ['none', 'None']];
 
+/** A page of music drawn to fit the screen, for a recording to play over. */
+export type PagePicture = HTMLCanvasElement;
+
+/**
+ * Asks which page to record over, over the dialog, and calls `start` with its picture; `close`
+ * takes the question away. It is the library's part (dialogs/face-play-from.ts), given by whoever
+ * opens the dialog: face/ is below the library and can't reach it.
+ */
+export type PlayFrom = (name: string, start: (page: PagePicture) => void) => { close(): void };
+
 /** The Face gestures dialog: starts the camera while open; `closed` is called when it closes, however. */
-export function openFaceGestures(closed?: () => void): void {
+export function openFaceGestures(closed: (() => void) | undefined, playFrom: PlayFrom): void {
   const d = showDialog('Face gestures', 'face-gestures');
   let settings: FaceSettings = NO_GESTURES;
   let loaded = false;
@@ -158,16 +168,14 @@ export function openFaceGestures(closed?: () => void): void {
   /** The gesture whose details are shown, if any, and what they made. */
   let viewId: string | undefined;
   let details: Details | undefined;
-  let recordingOn = false;
 
-  /** What shows: the list or a gesture's details, or the recording over both. */
+  /** What shows: the list or a gesture's details. */
   const applyView = () => {
-    rows.hidden = recordingOn || !!viewId;
-    buttons.hidden = recordingOn || !!viewId;
+    rows.hidden = !!viewId;
+    buttons.hidden = !!viewId;
     hold.hidden = !!viewId;
-    headSlot.hidden = recordingOn || !viewId;
-    detailsBody.hidden = recordingOn || !viewId;
-    recording.hidden = !recordingOn;
+    headSlot.hidden = !viewId;
+    detailsBody.hidden = !viewId;
   };
 
   /** Show the list again, or a gesture's details again. */
@@ -244,7 +252,7 @@ export function openFaceGestures(closed?: () => void): void {
     refresh: () => render(),
     shown: { get: (id) => shownOf.get(id) ?? 'strength', set: (id, shown) => { shownOf.set(id, shown); } },
     tryTemplate: (id, template) => watcher.setGestures(activeOf(settings).map((a) => (a.id === id && template ? { ...a, template } : a))),
-    record: (g) => startRound(g),
+    record: (g) => startRecording(g),
     problemOf: (id) => problems.get(id),
     back: () => { viewId = undefined; render(); },
   };
@@ -257,7 +265,7 @@ export function openFaceGestures(closed?: () => void): void {
       const fitted = isFitted(g);
       const row = el('div', fitted ? 'face-row' : 'face-row unfitted');
       const status = statusOf(g);
-      const record = button('Record', () => startRound(g));
+      const record = button('Record', () => startRecording(g));
       row.append(nameCell(g));
       if (fitted) {
         const select = document.createElement('select');
@@ -318,48 +326,46 @@ export function openFaceGestures(closed?: () => void): void {
 
   /* ---------- recording ---------- */
 
-  const recording = el('div', 'face-recording');
-  recording.hidden = true;
-  d.append(recording);
-  let round: Round | undefined;
+  let recordingScreen: RecordingScreen | undefined;
+  let asking: { close(): void } | undefined;
 
-  /** Show the round, or what it replaced. */
-  const showRound = (on: boolean) => {
-    recordingOn = on;
-    nameRow.hidden = true;
-    add.hidden = false;
-    applyView();
-  };
-
-  /** Record a round of trials of `g`; nothing turns meanwhile. */
-  function startRound(g: Gesture) {
+  /** Record trials of `g`: ask which page to play over, then record until a tap; nothing turns meanwhile. */
+  function startRecording(g: Gesture) {
     problems.delete(g.id);
     readyTones();
-    watcher.setGestures([]);
-    showRound(true);
-    round = recordRound(recording, frameListeners, (trials, why) => {
-      round = undefined;
-      if (d.isConnected) showRound(false);
-      later(async () => {
-        if (trials.length) {
-          const all = [...await loadTrials(g.id), ...trials];
-          await saveTrials(g.id, all);
-          // Fitted again from all its trials, its levels back to the fitted ones, and it is the first to give way.
-          const fitted: FaceSettings = { ...settings, gestures: settings.gestures.map((x) => (x.id === g.id ? withFit(x, buildFit(all, x.channels)) : x)) };
-          commit(settled(fitted, await trialsOfActive(fitted), g.id));
-        } else commit(settings);
-        if (why) problems.set(g.id, why);
-        render();
+    asking = playFrom(g.name, (page) => {
+      asking = undefined;
+      watcher.setGestures([]);
+      recordingScreen = recordUntilTapped({
+        name: g.name,
+        page,
+        frames: frameListeners,
+        done: (trials, why) => {
+          recordingScreen = undefined;
+          watcher.setGestures(activeOf(settings));
+          later(async () => {
+            if (trials.length) {
+              const all = [...await loadTrials(g.id), ...trials];
+              await saveTrials(g.id, all);
+              // Fitted again from all its enabled trials, its On back to the fitted one, and it is the first to give way.
+              const fitted: FaceSettings = { ...settings, gestures: settings.gestures.map((x) => (x.id === g.id ? withFit(x, buildFit(all, x.channels)) : x)) };
+              commit(settled(fitted, await trialsOfActive(fitted), g.id));
+            } else commit(settings);
+            if (why) problems.set(g.id, why);
+            render();
+          });
+        },
       });
     });
   }
 
   whenOverlayCloses(() => {
-    round?.cancel();
+    recordingScreen?.stop();
+    asking?.close();
     watcher.stop();
     // An On still being dragged is saved now.
     if (saving) save(false);
-    // What a round just kept is saved first.
+    // What a recording just kept is saved first.
     void queue.then(() => closed?.());
   });
 

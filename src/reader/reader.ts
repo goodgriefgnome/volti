@@ -26,7 +26,7 @@ import { type Setlist } from '../setlists/model';
 import { closeOverlay } from '../ui/overlay';
 import { loadToolSettings, saveToolSettings } from '../markings/store';
 import { buttonStatus } from '../face/button-status';
-import { openFaceGestures } from '../face/dialog';
+import { openFaceGestures } from '../dialogs/face-gestures';
 import { faceButton, type FaceButton } from '../face/face-button';
 import { activeOf, hasGestures, NO_GESTURES, type FaceSettings } from '../face/gestures';
 import { loadFaceSettings } from '../face/store';

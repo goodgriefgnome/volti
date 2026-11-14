@@ -7,6 +7,13 @@ import { buildFit, FIT_VERSION } from './_fit';
 import type { Trial } from './_recording';
 import { settled } from './_settling';
 
+/** The page recordings play over: a page of a score in the library (from 0), or empty staves. */
+export type RecordingPage = { scoreId: string; page: number } | { empty: true };
+
+/** The page picked last; none until one is picked. */
+export const loadRecordingPage = () => kv.get<RecordingPage>(keys.faceRecordingPage);
+export const saveRecordingPage = (p: RecordingPage) => kv.set(keys.faceRecordingPage, p);
+
 export const saveFaceSettings = (s: FaceSettings) => kv.set(keys.faceGestures, s);
 
 /** A gesture's trials; none stored is none. */

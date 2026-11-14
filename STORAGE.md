@@ -68,6 +68,7 @@ are done. Data from a newer version than the app's is not opened.
 | `tool-settings` | `ToolSettings`, each tool's settings for new markings | `markings/store.ts` |
 | `face-gestures` | `FaceSettings`, the face gestures the person defined, each with its fit | `face/store.ts` |
 | `face-trials:<id>` | `Trial[]`, a face gesture's trials | `face/store.ts` |
+| `face-recording-page` | `RecordingPage`, the page face gesture recordings play over | `face/store.ts` |
 | `last-read` | `LastRead` | `reader/_store.ts` |
 | `setlists` | `string[]`, setlist ids, newest first | `setlists/store.ts` |
 | `setlist:<id>` | `Setlist` | `setlists/store.ts` |
@@ -328,6 +329,12 @@ by the reader. A trial is `{ tUp, tDown, n, data }`: the times of its third risi
 from the trial's start, the 52 scores in the template's channel order (`CHANNELS` in
 `face/_template.ts`), and the head's yaw and pitch in degrees. Some 33 kB a trial. Deleted with the
 gesture, and when its trials are cleared.
+
+### `face-recording-page`: the page recordings play over
+
+`{ scoreId: string; page: number }` (the page from 0, of the score in the library with that id), or
+`{ empty: true }` for a page of empty staves the app draws. The one picked last, for every gesture.
+Missing until a page is picked; one whose score is no longer in the library is picked again.
 
 ### `last-read`: where to pick up
 

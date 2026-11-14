@@ -35,3 +35,16 @@
 .pick-folder-body { padding-left: 12px; }
 /* A score's named excerpts, indented under it, each with its Preview. */
 .pick-sub { flex-basis: 100%; display: flex; align-items: center; gap: 4px; padding-left: 28px; }
+
+/* Play from, for a face gesture's recording (dialogs/_face-play-from.ts). */
+.face-play-from { display: flex; gap: 16px; align-items: center; }
+.face-play-thumbnail { width: 96px; min-height: 64px; flex: none; background: #ffffff; border: 1px solid var(--line); border-radius: 4px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15); }
+.face-play-thumbnail canvas { display: block; width: 100%; height: auto; }
+.face-play-text { display: grid; gap: 2px; justify-items: start; }
+.face-play-text strong { font-size: 17px; }
+.face-play-text button { margin-top: 8px; }
+.face-pick-list { display: grid; max-height: 60vh; overflow-y: auto; }
+.face-pick-list button { justify-content: flex-start; text-align: left; }
+.face-pick-pages { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; max-height: 60vh; overflow-y: auto; padding: 2px; }
+.face-pick-page { padding: 0; min-height: 0; background: #ffffff; border: 1px solid var(--line); overflow: hidden; }
+.face-pick-page canvas { display: block; width: 100%; height: auto; }

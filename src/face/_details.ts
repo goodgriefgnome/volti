@@ -10,7 +10,7 @@ import { flagText } from './_fit';
 import { strengthMeter } from './_meter';
 import { trialsPanel, type Shown } from './_trials';
 import { framesOf, type Trial } from './_recording';
-import type { FrameListener } from './_round';
+import type { FrameListener } from './_recording-screen';
 import { candidates, CHANNELS, fit, partnerOf, strength, withThreshold, type Template } from './_template';
 import { levelsOf, withChannels, withLevels, withoutOn, type Gesture, type TurnDir } from './gestures';
 
