@@ -246,7 +246,7 @@ export function openFaceGestures(closed?: () => void): void {
           const all = [...await loadTrials(g.id), ...trials];
           await saveTrials(g.id, all);
           // Fitted again from all its trials, its levels back to the fitted ones, and it is the first to give way.
-          const fitted: FaceSettings = { ...settings, gestures: settings.gestures.map((x) => (x.id === g.id ? withFit(x, buildFit(all)) : x)) };
+          const fitted: FaceSettings = { ...settings, gestures: settings.gestures.map((x) => (x.id === g.id ? withFit(x, buildFit(all, x.channels)) : x)) };
           commit(settled(fitted, await trialsOfActive(fitted), g.id));
         } else commit(settings);
         if (why) problems.set(g.id, why);

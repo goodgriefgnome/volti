@@ -2,6 +2,7 @@
 // gestures turning pages don't conflict. A port of the prototype's `build`, `firesOn`, `conflictOf` and `settle`
 // of public/lab/face-classifier.html; docs/face-classifier-spec.md says what they must be. Pure.
 
+import type { GestureChannels } from './gestures';
 import { framesOf, type Trial } from './_recording';
 import { CHANNELS, fit, median, quantile, strength, type Template } from './_template';
 
@@ -39,11 +40,12 @@ export interface Fit {
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
 /**
- * A gesture's fit from its enabled trials (a disabled one is kept but left out): its template, its
+ * A gesture's fit from its enabled trials (a disabled one is kept but left out) and the changes
+ * made to its channels: its template, its
  * levels (the rest level is the 95th percentile of the strength over rest frames; each trial's peak
  * is its median held strength against a template fitted without it), and what is wrong with it.
  */
-export function buildFit(all: Trial[]): Fit {
+export function buildFit(all: Trial[], channels?: GestureChannels): Fit {
   const trials = all.filter((t) => !t.disabled);
   const out: Fit = { version: FIT_VERSION, trials: trials.length, flags: [] };
   if (trials.length < MIN_TRIALS) {
@@ -51,14 +53,14 @@ export function buildFit(all: Trial[]): Fit {
     return out;
   }
   const frames = trials.map(framesOf);
-  const template = fit(frames);
+  const template = fit(frames, channels);
   if (!template.rows.length) {
     out.flags.push({ kind: 'noChannels' });
     return out;
   }
   const rest = quantile(frames.flatMap((t) => t.rest.map((x) => strength(template, x))), 0.95);
   const peaks = frames.map((t, i) => {
-    const without = fit(frames.filter((_, j) => j !== i));
+    const without = fit(frames.filter((_, j) => j !== i), channels);
     return without.rows.length ? median(t.held.map((x) => strength(without, x))) : 0;
   });
   const lowest = Math.min(...peaks);

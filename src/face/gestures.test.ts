@@ -40,6 +40,15 @@ describe('faceSettingsFrom', () => {
     const { fit: _fit, ...noFit } = gesture();
     expect(faceSettingsFrom({ gestures: [noId, noName, noFit, gesture({ id: 'kept' })] }).gestures.map((g) => g.id)).toEqual(['kept']);
   });
+  it('keeps a gesture\'s channel changes of known channels, and drops the rest', () => {
+    const channels = { forcedOff: ['eyeBlinkLeft', 'nonsense'], forcedOn: ['jawOpen', 3], thresholds: { jawOpen: 0.3, bogus: 0.5, eyeBlinkLeft: 'x' } };
+    const [g] = faceSettingsFrom({ gestures: [{ ...gesture(), channels }] }).gestures;
+    expect(g.channels).toEqual({ forcedOff: ['eyeBlinkLeft'], forcedOn: ['jawOpen'], thresholds: { jawOpen: 0.3 } });
+  });
+  it('gives a gesture no channel changes when none are left', () => {
+    const [g] = faceSettingsFrom({ gestures: [{ ...gesture(), channels: { forcedOff: ['nonsense'], forcedOn: [], thresholds: {} } }] }).gestures;
+    expect(g).not.toHaveProperty('channels');
+  });
   it('gives the hold 500 when missing, and clamps it', () => {
     expect(faceSettingsFrom({ gestures: [] }).hold).toBe(500);
     expect(faceSettingsFrom({ hold: 5000, gestures: [] }).hold).toBe(1500);

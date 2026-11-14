@@ -3,6 +3,8 @@
 // `score` of public/lab/face-classifier.html; docs/face-classifier-spec.md says what they must be.
 // Pure: no DOM, no camera, no storage.
 
+import type { GestureChannels } from './gestures';
+
 const MIRROR = ['eyeBlink', 'eyeSquint', 'eyeWide', 'eyeLookUp', 'eyeLookDown', 'eyeLookIn', 'eyeLookOut', 'browDown',
   'browOuterUp', 'cheekSquint', 'noseSneer', 'mouthSmile', 'mouthFrown', 'mouthDimple', 'mouthStretch', 'mouthPress',
   'mouthLowerDown', 'mouthUpperUp'];
@@ -62,35 +64,60 @@ export interface Row { c: number; side: 1 | -1; edge: number; far: number; rest:
 export interface Limit { c: number; side: 1 | -1; limit: number; full: number; rest: number }
 export interface Template { rows: Row[]; limits: Limit[] }
 
+/** The least a threshold is kept from its channel's rest value, on the side it moves, and a limit from its `full`. */
+const MIN_THRESHOLD_GAP = 0.02;
+
+/** `row` with its edge at `edge`, kept `MIN_THRESHOLD_GAP` from its rest value on the side it moves; its span and separation follow. */
+function withEdge(row: Row, edge: number): Row {
+  const e = clamp(row.side > 0 ? Math.max(edge, row.rest + MIN_THRESHOLD_GAP) : Math.min(edge, row.rest - MIN_THRESHOLD_GAP), 0, 1);
+  const span = row.side * (e - row.rest);
+  return { ...row, edge: e, span, separation: span > 0 ? (row.side * (e - row.far)) / span : -Infinity };
+}
+
+/** `limit` at `at`, kept `MIN_THRESHOLD_GAP` short of its `full`. */
+function withLimitAt(limit: Limit, at: number): Limit {
+  return { ...limit, limit: clamp(limit.side > 0 ? Math.min(at, limit.full - MIN_THRESHOLD_GAP) : Math.max(at, limit.full + MIN_THRESHOLD_GAP), 0, 1) };
+}
+
 /**
- * A gesture's template from its trials:
+ * A gesture's template from its trials, and the changes made to its channels by hand:
  * - `rows`, the channels that move: the held frames' near edge (`edge`) is clear of the rest frames'
  *   far edge (`far`), and MIN_SHIFT or more from the rest frames' median (`rest`). `separation` is that
- *   gap as a share of the way from `rest` to `edge`. The most separated MAX_SUPPORT are kept.
+ *   gap as a share of the way from `rest` to `edge`. The most separated MAX_SUPPORT are picked.
  * - `limits`, on the other side of a lopsided pair: a moving channel's counterpart, which must stay
  *   within where the gesture held it (`limit`) and is wholly out on reaching the moving channel's
  *   edge (`full`), as it does when both sides do the gesture (a blink, for a wink). Only when `limit`
  *   is MIN_LIMIT or more short of `full`. A counterpart that moves the same way itself has a limit
  *   in place of its row; one that moves the other way keeps its row.
+ * - A channel forced off is left out, and a row forced off takes its limit with it; one forced on
+ *   moves whatever its separation and span, beside those picked, if its held median differs from its
+ *   rest median. A moved threshold replaces a row's edge or a limit's limit.
  */
-export function fit(trials: TrialFrames[]): Template {
+export function fit(trials: TrialFrames[], channels?: GestureChannels): Template {
   const held = trials.flatMap((t) => t.held);
   const rest = trials.flatMap((t) => t.rest);
   if (!held.length || !rest.length) return { rows: [], limits: [] };
   const all: Row[] = [];
   const heldOf: number[][] = [];
+  const moves: boolean[] = [];
   for (let c = 0; c < CHANNELS.length; c++) {
     const h = held.map((x) => x[c]);
     const r = rest.map((x) => x[c]);
     const rm = median(r);
-    const side: 1 | -1 = Math.sign(median(h) - rm) < 0 ? -1 : 1;
+    const diff = median(h) - rm;
+    const side: 1 | -1 = Math.sign(diff) < 0 ? -1 : 1;
     const edge = quantile(h, side > 0 ? EDGE : 1 - EDGE);
     const far = quantile(r, side > 0 ? 1 - EDGE : EDGE);
     const span = side * (edge - rm);
     heldOf.push(h);
+    moves.push(diff !== 0);
     all.push({ c, side, edge, far, rest: rm, span, separation: span > 0 ? (side * (edge - far)) / span : -Infinity });
   }
+  const index = (names: string[]) => new Set(names.map((n) => CHANNELS.indexOf(n)).filter((c) => c >= 0));
+  const off = index(channels?.forcedOff ?? []);
+  const on = index(channels?.forcedOn ?? []);
   const bySeparation = [...all].sort((a, b) => b.separation - a.separation);
+  // What the fit would pick, and the limits it would put: forcing off is applied after, so a channel left out isn't replaced.
   const picked = bySeparation.filter((r) => r.separation > 0 && r.span >= MIN_SHIFT).slice(0, MAX_SUPPORT);
   const moving = new Map(picked.map((r) => [r.c, r]));
   const limits: Limit[] = [];
@@ -104,7 +131,58 @@ export function fit(trials: TrialFrames[]): Template {
     limited.add(p);
     limits.push({ c: p, side: r.side, limit, full: r.edge, rest: all[p].rest });
   }
-  return { rows: picked.filter((r) => !limited.has(r.c)), limits };
+  const rows = picked.filter((r) => !limited.has(r.c) && !off.has(r.c));
+  // A channel forced on is a row beside those picked, if it moves and isn't a limit's channel.
+  for (const c of on) if (!off.has(c) && !moving.has(c) && !limited.has(c) && moves[c]) rows.push(withEdge(all[c], all[c].edge));
+  // The limits: not of a row forced off, nor on a channel forced off; and the thresholds moved by hand.
+  const edges = new Map(rows.map((r) => [r.c, r]));
+  const set = channels?.thresholds ?? {};
+  const moved = (c: number) => set[CHANNELS[c]];
+  const finalRows = rows.map((r) => (moved(r.c) === undefined ? r : withEdge(r, moved(r.c))));
+  const finalLimits = limits
+    .filter((k) => edges.has(partnerOf(k.c)) && !off.has(k.c))
+    .map((k) => {
+      const row = finalRows.find((r) => r.c === partnerOf(k.c))!;
+      const l = { ...k, full: row.edge };
+      return withLimitAt(l, moved(k.c) ?? l.limit);
+    });
+  return { rows: finalRows, limits: finalLimits };
+}
+
+/** The template with one row's edge, or one limit's limit, moved to `v`; the `full` of a moved edge's limit follows it. For strength while a handle is dragged. */
+export function withThreshold(t: Template, c: number, v: number): Template {
+  const rows = t.rows.map((r) => (r.c === c ? withEdge(r, v) : r));
+  const limits = t.limits.map((k) => {
+    if (k.c === c) return withLimitAt(k, v);
+    const row = rows.find((r) => r.c === partnerOf(k.c));
+    return row && row.edge !== k.full ? withLimitAt({ ...k, full: row.edge }, k.limit) : k;
+  });
+  return { rows, limits };
+}
+
+/** A channel that could be added to a template, for Add channel…. */
+export interface Candidate { c: number; span: number; separation: number; moves: boolean }
+
+/** Every channel not in `t` (nor a limit), by separation from the highest, those that don't move last. */
+export function candidates(trials: TrialFrames[], t: Template): Candidate[] {
+  const held = trials.flatMap((x) => x.held);
+  const rest = trials.flatMap((x) => x.rest);
+  if (!held.length || !rest.length) return [];
+  const used = new Set([...t.rows.map((r) => r.c), ...t.limits.map((k) => k.c)]);
+  const out: Candidate[] = [];
+  for (let c = 0; c < CHANNELS.length; c++) {
+    if (used.has(c)) continue;
+    const h = held.map((x) => x[c]);
+    const r = rest.map((x) => x[c]);
+    const rm = median(r);
+    const diff = median(h) - rm;
+    const side = Math.sign(diff) < 0 ? -1 : 1;
+    const edge = quantile(h, side > 0 ? EDGE : 1 - EDGE);
+    const far = quantile(r, side > 0 ? 1 - EDGE : EDGE);
+    const span = side * (edge - rm);
+    out.push({ c, span, separation: span > 0 ? (side * (edge - far)) / span : 0, moves: diff !== 0 });
+  }
+  return out.sort((a, b) => Number(b.moves) - Number(a.moves) || b.separation - a.separation);
 }
 
 /** How far short of the gesture a moving channel is, 0 to 1: 1 at its rest value, 0 at its held edge or past it. */

@@ -3,9 +3,12 @@
 // (face/store.ts stores them).
 
 import { FIT_VERSION, type Fit, type Flag } from './_fit';
-import type { Limit, Row, Template } from './_template';
+import { CHANNELS, type Limit, type Row, type Template } from './_template';
 
 export type TurnDir = 'next' | 'prev';
+
+/** A gesture's channels as changed by hand, by channel name. */
+export interface GestureChannels { forcedOff: string[]; forcedOn: string[]; thresholds: Record<string, number> }
 
 export interface Gesture {
   id: string;
@@ -15,6 +18,8 @@ export interface Gesture {
   on?: number;
   /** Why it was set to none, in words. */
   note?: string;
+  /** Kept across recordings and changes to trials; none when none was changed. */
+  channels?: GestureChannels;
   fit: Fit;
 }
 /** `hold` is one for every gesture (ms, 100–1500). */
@@ -84,6 +89,16 @@ const FLAGS = ['tooFew', 'noChannels', 'unreliable', 'firesAtRest'];
 const rowOk = (r: unknown): r is Row => isObject(r) && ['c', 'side', 'edge', 'far', 'rest', 'span', 'separation'].every((k) => isNum(r[k]));
 const limitOk = (k: unknown): k is Limit => isObject(k) && ['c', 'side', 'limit', 'full', 'rest'].every((n) => isNum(k[n]));
 
+/** Stored channel changes: the names that are channels, the thresholds that are numbers; none when nothing is left. */
+function channelsFrom(v: unknown): GestureChannels | undefined {
+  if (!isObject(v)) return undefined;
+  const names = (l: unknown) => (Array.isArray(l) ? [...new Set(l.filter((n): n is string => typeof n === 'string' && CHANNELS.includes(n)))] : []);
+  const thresholds: Record<string, number> = {};
+  if (isObject(v.thresholds)) for (const [n, t] of Object.entries(v.thresholds)) if (CHANNELS.includes(n) && isNum(t)) thresholds[n] = t;
+  const out = { forcedOff: names(v.forcedOff), forcedOn: names(v.forcedOn), thresholds };
+  return out.forcedOff.length || out.forcedOn.length || Object.keys(thresholds).length ? out : undefined;
+}
+
 /** A stored fit, or undefined when it isn't one. One of an earlier version is read as its version and trials only: loading fits it again from the trials. */
 function fitFrom(v: unknown): Fit | undefined {
   if (!isObject(v) || !isNum(v.version) || !isNum(v.trials) || !Array.isArray(v.flags)) return undefined;
@@ -124,6 +139,8 @@ export function faceSettingsFrom(stored: unknown): FaceSettings {
     const on = optional(s.on, LEVEL_RANGE.min, LEVEL_RANGE.max);
     if (on !== undefined) g.on = on;
     if (typeof s.note === 'string') g.note = s.note;
+    const channels = channelsFrom(s.channels);
+    if (channels) g.channels = channels;
     gestures.push(g);
   }
   return { hold: num(stored.hold, HOLD_DEFAULT, HOLD_RANGE.min, HOLD_RANGE.max), gestures };

@@ -46,7 +46,7 @@ export async function refit(s: FaceSettings): Promise<FaceSettings> {
   for (const g of s.gestures) {
     const trials = await loadTrials(g.id);
     trialsOf.set(g.id, trials);
-    fitted.gestures.push(withFit(g, buildFit(trials)));
+    fitted.gestures.push(withFit(g, buildFit(trials, g.channels)));
   }
   return settled(fitted, trialsOf);
 }
