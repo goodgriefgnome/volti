@@ -7,7 +7,7 @@ import { framesOf, type Trial } from './_recording';
 import { CHANNELS, fit, median, quantile, strength, type Template } from './_template';
 
 /** Raised when fitting changes what it computes: stored fits of an earlier version are fitted again. */
-export const FIT_VERSION = 2;
+export const FIT_VERSION = 3;
 export const MIN_TRIALS = 3;
 
 /** How far over the rest level the lowest rep must be. */

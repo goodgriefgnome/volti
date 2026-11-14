@@ -4,7 +4,6 @@
 
 import { el } from '../ui/dom';
 import { CHANNELS, type Limit, type Row } from './_template';
-import { clamp } from './gestures';
 
 export interface ChannelRowOptions {
   row: Row;
@@ -18,10 +17,6 @@ export interface ChannelRowOptions {
   useChannel(on: boolean): void;
   /** The limit's chip: on, or off. */
   useLimit(on: boolean): void;
-  /** A threshold (a channel's, or a limit's, by its channel) is being dragged to `v`; gives where it ends up, kept in range. */
-  drag(c: number, v: number): number;
-  /** A threshold is let go at `v`, or moved a step with the keys: fit again. */
-  set(c: number, v: number): void;
 }
 
 export interface ChannelRow {
@@ -30,7 +25,6 @@ export interface ChannelRow {
   show(x: Float32Array | null): void;
 }
 
-const STEP = 0.01;
 const pct = (v: number) => `${v * 100}%`;
 const two = (v: number) => v.toFixed(2);
 const SVG = 'http://www.w3.org/2000/svg';
@@ -121,45 +115,6 @@ export function channelRow(o: ChannelRowOptions): ChannelRow {
   bar.append(pennant);
   if (bracketEl) bar.append(bracketEl);
   if (o.off) bar.classList.add('grey');
-
-  /** Make `handle` draggable (and movable with the arrows) along the bar for the threshold of channel `c`; `place` puts it at `v`. */
-  const movable = (handle: HTMLElement, c: number, enabled: () => boolean, current: () => number, place: (v: number) => void) => {
-    const at = (e: PointerEvent) => {
-      const r = bar.getBoundingClientRect();
-      return clamp(Math.round((e.clientX - r.left) / r.width / STEP) * STEP, 0, 1);
-    };
-    handle.addEventListener('pointerdown', (e) => {
-      if (!enabled()) return;
-      e.preventDefault();
-      handle.setPointerCapture(e.pointerId);
-    });
-    handle.addEventListener('pointermove', (e) => { if (handle.hasPointerCapture(e.pointerId)) place(o.drag(c, at(e))); });
-    handle.addEventListener('pointerup', (e) => {
-      if (!handle.hasPointerCapture(e.pointerId)) return;
-      handle.releasePointerCapture(e.pointerId);
-      o.set(c, at(e));
-    });
-    handle.addEventListener('keydown', (e) => {
-      if (!enabled()) return;
-      const d = e.key === 'ArrowRight' || e.key === 'ArrowUp' ? STEP : e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? -STEP : 0;
-      if (!d) return;
-      e.preventDefault();
-      o.set(c, clamp(Math.round((current() + d) / STEP) * STEP, 0, 1));
-    });
-  };
-  movable(pennant, row.c, () => !o.off, () => edge, (v) => {
-    edge = v;
-    pennant.style.left = pct(v);
-    edgeText.textContent = `${row.side > 0 ? '≥' : '≤'} ${two(v)}`;
-  });
-  if (limit && bracketEl && limitText) {
-    movable(bracketEl, limit.c, () => !o.off && !o.limitOff, () => limitAt, (v) => {
-      limitAt = v;
-      bracketEl!.style.left = pct(v);
-      limitText!.textContent = `${limit.side > 0 ? '≤' : '≥'} ${two(v)}`;
-    });
-  }
-  for (const h of [pennant, bracketEl]) if (h) { h.setAttribute('aria-valuemin', '0'); h.setAttribute('aria-valuemax', '1'); }
 
   root.append(sw, names, bar, thr);
 

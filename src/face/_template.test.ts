@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { seeded, trialOf, type Values } from './_test-frames';
-import { CHANNELS, candidates, channelsOf, fit, partnerOf, quantile, strength, shortOf, withThreshold, type TrialFrames } from './_template';
+import { CHANNELS, candidates, channelsOf, fit, partnerOf, quantile, strength, shortOf, type TrialFrames } from './_template';
 
 const name = (c: number) => CHANNELS[c];
 const trials = (held: Values, rest: Values, n = 5): TrialFrames[] => {
@@ -137,15 +137,15 @@ describe('channel changes', () => {
   const base = () => trials(winkRight, quiet);
 
   it('leave a template as it was when there are none', () => {
-    expect(fit(base(), { forcedOff: [], forcedOn: [], thresholds: {} })).toEqual(fit(base()));
+    expect(fit(base(), { forcedOff: [], forcedOn: [] })).toEqual(fit(base()));
   });
   it('force off a row: it leaves the rows, and its limit goes too', () => {
-    const t = fit(base(), { forcedOff: ['eyeBlinkRight'], forcedOn: [], thresholds: {} });
+    const t = fit(base(), { forcedOff: ['eyeBlinkRight'], forcedOn: [], });
     expect(rows(t)).toEqual([]);
     expect(t.limits).toEqual([]);
   });
   it('force off a limit\'s channel alone: the row stays and the limit goes', () => {
-    const t = fit(base(), { forcedOff: ['eyeBlinkLeft'], forcedOn: [], thresholds: {} });
+    const t = fit(base(), { forcedOff: ['eyeBlinkLeft'], forcedOn: [], });
     expect(rows(t)).toEqual(['eyeBlinkRight']);
     expect(t.limits).toEqual([]);
   });
@@ -158,53 +158,18 @@ describe('channel changes', () => {
     const picked = fit(ts);
     expect(picked.rows).toHaveLength(10);
     const left = names.find((n) => !rows(picked).includes(n))!;
-    const t = fit(ts, { forcedOff: [], forcedOn: [left], thresholds: {} });
+    const t = fit(ts, { forcedOff: [], forcedOn: [left], });
     expect(t.rows).toHaveLength(11);
     expect(rows(t)).toContain(left);
   });
   it('force on a weak channel as a row, and not one that does not move', () => {
     const ts = trials({ mouthRight: 0.8, jawOpen: 0.07 }, { mouthRight: 0.02, jawOpen: 0.03 });
     expect(rows(fit(ts))).not.toContain('jawOpen');
-    const t = fit(ts, { forcedOff: [], forcedOn: ['jawOpen', 'cheekPuff'], thresholds: {} });
+    const t = fit(ts, { forcedOff: [], forcedOn: ['jawOpen', 'cheekPuff'], });
     expect(rows(t)).toContain('jawOpen');
     expect(rows(t)).not.toContain('cheekPuff');
     const jaw = t.rows.find((r) => name(r.c) === 'jawOpen')!;
     expect(jaw.span).toBeGreaterThan(0);
-  });
-  it('move a row\'s threshold: its edge and span change, and its limit\'s full', () => {
-    const wink = fit(trials({ eyeBlinkLeft: 0.7, eyeBlinkRight: 0.25 }, quiet), { forcedOff: [], forcedOn: [], thresholds: { eyeBlinkLeft: 0.5 } });
-    const r = wink.rows[0];
-    expect(r.edge).toBeCloseTo(0.5);
-    expect(r.span).toBeCloseTo(0.5 - r.rest);
-    expect(wink.limits[0].full).toBeCloseTo(0.5);
-  });
-  it('move a limit', () => {
-    const wink = fit(trials({ eyeBlinkLeft: 0.7, eyeBlinkRight: 0.25 }, quiet), { forcedOff: [], forcedOn: [], thresholds: { eyeBlinkRight: 0.4 } });
-    expect(wink.limits[0].limit).toBeCloseTo(0.4);
-    expect(wink.limits[0].full).toBeGreaterThan(0.6);
-  });
-  it('keep a threshold 0.02 from rest, and a limit 0.02 short of its full', () => {
-    const wink = fit(trials({ eyeBlinkLeft: 0.7, eyeBlinkRight: 0.25 }, quiet), { forcedOff: [], forcedOn: [], thresholds: { eyeBlinkLeft: 0, eyeBlinkRight: 0.9 } });
-    const r = wink.rows[0];
-    expect(r.edge - r.rest).toBeCloseTo(0.02);
-    expect(wink.limits[0].full - wink.limits[0].limit).toBeCloseTo(0.02);
-  });
-});
-
-describe('withThreshold', () => {
-  const t = fit(trials({ mouthRight: 0.8, jawOpen: 0.6, eyeBlinkLeft: 0.7, eyeBlinkRight: 0.25 }, { mouthRight: 0.02, jawOpen: 0.02, eyeBlinkLeft: 0.03, eyeBlinkRight: 0.03 }));
-  it('moves only the one channel', () => {
-    const c = CHANNELS.indexOf('jawOpen');
-    const moved = withThreshold(t, c, 0.3);
-    expect(moved.rows.find((r) => r.c === c)!.edge).toBeCloseTo(0.3);
-    expect(moved.rows.filter((r) => r.c !== c)).toEqual(t.rows.filter((r) => r.c !== c));
-    expect(moved.limits).toEqual(t.limits);
-  });
-  it('moves a limit, and the full of a moved edge\'s limit', () => {
-    const limit = t.limits[0];
-    expect(withThreshold(t, limit.c, 0.15).limits[0].limit).toBeCloseTo(0.15);
-    const row = partnerOf(limit.c);
-    expect(withThreshold(t, row, 0.5).limits[0].full).toBeCloseTo(0.5);
   });
 });
 

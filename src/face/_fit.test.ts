@@ -124,10 +124,7 @@ describe('buildFit with channel changes', () => {
     const rs = trials({ eyeBlinkRight: 0.7, eyeBlinkLeft: 0.25 }, { eyeBlinkLeft: 0.03, eyeBlinkRight: 0.03 });
     const plain = buildFit(rs);
     expect(plain.template!.rows).toHaveLength(1);
-    const off = buildFit(rs, { forcedOff: ['eyeBlinkRight'], forcedOn: [], thresholds: {} });
+    const off = buildFit(rs, { forcedOff: ['eyeBlinkRight'], forcedOn: [] });
     expect(off.flags).toEqual([{ kind: 'noChannels' }]);
-    const moved = buildFit(rs, { forcedOff: [], forcedOn: [], thresholds: { eyeBlinkRight: 0.4 } });
-    expect(moved.template!.rows[0].edge).toBeCloseTo(0.4);
-    expect(moved.peaks).toHaveLength(5);
   });
 });

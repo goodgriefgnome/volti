@@ -251,7 +251,6 @@ export function openFaceGestures(closed: (() => void) | undefined, playFrom: Pla
     confirm,
     refresh: () => render(),
     shown: { get: (id) => shownOf.get(id) ?? 'strength', set: (id, shown) => { shownOf.set(id, shown); } },
-    tryTemplate: (id, template) => watcher.setGestures(activeOf(settings).map((a) => (a.id === id && template ? { ...a, template } : a))),
     record: (g) => startRecording(g),
     problemOf: (id) => problems.get(id),
     back: () => { viewId = undefined; render(); },

@@ -11,7 +11,7 @@ import { strengthMeter } from './_meter';
 import { trialsPanel, type Shown } from './_trials';
 import { framesOf, type Trial } from './_recording';
 import type { FrameListener } from './_recording-screen';
-import { candidates, CHANNELS, fit, partnerOf, strength, withThreshold, type Template } from './_template';
+import { candidates, CHANNELS, fit, partnerOf, strength, type Template } from './_template';
 import { levelsOf, withChannels, withLevels, withoutOn, type Gesture, type TurnDir } from './gestures';
 
 const DIRECTIONS: [value: string, label: string][] = [['next', 'Next'], ['prev', 'Back'], ['none', 'None']];
@@ -31,8 +31,6 @@ export interface DetailsHost {
   change(id: string, to: (g: Gesture) => Gesture, soon?: boolean): void;
   /** Fit the gesture again after `edit` (a channel change), and show its details again. On moved by hand stays: it is independent of the channels and the trials. */
   refit(id: string, edit?: (g: Gesture) => Gesture): void;
-  /** Try `template` for the gesture, while a threshold is dragged; none puts the fitted one back. */
-  tryTemplate(id: string, template?: Template): void;
   /** Enable or disable the trial at `index` (stored order), and fit again. */
   disableTrial(id: string, index: number, disabled: boolean): void;
   /** Delete the gesture's disabled trials for good, and fit again. */
@@ -93,8 +91,6 @@ export function openDetails(host: DetailsHost, g: Gesture, trials: Trial[]): Det
   /* ---------- On level ---------- */
 
   const template = g.fit.template;
-  /** The template in use: the fitted one, or with a threshold moved while it is dragged. */
-  let live = template;
   const levels = levelsOf(g, host.hold());
   let meter: ReturnType<typeof strengthMeter> | undefined;
   if (template && levels) {
@@ -121,30 +117,20 @@ export function openDetails(host: DetailsHost, g: Gesture, trials: Trial[]): Det
   /* ---------- channels ---------- */
 
   const head = el('div', 'face-sec-head');
-  const resetChannels = button('Reset', () => host.refit(g.id, (x) => withChannels(x, () => ({ forcedOff: [], forcedOn: [], thresholds: {} }))), 'quiet');
+  const resetChannels = button('Reset', () => host.refit(g.id, (x) => withChannels(x, () => ({ forcedOff: [], forcedOn: [] }))), 'quiet');
   resetChannels.hidden = !g.channels;
   head.append(el('h3', '', 'Channels'), resetChannels);
   body.append(head);
 
   // Every channel the fit would use as changed by hand, but with none forced off: a channel forced off stays in its place, greyed.
   const frames = trials.filter((t) => !t.disabled).map(framesOf);
-  const shown: Template = fit(frames, g.channels && { forcedOff: [], forcedOn: g.channels.forcedOn, thresholds: g.channels.thresholds });
+  const shown: Template = fit(frames, g.channels && { forcedOff: [], forcedOn: g.channels.forcedOn });
   const off = new Set(g.channels?.forcedOff ?? []);
   const channelsBox = el('div', 'face-channels');
   const rowUis: ChannelRow[] = [];
 
-  /** Move a threshold of a channel, by its name, and fit again. */
-  const setThreshold = (c: number, v: number) => host.refit(g.id, (x) => withChannels(x, (ch) => ({ ...ch, thresholds: { ...ch.thresholds, [CHANNELS[c]]: v } })));
   /** Force a channel off or back on. */
   const forceOff = (c: number, forced: boolean) => host.refit(g.id, (x) => withChannels(x, (ch) => ({ ...ch, forcedOff: forced ? [...new Set([...ch.forcedOff, CHANNELS[c]])] : ch.forcedOff.filter((n) => n !== CHANNELS[c]) })));
-
-  /** A threshold dragged to `v`: the meters, the ring and the dots use it at once. Gives where it ends up. */
-  const drag = (c: number, v: number): number => {
-    if (!template) return v;
-    live = withThreshold(template, c, v);
-    host.tryTemplate(g.id, live);
-    return live.rows.find((r) => r.c === c)?.edge ?? live.limits.find((k) => k.c === c)?.limit ?? v;
-  };
 
   if (!shown.rows.length) channelsBox.append(el('p', 'hint', MOVES_TEXT));
   for (const row of shown.rows) {
@@ -156,8 +142,6 @@ export function openDetails(host: DetailsHost, g: Gesture, trials: Trial[]): Det
       limitOff: !!limit && off.has(CHANNELS[limit.c]),
       useChannel: (on) => forceOff(row.c, !on),
       useLimit: (on) => limit && forceOff(limit.c, !on),
-      drag,
-      set: setThreshold,
     });
     rowUis.push(ui);
     channelsBox.append(ui.el);
@@ -217,7 +201,7 @@ export function openDetails(host: DetailsHost, g: Gesture, trials: Trial[]): Det
 
   listen((_f, x) => {
     rowUis.forEach((r) => r.show(x));
-    if (live) meter?.show(x ? strength(live, x) : 0);
+    if (template) meter?.show(x ? strength(template, x) : 0);
   });
 
   return {
@@ -225,7 +209,6 @@ export function openDetails(host: DetailsHost, g: Gesture, trials: Trial[]): Det
     body,
     dispose: () => {
       for (const l of listeners) host.frames.delete(l);
-      host.tryTemplate(g.id);
     },
   };
 }

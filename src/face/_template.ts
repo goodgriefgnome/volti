@@ -64,23 +64,18 @@ export interface Row { c: number; side: 1 | -1; edge: number; far: number; rest:
 export interface Limit { c: number; side: 1 | -1; limit: number; full: number; rest: number }
 export interface Template { rows: Row[]; limits: Limit[] }
 
-/** The least a threshold is kept from its channel's rest value, on the side it moves, and a limit from its `full`. */
-const MIN_THRESHOLD_GAP = 0.02;
+/** The least span a channel forced on is given, so it can be scored: its edge is kept this far from its rest value. */
+const MIN_FORCED_SPAN = 0.02;
 
-/** `row` with its edge at `edge`, kept `MIN_THRESHOLD_GAP` from its rest value on the side it moves; its span and separation follow. */
-function withEdge(row: Row, edge: number): Row {
-  const e = clamp(row.side > 0 ? Math.max(edge, row.rest + MIN_THRESHOLD_GAP) : Math.min(edge, row.rest - MIN_THRESHOLD_GAP), 0, 1);
+/** A row forced on, its edge kept `MIN_FORCED_SPAN` from its rest value on the side it moves; its span and separation follow. */
+function forcedRow(row: Row): Row {
+  const e = clamp(row.side > 0 ? Math.max(row.edge, row.rest + MIN_FORCED_SPAN) : Math.min(row.edge, row.rest - MIN_FORCED_SPAN), 0, 1);
   const span = row.side * (e - row.rest);
-  return { ...row, edge: e, span, separation: span > 0 ? (row.side * (e - row.far)) / span : -Infinity };
-}
-
-/** `limit` at `at`, kept `MIN_THRESHOLD_GAP` short of its `full`. */
-function withLimitAt(limit: Limit, at: number): Limit {
-  return { ...limit, limit: clamp(limit.side > 0 ? Math.min(at, limit.full - MIN_THRESHOLD_GAP) : Math.max(at, limit.full + MIN_THRESHOLD_GAP), 0, 1) };
+  return { ...row, edge: e, span, separation: (row.side * (e - row.far)) / span };
 }
 
 /**
- * A gesture's template from its trials, and the changes made to its channels by hand:
+ * A gesture's template from its trials, and the channels forced off or on by hand:
  * - `rows`, the channels that move: the held frames' near edge (`edge`) is clear of the rest frames'
  *   far edge (`far`), and MIN_SHIFT or more from the rest frames' median (`rest`). `separation` is that
  *   gap as a share of the way from `rest` to `edge`. The most separated MAX_SUPPORT are picked.
@@ -91,7 +86,7 @@ function withLimitAt(limit: Limit, at: number): Limit {
  *   in place of its row; one that moves the other way keeps its row.
  * - A channel forced off is left out, and a row forced off takes its limit with it; one forced on
  *   moves whatever its separation and span, beside those picked, if its held median differs from its
- *   rest median. A moved threshold replaces a row's edge or a limit's limit.
+ *   rest median.
  */
 export function fit(trials: TrialFrames[], channels?: GestureChannels): Template {
   const held = trials.flatMap((t) => t.held);
@@ -133,31 +128,10 @@ export function fit(trials: TrialFrames[], channels?: GestureChannels): Template
   }
   const rows = picked.filter((r) => !limited.has(r.c) && !off.has(r.c));
   // A channel forced on is a row beside those picked, if it moves and isn't a limit's channel.
-  for (const c of on) if (!off.has(c) && !moving.has(c) && !limited.has(c) && moves[c]) rows.push(withEdge(all[c], all[c].edge));
-  // The limits: not of a row forced off, nor on a channel forced off; and the thresholds moved by hand.
-  const edges = new Map(rows.map((r) => [r.c, r]));
-  const set = channels?.thresholds ?? {};
-  const moved = (c: number) => set[CHANNELS[c]];
-  const finalRows = rows.map((r) => (moved(r.c) === undefined ? r : withEdge(r, moved(r.c))));
-  const finalLimits = limits
-    .filter((k) => edges.has(partnerOf(k.c)) && !off.has(k.c))
-    .map((k) => {
-      const row = finalRows.find((r) => r.c === partnerOf(k.c))!;
-      const l = { ...k, full: row.edge };
-      return withLimitAt(l, moved(k.c) ?? l.limit);
-    });
-  return { rows: finalRows, limits: finalLimits };
-}
-
-/** The template with one row's edge, or one limit's limit, moved to `v`; the `full` of a moved edge's limit follows it. For strength while a handle is dragged. */
-export function withThreshold(t: Template, c: number, v: number): Template {
-  const rows = t.rows.map((r) => (r.c === c ? withEdge(r, v) : r));
-  const limits = t.limits.map((k) => {
-    if (k.c === c) return withLimitAt(k, v);
-    const row = rows.find((r) => r.c === partnerOf(k.c));
-    return row && row.edge !== k.full ? withLimitAt({ ...k, full: row.edge }, k.limit) : k;
-  });
-  return { rows, limits };
+  for (const c of on) if (!off.has(c) && !moving.has(c) && !limited.has(c) && moves[c]) rows.push(forcedRow(all[c]));
+  // The limits: not of a row forced off, nor on a channel forced off.
+  const rowChannels = new Set(rows.map((r) => r.c));
+  return { rows, limits: limits.filter((k) => rowChannels.has(partnerOf(k.c)) && !off.has(k.c)) };
 }
 
 /** A channel that could be added to a template, for Add channel…. */

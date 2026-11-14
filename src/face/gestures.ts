@@ -8,7 +8,7 @@ import { CHANNELS, type Limit, type Row, type Template } from './_template';
 export type TurnDir = 'next' | 'prev';
 
 /** A gesture's channels as changed by hand, by channel name. */
-export interface GestureChannels { forcedOff: string[]; forcedOn: string[]; thresholds: Record<string, number> }
+export interface GestureChannels { forcedOff: string[]; forcedOn: string[] }
 
 export interface Gesture {
   id: string;
@@ -61,9 +61,9 @@ export function levelsOf(g: Gesture, hold: number): { on: number; release: numbe
 
 /** A gesture with its channel changes edited by `to`; none are kept when nothing is left changed. */
 export function withChannels(g: Gesture, to: (c: GestureChannels) => GestureChannels): Gesture {
-  const c = to({ forcedOff: [...(g.channels?.forcedOff ?? [])], forcedOn: [...(g.channels?.forcedOn ?? [])], thresholds: { ...g.channels?.thresholds } });
+  const c = to({ forcedOff: [...(g.channels?.forcedOff ?? [])], forcedOn: [...(g.channels?.forcedOn ?? [])] });
   const { channels: _old, ...rest } = g;
-  return c.forcedOff.length || c.forcedOn.length || Object.keys(c.thresholds).length ? { ...rest, channels: c } : rest;
+  return c.forcedOff.length || c.forcedOn.length ? { ...rest, channels: c } : rest;
 }
 
 /** A gesture with On moved by hand, kept in range. */
@@ -96,14 +96,12 @@ const FLAGS = ['tooFew', 'noChannels', 'unreliable', 'firesAtRest'];
 const rowOk = (r: unknown): r is Row => isObject(r) && ['c', 'side', 'edge', 'far', 'rest', 'span', 'separation'].every((k) => isNum(r[k]));
 const limitOk = (k: unknown): k is Limit => isObject(k) && ['c', 'side', 'limit', 'full', 'rest'].every((n) => isNum(k[n]));
 
-/** Stored channel changes: the names that are channels, the thresholds that are numbers; none when nothing is left. */
+/** Stored channel changes: the names that are channels (thresholds moved by hand, which there were once, are dropped); none when nothing is left. */
 function channelsFrom(v: unknown): GestureChannels | undefined {
   if (!isObject(v)) return undefined;
   const names = (l: unknown) => (Array.isArray(l) ? [...new Set(l.filter((n): n is string => typeof n === 'string' && CHANNELS.includes(n)))] : []);
-  const thresholds: Record<string, number> = {};
-  if (isObject(v.thresholds)) for (const [n, t] of Object.entries(v.thresholds)) if (CHANNELS.includes(n) && isNum(t)) thresholds[n] = t;
-  const out = { forcedOff: names(v.forcedOff), forcedOn: names(v.forcedOn), thresholds };
-  return out.forcedOff.length || out.forcedOn.length || Object.keys(thresholds).length ? out : undefined;
+  const out = { forcedOff: names(v.forcedOff), forcedOn: names(v.forcedOn) };
+  return out.forcedOff.length || out.forcedOn.length ? out : undefined;
 }
 
 /** A stored fit, or undefined when it isn't one. One of an earlier version is read as its version and trials only: loading fits it again from the trials. */
