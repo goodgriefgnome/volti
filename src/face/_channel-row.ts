@@ -56,7 +56,7 @@ function bracketIcon(under: boolean): SVGSVGElement {
 function lane(cls: string, bands: Bands): HTMLElement {
   const l = el('div', `lane ${cls}`);
   for (const [kind, [lo, hi]] of [['held', bands.held], ['rest', bands.rest]] as const) {
-    const b = el('div', `band ${kind}`);
+    const b = el('div', `face-band ${kind}`);
     b.style.left = pct(lo);
     b.style.width = pct(Math.max(0, hi - lo));
     l.append(b);

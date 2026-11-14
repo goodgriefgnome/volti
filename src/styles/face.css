@@ -130,9 +130,9 @@
 .face-bar .lane.top { top: 13px; }
 .face-bar .lane.low { top: 34px; }
 /* Where the trials' frames lie, 10th to 90th percentile: held a solid band, rest hatched over it. */
-.face-bar .band { position: absolute; top: 3px; height: 5px; border-radius: 1px; }
-.face-bar .band.held { background: var(--fg); opacity: 0.3; }
-.face-bar .band.rest { background: repeating-linear-gradient(135deg, var(--muted) 0 2px, transparent 2px 5px); opacity: 0.55; }
+.face-bar .face-band { position: absolute; top: 3px; height: 5px; border-radius: 1px; }
+.face-bar .face-band.held { background: var(--fg); opacity: 0.3; }
+.face-bar .face-band.rest { background: repeating-linear-gradient(135deg, var(--muted) 0 2px, transparent 2px 5px); opacity: 0.55; }
 .face-bar .rest-tick { z-index: 2; position: absolute; top: 10px; width: 2px; height: 17px; margin-left: -1px; background: var(--muted); }
 /* The pennant: a line on the threshold down through the lanes, its flag pointing to the gesture's side. */
 .face-bar .pennant { z-index: 2; position: absolute; top: 1px; width: 2px; height: 26px; margin-left: -1px; background: var(--fg); }
@@ -150,7 +150,7 @@
 /* Off: everything kept in place, greyed; the values now still show. */
 .face-ft.off .pennant, .face-ft.off .pennant::before, .face-ft.off .rest-tick { background: var(--paused); }
 .face-ft.off .br, .face-bar .br.grey { border-color: var(--paused); }
-.face-ft.off .band, .face-bar .lane.grey .band { opacity: 0.3; }
+.face-ft.off .face-band, .face-bar .lane.grey .face-band { opacity: 0.3; }
 .face-bar .lane.grey { opacity: 0.5; }
 .face-ft.off .dot { background: var(--paused); box-shadow: 0 0 0 1px var(--paused); }
 .face-ft.off .ring { border-color: var(--paused); }
