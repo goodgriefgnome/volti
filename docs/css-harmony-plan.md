@@ -51,7 +51,7 @@ Record a face gesture: the instruction sits at the top as before.
 ## Stage 2: the new tokens
 
 Add to the token block `--edge: 8px`, `--hover`, `--focus`, `--tile: 56px`, `--dim: 0.5`,
-`--dragged: 0.6`, `--quick: 160ms`, `--slow: 300ms` and `--hatch`, with the values in the spec and
+`--dragged: 0.6`, `--quick: 160ms`, and `--slow: 300ms`, with the values in the spec and
 a short comment on each that isn't obvious from its name (as the token block's comments now are).
 Then:
 
@@ -92,8 +92,6 @@ Then:
 7. **Durations.** `.bar`'s `160ms` (`reader.css:20`) and `.set-body`'s `220ms` (`library.css:50`) →
    `var(--quick)`; `.chev`'s `200ms` (`base.css:95`) → `var(--quick)`; `.score-card`'s `300ms`
    (`reader.css:221`) → `var(--slow)`. The face button's `animation`s stay.
-8. **Hatching.** `.face-bar .face-band.rest` (`face.css:134`) and `.face-trials .trace-cell .guard`
-   (`face.css:178`): their `repeating-linear-gradient(…)` → `var(--hatch)`; each keeps its opacity.
 
 Extend the test:
 
@@ -240,7 +238,7 @@ accessibility tree) names the ⋯ button, the grip and the back arrow.
 Bring `STYLES.md` up to date with the spec's "Documentation" section:
 
 - the new tokens in its tables (`--edge`, `--hover`, `--focus`, `--tile`, `--check`, `--dim`,
-  `--dragged`, `--quick`, `--slow`, `--surface-float`, `--hatch`), each with what it is for;
+  `--dragged`, `--quick`, `--slow`, `--surface-float`), each with what it is for;
 - the new parts in its shared parts' table (`.icon-button`, `.row-button`, `button.small`,
   `.note`, `.reordering`, the global focus ring), each with when to use it;
 - under the scales: "Secondary text takes `--muted`; opacity is for dimming (`--dim`,

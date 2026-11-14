@@ -51,7 +51,6 @@ In `base.css`'s token block, with the others:
 | `--dragged` | 0.6 | The opacity of a row being dragged to a new place |
 | `--quick`, `--slow` | 160 ms, 300 ms | Transitions: everything that answers a tap (showing, hiding, opening, turning) is quick; only the score card's fade-out, which happens by itself, is slow |
 | `--surface-float` | `color-mix(in srgb, var(--surface) 85%, transparent)` | The floating buttons' background |
-| `--hatch` | `repeating-linear-gradient(135deg, var(--muted) 0 1.5px, transparent 1.5px 5px)` | Hatching: the face dialog's rest band and its trials' left-out frames |
 
 No `color-mix()` is written outside the token block any more: the two warning tints written out at
 12% (`face.css:97`, `:173`) are `--warn-soft`, and the floating buttons take `--surface-float`.
@@ -112,10 +111,12 @@ from it, so it cannot drift again:
 
 ## What stays literal
 
-Drawing keeps its own numbers, opacities among them: the face dialog's bar, meter, rings and
-hatching's opacity, the cut tabs, the selection, the loupe, the turn bands, the drag ghost, and the
-face button's animations (which are not transitions). Content widths (a menu's 220 px, a column's
-200 px) are not spacing and stay as they are. `STYLES.md`'s rule of thumb holds.
+Drawing keeps its own numbers, opacities among them: the face dialog's bar, meter and rings, the
+cut tabs, the selection, the loupe, the turn bands, the drag ghost, and the face button's animations
+(which are not transitions). So do the face dialog's two hatchings, which differ for a reason: a
+channel's rest band has 2 px stripes so they read in a 5 px strip, and a trial's left-out frames
+have 1 px stripes, fainter, so the trace drawn over them stays clear. Content widths (a menu's
+220 px, a column's 200 px) are not spacing and stay as they are. `STYLES.md`'s rule of thumb holds.
 
 ## Guarded by the test
 
@@ -147,7 +148,6 @@ under the scales that secondary text is muted and never see-through, and a short
 - Hover only applies where the device can hover (`@media (hover: hover)`), so a tap on a tablet
   doesn't leave a row tinted; pressing shows the tint everywhere.
 - The secondary text in the reader's title and score card is muted instead of see-through.
-- The two hatchings become one, with 1.5 px stripes (they were 2 px and 1 px).
 - The score card's fade-out stays 300 ms: it comes 2.2 s after the card appears, not in answer to
   anything the user did, and at 160 ms it would read as a blink rather than a fade.
 - The + in the title menu and the › in the Drive crumbs stay characters.
