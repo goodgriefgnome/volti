@@ -70,8 +70,9 @@ export function trialsPanel(o: TrialsPanelOptions): HTMLElement {
   // A channel shown that is not in the template now (it was forced off, or the fit changed) is the strength.
   const shown: Shown = choices.some((c) => c.shown === o.shown) ? o.shown : 'strength';
   for (const c of choices) {
-    const chip = el('button', c.shown === shown ? 'chip on' : 'chip', c.label);
+    const chip = el('button', 'chip', c.label);
     chip.type = 'button';
+    chip.setAttribute('aria-pressed', String(c.shown === shown));
     if (c.shown !== 'strength') chip.classList.add('mono');
     chip.addEventListener('click', () => o.show(c.shown));
     chips.append(chip);

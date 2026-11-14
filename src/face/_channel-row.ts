@@ -78,7 +78,7 @@ export function channelRow(o: ChannelRowOptions): ChannelRow {
   const names = el('div', 'face-names');
   names.append(el('span', 'fname', CHANNELS[row.c]));
   if (limit) {
-    const chip = el('button', o.limitOff ? 'face-partner off' : 'face-partner');
+    const chip = el('button', o.limitOff ? 'chip mono face-partner off' : 'chip mono face-partner');
     chip.type = 'button';
     chip.setAttribute('aria-pressed', String(!o.limitOff));
     chip.append(bracketIcon(limit.side > 0), CHANNELS[limit.c]);

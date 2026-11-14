@@ -53,7 +53,6 @@
 /* A group never wraps; the bar wraps whole groups (above). */
 .bar .group { display: flex; gap: var(--space-1); align-items: center; min-width: 0; }
 .bar button { min-height: var(--control); min-width: var(--control); padding: var(--space-2) var(--space-3); background: transparent; color: inherit; border: 0; border-radius: var(--radius); }
-.bar button[aria-pressed="true"] { background: var(--surface); color: inherit; box-shadow: 0 0 0 2px var(--select); }
 .bar .tool-icon { width: 22px; height: 22px; display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .bar .cuts-button { display: flex; align-items: center; gap: var(--space-2); }
 .bar .title { font: italic var(--text-md) var(--font-brand); line-height: 22px; max-width: 32ch; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -71,7 +70,7 @@
 .selection-delete { position: absolute; left: 50%; bottom: calc(100% + 10px); width: 28px; height: 28px; min-height: 0; margin-left: -14px; padding: 0; pointer-events: auto; border-radius: 50%; border: 0; background: var(--select); color: var(--accent-fg); font: 600 var(--text-lg)/28px sans-serif; text-align: center; }
 /* "This time only", to the right of the delete button on its line: a pill, filled while on. */
 .selection-pass { position: absolute; left: calc(50% + 20px); bottom: calc(100% + 10px); height: 28px; min-height: 0; padding: 0 var(--space-3); pointer-events: auto; border-radius: var(--radius-pill); border: 1.5px solid var(--select); background: var(--paper); color: var(--select); font: 600 var(--text-sm)/25px sans-serif; white-space: nowrap; }
-.selection-pass[aria-pressed="true"] { background: var(--select); color: var(--accent-fg); }
+button.selection-pass[aria-pressed="true"] { background: var(--select); color: var(--accent-fg); box-shadow: none; }
 
 /* The glyph picker: the characters and their preview above a search and the grid, which scrolls inside the dialog. */
 .glyph-picker-body { display: flex; flex-direction: column; gap: var(--space-3); height: calc(var(--seen-height, 100vh) - 130px); min-height: 0; }
@@ -128,17 +127,17 @@
 /* Pen's and Highlight's colour, a short bar under the icon. */
 .bar button:has(> .ink) { display: grid; justify-items: center; align-content: center; gap: var(--space-1); }
 .bar .ink { width: 20px; height: 4px; border-radius: var(--radius-pill); box-shadow: 0 0 0 1px var(--hairline); }
-/* Every menu and panel opened in the reader is the bar's off-white, and a button not picked shows it; a picked one is white with a blue ring (below). Dialogs keep their own. */
+/* Every menu and panel opened in the reader is the bar's off-white, and a button not picked shows it; a picked one has the pressed look. Dialogs keep their own. */
 body.reading .menu { background: var(--bar); }
 body.reading .menu button { background: transparent; }
-body.reading .menu button:not([aria-pressed="true"]):hover, body.reading .menu button:not([aria-pressed="true"]):focus-visible { background: var(--select-soft); }
+body.reading .menu button:hover, body.reading .menu button:focus-visible { background: var(--select-soft); }
 /* The tools' long-press panels: rows of colour swatches and background shapes. */
 .swatch-row, .shape-row { display: flex; gap: var(--space-2); align-items: center; padding: var(--space-1) 0; }
 .swatch-row .swatch { width: var(--control); min-height: var(--control); padding: 0; position: relative; }
 .swatch-row .swatch::after { content: ""; position: absolute; inset: 11px; border-radius: 50%; background: var(--swatch); box-shadow: 0 0 0 1px var(--hairline); }
 .swatch-row .swatch.default::before { content: ""; position: absolute; inset: 8px; border-radius: 50%; border: 1.5px dashed var(--muted); }
-/* The picked colour, shape or symbol: white, with a ring in the selection blue; no dark fill, so colours read true. */
-.swatch-row .swatch[aria-pressed="true"], .shape-row .shape[aria-pressed="true"], .symbol-panel .symbol-choice[aria-pressed="true"] { background: var(--surface); box-shadow: 0 0 0 2px var(--select); }
+/* A picked colour keeps the surface behind its dot, so the colour reads true. */
+.swatch-row button.swatch[aria-pressed="true"] { background: var(--surface); }
 .shape-row .shape { min-width: var(--control); padding: var(--space-1); display: grid; place-items: center; }
 
 /* The Text button's T, on its background; the Symbols button's picture is a canvas. */
@@ -147,7 +146,6 @@ body.reading .menu button:not([aria-pressed="true"]):hover, body.reading .menu b
 .bar .text-look .t { position: relative; font: 600 var(--text-lg)/1 var(--font-brand); }
 .tool-panel { display: grid; gap: var(--space-2); }
 .tool-panel .panel-part { display: grid; gap: var(--space-1); }
-.tool-panel .font-select { font: inherit; min-height: var(--control); padding: var(--space-1) var(--space-2); border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
 /* The Symbols panel: the library (boxes of symbols; scrolls) beside the settings. */
 .menu:has(.symbol-panel) { max-width: calc(100vw - 32px); }
 .symbol-panel { display: flex; gap: var(--space-3); align-items: flex-start; max-height: 100%; }
@@ -206,14 +204,12 @@ body.reading .menu button:not([aria-pressed="true"]):hover, body.reading .menu b
 /* Where "Cut here" would cut, while the menu is open. */
 .cut-mark { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--select); }
 
-.thumbnail { flex: none; display: grid; gap: var(--space-1); justify-items: center; padding: var(--space-1); min-height: 0; border: 2px solid transparent; background: transparent; }
+.thumbnail { flex: none; display: grid; gap: var(--space-1); justify-items: center; padding: var(--space-1); min-height: 0; background: transparent; }
 .thumbnail canvas, .thumbnail .thumbnail-space { width: 84px; background: var(--paper); box-shadow: var(--shadow-paper); }
 .thumbnail span { font-size: var(--text-sm); color: var(--muted); }
-.thumbnail[aria-pressed="true"] { border-color: var(--select); background: color-mix(in srgb, var(--select) 12%, transparent); }
 /* The insert dialog's choice of pass, under the page strip. */
 .dialog .pass-row { display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap; }
 .dialog .pass-row .pass-label { color: var(--muted); margin-right: var(--space-1); }
-.dialog .pass-row button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
 
 /* Setlists in the reader. */
 .bar .title b { font: inherit; font-style: normal; opacity: 0.6; }

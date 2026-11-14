@@ -109,7 +109,7 @@
 .face-ft:last-child { border-bottom: 1px solid var(--line); }
 .face-names { display: grid; gap: var(--space-1); justify-items: start; min-width: 0; }
 .fname { font-family: var(--font-mono); font-size: var(--text-sm); overflow-wrap: anywhere; }
-.face-partner { display: inline-flex; align-items: center; gap: var(--space-2); min-height: var(--control-sm); padding: 0 var(--space-2) 0 var(--space-2); border-radius: var(--radius-pill); border: 1px solid var(--line); color: var(--fg); font-family: var(--font-mono); font-size: var(--text-xs); background: transparent; }
+.face-partner { display: inline-flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-2); }
 .face-partner svg { width: 10px; height: 18px; }
 .face-partner.off { color: var(--muted); text-decoration: line-through; }
 .face-thr { display: grid; justify-items: end; gap: var(--space-2); line-height: 1.15; font-variant-numeric: tabular-nums; font-size: var(--text-sm); }
@@ -166,9 +166,6 @@
 .face-picker .pk.none { color: var(--muted); opacity: 0.5; }
 /* The trials panel (face/_trials.ts). */
 .face-chips { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: center; font-size: var(--text-sm); color: var(--muted); }
-.face-chips .chip { min-height: var(--control-sm); padding: 0 var(--space-3); border-radius: var(--radius-pill); border: 1px solid var(--line); font-size: var(--text-sm); background: var(--surface); color: var(--fg); }
-.face-chips .chip.mono { font-family: var(--font-mono); font-size: var(--text-xs); }
-.face-chips .chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
 .face-trials-table { display: grid; border-bottom: 1px solid var(--line); }
 .face-level-row { display: flex; align-items: center; gap: var(--space-1); }
 .face-level-row > .face-meter { flex: 1; min-width: 0; }

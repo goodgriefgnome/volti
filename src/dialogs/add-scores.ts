@@ -166,7 +166,7 @@ export function openAddScores(h: _AddScoresHost) {
         const pill = button(`${c.label} ×`, () => {
           toggle(sc.id, c, false, (x) => x === c);
           redraw();
-        }, 'pill');
+        }, 'chip');
         pill.setAttribute('aria-label', `Don't add ${c.label}`);
         pills.append(pill);
       }

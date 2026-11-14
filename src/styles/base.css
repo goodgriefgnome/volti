@@ -59,6 +59,16 @@ button.quiet { border-color: transparent; background: transparent; color: var(--
 button.danger { background: var(--warn); border-color: var(--warn); color: var(--accent-fg); }
 button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 button:disabled { opacity: 0.4; cursor: default; }
+/* Pressed: the one look of every toggle (set aria-pressed). The floating buttons show their state with rings of their own. */
+button[aria-pressed="true"]:not(.float-button) { background: var(--select-soft); box-shadow: inset 0 0 0 2px var(--select); }
+/* A text field or a select. */
+input.name, input.search, select {
+  font: inherit; min-height: var(--control); padding: var(--space-2) var(--space-3); border-radius: var(--radius);
+  border: 1px solid var(--line); background: var(--surface); color: var(--fg);
+}
+/* A small rounded button: a filter, a removable choice, a toggle in a row of them. */
+.chip { min-height: var(--control-sm); padding: 0 var(--space-3); border-radius: var(--radius-pill); background: transparent; font-size: var(--text-sm); }
+.chip.mono { font-family: var(--font-mono); font-size: var(--text-xs); }
 /* The start screen, shown while looking for a new version of the app. */
 .start { position: fixed; inset: 0; display: grid; place-content: center; justify-items: center; gap: var(--space-3); background: var(--bg); }
 .start-note { margin: 0; color: var(--muted); min-height: 1.5em; }
@@ -66,10 +76,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 /* Used by more than one directory. */
 .brand { font: italic 600 2.4rem/1 var(--font-brand); margin: 0; letter-spacing: 0.01em; }
 .tools { display: flex; gap: var(--space-3); flex-wrap: wrap; }
-.search {
-  flex: 1 1 240px; min-width: 0; min-height: var(--control); font: inherit; padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); color: var(--fg);
-}
+.search { flex: 1 1 240px; min-width: 0; }
 .meta { color: var(--muted); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
 .pill { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.06em; border: 1px solid currentColor; border-radius: var(--radius-pill); padding: 0 var(--space-2); white-space: nowrap; color: var(--accent); }
 .pill.missing { color: var(--warn); }
