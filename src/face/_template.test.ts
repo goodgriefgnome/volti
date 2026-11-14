@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { seeded, trialOf, type Values } from './_test-frames';
-import { CHANNELS, channelsOf, fit, partnerOf, quantile, score, shortOf, type TrialFrames } from './_template';
+import { CHANNELS, channelsOf, fit, partnerOf, quantile, strength, shortOf, type TrialFrames } from './_template';
 
 const name = (c: number) => CHANNELS[c];
 const trials = (held: Values, rest: Values, n = 5): TrialFrames[] => {
@@ -66,67 +66,67 @@ describe('fit', () => {
     const t = fit([{ held: mixed.held, rest: [...mixed.rest, ...high.rest], restT: [] }]);
     expect(t.rows).toEqual([]);
   });
-  it('keeps the ten clearest of more than ten moving channels', () => {
+  it('keeps the ten most separated of more than ten moving channels', () => {
     const names = ['jawOpen', 'browInnerUp', 'cheekPuff', 'jawForward', 'mouthClose', 'mouthFunnel', 'mouthPucker', 'mouthRollLower', 'mouthRollUpper', 'mouthShrugLower', 'mouthShrugUpper', '_neutral'];
     const held: Values = {};
     const rest: Values = {};
     names.forEach((n, i) => { held[n] = 0.5 + i * 0.03; rest[n] = 0.02; });
     const t = fit(trials(held, rest));
     expect(t.rows).toHaveLength(10);
-    expect(t.rows.map((r) => r.clear)).toEqual([...t.rows.map((r) => r.clear)].sort((a, b) => b - a));
+    expect(t.rows.map((r) => r.separation)).toEqual([...t.rows.map((r) => r.separation)].sort((a, b) => b - a));
   });
 });
 
-describe('caps', () => {
+describe('limits', () => {
   const wink = fit(trials({ eyeBlinkLeft: 0.7, eyeBlinkRight: 0.25 }, { eyeBlinkLeft: 0.03, eyeBlinkRight: 0.03 }));
-  it('cap the other eye of a wink, and leave it out of the rows', () => {
+  it('limit the other eye of a wink, and leave it out of the rows', () => {
     expect(wink.rows.map((r) => name(r.c))).toEqual(['eyeBlinkLeft']);
-    expect(wink.caps).toHaveLength(1);
-    const k = wink.caps[0];
+    expect(wink.limits).toHaveLength(1);
+    const k = wink.limits[0];
     expect(name(k.c)).toBe('eyeBlinkRight');
-    expect(k.cap).toBeCloseTo(0.25, 1);
+    expect(k.limit).toBeCloseTo(0.25, 1);
     expect(k.full).toBeCloseTo(wink.rows[0].edge);
   });
   it('are not made of a blink, where both sides move alike', () => {
     const t = fit(trials({ eyeBlinkLeft: 0.8, eyeBlinkRight: 0.8 }, { eyeBlinkLeft: 0.03, eyeBlinkRight: 0.03 }));
     expect(t.rows).toHaveLength(2);
-    expect(t.caps).toEqual([]);
+    expect(t.limits).toEqual([]);
   });
   it('are not made of a pair moving opposite ways, which keeps both rows', () => {
     const t = fit(trials({ browOuterUpLeft: 0.7, browOuterUpRight: 0.01 }, { browOuterUpLeft: 0.03, browOuterUpRight: 0.4 }));
     expect(t.rows.map((r) => r.side).sort()).toEqual([-1, 1]);
-    expect(t.caps).toEqual([]);
+    expect(t.limits).toEqual([]);
   });
   it('are not made of a channel without a counterpart', () => {
-    expect(fit(trials({ jawOpen: 0.8 }, { jawOpen: 0.02 })).caps).toEqual([]);
+    expect(fit(trials({ jawOpen: 0.8 }, { jawOpen: 0.02 })).limits).toEqual([]);
   });
 });
 
-describe('score', () => {
+describe('strength', () => {
   const t = fit(trials({ mouthRight: 0.8 }, { mouthRight: 0.02 }));
   const edge = t.rows[0].edge;
   const at = t.rows[0].rest;
   it('is 1 on a held frame, 0 on a rest frame, between for one halfway, and 1 past the edge', () => {
-    expect(score(t, frame({ mouthRight: edge }))).toBeCloseTo(1);
-    expect(score(t, frame({ mouthRight: at }))).toBeCloseTo(0);
-    expect(score(t, frame({ mouthRight: (edge + at) / 2 }))).toBeCloseTo(0.5);
-    expect(score(t, frame({ mouthRight: 1 }))).toBe(1);
+    expect(strength(t, frame({ mouthRight: edge }))).toBeCloseTo(1);
+    expect(strength(t, frame({ mouthRight: at }))).toBeCloseTo(0);
+    expect(strength(t, frame({ mouthRight: (edge + at) / 2 }))).toBeCloseTo(0.5);
+    expect(strength(t, frame({ mouthRight: 1 }))).toBe(1);
     expect(shortOf(t.rows[0], 1)).toBe(0);
   });
   it('is 0 for a template with no rows', () => {
-    expect(score({ rows: [], caps: [], missed: [] }, frame({ mouthRight: 1 }))).toBe(0);
+    expect(strength({ rows: [], limits: [], missed: [] }, frame({ mouthRight: 1 }))).toBe(0);
   });
   it('leaves the largest shortfall out of four rows or more, and not of three', () => {
     const four = fit(trials({ jawOpen: 0.6, browInnerUp: 0.6, cheekPuff: 0.6, mouthPucker: 0.6 }, { jawOpen: 0.02, browInnerUp: 0.02, cheekPuff: 0.02, mouthPucker: 0.02 }));
     expect(four.rows).toHaveLength(4);
     const high = (n: string) => four.rows.find((r) => name(r.c) === n)!.edge;
-    expect(score(four, frame({ jawOpen: high('jawOpen'), browInnerUp: high('browInnerUp'), cheekPuff: high('cheekPuff') }))).toBeCloseTo(1);
+    expect(strength(four, frame({ jawOpen: high('jawOpen'), browInnerUp: high('browInnerUp'), cheekPuff: high('cheekPuff') }))).toBeCloseTo(1);
     const three = fit(trials({ jawOpen: 0.6, browInnerUp: 0.6, cheekPuff: 0.6 }, { jawOpen: 0.02, browInnerUp: 0.02, cheekPuff: 0.02 }));
-    expect(score(three, frame({ jawOpen: three.rows.find((r) => name(r.c) === 'jawOpen')!.edge, browInnerUp: three.rows.find((r) => name(r.c) === 'browInnerUp')!.edge }))).toBeCloseTo(2 / 3);
+    expect(strength(three, frame({ jawOpen: three.rows.find((r) => name(r.c) === 'jawOpen')!.edge, browInnerUp: three.rows.find((r) => name(r.c) === 'browInnerUp')!.edge }))).toBeCloseTo(2 / 3);
   });
   it('tells a wink from a blink: near 0 for both eyes closed, 1 for a wink', () => {
     const wink = fit(trials({ eyeBlinkLeft: 0.7, eyeBlinkRight: 0.25 }, { eyeBlinkLeft: 0.03, eyeBlinkRight: 0.03 }));
-    expect(score(wink, frame({ eyeBlinkLeft: 0.8, eyeBlinkRight: 0.8 }))).toBeLessThan(0.05);
-    expect(score(wink, frame({ eyeBlinkLeft: 0.7, eyeBlinkRight: 0.25 }))).toBeGreaterThan(0.9);
+    expect(strength(wink, frame({ eyeBlinkLeft: 0.8, eyeBlinkRight: 0.8 }))).toBeLessThan(0.05);
+    expect(strength(wink, frame({ eyeBlinkLeft: 0.7, eyeBlinkRight: 0.25 }))).toBeGreaterThan(0.9);
   });
 });

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { activeOf, faceSettingsFrom, hasGestures, levelsOf, newGesture, NO_GESTURES, withFit, withLevels, type Gesture } from './gestures';
 import { FIT_VERSION, type Fit } from './_fit';
 
-const template = { rows: [{ c: 0, side: 1 as const, edge: 0.8, far: 0.1, rest: 0.02, span: 0.78, clear: 0.9 }], caps: [], missed: [] };
+const template = { rows: [{ c: 0, side: 1 as const, edge: 0.8, far: 0.1, rest: 0.02, span: 0.78, separation: 0.9 }], limits: [], missed: [] };
 const fitted: Fit = { version: FIT_VERSION, trials: 5, flags: [], template, on: 0.6, release: 0.3, rest: 0.05, peaks: [0.9, 0.95] };
 const gesture = (over: Partial<Gesture> = {}): Gesture => ({ ...newGesture('Wink'), id: 'a', fit: fitted, ...over });
 
@@ -28,6 +28,12 @@ describe('faceSettingsFrom', () => {
   it('keeps a good list as it was', () => {
     const g = gesture({ on: 0.7, release: 0.4, note: 'Set to None: x.', direction: 'none' });
     expect(faceSettingsFrom({ gestures: [g] })).toEqual({ gestures: [g] });
+  });
+  it('keeps a gesture whose fit is of an earlier version, with only its version and trials', () => {
+    const old = { id: 'o', name: 'Old', direction: 'next', hold: 250, fit: { version: FIT_VERSION - 1, trials: 5, flags: [{ kind: 'unreliable' }], template: { rows: [], caps: [], missed: [] }, on: 0.5, release: 0.3, rest: 0.1, peaks: [1] } };
+    const [g] = faceSettingsFrom({ gestures: [old] }).gestures;
+    expect([g.id, g.name, g.direction]).toEqual(['o', 'Old', 'next']);
+    expect(g.fit).toEqual({ version: FIT_VERSION - 1, trials: 5, flags: [] });
   });
   it('drops a gesture without an id, a name or a fit', () => {
     const { id: _id, ...noId } = gesture();

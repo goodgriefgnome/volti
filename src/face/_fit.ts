@@ -3,10 +3,10 @@
 // of public/lab/face-classifier.html; docs/face-classifier-spec.md says what they must be. Pure.
 
 import { framesOf, type Trial } from './_recording';
-import { CHANNELS, fit, median, quantile, score, type Row, type Template } from './_template';
+import { CHANNELS, fit, median, quantile, strength, type Row, type Template } from './_template';
 
 /** Raised when fitting changes what it computes: stored fits of an earlier version are fitted again. */
-export const FIT_VERSION = 1;
+export const FIT_VERSION = 2;
 export const MIN_TRIALS = 3;
 
 /** How far over the rest level the lowest rep must be. */
@@ -44,7 +44,7 @@ const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
 /**
  * A gesture's fit from its trials: its template, its levels (the rest level is the 95th percentile
- * of the score over rest frames; each rep's peak is its median held score against a template fitted
+ * of the strength over rest frames; each rep's peak is its median held strength against a template fitted
  * without it), and what is wrong with it.
  */
 export function buildFit(trials: Trial[]): Fit {
@@ -60,10 +60,10 @@ export function buildFit(trials: Trial[]): Fit {
     out.missed = template.missed;
     return out;
   }
-  const rest = quantile(frames.flatMap((t) => t.rest.map((x) => score(template, x))), 0.95);
+  const rest = quantile(frames.flatMap((t) => t.rest.map((x) => strength(template, x))), 0.95);
   const peaks = frames.map((t, i) => {
     const without = fit(frames.filter((_, j) => j !== i));
-    return without.rows.length ? median(t.held.map((x) => score(without, x))) : 0;
+    return without.rows.length ? median(t.held.map((x) => strength(without, x))) : 0;
   });
   const lowest = Math.min(...peaks);
   if (lowest - rest < MIN_GAP) out.flags.push({ kind: 'unreliable' });
@@ -77,7 +77,7 @@ export function buildFit(trials: Trial[]): Fit {
     let last = -1;
     t.rest.forEach((x, i) => {
       const at = t.restT[i];
-      if (score(template, x) >= on) {
+      if (strength(template, x) >= on) {
         restHits++;
         if (from < 0 || at - last > RUN_GAP) from = at;
         last = at;
@@ -94,7 +94,7 @@ export function flagText(f: Flag): string {
   switch (f.kind) {
     case 'tooFew': return `Record at least three trials.`;
     case 'noChannels': return `Can't be told from playing: no channel's held values are clear of its values at rest.`;
-    case 'unreliable': return `Unreliable: a rep left out of the fit scores little over rest.`;
+    case 'unreliable': return `Unreliable: a trial left out of the fit has little more strength than rest.`;
     case 'firesAtRest': return `Fires while resting: ${f.frames} ${f.frames === 1 ? 'frame' : 'frames'}, ${f.ms} ms at the longest.`;
   }
 }
@@ -109,12 +109,12 @@ export interface Contender {
   held: Float32Array[][];
 }
 
-/** `j`'s score on `i`'s gesture (the highest of its reps' median held scores), if it reaches `j`'s release level: `j` would stay on through it. */
+/** `j`'s strength on `i`'s gesture (the highest of its reps' median held strengths), if it reaches `j`'s release level: `j` would stay on through it. */
 function firesOn(j: Contender, i: Contender): number | undefined {
   let y = -Infinity;
   for (const rep of i.held) {
     if (!rep.length) continue;
-    y = Math.max(y, median(rep.map((x) => score(j.template, x))));
+    y = Math.max(y, median(rep.map((x) => strength(j.template, x))));
   }
   return y >= j.release ? y : undefined;
 }
@@ -127,7 +127,7 @@ export function conflictOf(a: Contender, b: Contender): string | undefined {
   const B = movingNames(b);
   const shared = A.filter((n) => B.includes(n));
   const why = (j: Contender, y: number, own: string[]) =>
-    `it scores ${y.toFixed(2)}, and its release is ${j.release.toFixed(2)}. ${shared.length ? `Both are ${shared.join(', ')}` : `It only needs ${own.join(', ')}`}`;
+    `its strength is ${y.toFixed(2)}, and its release is ${j.release.toFixed(2)}. ${shared.length ? `Both are ${shared.join(', ')}` : `It only needs ${own.join(', ')}`}`;
   let y = firesOn(b, a);
   if (y !== undefined) return `“${b.name}” also fires on it: ${why(b, y, B)}`;
   y = firesOn(a, b);

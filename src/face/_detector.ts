@@ -2,9 +2,9 @@
 // direction is to turning, for the button's ring. Pure: the watcher gives it each frame.
 
 import type { Active, TurnDir } from './gestures';
-import { score } from './_template';
+import { strength } from './_template';
 
-/** How close a direction is to turning, each 0..1: `near` the signal from its release level to its on level, `hold` the time held. */
+/** How close a direction is to turning, each 0..1: `near` the strength from its release level to its on level, `hold` the time held. */
 export interface Progress { near: number; hold: number }
 
 interface Seen {
@@ -20,7 +20,7 @@ export const NEW_DETECTOR: DetectorState = {};
 
 const NONE: Record<TurnDir, Progress> = { next: { near: 0, hold: 0 }, prev: { near: 0, hold: 0 } };
 
-/** How close a signal is to its on level, counted from its release level: 0..1. */
+/** How close a strength is to its on level, counted from its release level: 0..1. */
 function near(v: number, g: Active): number {
   if (g.on <= g.release) return v >= g.on ? 1 : 0;
   return Math.max(0, Math.min(1, (v - g.release) / (g.on - g.release)));
@@ -42,7 +42,7 @@ export function step(s: DetectorState, x: Float32Array | null, active: Active[],
     }
     const was = s[g.id] ?? { turned: false };
     const held = was.since !== undefined || was.turned;
-    const y = score(g.template, x);
+    const y = strength(g.template, x);
     if (!(held ? y >= g.release : y >= g.on)) {
       state[g.id] = { turned: false };
       bump(progress[g.direction], near(y, g), 0);

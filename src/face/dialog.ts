@@ -11,7 +11,7 @@ import { readyTones } from './_tones';
 import type { Trial } from './_recording';
 import { settled } from './_settling';
 import { deleteTrials, loadFaceSettings, loadTrials, saveFaceSettings, saveTrials } from './store';
-import { MIN_SHIFT, score } from './_template';
+import { MIN_SHIFT, strength } from './_template';
 import { FaceWatcher, type CameraStatus } from './watcher';
 import { button, el, plural } from '../ui/dom';
 import { failed, failedOnce } from '../ui/failure';
@@ -177,7 +177,7 @@ export function openFaceGestures(closed?: () => void): void {
         const details = faceDetails(g);
         details.el.open = detailsOpen.has(g.id);
         details.el.addEventListener('toggle', () => { if (details.el.open) detailsOpen.add(g.id); else detailsOpen.delete(g.id); });
-        meters.set(g.id, (x) => { fill.style.width = `${x ? score(template, x) * 100 : 0}%`; details.update(x); });
+        meters.set(g.id, (x) => { fill.style.width = `${x ? strength(template, x) * 100 : 0}%`; details.update(x); });
         const show = (v: number) => v.toFixed(2);
         // Moving either level can move the other (release stops at On, and follows it down).
         const setLevels = (to: { on?: number; release?: number }) => {

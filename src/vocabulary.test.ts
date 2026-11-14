@@ -37,6 +37,8 @@ const RETIRED: Retired[] = [
   { on: 'words', goes: /\b(choose|chooses|choosing|chooser|chosen)\b/i, wins: 'pick, picker' },
   { on: 'words', goes: /\bthumbs?\b/i, wins: 'thumbnail' },
   { on: 'raw', goes: /data-state|dataset\.state/, wins: 'data-status' },
+  { on: 'raw', goes: /\bscore\(|\bsignal\b/, wins: 'strength', in: /^(face\/|styles\/face\.css)/ },
+  { on: 'words', goes: /\bcaps?\b|\bcapped\b/i, wins: 'limit', in: /^(face\/|styles\/face\.css)/ },
 ];
 
 /** Names that stay: an API's own (the browser's, Drive's, a library's), or another thing with the same word. */

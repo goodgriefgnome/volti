@@ -55,7 +55,7 @@ describe('flagText', () => {
   it('puts the flags in the words of the spec', () => {
     expect(flagText({ kind: 'tooFew' })).toBe('Record at least three trials.');
     expect(flagText({ kind: 'noChannels' })).toBe(`Can't be told from playing: no channel's held values are clear of its values at rest.`);
-    expect(flagText({ kind: 'unreliable' })).toBe('Unreliable: a rep left out of the fit scores little over rest.');
+    expect(flagText({ kind: 'unreliable' })).toBe('Unreliable: a trial left out of the fit has little more strength than rest.');
     expect(flagText({ kind: 'firesAtRest', frames: 4, ms: 130 })).toBe('Fires while resting: 4 frames, 130 ms at the longest.');
   });
 });
@@ -77,7 +77,7 @@ describe('conflictOf', () => {
     const b = contender('b', 'Mouth left, brows up', mouthBrows, none);
     expect(conflictOf(a, b)).toMatch(/mouthLeft/);
     expect(conflictOf(b, a)).toMatch(/mouthLeft/);
-    expect(conflictOf(b, a)).toContain('“Mouth left” also fires on it: it scores');
+    expect(conflictOf(b, a)).toContain('“Mouth left” also fires on it: its strength is');
   });
   it('finds a wink of each eye in no conflict', () => {
     const l = contender('l', 'Wink left', { eyeBlinkLeft: 0.7, eyeBlinkRight: 0.25 }, quiet);

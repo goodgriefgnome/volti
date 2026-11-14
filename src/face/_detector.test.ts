@@ -3,7 +3,7 @@ import { NEW_DETECTOR, step, type DetectorState } from './_detector';
 import type { Active, TurnDir } from './gestures';
 import { CHANNELS, channelsOf } from './_template';
 
-// A one-row template on a channel: the score is the channel's value over its edge (0.8).
+// A one-row template on a channel: the strength is the channel's value over its edge (0.8).
 const channel = (name: string) => CHANNELS.indexOf(name);
 const gesture = (id: string, name: string, direction: TurnDir, over: Partial<Active> = {}): Active => ({
   id,
@@ -11,7 +11,7 @@ const gesture = (id: string, name: string, direction: TurnDir, over: Partial<Act
   on: 0.5,
   release: 0.25,
   hold: 250,
-  template: { rows: [{ c: channel(name), side: 1, edge: 0.8, far: 0.1, rest: 0, span: 0.8, clear: 0.8 }], caps: [], missed: [] },
+  template: { rows: [{ c: channel(name), side: 1, edge: 0.8, far: 0.1, rest: 0, span: 0.8, separation: 0.8 }], limits: [], missed: [] },
   ...over,
 });
 const wink = gesture('wink', 'eyeBlinkLeft', 'prev');

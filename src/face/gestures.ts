@@ -3,7 +3,7 @@
 // (face/store.ts stores them).
 
 import { FIT_VERSION, type Fit, type Flag } from './_fit';
-import type { Cap, Row, Template } from './_template';
+import type { Limit, Row, Template } from './_template';
 
 export type TurnDir = 'next' | 'prev';
 
@@ -79,20 +79,21 @@ const num = (v: unknown, fallback: number, min: number, max: number) => (isNum(v
 const optional = (v: unknown, min: number, max: number) => (isNum(v) ? clamp(v, min, max) : undefined);
 
 const FLAGS = ['tooFew', 'noChannels', 'unreliable', 'firesAtRest'];
-const rowOk = (r: unknown): r is Row => isObject(r) && ['c', 'side', 'edge', 'far', 'rest', 'span', 'clear'].every((k) => isNum(r[k]));
-const capOk = (k: unknown): k is Cap => isObject(k) && ['c', 'side', 'cap', 'full', 'rest'].every((n) => isNum(k[n]));
+const rowOk = (r: unknown): r is Row => isObject(r) && ['c', 'side', 'edge', 'far', 'rest', 'span', 'separation'].every((k) => isNum(r[k]));
+const limitOk = (k: unknown): k is Limit => isObject(k) && ['c', 'side', 'limit', 'full', 'rest'].every((n) => isNum(k[n]));
 
-/** A stored fit, or undefined when it isn't one. */
+/** A stored fit, or undefined when it isn't one. One of an earlier version is read as its version and trials only: loading fits it again from the trials. */
 function fitFrom(v: unknown): Fit | undefined {
   if (!isObject(v) || !isNum(v.version) || !isNum(v.trials) || !Array.isArray(v.flags)) return undefined;
+  if (v.version !== FIT_VERSION) return { version: v.version, trials: v.trials, flags: [] };
   const flags = v.flags.filter((f): f is Flag => isObject(f) && FLAGS.includes(f.kind as string));
   const fit: Fit = { version: v.version, trials: v.trials, flags };
   if (Array.isArray(v.missed)) fit.missed = v.missed.filter(rowOk);
   if (v.template !== undefined) {
     const t = v.template;
-    if (!isObject(t) || !Array.isArray(t.rows) || !Array.isArray(t.caps) || !Array.isArray(t.missed)) return undefined;
+    if (!isObject(t) || !Array.isArray(t.rows) || !Array.isArray(t.limits) || !Array.isArray(t.missed)) return undefined;
     if (!isNum(v.on) || !isNum(v.release) || !isNum(v.rest) || !Array.isArray(v.peaks)) return undefined;
-    fit.template = { rows: t.rows.filter(rowOk), caps: t.caps.filter(capOk), missed: t.missed.filter(rowOk) };
+    fit.template = { rows: t.rows.filter(rowOk), limits: t.limits.filter(limitOk), missed: t.missed.filter(rowOk) };
     fit.on = v.on;
     fit.release = v.release;
     fit.rest = v.rest;
