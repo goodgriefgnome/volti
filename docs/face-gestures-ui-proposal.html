@@ -49,20 +49,23 @@ code { font-family: var(--font-mono); font-size: 0.88em; }
 .notes li + li { margin-top: 6px; }
 
 /* ---------- The app's dialog, as styles/ui.css and base.css have it ---------- */
-.dialog { width: 100%; max-width: 560px; background: var(--surface); color: var(--fg); border-radius: 12px; padding: 16px 18px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35); display: grid; gap: 12px; }
+.dialog { width: 100%; max-width: 560px; background: var(--surface); color: var(--fg); border-radius: 12px; padding: 16px 18px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35); display: grid; gap: 12px; min-width: 0; }
 .dialog.wide { max-width: 720px; }
 .dialog h2 { margin: 0; font-size: 18px; }
 .dialog h3 { margin: 6px 0 0; font-size: 13px; color: var(--muted); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
 .dialog .hint { margin: 0; color: var(--muted); font-size: 15px; }
-.btn { font-size: 15px; min-height: 44px; padding: 0 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); display: inline-flex; align-items: center; white-space: nowrap; }
+.btn { font-size: 15px; min-height: 44px; padding: 0 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
 .btn.quiet { border-color: transparent; background: transparent; color: var(--muted); }
 .btn.quiet.warn { color: var(--warn); }
 .btn.small { min-height: 36px; padding: 0 12px; font-size: 14px; }
+.btn.icon { min-width: 36px; min-height: 36px; padding: 0; color: var(--muted); border-color: transparent; background: transparent; }
+.btn.icon svg { width: 16px; height: 16px; }
 .select { font-size: 15px; min-height: 44px; padding: 0 10px 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); display: inline-flex; align-items: center; gap: 18px; white-space: nowrap; }
 .select::after { content: '▾'; color: var(--muted); font-size: 13px; }
 .buttons { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 .buttons .spacer { flex: 1; }
+.named { display: inline-flex; align-items: center; gap: 2px; min-width: 0; }
 
 /* The preview: the camera and the button as the reader shows it. */
 .stage { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
@@ -78,17 +81,22 @@ code { font-family: var(--font-mono); font-size: 0.88em; }
 
 /* The list's rows. */
 .g-list { display: grid; }
-.g-row { display: grid; grid-template-columns: minmax(0, 1fr) auto 20px; gap: 6px 12px; align-items: center; padding: 10px 4px; border-top: 1px solid var(--line); }
+.g-row { display: grid; grid-template-columns: minmax(0, 1fr) auto 20px; gap: 2px 12px; align-items: center; padding: 10px 4px; border-top: 1px solid var(--line); }
 .g-row .name { font-weight: 600; }
 .g-row .select { justify-self: end; }
-.g-row .status { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--muted); min-width: 0; flex-wrap: wrap; }
+.g-row .status { font-size: 14px; color: var(--muted); }
 .g-row .status.bad { color: var(--warn); }
-.g-row .acts { display: flex; gap: 4px; justify-content: flex-end; }
-.g-row .chev { grid-row: 1 / 3; grid-column: 3; color: var(--muted); font-size: 22px; }
-.mini { position: relative; width: 140px; height: 6px; border-radius: 3px; background: var(--accent-soft); overflow: hidden; flex: none; }
-.mini .fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); }
-.mini .mark { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--fg); }
-.mini .mark.rel { opacity: 0.45; }
+.g-row .acts { display: flex; justify-content: flex-end; grid-row: 2 / 4; grid-column: 2; }
+.g-row .chev { grid-row: 1 / 4; grid-column: 3; color: var(--muted); font-size: 22px; }
+.g-row .chev.none { visibility: hidden; }
+/* The list's meter: On can be dragged on it too. */
+.lmeter { position: relative; height: 32px; max-width: 300px; }
+.lmeter .track { position: absolute; left: 0; right: 0; top: 14px; height: 8px; border-radius: 4px; background: var(--accent-soft); overflow: hidden; }
+.lmeter .fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); }
+.lmeter .rel { position: absolute; top: 12px; height: 12px; border-left: 2px dashed var(--muted); }
+.lmeter .on { position: absolute; top: 6px; width: 14px; height: 24px; margin-left: -7px; display: grid; justify-items: center; }
+.lmeter .on::before { content: ''; width: 14px; height: 6px; border-radius: 2px; background: var(--fg); }
+.lmeter .on::after { content: ''; width: 3px; height: 18px; background: var(--fg); }
 .hold { display: grid; grid-template-columns: auto minmax(0, 1fr) 5em; gap: 12px; align-items: center; min-height: 44px; border-top: 1px solid var(--line); padding-top: 8px; }
 .hold .label { display: grid; line-height: 1.25; }
 .hold .label small { color: var(--muted); font-size: 13px; }
@@ -98,8 +106,8 @@ code { font-family: var(--font-mono); font-size: 0.88em; }
 .hold .value { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
 
 /* The head of a gesture's view. */
-.view-head { display: flex; align-items: center; gap: 4px; }
-.view-head h2 { flex: 1; min-width: 0; }
+.view-head { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.view-head .named { flex: 1; }
 .view-head .back { padding: 0 10px; font-size: 22px; }
 
 /* What is wrong with a gesture, at the top of its view. */
@@ -124,22 +132,21 @@ code { font-family: var(--font-mono); font-size: 0.88em; }
 .levels-text { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
 .levels-text .sp { flex: 1; }
 
-/* The channels. */
-.channels { display: grid; }
-.ch { display: grid; grid-template-columns: 52px minmax(130px, 11em) minmax(0, 1fr) 6.5em; gap: 4px 12px; align-items: center; min-height: 60px; border-top: 1px solid var(--line); }
-.ch:last-child { border-bottom: 1px solid var(--line); }
-.ch .label { display: grid; line-height: 1.25; min-width: 0; }
-.ch .label .raw { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); overflow-wrap: anywhere; }
-.ch .thr { display: grid; justify-items: end; line-height: 1.2; font-variant-numeric: tabular-nums; font-size: 14px; }
-.ch .thr small { font-size: 12px; color: var(--muted); }
-.ch .thr.cap { color: var(--warn); }
-.ch.off .label { opacity: 0.55; }
-.ch .out { grid-column: 3 / 5; color: var(--muted); font-size: 14px; font-style: italic; }
+/* The features. */
+.features { display: grid; }
+.ft { display: grid; grid-template-columns: 52px minmax(120px, 10em) minmax(0, 1fr) 6.5em; gap: 4px 12px; align-items: center; min-height: 56px; border-top: 1px solid var(--line); }
+.ft:last-child { border-bottom: 1px solid var(--line); }
+.ft .fname { font-family: var(--font-mono); font-size: 13.5px; overflow-wrap: anywhere; min-width: 0; }
+.ft .thr { display: grid; justify-items: end; line-height: 1.2; font-variant-numeric: tabular-nums; font-size: 14px; }
+.ft .thr small { font-size: 12px; color: var(--muted); }
+.ft .thr.limit { color: var(--warn); }
+.ft.off .fname { opacity: 0.55; }
+.ft .out { grid-column: 3 / 5; color: var(--muted); font-size: 14px; font-style: italic; }
 @media (max-width: 560px) {
-  .ch { grid-template-columns: 52px minmax(0, 1fr) 6.5em; padding-block: 6px; }
-  .ch .bar { grid-column: 1 / 4; }
-  .ch .out { grid-column: 2 / 4; }
-  .ch .thr { grid-column: 3; grid-row: 1; }
+  .ft { grid-template-columns: 52px minmax(0, 1fr) 6.5em; padding-block: 6px; }
+  .ft .bar { grid-column: 1 / 4; }
+  .ft .out { grid-column: 2 / 4; }
+  .ft .thr { grid-column: 3; grid-row: 1; }
 }
 .switch { width: 44px; height: 26px; border-radius: 13px; background: var(--line); position: relative; }
 .switch::after { content: ''; position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); }
@@ -150,22 +157,37 @@ code { font-family: var(--font-mono); font-size: 0.88em; }
 .bar .band { position: absolute; top: 19px; height: 14px; border-radius: 3px; background: repeating-linear-gradient(135deg, var(--muted) 0 2px, transparent 2px 5px); opacity: 0.6; }
 .bar .zone { position: absolute; top: 22px; height: 8px; background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
 .bar .ramp { position: absolute; top: 22px; height: 8px; background: linear-gradient(90deg, transparent, var(--warn-mid)); }
+.bar .ramp.down { background: linear-gradient(270deg, transparent, var(--warn-mid)); }
 .bar .gone { position: absolute; top: 22px; height: 8px; background: var(--warn-mid); }
-.bar .h { position: absolute; top: 2px; width: 24px; height: 44px; margin-left: -12px; overflow: visible; }
-.bar .h.at-least, .bar .h.at-most { color: var(--fg); }
-.bar .h.cap { color: var(--warn); }
+.bar .h { position: absolute; top: 2px; width: 24px; height: 44px; margin-left: -12px; overflow: visible; color: var(--fg); }
+.bar .h.limit { color: var(--warn); }
 .bar .tip { position: absolute; top: 34px; font-size: 10.5px; color: var(--muted); transform: translateX(-50%); white-space: nowrap; }
 .bar .now { position: absolute; top: 20px; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: var(--paused); border: 2px solid var(--surface); }
 .bar .now.good { background: var(--accent); }
-.ch-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: space-between; }
+.ft-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: space-between; }
 .legend { display: flex; gap: 6px 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); align-items: center; }
 .legend span { display: inline-flex; align-items: center; gap: 5px; }
 .legend svg { width: 16px; height: 22px; }
 .legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; }
 .legend .l-band { background: repeating-linear-gradient(135deg, var(--muted) 0 2px, transparent 2px 5px); opacity: 0.7; }
 .legend .l-now { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
-.trials { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.trials .count { flex: 1; min-width: 10em; }
+
+/* The trials. */
+.trials { display: grid; }
+.tr { display: grid; grid-template-columns: 4.5em minmax(90px, 1fr) repeat(3, 5.2em) 40px; gap: 4px 10px; align-items: center; min-height: 52px; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; font-size: 14px; }
+.tr:last-child { border-bottom: 1px solid var(--line); }
+.tr.head { min-height: 32px; font-size: 12px; color: var(--muted); font-weight: 600; }
+.tr .n { text-align: right; }
+.tr .bad { color: var(--warn); font-weight: 600; }
+.tr.flagged { background: var(--warn-soft); }
+.tr svg.trace { width: 100%; height: 36px; display: block; }
+.tr svg.trace { color: var(--accent); }
+.tr.flagged svg.trace { color: var(--warn); }
+.tr .del { color: var(--muted); }
+.tbl-wrap { overflow-x: auto; }
+.tbl-wrap .trials { min-width: 520px; }
+.trials-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.trials-foot .count { flex: 1; min-width: 10em; color: var(--muted); font-size: 14px; }
 
 /* The three handles, side by side. */
 .kinds { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
@@ -178,12 +200,13 @@ code { font-family: var(--font-mono); font-size: 0.88em; }
 
 /* Recording. */
 .rec { display: grid; gap: 14px; }
-.rec-top { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.rec-top { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
 .camera.small { width: 112px; }
-.dots { display: flex; gap: 8px; }
-.dots span { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--accent); }
-.dots span.done { background: var(--accent); }
-.dots span.now { background: var(--accent-soft); }
+.score { display: grid; line-height: 1.1; }
+.score .v { font-size: 40px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); }
+.score small { font-size: 13px; color: var(--muted); }
+.kept { margin-left: auto; text-align: right; display: grid; line-height: 1.3; font-size: 14px; color: var(--muted); }
+.kept strong { color: var(--fg); font-size: 16px; }
 .instruction { font-size: 26px; font-family: var(--font-brand); font-weight: 600; margin: 0; line-height: 1.25; }
 .timeline { position: relative; height: 40px; }
 .timeline .tl-track { position: absolute; left: 0; right: 0; top: 16px; height: 8px; border-radius: 4px; background: var(--bg); box-shadow: inset 0 0 0 1px var(--line); }
@@ -201,17 +224,23 @@ th { font-size: 13px; color: var(--muted); font-weight: 600; }
 .decisions li::marker { color: var(--accent); font-weight: 600; }
 </style>
 
-<!-- The three threshold handles, drawn once and reused. -->
+<!-- Drawn once and reused. -->
 <svg width="0" height="0" style="position: absolute" aria-hidden="true">
   <defs>
-    <!-- At least: a line with a flag pointing right, toward where the channel must get to. -->
+    <!-- At least: a line with a flag pointing right, toward where the feature must get to. -->
     <symbol id="h-least" viewBox="0 0 24 44"><rect x="10.5" y="4" width="3" height="32" rx="1.5" fill="currentColor"/><path d="M13 4h9l-4.5 6 4.5 6h-9z" fill="currentColor"/></symbol>
     <!-- At most: the same flag pointing left. -->
     <symbol id="h-most" viewBox="0 0 24 44"><rect x="10.5" y="4" width="3" height="32" rx="1.5" fill="currentColor"/><path d="M11 4H2l4.5 6L2 16h9z" fill="currentColor"/></symbol>
-    <!-- Stay under: a lid. -->
-    <symbol id="h-cap" viewBox="0 0 24 44"><rect x="10.5" y="4" width="3" height="32" rx="1.5" fill="currentColor"/><path d="M2 12V5.5C2 4.7 2.7 4 3.5 4h17c.8 0 1.5.7 1.5 1.5V12h-3V7H5v5z" fill="currentColor"/></symbol>
+    <!-- A limit: a bar across the line, either way. -->
+    <symbol id="h-limit" viewBox="0 0 24 44"><rect x="10.5" y="4" width="3" height="32" rx="1.5" fill="currentColor"/><rect x="2" y="4" width="20" height="5" rx="1.5" fill="currentColor"/><rect x="2" y="12" width="20" height="5" rx="1.5" fill="currentColor"/></symbol>
+    <symbol id="pencil" viewBox="0 0 16 16"><path d="M11.3 2.3l2.4 2.4-8.2 8.2-3.2.8.8-3.2z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+    <symbol id="x" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
     <symbol id="face" viewBox="0 0 100 80"><ellipse cx="50" cy="34" rx="18" ry="22" fill="none" stroke="var(--camera-fg)" stroke-width="2"/><path d="M22 80c4-14 15-20 28-20s24 6 28 20" fill="none" stroke="var(--camera-fg)" stroke-width="2"/><line x1="41" y1="30" x2="45" y2="30" stroke="var(--camera-fg)" stroke-width="3" stroke-linecap="round"/><line x1="55" y1="30" x2="59" y2="30" stroke="var(--camera-fg)" stroke-width="1.2" stroke-linecap="round"/><path d="M44 45q6 3 12 0" fill="none" stroke="var(--camera-fg)" stroke-width="2" stroke-linecap="round"/></symbol>
     <symbol id="glyph" viewBox="0 0 24 24"><path d="M4 8V5.5C4 4.7 4.7 4 5.5 4H8M16 4h2.5c.8 0 1.5.7 1.5 1.5V8M20 16v2.5c0 .8-.7 1.5-1.5 1.5H16M8 20H5.5c-.8 0-1.5-.7-1.5-1.5V16M14.5 10.5a2.5 2.5 0 1 1-5 0a2.5 2.5 0 1 1 5 0M7.8 16.5c.9-1.6 2.4-2.5 4.2-2.5s3.3.9 4.2 2.5"/></symbol>
+    <!-- One trial's score over its 12 s: rest, the hold from 5.5 to 9.5 s, rest. -->
+    <symbol id="trace-ok" viewBox="0 0 120 36" preserveAspectRatio="none"><rect x="55" y="0" width="40" height="36" style="fill: var(--accent-soft)"/><line x1="0" y1="13" x2="120" y2="13" style="stroke: var(--fg); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.5" vector-effect="non-scaling-stroke"/><polyline style="fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round" vector-effect="non-scaling-stroke" points="0,31 8,30 16,32 24,29 32,31 40,30 48,30 52,24 56,6 62,5 70,6 78,4 86,6 92,5 96,14 100,29 108,31 116,30 120,31"/></symbol>
+    <symbol id="trace-weak" viewBox="0 0 120 36" preserveAspectRatio="none"><rect x="55" y="0" width="40" height="36" style="fill: var(--accent-soft)"/><line x1="0" y1="13" x2="120" y2="13" style="stroke: var(--fg); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.5" vector-effect="non-scaling-stroke"/><polyline style="fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round" vector-effect="non-scaling-stroke" points="0,31 8,30 16,31 24,30 32,31 40,30 48,31 52,29 56,24 62,16 70,22 78,15 86,20 92,18 96,25 100,30 108,31 116,30 120,31"/></symbol>
+    <symbol id="trace-rest" viewBox="0 0 120 36" preserveAspectRatio="none"><rect x="55" y="0" width="40" height="36" style="fill: var(--accent-soft)"/><line x1="0" y1="13" x2="120" y2="13" style="stroke: var(--fg); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.5" vector-effect="non-scaling-stroke"/><polyline style="fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round" vector-effect="non-scaling-stroke" points="0,31 8,30 14,30 18,10 22,9 26,28 32,31 40,30 48,30 52,24 56,6 62,5 70,5 78,6 86,5 92,6 96,14 100,29 108,31 116,30 120,31"/></symbol>
   </defs>
 </svg>
 
@@ -219,8 +248,8 @@ th { font-size: 13px; color: var(--muted); font-weight: 600; }
   <header class="prose">
     <div class="eyebrow">Volti · proposal · not built</div>
     <h1>Face gestures, redesigned</h1>
-    <p class="lede">A new layout for the Face gestures dialog (<code>src/face/dialog.ts</code>): a list of the gestures, and a details view for each, where its channels can be turned off and their thresholds moved.</p>
-    <p>The mockups are still pictures, caught at a moment while you play and wink. The gestures and numbers are examples. This version takes in your notes: the page counter is gone, the direction stays a dropdown on the list, Record and Rename are on the list, Hold is one setting for every gesture, Release always follows On, and each kind of threshold has its own handle.</p>
+    <p class="lede">A new layout for the Face gestures dialog (<code>src/face/dialog.ts</code>): a list of the gestures, and a details view for each, where its features can be turned off and their thresholds moved, and bad trials deleted.</p>
+    <p>The mockups are still pictures, caught while you play and wink. The gestures and numbers are examples.</p>
   </header>
 
   <!-- ===================== The list ===================== -->
@@ -235,32 +264,35 @@ th { font-size: 13px; color: var(--muted); font-weight: 600; }
         </div>
         <div class="g-list">
           <div class="g-row">
-            <span class="name">Wink right</span>
+            <span class="named"><span class="name">Wink right</span><span class="btn icon" aria-label="Rename"><svg><use href="#pencil"/></svg></span></span>
             <span class="select">Next</span>
             <span class="chev" aria-hidden="true">›</span>
-            <span class="status"><span class="mini"><span class="fill" style="width: 83%"></span><span class="mark" style="left: 64%"></span><span class="mark rel" style="left: 41%"></span></span>Ready · 12 trials</span>
-            <span class="acts"><span class="btn quiet small">Rename</span><span class="btn small">Record 5 trials</span></span>
+            <div class="lmeter"><div class="track"><div class="fill" style="width: 83%"></div></div><span class="rel" style="left: 41%"></span><span class="on" style="left: 64%"></span></div>
+            <span class="acts"><span class="btn small">Record</span></span>
+            <span class="status">12 trials</span>
           </div>
           <div class="g-row">
-            <span class="name">Mouth left</span>
+            <span class="named"><span class="name">Mouth left</span><span class="btn icon" aria-label="Rename"><svg><use href="#pencil"/></svg></span></span>
             <span class="select">Back</span>
             <span class="chev" aria-hidden="true">›</span>
-            <span class="status bad"><span class="mini"><span class="fill" style="width: 24%"></span><span class="mark" style="left: 55%"></span><span class="mark rel" style="left: 36%"></span></span>⚠ Fires while resting</span>
-            <span class="acts"><span class="btn quiet small">Rename</span><span class="btn small">Record 5 trials</span></span>
+            <div class="lmeter"><div class="track"><div class="fill" style="width: 24%"></div></div><span class="rel" style="left: 36%"></span><span class="on" style="left: 55%"></span></div>
+            <span class="acts"><span class="btn small">Record</span></span>
+            <span class="status bad">⚠ Fires while resting · 8 trials</span>
           </div>
           <div class="g-row">
-            <span class="name">Brows up</span>
+            <span class="named"><span class="name">Brows up</span><span class="btn icon" aria-label="Rename"><svg><use href="#pencil"/></svg></span></span>
             <span class="select">None</span>
             <span class="chev" aria-hidden="true">›</span>
+            <div class="lmeter"><div class="track"><div class="fill" style="width: 12%"></div></div><span class="rel" style="left: 33%"></span><span class="on" style="left: 52%"></span></div>
+            <span class="acts"><span class="btn small">Record</span></span>
             <span class="status bad">Off: “Wink right” also fires on it</span>
-            <span class="acts"><span class="btn quiet small">Rename</span><span class="btn small">Record 5 trials</span></span>
           </div>
           <div class="g-row">
-            <span class="name">Smile</span>
+            <span class="named"><span class="name">Smile</span><span class="btn icon" aria-label="Rename"><svg><use href="#pencil"/></svg></span></span>
             <span class="select">Next</span>
-            <span class="chev" aria-hidden="true">›</span>
+            <span class="chev none" aria-hidden="true">›</span>
             <span class="status">Record 3 more trials</span>
-            <span class="acts"><span class="btn quiet small">Rename</span><span class="btn small">Record 5 trials</span></span>
+            <span class="acts"><span class="btn small">Record</span></span>
           </div>
         </div>
         <div class="hold">
@@ -274,10 +306,12 @@ th { font-size: 13px; color: var(--muted); font-weight: 600; }
     <div class="notes">
       <h3>The list</h3>
       <ul>
-        <li><strong>The camera preview</strong> and the face button, ring and all, as the reader shows it. The page counter is gone.</li>
-        <li>Each gesture: its <strong>name</strong>, its <strong>direction</strong> as a dropdown, a <strong>thin live meter</strong> with On and Release marked, a <strong>one-line status</strong>, and <strong>Rename</strong> and <strong>Record 5 trials</strong>.</li>
-        <li>Tap the row (anywhere but its controls) or its <strong>›</strong> to open the gesture's details.</li>
-        <li><strong>Hold</strong> is one slider for every gesture, from 100 to 1500 ms, starting at 500.</li>
+        <li><strong>The camera preview</strong> and the face button, ring and all, as the reader shows it.</li>
+        <li>Each gesture: its <strong>name</strong> with a pencil to rename it, its <strong>direction</strong> as a dropdown, and <strong>Record</strong>.</li>
+        <li>Once fitted, a <strong>live meter</strong> on which <strong>On can be dragged</strong>; Release, dashed, follows it.</li>
+        <li><strong>A status line</strong>: the trial count, or the worst that is wrong (below).</li>
+        <li>Tap a fitted gesture's row to open its details. One with fewer than three trials has no details: its row only says how many more to record.</li>
+        <li><strong>Hold</strong> is one slider for every gesture, 100 to 1500 ms, starting at 500.</li>
       </ul>
     </div>
   </section>
@@ -286,38 +320,37 @@ th { font-size: 13px; color: var(--muted); font-weight: 600; }
     <h2 class="sec">The status line</h2>
     <div class="tbl"><table>
       <tr><th>Shows</th><th>When</th></tr>
-      <tr><td>Not recorded yet</td><td>No trials</td></tr>
-      <tr><td>Record 2 more trials</td><td>Fewer than three</td></tr>
+      <tr><td>Record 3 more trials</td><td>Fewer than three trials (none included)</td></tr>
       <tr><td>Can't be told from playing</td><td>Flag <code>noChannels</code></td></tr>
       <tr><td>Off: “X” also fires on it</td><td>Set to None by the conflict check (its note, shortened)</td></tr>
-      <tr><td>⚠ Fires while resting</td><td>Flag <code>firesAtRest</code></td></tr>
-      <tr><td>⚠ Unreliable</td><td>Flag <code>unreliable</code></td></tr>
-      <tr><td>Ready · 12 trials</td><td>Fitted, nothing wrong</td></tr>
+      <tr><td>⚠ Fires while resting · 8 trials</td><td>Flag <code>firesAtRest</code></td></tr>
+      <tr><td>⚠ Unreliable · 8 trials</td><td>Flag <code>unreliable</code></td></tr>
+      <tr><td>12 trials</td><td>Fitted, nothing wrong</td></tr>
     </table></div>
   </section>
 
   <!-- ===================== The kinds of threshold ===================== -->
   <section class="prose" style="max-width: none">
     <h2 class="sec">The three kinds of threshold</h2>
-    <p style="max-width: 68ch">A gesture's template sets a threshold on each of its channels, of one of three kinds. Today all three are a number in the Details table, with only <code>≥</code> or <code>≤</code> to tell them apart. Here each kind gets its own handle.</p>
+    <p style="max-width: 68ch">A gesture's template sets a threshold on each of its features, of one of three kinds. Each kind has its own handle.</p>
     <div class="kinds">
       <div class="kind">
         <svg class="big" style="color: var(--fg)"><use href="#h-least"/></svg>
         <span class="k-name">At least</span>
-        <p>A channel that rises when you do the gesture. Below its threshold it holds the score back, all the way at its rest value; at the threshold or above it, it doesn't.</p>
-        <p class="eg">Blink, right eye: at least 0.58.</p>
+        <p>A feature that rises when you do the gesture. Below its threshold it holds the score back, fully at its rest value; at the threshold or above, not at all.</p>
+        <p class="eg">eyeBlinkRight ≥ 0.58</p>
       </div>
       <div class="kind">
         <svg class="big" style="color: var(--fg)"><use href="#h-most"/></svg>
         <span class="k-name">At most</span>
-        <p>A channel that falls when you do the gesture. The same, mirrored: above its threshold it holds the score back; at the threshold or below it, it doesn't.</p>
-        <p class="eg">Eyes wide, right: at most 0.08 (it rests around 0.20).</p>
+        <p>A feature that falls when you do the gesture. The same, mirrored.</p>
+        <p class="eg">eyeWideRight ≤ 0.08 (it rests around 0.20)</p>
       </div>
       <div class="kind">
-        <svg class="big" style="color: var(--warn)"><use href="#h-cap"/></svg>
-        <span class="k-name">Stay under (a cap)</span>
-        <p>The other side of a pair, so the gesture isn't also set off by doing it on both sides. Up to the cap, no effect. From there the score is cut, more the further it goes, until at the moving side's threshold the score is 0.</p>
-        <p class="eg">Blink, left eye: stay under 0.39; score 0 by 0.58.</p>
+        <svg class="big" style="color: var(--warn)"><use href="#h-limit"/></svg>
+        <span class="k-name">Limit</span>
+        <p>The other side of a pair, so doing the gesture on both sides doesn't set it off. On the near side of its limit, no effect. Past it, the score is cut, more the further it goes, down to 0 where the other side's threshold is. It points whichever way its pair moves: <code>≤</code> for one that rises, <code>≥</code> for one that falls.</p>
+        <p class="eg">eyeBlinkLeft ≤ 0.39, score 0 at 0.58</p>
       </div>
     </div>
   </section>
@@ -328,9 +361,9 @@ th { font-size: 13px; color: var(--muted); font-weight: 600; }
       <div class="dialog wide">
         <div class="view-head">
           <span class="btn quiet back" aria-label="Back to the gestures">‹</span>
-          <h2>Wink right</h2>
+          <span class="named"><h2>Wink right</h2><span class="btn icon" aria-label="Rename"><svg><use href="#pencil"/></svg></span></span>
           <span class="select">Next</span>
-          <span class="btn quiet warn">Remove</span>
+          <span class="btn quiet warn">Delete</span>
         </div>
         <div class="stage">
           <div class="camera"><svg><use href="#face"/></svg></div>
@@ -339,7 +372,7 @@ th { font-size: 13px; color: var(--muted); font-weight: 600; }
 
         <div class="issue">
           <span class="ic">⚠</span><span class="what">Fires while resting: 4 frames, 130 ms at the longest.</span>
-          <span class="do">A channel's rest range is close to its threshold. Turn the channel off, or move its threshold away from the hatching.</span>
+          <span class="do">All 4 are in trial 9. Delete it if it went wrong; otherwise turn off a feature that rest reaches, or move its threshold away from the hatching.</span>
         </div>
 
         <h3>On level</h3>
@@ -349,116 +382,131 @@ th { font-size: 13px; color: var(--muted); font-weight: 600; }
           <div class="handle" style="left: 64%"><span class="tag">On 0.64</span><span class="line"></span></div>
           <div class="ticks">
             <span class="tick rest" style="left: 18%"></span><span class="tick-label" style="left: 18%">rest</span>
-            <span class="tick low" style="left: 58%"></span>
+            <span class="tick low" style="left: 52%"></span>
             <span class="tick" style="left: 88%"></span><span class="tick" style="left: 89%"></span><span class="tick" style="left: 90%"></span><span class="tick" style="left: 91%"></span><span class="tick" style="left: 92%"></span><span class="tick" style="left: 93%"></span><span class="tick" style="left: 94%"></span><span class="tick" style="left: 95%"></span><span class="tick" style="left: 96%"></span><span class="tick" style="left: 97%"></span><span class="tick" style="left: 95.5%"></span>
-            <span class="tick-label" style="left: 58%">1 rep under On</span>
-            <span class="tick-label" style="left: 92%">reps</span>
+            <span class="tick-label" style="left: 52%">trial 7</span>
+            <span class="tick-label" style="left: 92%">trials</span>
           </div>
         </div>
-        <div class="levels-text"><span>Drag On on the meter. Release is always halfway between rest and On.</span><span class="sp"></span><span class="btn quiet small">Fitted level</span></div>
+        <div class="levels-text"><span>Drag On. Release is always halfway between rest and On.</span><span class="sp"></span><span class="btn quiet small">Fitted level</span></div>
 
-        <h3>Channels</h3>
-        <div class="channels">
-          <div class="ch">
+        <h3>Features</h3>
+        <div class="features">
+          <div class="ft">
             <span class="switch on"></span>
-            <span class="label"><span>Blink, right eye</span><span class="raw">eyeBlinkRight</span></span>
+            <span class="fname">eyeBlinkRight</span>
             <div class="bar">
               <div class="track"></div><div class="zone" style="left: 58%; width: 42%"></div>
               <div class="band" style="left: 5%; width: 12%"></div>
-              <svg class="h at-least" style="left: 58%"><use href="#h-least"/></svg>
+              <svg class="h" style="left: 58%"><use href="#h-least"/></svg>
               <div class="now good" style="left: 70%"></div>
             </div>
             <span class="thr">≥ 0.58<small>at least</small></span>
           </div>
-          <div class="ch">
+          <div class="ft">
             <span class="switch on"></span>
-            <span class="label"><span>Squint, right eye</span><span class="raw">eyeSquintRight</span></span>
+            <span class="fname">eyeSquintRight</span>
             <div class="bar">
               <div class="track"></div><div class="zone" style="left: 34%; width: 66%"></div>
               <div class="band" style="left: 8%; width: 14%"></div>
-              <svg class="h at-least" style="left: 34%"><use href="#h-least"/></svg>
+              <svg class="h" style="left: 34%"><use href="#h-least"/></svg>
               <div class="now" style="left: 27%"></div>
             </div>
             <span class="thr">≥ 0.34<small>at least</small></span>
           </div>
-          <div class="ch">
+          <div class="ft">
             <span class="switch on"></span>
-            <span class="label"><span>Eyes wide, right</span><span class="raw">eyeWideRight</span></span>
+            <span class="fname">eyeWideRight</span>
             <div class="bar">
               <div class="track"></div><div class="zone" style="left: 0; width: 8%"></div>
               <div class="band" style="left: 15%; width: 7%"></div>
-              <svg class="h at-most" style="left: 8%"><use href="#h-most"/></svg>
+              <svg class="h" style="left: 8%"><use href="#h-most"/></svg>
               <div class="now good" style="left: 5%"></div>
             </div>
             <span class="thr">≤ 0.08<small>at most</small></span>
           </div>
-          <div class="ch off">
+          <div class="ft off">
             <span class="switch"></span>
-            <span class="label"><span>Brow down, right</span><span class="raw">browDownRight</span></span>
+            <span class="fname">browDownRight</span>
             <span class="out">Left out by you</span>
           </div>
-          <div class="ch">
+          <div class="ft">
             <span class="switch on"></span>
-            <span class="label"><span>Blink, left eye</span><span class="raw">eyeBlinkLeft</span></span>
+            <span class="fname">eyeBlinkLeft</span>
             <div class="bar">
               <div class="track"></div>
               <div class="ramp" style="left: 39%; width: 19%"></div><div class="gone" style="left: 58%; width: 42%"></div>
               <div class="band" style="left: 5%; width: 7%"></div>
-              <svg class="h cap" style="left: 39%"><use href="#h-cap"/></svg>
+              <svg class="h limit" style="left: 39%"><use href="#h-limit"/></svg>
               <span class="tip" style="left: 58%">score 0</span>
               <div class="now" style="left: 21%"></div>
             </div>
-            <span class="thr cap">≤ 0.39<small>stay under</small></span>
+            <span class="thr limit">≤ 0.39<small>limit</small></span>
           </div>
         </div>
-        <div class="ch-foot">
+        <div class="ft-foot">
           <div class="legend">
             <span><svg style="color: var(--fg)"><use href="#h-least"/></svg>at least</span>
             <span><svg style="color: var(--fg)"><use href="#h-most"/></svg>at most</span>
-            <span><svg style="color: var(--warn)"><use href="#h-cap"/></svg>stay under</span>
+            <span><svg style="color: var(--warn)"><use href="#h-limit"/></svg>limit</span>
             <span><i class="l-band"></i>its range at rest</span>
             <span><i class="l-now"></i>now (filled when past)</span>
           </div>
-          <span class="btn quiet small">Reset channels</span>
+          <span class="btn quiet small">Reset features</span>
         </div>
-        <p class="hint">Not used: Smile, right · Jaw to the left · Squint, left eye</p>
+        <p class="hint">Not used: mouthSmileRight · jawLeft · eyeSquintLeft</p>
 
         <h3>Trials</h3>
-        <div class="trials"><span class="count">12 trials</span><span class="btn quiet">Clear trials</span><span class="btn primary">Record 5 trials</span></div>
+        <div class="tbl-wrap"><div class="trials">
+          <div class="tr head"><span>Trial</span><span>Score through it</span><span class="n">Held</span><span class="n">At rest</span><span class="n">Fires</span><span></span></div>
+          <div class="tr"><span>1</span><svg class="trace"><use href="#trace-ok"/></svg><span class="n">0.92</span><span class="n">0.15</span><span class="n">–</span><span class="btn icon del" aria-label="Delete trial 1"><svg><use href="#x"/></svg></span></div>
+          <div class="tr"><span>2</span><svg class="trace"><use href="#trace-ok"/></svg><span class="n">0.97</span><span class="n">0.17</span><span class="n">–</span><span class="btn icon del" aria-label="Delete trial 2"><svg><use href="#x"/></svg></span></div>
+          <div class="tr flagged"><span>7</span><svg class="trace"><use href="#trace-weak"/></svg><span class="n bad">0.52</span><span class="n">0.16</span><span class="n">–</span><span class="btn icon del" aria-label="Delete trial 7"><svg><use href="#x"/></svg></span></div>
+          <div class="tr"><span>8</span><svg class="trace"><use href="#trace-ok"/></svg><span class="n">0.96</span><span class="n">0.19</span><span class="n">–</span><span class="btn icon del" aria-label="Delete trial 8"><svg><use href="#x"/></svg></span></div>
+          <div class="tr flagged"><span>9</span><svg class="trace"><use href="#trace-rest"/></svg><span class="n">0.91</span><span class="n bad">0.71</span><span class="n bad">4</span><span class="btn icon del" aria-label="Delete trial 9"><svg><use href="#x"/></svg></span></div>
+          <div class="tr"><span>10</span><svg class="trace"><use href="#trace-ok"/></svg><span class="n">0.93</span><span class="n">0.14</span><span class="n">–</span><span class="btn icon del" aria-label="Delete trial 10"><svg><use href="#x"/></svg></span></div>
+        </div></div>
+        <div class="trials-foot"><span class="count">12 trials (6 of them shown here)</span><span class="btn quiet">Clear trials</span><span class="btn primary">Record</span></div>
         <div class="buttons"><span class="btn primary">Done</span></div>
       </div>
     </div>
     <div class="notes">
       <h3>A gesture's details</h3>
       <ul>
-        <li><strong>The header</strong>: ‹ back to the list, the name, its direction, and Remove (asks first).</li>
-        <li><strong>What is wrong</strong>, at the top, in full words, with what to do about it.</li>
-        <li><strong>On level</strong>: drag On on the meter. Release is drawn dashed and can't be dragged: it's always halfway between the rest level and On. Under the meter: the rest level, and each rep's peak; one under On is in the warning colour, since that rep, done that way, wouldn't have turned the page. <strong>Fitted level</strong> puts On back.</li>
-        <li><strong>Channels</strong>, in place of the Details table, one of each kind here. Each row: a switch, the name in words with the raw name under it, a bar with the rest's range hatched, the threshold's handle, and the value now as a dot. The shaded part of the bar is where the channel needs to be (at least, at most); for a cap it's where it cuts the score, darkening to where the score is 0.</li>
-        <li><em>Brow down, right</em> is switched off in the example: frowning while sight-reading kept reaching it.</li>
-        <li><strong>Trials</strong>: the count, Clear trials, Record 5 trials.</li>
+        <li><strong>The header</strong>: ‹ back, the name with its pencil, the direction, and Delete (asks first).</li>
+        <li><strong>What is wrong</strong>, in full words, with what to do, naming the trials to blame where it can.</li>
+        <li><strong>On level</strong>: drag On on the meter. Release, dashed, follows. Under the meter: the rest level and each trial's held score; one under On is in the warning colour, and named.</li>
+        <li><strong>Features</strong>, one of each kind here. Each row: a switch, the feature's name, a bar with its range at rest hatched, the threshold's handle and its value now as a dot.</li>
+        <li><strong>Trials</strong>, one row each (in the app, all of them), with its score through the trial (the hold shaded, On dashed), and three numbers:
+          <ul>
+            <li><strong>Held</strong>: its score while held, against a fit without it (the median; what the ticks under the meter show);</li>
+            <li><strong>At rest</strong>: the highest its score goes at rest, but for a twentieth (the 95th percentile);</li>
+            <li><strong>Fires</strong>: its frames at rest that reach On.</li>
+          </ul>
+          A number that is wrong (held under On, at rest over Release, any frame that fires) is in the warning colour, and the row is shaded. <strong>×</strong> deletes the trial; the gesture is fitted again.</li>
       </ul>
     </div>
   </section>
 
   <section class="prose">
-    <h2 class="sec">What changing a channel does</h2>
-    <p><strong>Turning a channel off fits the gesture again from its trials, with that channel left out.</strong> A cap whose moving channel is turned off goes with it. The next clearest channel may take the freed place among the ten kept (<code>MAX_SUPPORT</code>, <code>src/face/_template.ts</code>), and appears as a new row.</p>
+    <h2 class="sec">What a change does</h2>
+    <p><strong>Turning a feature off fits the gesture again from its trials, with that feature left out.</strong> A limit whose pair is turned off goes with it. The next clearest feature may take the freed place among the ten kept, and appears as a new row.</p>
     <p><strong>Moving a threshold</strong> does the same, with that threshold fixed where you put it. While you drag, the meters and the ring score with the new threshold at once; the fit runs again when you let go.</p>
-    <p>Either one moves the rest level and the reps' peaks, so <strong>On goes back to the fitted level</strong>, and Release with it. Set the channels first, then On.</p>
-    <p>Channel changes are <strong>kept across rounds</strong> and Clear trials; <strong>Reset channels</strong> drops them.</p>
+    <p><strong>Deleting a trial</strong> fits the gesture again from those left. Under three left, it goes back to the list as “Record N more trials”.</p>
+    <p>Each of these moves the rest level and the trials' held scores, so <strong>On goes back to the fitted level</strong>, and Release with it. Set the features and the trials first, then On.</p>
+    <p>Feature changes are <strong>kept</strong> across recording, deleting trials and Clear trials; <strong>Reset features</strong> drops them.</p>
   </section>
 
   <!-- ===================== Recording ===================== -->
   <section class="shot">
     <div class="backdrop">
       <div class="dialog wide">
-        <div class="view-head"><h2>Wink right</h2></div>
+        <div class="view-head"><h2>Recording “Wink right”</h2></div>
         <div class="rec">
           <div class="rec-top">
             <div class="camera small"><svg><use href="#face"/></svg></div>
-            <div class="dots" aria-label="Trial 3 of 5"><span class="done"></span><span class="done"></span><span class="now"></span><span></span><span></span></div>
-            <span class="hint">Trial 3 of 5</span>
+            <div class="score"><span class="v">0.83</span><small>score now · On 0.64</small></div>
+            <div class="kept"><strong>Trial 3</strong><span>2 kept so far</span></div>
           </div>
           <p class="instruction">Hold it</p>
           <div>
@@ -471,20 +519,25 @@ th { font-size: 13px; color: var(--muted); font-weight: 600; }
             </div>
             <div class="tl-labels"><span style="left: 12%">keep playing</span><span style="left: 62%">hold</span><span style="left: 92%">let go</span></div>
           </div>
-          <div class="mini" style="width: 100%; height: 10px; border-radius: 5px"><span class="fill" style="width: 83%"></span><span class="mark" style="left: 64%"></span><span class="mark rel" style="left: 41%"></span></div>
-          <div class="buttons"><span class="btn quiet">Cancel</span></div>
+          <div class="buttons"><span class="btn">Stop</span></div>
         </div>
       </div>
     </div>
     <div class="notes">
       <h3>Recording</h3>
-      <p>From Record 5 trials, on the list or in the details. The same instructions, tones and rules as now, plus:</p>
+      <p>From <strong>Record</strong>, on the list or in the details. Trials follow one another until <strong>Stop</strong>: the trials finished are kept, and the one under way is thrown away. The same instructions, tones and rules as now, plus:</p>
       <ul>
-        <li><strong>Five dots</strong> for the round, filled as each trial is kept.</li>
+        <li><strong>The score now</strong>, as a number, for a gesture already fitted (against its fit before this recording). Nothing turns, as now.</li>
+        <li><strong>Which trial</strong>, and how many are kept so far.</li>
         <li><strong>A timeline</strong> of the trial under way: the six tones (the third of each set heavier), the held part shaded, and a playhead.</li>
-        <li>For a gesture already fitted, its <strong>meter</strong>. Nothing turns, as now.</li>
       </ul>
+      <p>A trial where your face wasn't seen still ends the recording, saying why.</p>
     </div>
+  </section>
+
+  <section class="prose">
+    <h2 class="sec">Words</h2>
+    <p><strong>“Feature”</strong> for what the code and specs call a <em>channel</em>. <code>ARCHITECTURE.md</code> asks for one spelling of a concept in the code, the docs and on screen alike, so “feature” on screen means renaming <em>channel</em> in <code>src/face/</code> and the two face specs, and adding it to the retired spellings in <code>src/vocabulary.test.ts</code>. Also: a <em>cap</em> becomes a <strong>limit</strong>; and the gesture's button is <strong>Delete</strong>, as the vocabulary test already wants in <code>face/dialog.ts</code>.</p>
   </section>
 
   <section class="prose">
@@ -492,31 +545,26 @@ th { font-size: 13px; color: var(--muted); font-weight: 600; }
     <ul>
       <li><strong>Hold</strong> moves from each gesture to the settings: <code>FaceSettings</code> gains <code>hold</code>, 500 ms to start. Each gesture's own hold is dropped.</li>
       <li><strong>Release</strong> is no longer stored: it's worked out from the rest level and On. Releases set by hand are dropped; an On set by hand is kept.</li>
-      <li>A gesture gains <code>channels?: { off: string[]; at: Record&lt;string, number&gt; }</code>, its channel changes by channel name. <code>build(trials)</code> becomes <code>build(trials, channels?)</code>, and <code>fit</code> takes the channels left out and the thresholds fixed.</li>
-      <li>A gesture with no channel changes fits exactly as before, so <code>FIT_VERSION</code> stays.</li>
+      <li>A gesture gains <code>features?: { off: string[]; at: Record&lt;string, number&gt; }</code>, its feature changes by name. <code>build(trials)</code> becomes <code>build(trials, features?)</code>, and <code>fit</code> takes the features left out and the thresholds fixed.</li>
+      <li>A fit gains each trial's at-rest score and its frames that fire, beside each trial's held score (<code>peaks</code>), so the list of trials needs no trials loaded. The trace is drawn from the trials, loaded when the details open.</li>
+      <li>Deleting a trial saves the trials left over its <code>face-trials:</code> key.</li>
+      <li>The fit changes what it holds, so <code>FIT_VERSION</code> goes up, and every gesture is fitted again from its trials when the settings are next loaded.</li>
     </ul>
   </section>
 
   <section class="prose">
     <h2 class="sec">Decisions made here, to overrule</h2>
     <ol class="decisions">
-      <li>Rename and Record 5 trials are buttons on every row of the list; Clear trials and Remove are only in the details.</li>
-      <li>The details also have the direction, so it can be changed while tuning.</li>
-      <li>On is set on the meter, and the On and Release sliders go.</li>
-      <li>Changing a channel fits the gesture again and puts On back to the fitted level.</li>
-      <li>A channel you turn off can be replaced by the next clearest one.</li>
-      <li>Channel changes survive new rounds and Clear trials; only Reset channels drops them.</li>
-      <li>You can turn channels off and move them, but can't add a channel the fit left out.</li>
-      <li>The Details table's numbers (how clear, the rest's reach, each rep's peak) go; the hatching and the ticks show them instead.</li>
-      <li>Channels get names in words, with the raw name under each.</li>
-      <li>A cap's handle and shading are in the warning colour, to set it apart from the thresholds a gesture has to reach.</li>
-    </ol>
-  </section>
-
-  <section class="prose">
-    <h2 class="sec">Still to decide</h2>
-    <ol>
-      <li>MediaPipe's <code>Left</code> and <code>Right</code>: your own left and right, or the picture's? The names in words have to say the right side; it needs checking on the tablet.</li>
+      <li>The details also have the direction and the pencil, so both can be changed while tuning.</li>
+      <li>Clear trials and Delete are only in the details.</li>
+      <li>Changing a feature or deleting a trial fits the gesture again and puts On back to the fitted level.</li>
+      <li>A feature you turn off can be replaced by the next clearest one.</li>
+      <li>Feature changes survive recording, deleting trials and Clear trials; only Reset features drops them.</li>
+      <li>You can turn features off and move them, but can't add one the fit left out.</li>
+      <li>Deleting a trial doesn't ask first: it's one trial, and recording another puts it back.</li>
+      <li>A trial's numbers are its held score, its at-rest score and its frames that fire, with a trace of its score; the warning colour marks held under On, at rest over Release, and any that fire.</li>
+      <li>The score while recording is against the fit before the recording began; a gesture not yet fitted shows none.</li>
+      <li>A limit's handle and shading are in the warning colour.</li>
     </ol>
   </section>
 </div>
