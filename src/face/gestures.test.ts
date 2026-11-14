@@ -83,6 +83,24 @@ describe('levelsOf', () => {
   });
 });
 
+describe('the zero point', () => {
+  const withMax = (restMax: number | undefined, over: Partial<Gesture> = {}) => gesture({ ...over, fit: { ...fitted, restMax } });
+  it('is restMax when that is under halfway from rest to On', () => {
+    expect(levelsOf(withMax(0.2), 500)!.zero).toBeCloseTo(0.2);
+  });
+  it('is halfway from rest to On when restMax is over it, and follows On set by hand', () => {
+    expect(levelsOf(withMax(0.5), 500)!.zero).toBeCloseTo(0.05 + 0.5 * (0.6 - 0.05));
+    expect(levelsOf(withMax(0.5, { on: 0.3 }), 500)!.zero).toBeCloseTo(0.05 + 0.5 * (0.3 - 0.05));
+  });
+  it('is the rest level when there is no restMax', () => {
+    expect(levelsOf(withMax(undefined), 500)!.zero).toBeCloseTo(0.05);
+  });
+  it('restMax survives a store round trip', () => {
+    const [g] = faceSettingsFrom({ gestures: [withMax(0.2)] }).gestures;
+    expect(g.fit.restMax).toBe(0.2);
+  });
+});
+
 describe('withLevels', () => {
   it('sets On by hand, and Release follows it', () => {
     const g = withLevels(gesture(), 0.2);

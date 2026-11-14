@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { seeded, storedTrial, type Values } from './_test-frames';
 import { buildFit, conflictOf, flagText, settle, type Contender } from './_fit';
 import { framesOf, type Trial } from './_recording';
+import { strength } from './_template';
 
 const random = seeded(7);
 const trials = (held: Values, rest: Values, n = 5): Trial[] => Array.from({ length: n }, () => storedTrial(held, rest, random));
@@ -116,6 +117,17 @@ describe('settle', () => {
     const l = contender('l', 'Wink left', { eyeBlinkLeft: 0.7, eyeBlinkRight: 0.25 }, quiet);
     const r = contender('r', 'Wink right', { eyeBlinkLeft: 0.25, eyeBlinkRight: 0.7 }, quiet);
     expect(settle([l, r]).size).toBe(0);
+  });
+});
+
+describe('restMax', () => {
+  it('is the most strength any rest frame reached, and at least the rest level', () => {
+    const rs = trials(wink, quiet);
+    const f = buildFit(rs);
+    const t = f.template!;
+    const most = Math.max(...rs.flatMap((r) => framesOf(r).rest.map((x) => strength(t, x))));
+    expect(f.restMax).toBeCloseTo(most);
+    expect(f.restMax!).toBeGreaterThanOrEqual(f.rest!);
   });
 });
 

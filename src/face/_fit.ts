@@ -7,7 +7,7 @@ import { framesOf, type Trial } from './_recording';
 import { CHANNELS, fit, median, quantile, strength, type Template } from './_template';
 
 /** Raised when fitting changes what it computes: stored fits of an earlier version are fitted again. */
-export const FIT_VERSION = 3;
+export const FIT_VERSION = 4;
 export const MIN_TRIALS = 3;
 
 /** How far over the rest level the lowest rep must be. */
@@ -31,9 +31,10 @@ export interface Fit {
   trials: number;
   flags: Flag[];
   template?: Template;
-  /** The fitted On level, the rest level, and each trial's peak; with `template`. Release is halfway from the rest level to On (gestures.ts). */
+  /** The fitted On level, the rest level (the 95th percentile of the rest frames' strength), the most strength any rest frame reached, and each trial's peak; with `template`. */
   on?: number;
   rest?: number;
+  restMax?: number;
   peaks?: number[];
 }
 
@@ -42,7 +43,8 @@ const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 /**
  * A gesture's fit from its enabled trials (a disabled one is kept but left out) and the changes
  * made to its channels: its template, its
- * levels (the rest level is the 95th percentile of the strength over rest frames; each trial's peak
+ * levels (the rest level is the 95th percentile of the strength over rest frames, and `restMax` the
+ * most it reached; each trial's peak
  * is its median held strength against a template fitted without it), and what is wrong with it.
  */
 export function buildFit(all: Trial[], channels?: GestureChannels): Fit {
@@ -58,7 +60,9 @@ export function buildFit(all: Trial[], channels?: GestureChannels): Fit {
     out.flags.push({ kind: 'noChannels' });
     return out;
   }
-  const rest = quantile(frames.flatMap((t) => t.rest.map((x) => strength(template, x))), 0.95);
+  const restStrengths = frames.flatMap((t) => t.rest.map((x) => strength(template, x)));
+  const rest = quantile(restStrengths, 0.95);
+  const restMax = Math.max(...restStrengths);
   const peaks = frames.map((t, i) => {
     const without = fit(frames.filter((_, j) => j !== i), channels);
     return without.rows.length ? median(t.held.map((x) => strength(without, x))) : 0;
@@ -83,7 +87,7 @@ export function buildFit(all: Trial[], channels?: GestureChannels): Fit {
     });
   }
   if (restHits) out.flags.push({ kind: 'firesAtRest', frames: restHits, ms: Math.round(longest) });
-  return { ...out, template, on, rest, peaks };
+  return { ...out, template, on, rest, restMax, peaks };
 }
 
 /** A flag in words, as face-gestures-spec.md has them. */

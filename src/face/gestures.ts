@@ -31,6 +31,8 @@ export const NO_GESTURES: FaceSettings = { hold: HOLD_DEFAULT, gestures: [] };
 export const LEVEL_RANGE = { min: 0.05, max: 0.95 } as const;
 /** Release is this share of the way from the rest level to On. */
 export const RELEASE_FRAC = 0.5;
+/** The zero point is never more than this share of the way from the rest level to On. */
+export const ZERO_LIMIT_FRAC = 0.5;
 
 export const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
@@ -51,12 +53,17 @@ export function withoutOn(g: Gesture): Gesture {
   return rest;
 }
 
-/** A gesture's levels: On by hand, else the fit's; Release halfway from the rest level to On; the hold as given. Undefined when it isn't fitted. */
-export function levelsOf(g: Gesture, hold: number): { on: number; release: number; hold: number } | undefined {
-  const { template, on, rest } = g.fit;
+/**
+ * A gesture's levels: On by hand, else the fit's; Release halfway from the rest level to On; the
+ * zero point, where the ring's faint arc starts: the most strength a rest frame reached, but never
+ * more than `ZERO_LIMIT_FRAC` of the way from the rest level to On (a fit without `restMax` has the
+ * rest level); the hold as given. Undefined when it isn't fitted.
+ */
+export function levelsOf(g: Gesture, hold: number): { on: number; release: number; zero: number; hold: number } | undefined {
+  const { template, on, rest, restMax } = g.fit;
   if (!template || on === undefined || rest === undefined) return undefined;
   const o = g.on ?? on;
-  return { on: o, release: rest + RELEASE_FRAC * (o - rest), hold };
+  return { on: o, release: rest + RELEASE_FRAC * (o - rest), zero: Math.min(restMax ?? rest, rest + ZERO_LIMIT_FRAC * (o - rest)), hold };
 }
 
 /** A gesture with its channel changes edited by `to`; none are kept when nothing is left changed. */
@@ -117,6 +124,7 @@ function fitFrom(v: unknown): Fit | undefined {
     fit.template = { rows: t.rows.filter(rowOk), limits: t.limits.filter(limitOk) };
     fit.on = v.on;
     fit.rest = v.rest;
+    if (isNum(v.restMax)) fit.restMax = v.restMax;
     fit.peaks = v.peaks.filter(isNum);
   }
   return fit;

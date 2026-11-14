@@ -309,7 +309,8 @@ interface Fit {                                  // face/_fit.ts: what its enabl
   flags: Flag[];                                 // tooFew, noChannels, unreliable, firesAtRest { frames, ms }
   template?: Template;                           // face/_template.ts: rows and limits; with it, the gesture is fitted:
   on?: number;                                   //   its fitted On,
-  rest?: number; peaks?: number[];               //   its rest level and each trial's peak
+  rest?: number; restMax?: number;               //   its rest level, and the most strength any rest frame reached,
+  peaks?: number[];                              //   and each trial's peak
 }
 ```
 
