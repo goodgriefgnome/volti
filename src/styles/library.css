@@ -58,7 +58,6 @@
 .entry .handle {
   flex: none; cursor: grab; touch-action: none; font-size: var(--text-md); letter-spacing: -2px;
 }
-.entry.dragging { background: var(--accent-soft); }
 
 /* Scores: tap to open one. */
 .score-title { font-size: var(--text-lg); overflow-wrap: anywhere; }

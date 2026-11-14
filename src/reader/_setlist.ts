@@ -45,7 +45,7 @@ export class ScoreCard {
     this.shown = k;
     this.card?.remove();
     clearTimeout(this.timer);
-    const card = el('p', 'score-card');
+    const card = el('p', 'note score-card');
     card.append(el('b', 'caps', `${k + 1} OF ${n}`), title);
     this.root.append(card);
     this.card = card;

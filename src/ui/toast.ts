@@ -4,7 +4,7 @@ import { button, el } from './dom';
 
 /** A message at the bottom of the screen, with an optional action such as Undo. */
 export class Toast {
-  readonly el = el('div', 'toast');
+  readonly el = el('div', 'note toast');
   private timer: ReturnType<typeof setTimeout> | undefined;
 
   constructor() {
@@ -16,7 +16,7 @@ export class Toast {
   say(text: string, action?: [label: string, run: () => void], stay = false) {
     this.el.replaceChildren(el('span', '', text));
     this.el.classList.toggle('act', !!action);
-    if (action) this.el.append(button(action[0], () => { this.hide(); action[1](); }));
+    if (action) this.el.append(button(action[0], () => { this.hide(); action[1](); }, 'small'));
     this.el.hidden = false;
     clearTimeout(this.timer);
     if (!stay) this.timer = setTimeout(() => this.hide(), action ? 6000 : 3500);

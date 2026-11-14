@@ -101,6 +101,13 @@ input.name, input.search, select {
 .row-button:active { background: var(--hover); }
 /* A button with text, beside others in a tight row. */
 button.small { min-height: var(--control-sm); padding: 0 var(--space-3); font-size: var(--text-sm); }
+/* A short message floating over the screen: the toast, the score card, the scope note. Each sets where it sits. */
+.note {
+  position: absolute; left: 50%; transform: translateX(-50%); margin: 0; padding: var(--space-2) var(--space-4); border-radius: var(--radius-lg);
+  background: var(--bar); color: var(--fg); max-width: calc(100vw - 2 * var(--edge)); pointer-events: none;
+}
+/* A row being dragged to a new place (ui/drag-reorder.ts). */
+.reordering { opacity: var(--dragged); }
 /* A round button over the score: the back arrow and the face button. */
 .float-button {
   display: grid; place-items: center; width: var(--control); height: var(--control); min-height: 0; padding: 0; border: 0; border-radius: 50%;

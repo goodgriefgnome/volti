@@ -126,7 +126,7 @@ class Reader {
   private root = el('div', 'reader chrome-hidden');
   private stage = el('div', 'stage');
   private screenEl = el('div', 'screen');
-  private scope = el('p', 'scope', 'Cuts changed here change the score, in every setlist');
+  private scope = el('p', 'note scope', 'Cuts changed here change the score, in every setlist');
   private toast = new Toast();
   /** The gate every page turn goes through (_turn-gate.ts). */
   private turnGate: TurnGate = {};

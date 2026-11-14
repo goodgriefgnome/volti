@@ -8,7 +8,7 @@ export function dragToReorder(handle: HTMLElement, row: HTMLElement, list: HTMLE
   handle.addEventListener('pointerdown', (ev) => {
     ev.preventDefault();
     handle.setPointerCapture(ev.pointerId);
-    row.classList.add('dragging');
+    row.classList.add('reordering');
     let to = i;
     const rows = [...list.children] as HTMLElement[];
     const onMove = (m: PointerEvent) => {
@@ -18,7 +18,7 @@ export function dragToReorder(handle: HTMLElement, row: HTMLElement, list: HTMLE
     };
     const onUp = () => {
       handle.removeEventListener('pointermove', onMove);
-      row.classList.remove('dragging');
+      row.classList.remove('reordering');
       rows.forEach((r) => { r.style.boxShadow = ''; });
       if (to !== i) move(to);
     };

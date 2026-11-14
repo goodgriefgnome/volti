@@ -100,7 +100,7 @@ export function openDetails(host: DetailsHost, g: Gesture, trials: Trial[]): Det
   let meter: ReturnType<typeof strengthMeter> | undefined;
   if (template && levels) {
     const head = el('div', 'face-sec-head');
-    const reset = button('Reset', () => { host.change(g.id, withoutOn); host.refresh(); }, 'quiet');
+    const reset = button('Reset', () => { host.change(g.id, withoutOn); host.refresh(); }, 'quiet small');
     reset.hidden = g.on === undefined;
     head.append(el('h3', '', 'On level'), reset);
     meter = strengthMeter({
@@ -121,7 +121,7 @@ export function openDetails(host: DetailsHost, g: Gesture, trials: Trial[]): Det
   /* ---------- channels ---------- */
 
   const head = el('div', 'face-sec-head');
-  const resetChannels = button('Reset', () => host.refit(g.id, (x) => withChannels(x, () => ({ forcedOff: [], forcedOn: [] }))), 'quiet');
+  const resetChannels = button('Reset', () => host.refit(g.id, (x) => withChannels(x, () => ({ forcedOff: [], forcedOn: [] }))), 'quiet small');
   resetChannels.hidden = !g.channels;
   head.append(el('h3', '', 'Channels'), resetChannels);
   body.append(head);

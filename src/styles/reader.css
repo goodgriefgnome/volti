@@ -110,7 +110,6 @@ button.selection-pass[aria-pressed="true"] { background: var(--select); color: v
 .menu .title-row.current { background: var(--accent-soft); }
 .menu .title-row.current .go { font-weight: 600; }
 .menu .title-row .grip, .menu .title-row .swap, .menu .title-row .bin { flex: none; touch-action: none; }
-.menu .title-row.dragging { opacity: var(--dragged); }
 .menu .icon { width: 20px; height: 20px; }
 .menu .grip .icon, .symbol-panel .group-grip .icon { stroke-width: 3; }
 .bar .title-button { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
@@ -148,7 +147,6 @@ body.reading .menu button:not([aria-pressed="true"], .row-button) { background: 
 .symbol-panel .group-box { display: flex; flex-wrap: wrap; gap: var(--space-1); min-height: var(--tile); padding: var(--space-1); border: 1px solid var(--line); border-radius: var(--radius); touch-action: none; }
 .symbol-panel .group-list { display: grid; gap: var(--space-2); }
 .symbol-panel .group-grip { flex: none; align-self: stretch; width: 28px; display: grid; place-items: center; color: var(--muted); touch-action: none; }
-.symbol-panel .group-box.dragging { opacity: var(--dragged); }
 .symbol-panel .symbol-choice { display: inline-grid; place-items: center; width: var(--tile); min-height: var(--tile); padding: 0; border: 1px solid var(--line); border-radius: var(--radius); touch-action: none; }
 .symbol-panel .symbol-choice.dragging { opacity: var(--dim); }
 .symbol-panel .new-group { display: grid; place-items: center; min-height: var(--tile); border: 1.5px dashed var(--muted); border-radius: var(--radius); color: var(--muted); font-size: var(--text-sm); }
@@ -214,18 +212,16 @@ body.reading .menu button:not([aria-pressed="true"], .row-button) { background: 
 .page.blank .t { font: italic var(--text-xl) var(--font-brand); color: var(--fg); overflow-wrap: anywhere; }
 /* Names the score for a moment when the reader turns into it. */
 .score-card {
-  position: absolute; z-index: 12; left: 50%; bottom: max(var(--edge), env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
-  margin: 0; pointer-events: none; background: var(--bar); color: var(--fg); border-radius: var(--radius-pill); padding: var(--space-2) var(--space-4);
-  font: italic var(--text-md) var(--font-brand); white-space: nowrap; max-width: calc(100vw - 2 * var(--edge)); overflow: hidden; text-overflow: ellipsis;
+  z-index: 12; bottom: max(var(--edge), env(safe-area-inset-bottom, 0px));
+  font: italic var(--text-md) var(--font-brand); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   transition: opacity var(--slow) ease;
 }
 .score-card b { font-family: var(--font-ui); font-style: normal; color: var(--muted); margin-right: var(--space-2); }
 .score-card.gone { opacity: 0; }
 /* While editing cuts in a setlist: they change the score. */
 .scope {
-  position: absolute; z-index: 12; left: 50%; top: calc(var(--bar-h, 56px) + var(--edge)); transform: translateX(-50%); margin: 0;
-  pointer-events: none; max-width: calc(100vw - 2 * var(--edge)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  background: var(--accent); color: var(--accent-fg); border-radius: var(--radius-pill); padding: var(--space-1) var(--space-4); font-size: var(--text-sm);
+  z-index: 12; top: calc(var(--bar-h, 56px) + var(--edge)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: var(--accent); color: var(--accent-fg); font-size: var(--text-sm);
 }
 .chrome-hidden .scope { top: var(--edge); }
 
