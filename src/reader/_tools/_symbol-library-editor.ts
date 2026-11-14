@@ -8,7 +8,7 @@ import {
   type LibrarySymbol, type SymbolLibrary,
 } from '../../markings/symbol-library';
 import { markingColors, type Background } from '../../markings/placed';
-import { button, el, plural } from '../../ui/dom';
+import { button, DOTS, el, icon, plural } from '../../ui/dom';
 import { buttonRow, closeOverlay, showDialog, showOnTop } from '../../ui/overlay';
 import { glyphPicker } from './_glyph-picker';
 import { BACKGROUNDS, backgroundPicture } from './_swatches';
@@ -77,7 +77,8 @@ export function editLibrary(host: LibraryEditorHost): void {
       up.disabled = i === 0;
       down.disabled = i === lib.groups.length - 1;
       actions.append(up, down, button('Delete group', () => askToDeleteGroup(i)));
-      const more = button('⋯', () => { actions.hidden = !actions.hidden; });
+      const more = button('', () => { actions.hidden = !actions.hidden; }, 'quiet icon-button');
+      more.append(icon(DOTS));
       more.setAttribute('aria-label', `Group ${i + 1} actions`);
       row.append(symbols, more, actions);
       return row;
