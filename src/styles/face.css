@@ -56,7 +56,7 @@
 .face-row > .face-meter { grid-column: 1; grid-row: 2; }
 .face-row > button { grid-column: 2; grid-row: 2; }
 .face-row.unfitted > button { grid-row: 1; }
-.face-row > .face-chevron { grid-column: 3; grid-row: 1 / 4; color: var(--muted); font-size: var(--text-xl); }
+.face-row > .chevron { grid-column: 3; grid-row: 1 / 4; color: var(--muted); }
 .face-row > .face-status { grid-column: 1; grid-row: 3; }
 .face-row.unfitted > .face-status { grid-row: 2; }
 .face-row.unfitted .name { color: var(--muted); }
@@ -90,7 +90,6 @@
 .face-view-head-slot:empty { display: none; }
 .face-view-head { display: flex; align-items: center; gap: var(--space-1); flex-wrap: wrap; }
 .face-view-head .face-named { flex: 1; }
-.face-view-head > button:first-child { font-size: var(--text-xl); }
 .face-view-body, .face-view-body-slot { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); }
 .face-issue { display: grid; gap: var(--space-2); padding: var(--space-3) var(--space-3); border-radius: var(--radius); background: var(--warn-soft); color: var(--warn); font-size: var(--text-md); }
 .face-issue p { margin: 0; }

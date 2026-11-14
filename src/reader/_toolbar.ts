@@ -1,40 +1,14 @@
 // The reader's toolbar: building its buttons and showing the reader's state on them. The buttons
 // call back into the reader; what they do is not here.
 
-import { el } from '../ui/dom';
+import { BACK, CHEVRON, DOTS, el, icon } from '../ui/dom';
 import { onLongPress } from '../ui/long-press';
-import { icon } from './_tools/_faces';
 import { TOOL_LABELS, type ButtonFace, type Tool, type ToolName } from './_tools/_tool';
 import { TOOLBAR } from './_tools/_tools';
-
-/** The back arrow that leaves the reader for the library, on the toolbar and when it is hidden. */
-export function backIcon(): SVGSVGElement {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 24 24');
-  svg.setAttribute('aria-hidden', 'true');
-  svg.classList.add('icon');
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.setAttribute('d', 'M15 5 8 12l7 7');
-  svg.append(path);
-  return svg;
-}
 
 const SCISSORS = 'M6 3a3 3 0 1 0 .01 0M6 15a3 3 0 1 0 .01 0M8.5 7.5L20 19M8.5 16.5L20 5';
 const UNDO = 'M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3';
 const REDO = 'M15 14l5-5-5-5M20 9H10a6 6 0 0 0 0 12h3';
-const DOTS = 'M5 12h.01M12 12h.01M19 12h.01';
-
-/** The chevron after the title, which opens the title menu. */
-export function chevronIcon(): SVGSVGElement {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 24 24');
-  svg.setAttribute('aria-hidden', 'true');
-  svg.classList.add('icon', 'chevron');
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.setAttribute('d', 'M7 10l5 5 5-5');
-  svg.append(path);
-  return svg;
-}
 
 /** The solid triangle in a page-turn band, pointing the way the band turns. */
 export function turnIcon(dir: 'prev' | 'next'): SVGSVGElement {
@@ -88,12 +62,12 @@ export class Toolbar {
   constructor(reading: 'score' | 'excerpt' | 'setlist', act: ToolbarActions, tools: Record<ToolName, Tool>) {
     const left = el('div', 'group left');
     const back = this.button('close', '', act.close);
-    back.append(backIcon());
+    back.append(icon(BACK));
     back.setAttribute('aria-label', 'Library');
     back.title = 'Library';
     this.titleButton = this.button('title', '', act.titleMenu, 'title-button');
     this.titleButton.setAttribute('aria-haspopup', 'menu');
-    this.titleButton.append(this.title, chevronIcon());
+    this.titleButton.append(this.title, icon(CHEVRON, 'chevron down'));
     const titleBlock = el('div', 'title-block');
     titleBlock.append(this.titleButton, this.info);
     left.append(back, titleBlock);

@@ -7,7 +7,7 @@ import { byFolder, folderOf, titleOf } from '../originals/path-utils';
 import { type SourceFile } from '../originals/types';
 import type { NamedExcerpt, Score } from '../scores/model';
 import type { Setlist } from '../setlists/model';
-import { button, el, plural } from '../ui/dom';
+import { button, CHEVRON, el, icon, plural } from '../ui/dom';
 import { buttonRow, closeOverlay, showDialog, whenOverlayCloses } from '../ui/overlay';
 import { _ExcerptStrip, _namedExcerptMenu } from './excerpt-picker';
 import type { ExcerptSource } from './thumbnail-strip';
@@ -106,7 +106,7 @@ export function openAddScores(h: _AddScoresHost) {
         head.setAttribute('aria-expanded', String(now));
         if (!q) { if (now) openFolders.add(folder); else openFolders.delete(folder); }
       }, 'folder-head row-button');
-      head.append(el('span', 'chev'), el('span', '', folder.split('/').join(' / ')));
+      head.append(icon(CHEVRON, 'chevron'), el('span', '', folder.split('/').join(' / ')));
       head.setAttribute('aria-expanded', String(open));
       group.append(head, body);
       list.append(group);

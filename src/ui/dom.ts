@@ -31,12 +31,12 @@ export function focusHighlighted(input: HTMLInputElement) {
 
 const SVG = 'http://www.w3.org/2000/svg';
 
-/** A small icon drawn with the path `d`, in the button's colour. */
-export function icon(d: string): SVGSVGElement {
+/** A small icon drawn with the path `d`, in the button's colour; `cls` adds classes after `icon`. */
+export function icon(d: string, cls?: string): SVGSVGElement {
   const svg = document.createElementNS(SVG, 'svg');
   svg.setAttribute('viewBox', '0 0 24 24');
   svg.setAttribute('aria-hidden', 'true');
-  svg.classList.add('icon');
+  svg.classList.add('icon', ...(cls ? cls.split(' ') : []));
   const path = document.createElementNS(SVG, 'path');
   path.setAttribute('d', d);
   svg.append(path);
@@ -45,3 +45,12 @@ export function icon(d: string): SVGSVGElement {
 
 /** The path of the grip icon, six dots, for `icon`: what a row is dragged by. */
 export const GRIP = 'M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01';
+
+/** The path of the back arrow, for `icon`: what leaves a screen for the one before. */
+export const BACK = 'M15 5 8 12l7 7';
+
+/** The path of the chevron, pointing right, for `icon`: what opens a row, or goes into one. */
+export const CHEVRON = 'M9 5l7 7-7 7';
+
+/** The path of the three dots, for `icon`: what opens a menu. */
+export const DOTS = 'M5 12h.01M12 12h.01M19 12h.01';

@@ -1,7 +1,7 @@
 // A row of the library's lists that slides open to show more under it: a setlist's scores, a
 // score's named excerpts.
 
-import { button, el } from '../ui/dom';
+import { button, CHEVRON, DOTS, el, icon } from '../ui/dom';
 
 let seq = 0;
 
@@ -42,7 +42,7 @@ export function expandableRow(r: ExpandableRow): HTMLLIElement {
     expand.setAttribute('aria-expanded', String(now));
     body.inert = !now;
   }, 'icon-button quiet expand');
-  expand.append(el('span', 'chev'));
+  expand.append(icon(CHEVRON, 'chevron'));
   expand.setAttribute('aria-expanded', String(open));
   expand.setAttribute('aria-controls', body.id);
   expand.setAttribute('aria-label', r.label);
@@ -53,7 +53,8 @@ export function expandableRow(r: ExpandableRow): HTMLLIElement {
 
 /** A ⋯ button opening a menu about `what`. */
 export function moreButton(what: string, open: (anchor: HTMLElement) => void, label = `More for ${what}`): HTMLButtonElement {
-  const more = button('⋯', () => open(more), 'quiet icon-button more');
+  const more = button('', () => open(more), 'quiet icon-button more');
+  more.append(icon(DOTS));
   more.setAttribute('aria-label', label);
   more.setAttribute('aria-haspopup', 'menu');
   return more;

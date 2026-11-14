@@ -29,7 +29,7 @@
 .pick-text { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--space-2); overflow-wrap: anywhere; }
 .pick-text .meta { margin-left: auto; }
 /* A subfolder's scores, under a heading that opens and closes them. */
-.pick-folder.open .chev { transform: rotate(45deg); }
+.pick-folder.open .chevron { transform: rotate(90deg); }
 .pick-folder-body { padding-left: var(--space-3); }
 /* A score's named excerpts, indented under it, each with its Preview. */
 .pick-sub { flex-basis: 100%; display: flex; align-items: center; gap: var(--space-1); padding-left: calc(var(--check) + var(--space-2)); }

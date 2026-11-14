@@ -8,7 +8,7 @@ import { byFolder, folderOf, subfolders, titleOf } from '../originals/path-utils
 import { type SourceFile } from '../originals/types';
 import type { NamedExcerpt, Score } from '../scores/model';
 import { setlistsWith } from '../setlists/model';
-import { button, el, plural } from '../ui/dom';
+import { button, CHEVRON, el, icon, plural } from '../ui/dom';
 import { showMenu } from '../ui/overlay';
 import type { LibraryHost } from './_host';
 import { openIncoming } from './_incoming';
@@ -105,7 +105,7 @@ export class ScoresSection {
       if (now) closed.delete(folder); else closed.add(folder);
       void saveClosedFolders([...closed]).catch((e) => failedOnce('save the closed folders', e));
     }, 'folder-head row-button');
-    head.append(el('span', 'chev'), el('span', '', folder.split('/').join(' / ')));
+    head.append(icon(CHEVRON, 'chevron'), el('span', '', folder.split('/').join(' / ')));
     head.setAttribute('aria-expanded', String(open));
     head.setAttribute('aria-controls', list.id);
     li.append(head, list);

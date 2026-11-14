@@ -111,9 +111,8 @@ button.selection-pass[aria-pressed="true"] { background: var(--select); color: v
 .menu .title-row.current .go { font-weight: 600; }
 .menu .title-row .grip, .menu .title-row .swap, .menu .title-row .bin { flex: none; touch-action: none; }
 .menu .icon { width: 20px; height: 20px; }
-.menu .grip .icon, .symbol-panel .group-grip .icon { stroke-width: 3; }
+.menu .grip .icon, .symbol-panel .group-grip .icon, .entry .handle .icon { stroke-width: 3; }
 .bar .title-button { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
-.bar .icon.chevron { width: 18px; height: 18px; flex: none; }
 /* The Symbols button before it has a symbol to show. */
 .bar .tool-symbol .pp { font: italic 700 var(--text-lg) var(--font-brand); }
 .bar .tool-symbol canvas { display: block; }
@@ -225,4 +224,4 @@ body.reading .menu button:not([aria-pressed="true"], .row-button) { background: 
 }
 .chrome-hidden .scope { top: var(--edge); }
 
-@media (prefers-reduced-motion: reduce) { .bar, .score-card, .set-body, .chev { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .bar, .score-card, .set-body, .icon.chevron { transition: none; } }

@@ -5,25 +5,13 @@
 import { cssFamily } from '../../fonts/fonts';
 import type { LibrarySymbol } from '../../markings/symbol-library';
 import { markingColors, type Background } from '../../markings/placed';
-import { el } from '../../ui/dom';
+import { el, icon } from '../../ui/dom';
 import { symbolPicture } from './_symbol-picture';
 import { backgroundPicture } from './_swatches';
 import type { ButtonFace } from './_tool';
 
 /** What a placing tool's button shows: the selected marking's look, or the next marking's. */
 export interface Look { font?: string; color: string; background?: Background }
-
-/** A tool's or button's icon, drawn in the button's colour from the path `d` in a 24 x 24 box. */
-export function icon(d: string): SVGSVGElement {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 24 24');
-  svg.setAttribute('aria-hidden', 'true');
-  svg.classList.add('icon');
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.setAttribute('d', d);
-  svg.append(path);
-  return svg;
-}
 
 /** A button showing an icon. */
 export const iconFace = (d: string): ButtonFace => ({ key: d, draw: () => icon(d) });

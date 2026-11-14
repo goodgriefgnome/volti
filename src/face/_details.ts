@@ -2,7 +2,7 @@
 // meter (with the face button beside it), its channels (each with its switch, threshold and limit), and adding a channel. The dialog
 // gives it a host for what changes the gesture, and puts what it makes in place of the list.
 
-import { button, el } from '../ui/dom';
+import { BACK, button, el, icon } from '../ui/dom';
 import { buttonRow, closeOverlay, showOnTop } from '../ui/overlay';
 import { channelRow, type ChannelRow } from './_channel-row';
 import { bandsOf, blameLine } from './_dialog-helpers';
@@ -67,7 +67,8 @@ export function openDetails(host: DetailsHost, g: Gesture, trials: Trial[]): Det
   /* ---------- the head ---------- */
 
   const header = el('div', 'face-view-head');
-  const back = button('‹', () => host.back(), 'quiet icon-button');
+  const back = button('', () => host.back(), 'quiet icon-button');
+  back.append(icon(BACK));
   back.setAttribute('aria-label', 'Back to the list');
   const select = document.createElement('select');
   select.setAttribute('aria-label', `${g.name}: turns`);

@@ -43,7 +43,7 @@
 .setlist-title { font: italic var(--text-lg) var(--font-brand); }
 .set.archived .setlist-title, .set.archived .entries .item-title { color: var(--muted); }
 .expand { flex: none; width: var(--control); color: var(--muted); }
-.set.open .chev, .folder-list.open .chev { transform: rotate(45deg); }
+.set.open .chevron, .folder-list.open .chevron { transform: rotate(90deg); }
 /* A subfolder's scores under its heading, which opens and closes the list. */
 .list > li.folder-list { display: block; }
 .set-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--quick) ease; }
@@ -55,9 +55,7 @@
 .entries button.open { min-height: 48px; padding: var(--space-2) var(--space-1); align-content: center; }
 .entries .item-title { font-size: var(--text-md); overflow-wrap: anywhere; }
 .entry .num { width: 1.6em; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
-.entry .handle {
-  flex: none; cursor: grab; touch-action: none; font-size: var(--text-md); letter-spacing: -2px;
-}
+.entry .handle { flex: none; cursor: grab; touch-action: none; }
 
 /* Scores: tap to open one. */
 .score-title { font-size: var(--text-lg); overflow-wrap: anywhere; }

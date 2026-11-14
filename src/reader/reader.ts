@@ -32,7 +32,7 @@ import { activeOf, hasGestures, NO_GESTURES, type FaceSettings } from '../face/g
 import { loadFaceSettings } from '../face/store';
 import { FaceWatcher, type CameraStatus } from '../face/watcher';
 import { DEFAULT_TOOL_SETTINGS, type ToolSettings } from '../markings/tool-settings';
-import { dpr, el } from '../ui/dom';
+import { BACK, dpr, el, icon } from '../ui/dom';
 import { Toast } from '../ui/toast';
 import { CutEditor } from './_cuts/_editor';
 import { CloseUp } from './_close-up';
@@ -46,7 +46,7 @@ import { LendStack, type StackChange } from './_lending';
 import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
 import { drawSlot, drawSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_slots';
 import { Loupe } from './_loupe';
-import { backIcon, Toolbar, turnIcon } from './_toolbar';
+import { Toolbar, turnIcon } from './_toolbar';
 import { ReaderMenus } from './_toolbar-menus';
 import { offerScore, turnFrom, type Offer } from './_turning';
 import { gateTurn, type TurnGate } from './_turn-gate';
@@ -350,7 +350,7 @@ class Reader {
     // While the toolbar is hidden, a small back arrow at the top left still leads to the library.
     const back = el('button', 'back float-button');
     back.type = 'button';
-    back.append(backIcon());
+    back.append(icon(BACK));
     back.setAttribute('aria-label', 'Library');
     back.addEventListener('click', () => history.back());
     // While the toolbar shows, a scrim with a triangle marks the band at each side that turns the page.

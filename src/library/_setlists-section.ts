@@ -8,7 +8,7 @@ import { excerptName } from '../scores/excerpts';
 import { titleOf } from '../originals/path-utils';
 import { scoreEntries } from '../scores/store';
 import { addEntries, duplicate, moveEntry, newSetlist, setEntryExcerpt, withSetlist, type Entry, type Setlist } from '../setlists/model';
-import { button, el, plural } from '../ui/dom';
+import { button, el, GRIP, icon, plural } from '../ui/dom';
 import { dragToReorder } from '../ui/drag-reorder';
 import { buttonRow, closeOverlay, showDialog, showMenu, whenOverlayCloses } from '../ui/overlay';
 import type { LibraryHost } from './_host';
@@ -137,7 +137,8 @@ export class SetlistsSection {
     const title = lib.titleOf(e.scoreId), score = lib.saved.get(e.scoreId), missing = !lib.originalOf(e.scoreId);
     const excerpt = score ? excerptName(score, e, lib.aspects.get(e.scoreId)) : null;
     const li = el('li', 'entry');
-    const handle = button('⋮⋮', () => {}, 'quiet icon-button handle');
+    const handle = button('', () => {}, 'quiet icon-button handle');
+    handle.append(icon(GRIP));
     handle.setAttribute('aria-label', `Move ${title}`);
     dragToReorder(handle, li, list, i, (to) => void this.lib.update(moveEntry(s, i, to)));
     const open = button('', () => lib.play(s, e.id), 'open row-button');

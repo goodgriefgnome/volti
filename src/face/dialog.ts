@@ -16,7 +16,7 @@ import { deleteDisabledTrials, deleteTrials, loadFaceSettings, loadTrials, saveF
 import type { Shown } from './_trials';
 import { strength } from './_template';
 import { FaceWatcher, type CameraStatus } from './watcher';
-import { button, el } from '../ui/dom';
+import { button, CHEVRON, el, icon } from '../ui/dom';
 import { failed, failedOnce } from '../ui/failure';
 import { buttonRow, closeOverlay, showDialog, showOnTop, whenOverlayCloses } from '../ui/overlay';
 import { recordUntilTapped, type FrameListener, type RecordingScreen } from './_recording-screen';
@@ -292,7 +292,7 @@ export function openFaceGestures(closed: (() => void) | undefined, playFrom: Pla
           meters.set(g.id, (x) => meter.show(x ? strength(template, x) : 0));
           row.append(meter.el);
         }
-        row.append(record, el('span', 'face-chevron', '›'));
+        row.append(record, icon(CHEVRON, 'chevron'));
         row.addEventListener('click', (e) => { if (!(e.target as Element).closest('button, select, input, .face-meter')) showDetails(g.id); });
       } else row.append(record);
       const lines = el('div', 'face-status');
