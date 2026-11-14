@@ -135,6 +135,19 @@ These live in `base.css`. The other files use them and add only what is particul
 | Scrolling box | `--scroll-max` | `calc(var(--seen-height, 100vh) * 0.6)`: the most a list inside a dialog or menu grows before it scrolls. Replaces the `0.5`, `0.6`, `0.65` and `60vh` limits; `60vh` ignored the on-screen keyboard. The incoming file's thumbnail strip keeps its own smaller limit. |
 | Dialog width | `--dialog-w` | `.dialog { width: min(var(--dialog-w, 720px), calc(100vw - 32px)) }`; `.dialog.wide` and `.dialog.glyph-picker` set `--dialog-w: 900px`. The four rules that sit in `base.css` only to come before `.keyboard .dialog` go. |
 
+## Documentation
+
+`STYLES.md`, at the top of the repository beside `STORAGE.md`, says how the styles are made: style
+something new by reusing a shared part first, then the tokens, and only then by adding a token or a
+part; what each token and part is for; what the scales don't cover. It does not repeat the colour
+values, which live only in `base.css`. A change to the tokens or the shared parts changes it in the
+same commit, as `STORAGE.md` is kept with what is stored.
+
+`ARCHITECTURE.md` points to it: its paragraph on `styles/` says to read `STYLES.md` before writing
+CSS (and loses its sentence about rules that sit in `base.css` to lose to `ui.css`), its line on the
+reader's theme names the theme and not `--stage` and `--bar*`, and its recipes get one for styling
+a new element. Each failure of the styles test names `STYLES.md`.
+
 ## Guarded by a test
 
 `src/styles/styles.test.ts` reads the six style files and fails when:
@@ -160,5 +173,7 @@ These live in `base.css`. The other files use them and add only what is particul
 - Dialog widths are 720 px or 900 px only.
 - The face video's background before the camera starts is `--line`, not black.
 - The cut tab's pass label stays 10 px.
+- `STYLES.md` is written now, describing the end state, and `ARCHITECTURE.md` points to it only
+  once the work is done, so no session is sent to tokens that don't exist yet.
 - A test guards colours, text sizes, radii, gaps and z-indices; padding and margin are not tested,
   because drawing and alignment use literal pixels there too often to tell apart by pattern.

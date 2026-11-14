@@ -140,7 +140,9 @@ strips `/* … */` comments, and for `base.css` cuts from `/* Tokens */` to `/* 
 This stage's test:
 
 - `it('writes no colour outside the tokens')`: for each file, `rules(name)` contains no match of
-  `/#[0-9a-f]{3,8}\b|\b(rgba?|hsla?)\(/i`. The failure message names the file and the match.
+  `/#[0-9a-f]{3,8}\b|\b(rgba?|hsla?)\(/i`. The failure message names the file and the match, and
+  ends "use a colour token: see STYLES.md". Every test added in stage 3 ends its message the same
+  way, naming the scale.
 
 **Checks in the app.** In the light theme and then the dark theme: the library, its ⋯ menu with the
 storage bar, a dialog (Add scores), a toast (remove a score and see Undo). Open a score: the reader
@@ -256,3 +258,33 @@ excerpt and see its chip; tap it to remove it. The icons in the toolbar, the tit
 arrow (hide the toolbar) are drawn as before. Every dialog: its width, and with the on-screen
 keyboard open (a phone or a tablet), the dialog widens and its buttons stay in sight. The glyph
 picker's buttons sit under its grid, not stuck to the bottom.
+
+## Stage 5: the documentation
+
+`STYLES.md` was written with the spec. Read it against what stages 1 to 4 built, and fix whatever
+differs: a token's name, a part's selector, a value in the scales' table. Where the code turned out
+better than the spec, the doc follows the code; say so in the commit message.
+
+Then point to it from `ARCHITECTURE.md`:
+
+- The paragraph on `styles/` (it starts "`styles/` holds the CSS"): keep the first sentence, delete
+  the one about rules that stay in `base.css` to lose to a `ui.css` rule (stage 4 removed the last
+  of them), and add: "How to style something, and the tokens and shared parts to use, are in
+  `STYLES.md`: read it before writing CSS."
+- The line on the reader's theme (it starts "The reader sets `data-theme=\"light\"`"): end it at
+  "puts the app's theme back when it closes", and add "so every colour token takes its light value".
+- A recipe after **A dialog**:
+
+  > **Styling a new element**: reuse a shared part from `styles/base.css` (a button, a toggle with
+  > `aria-pressed`, a field, a chip, an icon), then the tokens for spacing, text, corners and
+  > colours; add CSS of its own only for where it sits, in its directory's style file. `STYLES.md`
+  > says which part and which token is for what.
+
+- In **Checking a change**, after the sentence on `npm run build`: "`npm test` also checks the
+  styles against the tokens (`styles/styles.test.ts`)."
+
+Also add `STYLES.md` to the README's line that points to `ARCHITECTURE.md` (`README.md:236`), in the
+same words as it gives `ARCHITECTURE.md`.
+
+**Checks.** Follow each link and file name in `STYLES.md` and the changed lines of
+`ARCHITECTURE.md`: every selector, token and file named exists (`grep` for each).
