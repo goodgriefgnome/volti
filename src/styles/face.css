@@ -169,10 +169,10 @@
 .face-chips .chip { min-height: 32px; padding: 0 10px; border-radius: 16px; border: 1px solid var(--line); font-size: 13px; background: var(--surface); color: var(--fg); }
 .face-chips .chip.mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; }
 .face-chips .chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
-.face-trials-box { overflow: auto; max-height: 336px; border-block: 1px solid var(--line); }
-.face-trials-table { display: grid; min-width: 540px; }
-.face-trials .tr { display: grid; grid-template-columns: 52px 3em minmax(90px, 1fr) repeat(3, 5.2em); gap: 4px 10px; align-items: center; min-height: 52px; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; font-size: 14px; }
-.face-trials .tr.two { grid-template-columns: 52px 3em minmax(90px, 1fr) repeat(2, 5.2em); }
+.face-trials-box { overflow-x: hidden; overflow-y: auto; max-height: 336px; border-block: 1px solid var(--line); }
+.face-trials-table { display: grid; }
+.face-trials .tr { display: grid; grid-template-columns: 44px 2em minmax(60px, 1fr) repeat(3, 4.4em); gap: 4px 8px; align-items: center; min-height: 52px; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; font-size: 14px; }
+.face-trials .tr.two { grid-template-columns: 44px 2em minmax(60px, 1fr) repeat(2, 4.4em); }
 .face-trials .tr.head { min-height: 32px; font-size: 12px; color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--surface); z-index: 1; box-shadow: 0 1px 0 var(--line); border-top: 0; }
 .face-trials .tr .n { text-align: right; }
 .face-trials .tr .bad { color: var(--warn); font-weight: 600; }

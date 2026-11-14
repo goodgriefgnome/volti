@@ -84,4 +84,4 @@ button:disabled { opacity: 0.4; cursor: default; }
 /* Sits in base.css to stay ahead of the ui/ rule it must lose to. */
 .dialog.library-editor { width: min(720px, calc(100vw - 32px)); }
 /* Sits in base.css to stay ahead of the ui/ rule it must lose to. */
-.dialog.face-gestures { width: min(560px, calc(100vw - 32px)); }
+.dialog.face-gestures { width: min(680px, calc(100vw - 32px)); }
