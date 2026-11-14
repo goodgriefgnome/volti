@@ -498,7 +498,7 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - Tap `eyeBlinkLeft`'s chip: it greys and strikes through; blink: the strength now rises. Tap it
     again. Switch `eyeBlinkRight`'s row off: the whole row greys, pennant and bracket in place.
   - Drag a pennant: the meter and the ring follow at once; let go: the gesture is fitted again, On
-    goes back to the fitted one, and Reset shows beside Channels; Reset puts it all back.
+    stays where it was, and Reset shows beside Channels; Reset puts the channels back, and Reset beside On level puts On back, each leaving the other.
   - Add channel…: the list is by separation, those that don't move greyed at the end; add one: it
     shows as a row.
   - Trials: the latest first, all of them scrolling; Show a channel: the traces and numbers change.

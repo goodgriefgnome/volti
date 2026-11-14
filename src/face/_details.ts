@@ -29,8 +29,8 @@ export interface DetailsHost {
   deleteGesture(g: Gesture): void;
   /** Change a gesture in place; saved soon while On is being dragged. */
   change(id: string, to: (g: Gesture) => Gesture, soon?: boolean): void;
-  /** Fit the gesture again after `edit` (a channel change), and show its details again; On moved by hand goes back to the fitted one unless `keepOn`. */
-  refit(id: string, edit?: (g: Gesture) => Gesture, keepOn?: boolean): void;
+  /** Fit the gesture again after `edit` (a channel change), and show its details again. On moved by hand stays: it is independent of the channels and the trials. */
+  refit(id: string, edit?: (g: Gesture) => Gesture): void;
   /** Try `template` for the gesture, while a threshold is dragged; none puts the fitted one back. */
   tryTemplate(id: string, template?: Template): void;
   /** Enable or disable the trial at `index` (stored order), and fit again. */
@@ -99,7 +99,7 @@ export function openDetails(host: DetailsHost, g: Gesture, trials: Trial[]): Det
   let meter: ReturnType<typeof strengthMeter> | undefined;
   if (template && levels) {
     const head = el('div', 'face-sec-head');
-    const reset = button('Reset', () => host.change(g.id, withoutOn), 'quiet');
+    const reset = button('Reset', () => { host.change(g.id, withoutOn); host.refresh(); }, 'quiet');
     reset.hidden = g.on === undefined;
     head.append(el('h3', '', 'On level'), reset);
     meter = strengthMeter({
@@ -121,7 +121,7 @@ export function openDetails(host: DetailsHost, g: Gesture, trials: Trial[]): Det
   /* ---------- channels ---------- */
 
   const head = el('div', 'face-sec-head');
-  const resetChannels = button('Reset', () => host.refit(g.id, (x) => withChannels(x, () => ({ forcedOff: [], forcedOn: [], thresholds: {} })), true), 'quiet');
+  const resetChannels = button('Reset', () => host.refit(g.id, (x) => withChannels(x, () => ({ forcedOff: [], forcedOn: [], thresholds: {} }))), 'quiet');
   resetChannels.hidden = !g.channels;
   head.append(el('h3', '', 'Channels'), resetChannels);
   body.append(head);

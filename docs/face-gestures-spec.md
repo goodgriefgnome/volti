@@ -116,8 +116,9 @@ number, its **strength**, from 0 to 1: the only thing its meter shows, the ring 
 levels compare against. Fitting uses the 52 blendshape scores only: a turn of the head or a nod
 can't be a gesture for now.
 
-- **On** is the fitted level until it is set by hand (dragged); it goes back to the fitted one when
-  the gesture is fitted again, or on **Reset**.
+- **On** is the fitted level until it is set by hand (dragged); it goes back to the fitted one on
+  **Reset**, or when new trials are recorded. Channel changes and disabling a trial leave it, and
+  Reset leaves the channels.
 - **Release** can't be set: it is always halfway between the gesture's rest level and its On level,
   whether On is the fitted one or one set by hand.
 
@@ -146,9 +147,8 @@ Each is changed by its channel name:
   put.
 
 Each of these, and disabling or enabling a trial, fits the gesture again from its enabled trials,
-with its channel changes. Its On goes back to the fitted one, as after a recording. Channel changes
-are kept across recordings and changes to trials. **Reset** beside Channels drops them all, and
-fits the gesture again but leaves its On as it is.
+with its channel changes. Its On, if moved by hand, stays: it is independent of the channels and the trials. Channel changes
+are kept across recordings and changes to trials. **Reset** beside Channels drops them all.
 `face-classifier-spec.md` says how the fit takes them.
 
 ### The dialog

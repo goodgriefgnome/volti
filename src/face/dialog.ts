@@ -217,13 +217,13 @@ export function openFaceGestures(closed: (() => void) | undefined, playFrom: Pla
   /** What each gesture's trials panel shows, until the dialog closes. */
   const shownOf = new Map<string, Shown>();
 
-  /** Fit a gesture again from its enabled trials, after `edit`, settle the conflicts with it first to give way, and show it again. */
-  async function refitNow(id: string, edit?: (g: Gesture) => Gesture, keepOn = false) {
+  /** Fit a gesture again from its enabled trials, after `edit` (its On moved by hand stays), settle the conflicts with it first to give way, and show it again. */
+  async function refitNow(id: string, edit?: (g: Gesture) => Gesture) {
     const cur = settings.gestures.find((x) => x.id === id);
     if (!cur) return;
     const g = edit ? edit(cur) : cur;
     const trials = await loadTrials(id);
-    const fitted: FaceSettings = { ...settings, gestures: settings.gestures.map((x) => (x.id === id ? { ...withFit(g, buildFit(trials, g.channels)), ...(keepOn && g.on !== undefined ? { on: g.on } : {}) } : x)) };
+    const fitted: FaceSettings = { ...settings, gestures: settings.gestures.map((x) => (x.id === id ? { ...withFit(g, buildFit(trials, g.channels)), ...(g.on !== undefined ? { on: g.on } : {}) } : x)) };
     commit(settled(fitted, await trialsOfActive(fitted), id));
     render();
   }
@@ -239,7 +239,7 @@ export function openFaceGestures(closed: (() => void) | undefined, playFrom: Pla
       render();
     })),
     change: (id, to, soon) => change(id, to, soon),
-    refit: (id, edit, keepOn) => later(() => refitNow(id, edit, keepOn)),
+    refit: (id, edit) => later(() => refitNow(id, edit)),
     disableTrial: (id, index, disabled) => later(async () => {
       await setTrialDisabled(id, index, disabled);
       await refitNow(id);

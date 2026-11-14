@@ -159,8 +159,8 @@ A gesture's On and Release levels come from its own enabled trials:
 - **Release** = rest level + 0.5 × (On − rest level), always: it can't be set, and it follows On
   when On is moved by hand.
 
-On can be moved by hand; it goes back to the fitted one when the gesture is fitted again (a
-recording, a trial disabled or enabled, a channel change) or on Reset. Hold is one for every
+On can be moved by hand; it goes back to the fitted one on Reset, or when new trials are recorded; a channel change or a
+trial disabled or enabled leaves it. Hold is one for every
 gesture, 500 ms to start with (`face-gestures-spec.md`).
 
 ## Turning
