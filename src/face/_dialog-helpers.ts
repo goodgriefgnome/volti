@@ -5,7 +5,7 @@
 import { MIN_TRIALS } from './_fit';
 import { STRIDE, framesOf, type Trial } from './_recording';
 import { CHANNELS, median, quantile, strength, type Template, type TrialFrames } from './_template';
-import { HOLD_DEFAULT, levelsOf, type Gesture } from './gestures';
+import { HOLD_DEFAULT, levelsOf, ZERO_LIMIT_FRAC, type Gesture } from './gestures';
 
 /** Whether a gesture has the enabled trials it is fitted from. */
 export const isFitted = (g: Gesture): boolean => g.fit.trials >= MIN_TRIALS;
@@ -74,7 +74,7 @@ export function trialView(trial: Trial, index: number, all: Trial[], g: Gesture,
     const peak = trial.disabled ? median(split.held.map((x) => strength(template, x))) : g.fit.peaks?.[enabledIndex] ?? NaN;
     const atRest = quantile(split.rest.map((x) => strength(template, x)), 0.95);
     const misfires = split.rest.flatMap((x, i) => (strength(template, x) >= levels.on ? [split.restT[i]] : []));
-    return { ...view, trace: frames.map((f) => ({ t: f.t, v: strength(template, f.x) })), levels: [levels.on, levels.release], numbers: [peak, atRest], bad: [peak < levels.on, atRest >= levels.release], misfires };
+    return { ...view, trace: frames.map((f) => ({ t: f.t, v: strength(template, f.x) })), levels: [levels.on, levels.zero], numbers: [peak, atRest], bad: [peak < levels.on, atRest >= (g.fit.rest ?? 0) + ZERO_LIMIT_FRAC * (levels.on - (g.fit.rest ?? 0))], misfires };
   }
   const c = shown;
   const row = template.rows.find((r) => r.c === c);

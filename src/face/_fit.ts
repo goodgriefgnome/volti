@@ -2,7 +2,7 @@
 // gestures turning pages don't conflict. A port of the prototype's `build`, `firesOn`, `conflictOf` and `settle`
 // of public/lab/face-classifier.html; docs/face-classifier-spec.md says what they must be. Pure.
 
-import type { GestureChannels } from './gestures';
+import type { GestureChannels, TurnDir } from './gestures';
 import { framesOf, type Trial } from './_recording';
 import { CHANNELS, fit, median, quantile, strength, type Template } from './_template';
 
@@ -105,30 +105,32 @@ export interface Contender {
   id: string;
   name: string;
   template: Template;
-  release: number;
+  direction: TurnDir;
+  on: number;
   /** Each rep's held frames. */
   held: Float32Array[][];
 }
 
-/** `j`'s strength on `i`'s gesture (the highest of its reps' median held strengths), if it reaches `j`'s release level: `j` would stay on through it. */
+/** `j`'s strength on `i`'s gesture (the highest of its reps' median held strengths), if it reaches `j`'s On: `j` would be on through it. */
 function firesOn(j: Contender, i: Contender): number | undefined {
   let y = -Infinity;
   for (const rep of i.held) {
     if (!rep.length) continue;
     y = Math.max(y, median(rep.map((x) => strength(j.template, x))));
   }
-  return y >= j.release ? y : undefined;
+  return y >= j.on ? y : undefined;
 }
 
 const movingNames = (c: Contender) => c.template.rows.map((r) => CHANNELS[r.c]);
 
-/** Why `a` can't turn pages beside `b`, in words, or undefined. */
+/** Why `a` can't turn pages beside `b`, in words, or undefined. Gestures of one direction never conflict: they share a fill. */
 export function conflictOf(a: Contender, b: Contender): string | undefined {
+  if (a.direction === b.direction) return undefined;
   const A = movingNames(a);
   const B = movingNames(b);
   const shared = A.filter((n) => B.includes(n));
   const why = (j: Contender, y: number, own: string[]) =>
-    `its strength is ${y.toFixed(2)}, and its release is ${j.release.toFixed(2)}. ${shared.length ? `Both are ${shared.join(', ')}` : `It only needs ${own.join(', ')}`}`;
+    `its strength is ${y.toFixed(2)}, and its On is ${j.on.toFixed(2)}. ${shared.length ? `Both are ${shared.join(', ')}` : `It only needs ${own.join(', ')}`}`;
   let y = firesOn(b, a);
   if (y !== undefined) return `“${b.name}” also fires on it: ${why(b, y, B)}`;
   y = firesOn(a, b);

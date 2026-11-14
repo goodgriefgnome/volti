@@ -278,11 +278,9 @@ export function openFaceGestures(closed: (() => void) | undefined, playFrom: Pla
           const meter = strengthMeter({
             tall: false,
             on: levels.on,
-            release: levels.release,
             drag: (on) => {
               change(g.id, (x) => withLevels(x, on), true);
-              const l = levelsOf(settings.gestures.find((x) => x.id === g.id)!, settings.hold)!;
-              meter.levels(l.on, l.release);
+              meter.levels(levelsOf(settings.gestures.find((x) => x.id === g.id)!, settings.hold)!.on);
             },
           });
           meters.set(g.id, (x) => meter.show(x ? strength(template, x) : 0));

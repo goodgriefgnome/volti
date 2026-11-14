@@ -15,8 +15,8 @@ function made(id: string, name: string, held: Values, direction: Gesture['direct
 }
 
 describe('settled', () => {
-  const a = made('a', 'Mouth left', { mouthLeft: 0.8 });
-  const b = made('b', 'Mouth left, brows up', { mouthLeft: 0.8, browInnerUp: 0.7, browOuterUpLeft: 0.6, browOuterUpRight: 0.6 });
+  const a = made('a', 'Mouth left', { mouthLeft: 0.8 }, 'next');
+  const b = made('b', 'Mouth left, brows up', { mouthLeft: 0.8, browInnerUp: 0.7, browOuterUpLeft: 0.6, browOuterUpRight: 0.6 }, 'prev');
   const trialsOf = new Map([['a', a.trials], ['b', b.trials]]);
   it('sets the later of two that conflict to none, with why', () => {
     const s = settled({ hold: 500, gestures: [a.g, b.g] }, trialsOf);
@@ -26,7 +26,12 @@ describe('settled', () => {
   });
   it('sets the changed one to none, though it is the earlier', () => {
     const s = settled({ hold: 500, gestures: [a.g, b.g] }, trialsOf, 'a');
-    expect(s.gestures.map((g) => g.direction)).toEqual(['none', 'next']);
+    expect(s.gestures.map((g) => g.direction)).toEqual(['none', 'prev']);
+  });
+  it('keeps a contained gesture\'s direction when it shares it', () => {
+    const same = { ...b.g, direction: 'next' as const };
+    const s = settled({ hold: 500, gestures: [a.g, same] }, trialsOf);
+    expect(s.gestures.map((g) => g.direction)).toEqual(['next', 'next']);
   });
   it('leaves gestures set to none, and those not fitted, alone', () => {
     const s: FaceSettings = { hold: 500, gestures: [a.g, { ...b.g, direction: 'none' }, newGesture('c')] };

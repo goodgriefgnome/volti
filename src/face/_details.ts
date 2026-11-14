@@ -101,13 +101,10 @@ export function openDetails(host: DetailsHost, g: Gesture, trials: Trial[]): Det
     meter = strengthMeter({
       tall: true,
       on: levels.on,
-      release: levels.release,
       ticks: { rest: g.fit.rest ?? 0, trials: g.fit.peaks ?? [] },
       drag: (on) => {
         host.change(g.id, (x) => withLevels(x, on), true);
-        // The gesture is the dialog's now; this view's own copy gives the new Release.
-        const l = levelsOf(withLevels(g, on), host.hold())!;
-        meter!.levels(l.on, l.release);
+        meter!.levels(on);
         reset.hidden = false;
       },
     });

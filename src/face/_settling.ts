@@ -12,7 +12,7 @@ export function settled(s: FaceSettings, trialsOf: Map<string, Trial[]>, changed
   for (const g of s.gestures) {
     const l = levelsOf(g, s.hold);
     if (!l || g.direction === 'none') continue;
-    contenders.push({ id: g.id, name: g.name, template: g.fit.template!, release: l.release, held: (trialsOf.get(g.id) ?? []).filter((t) => !t.disabled).map((t) => framesOf(t).held) });
+    contenders.push({ id: g.id, name: g.name, template: g.fit.template!, direction: g.direction, on: l.on, held: (trialsOf.get(g.id) ?? []).filter((t) => !t.disabled).map((t) => framesOf(t).held) });
   }
   const conflicts = settle(contenders, changedId);
   if (!conflicts.size) return s;

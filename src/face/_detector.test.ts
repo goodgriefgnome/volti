@@ -9,7 +9,6 @@ const gesture = (id: string, name: string, direction: TurnDir, over: Partial<Act
   id,
   direction,
   on: 0.5,
-  release: 0.25,
   zero: 0.1,
   hold: 500,
   template: { rows: [{ c: channel(name), side: 1, edge: 0.8, far: 0.1, rest: 0, span: 0.8, separation: 0.8 }], limits: [] },

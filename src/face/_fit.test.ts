@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { seeded, storedTrial, type Values } from './_test-frames';
 import { buildFit, conflictOf, flagText, settle, type Contender } from './_fit';
 import { framesOf, type Trial } from './_recording';
+import type { TurnDir } from './gestures';
 import { strength } from './_template';
 
 const random = seeded(7);
@@ -71,10 +72,10 @@ describe('flagText', () => {
 });
 
 /** A gesture as the conflict check sees it, fitted from five trials. */
-function contender(id: string, name: string, held: Values, rest: Values): Contender {
+function contender(id: string, name: string, held: Values, rest: Values, direction: TurnDir = 'next'): Contender {
   const ts = trials(held, rest);
   const f = buildFit(ts);
-  return { id, name, template: f.template!, release: f.rest! + 0.5 * (f.on! - f.rest!), held: ts.map((t) => framesOf(t).held) };
+  return { id, name, template: f.template!, direction, on: f.on!, held: ts.map((t) => framesOf(t).held) };
 }
 
 const mouth = { mouthLeft: 0.8 };
@@ -83,30 +84,44 @@ const none = { mouthLeft: 0, browInnerUp: 0, browOuterUpLeft: 0, browOuterUpRigh
 
 describe('conflictOf', () => {
   it('finds mouth left and mouth left with the brows up in conflict, and names the channel', () => {
-    const a = contender('a', 'Mouth left', mouth, none);
-    const b = contender('b', 'Mouth left, brows up', mouthBrows, none);
+    const a = contender('a', 'Mouth left', mouth, none, 'next');
+    const b = contender('b', 'Mouth left, brows up', mouthBrows, none, 'prev');
     expect(conflictOf(a, b)).toMatch(/mouthLeft/);
     expect(conflictOf(b, a)).toMatch(/mouthLeft/);
     expect(conflictOf(b, a)).toContain('“Mouth left” also fires on it: its strength is');
+    expect(conflictOf(b, a)).toMatch(/its On is \d\.\d\d/);
+  });
+  it('finds gestures of one direction in no conflict, though one contains the other', () => {
+    const a = contender('a', 'Mouth left', mouth, none, 'next');
+    const b = contender('b', 'Mouth left, brows up', mouthBrows, none, 'next');
+    expect(conflictOf(a, b)).toBeUndefined();
+    expect(conflictOf(b, a)).toBeUndefined();
+  });
+  it('fires on a gesture only at its On: a strength between halfway and On does not', () => {
+    const a = contender('a', 'Mouth left', mouth, none, 'next');
+    const b = contender('b', 'Mouth left, brows up', mouthBrows, none, 'prev');
+    // a's strength on b's held frames is about 1.
+    expect(conflictOf({ ...a, on: 1.2 }, b)).toBeUndefined();
+    expect(conflictOf({ ...a, on: 0.9 }, b)).toMatch(/also fires/);
   });
   it('finds a wink of each eye in no conflict', () => {
-    const l = contender('l', 'Wink left', { eyeBlinkLeft: 0.7, eyeBlinkRight: 0.25 }, quiet);
-    const r = contender('r', 'Wink right', { eyeBlinkLeft: 0.25, eyeBlinkRight: 0.7 }, quiet);
+    const l = contender('l', 'Wink left', { eyeBlinkLeft: 0.7, eyeBlinkRight: 0.25 }, quiet, 'next');
+    const r = contender('r', 'Wink right', { eyeBlinkLeft: 0.25, eyeBlinkRight: 0.7 }, quiet, 'prev');
     expect(conflictOf(l, r)).toBeUndefined();
     expect(conflictOf(r, l)).toBeUndefined();
   });
   it('finds a wink and a long blink in no conflict', () => {
-    // A light wink: the blink template scores a strong one over its release, as the spec's arithmetic has it.
-    const w = contender('w', 'Wink', { eyeBlinkLeft: 0.35, eyeBlinkRight: 0.05 }, quiet);
-    const b = contender('b', 'Long blink', { eyeBlinkLeft: 0.8, eyeBlinkRight: 0.8 }, quiet);
+    // A light wink: the blink template scores a strong one over its On, as the spec's arithmetic has it.
+    const w = contender('w', 'Wink', { eyeBlinkLeft: 0.35, eyeBlinkRight: 0.05 }, quiet, 'next');
+    const b = contender('b', 'Long blink', { eyeBlinkLeft: 0.8, eyeBlinkRight: 0.8 }, quiet, 'prev');
     expect(conflictOf(w, b)).toBeUndefined();
     expect(conflictOf(b, w)).toBeUndefined();
   });
 });
 
 describe('settle', () => {
-  const a = contender('a', 'Mouth left', mouth, none);
-  const b = contender('b', 'Mouth left, brows up', mouthBrows, none);
+  const a = contender('a', 'Mouth left', mouth, none, 'next');
+  const b = contender('b', 'Mouth left, brows up', mouthBrows, none, 'prev');
   it('gives the later of two that conflict', () => {
     expect([...settle([a, b]).keys()]).toEqual(['b']);
   });

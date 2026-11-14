@@ -29,8 +29,6 @@ export const HOLD_RANGE = { min: 100, max: 1500 } as const;
 export const HOLD_DEFAULT = 500;
 export const NO_GESTURES: FaceSettings = { hold: HOLD_DEFAULT, gestures: [] };
 export const LEVEL_RANGE = { min: 0.05, max: 0.95 } as const;
-/** Release is this share of the way from the rest level to On. */
-export const RELEASE_FRAC = 0.5;
 /** The zero point is never more than this share of the way from the rest level to On. */
 export const ZERO_LIMIT_FRAC = 0.5;
 
@@ -54,16 +52,15 @@ export function withoutOn(g: Gesture): Gesture {
 }
 
 /**
- * A gesture's levels: On by hand, else the fit's; Release halfway from the rest level to On; the
- * zero point, where the ring's faint arc starts: the most strength a rest frame reached, but never
+ * A gesture's levels: On by hand, else the fit's; the zero point, where the ring's faint arc starts: the most strength a rest frame reached, but never
  * more than `ZERO_LIMIT_FRAC` of the way from the rest level to On (a fit without `restMax` has the
  * rest level); the hold as given. Undefined when it isn't fitted.
  */
-export function levelsOf(g: Gesture, hold: number): { on: number; release: number; zero: number; hold: number } | undefined {
+export function levelsOf(g: Gesture, hold: number): { on: number; zero: number; hold: number } | undefined {
   const { template, on, rest, restMax } = g.fit;
   if (!template || on === undefined || rest === undefined) return undefined;
   const o = g.on ?? on;
-  return { on: o, release: rest + RELEASE_FRAC * (o - rest), zero: Math.min(restMax ?? rest, rest + ZERO_LIMIT_FRAC * (o - rest)), hold };
+  return { on: o, zero: Math.min(restMax ?? rest, rest + ZERO_LIMIT_FRAC * (o - rest)), hold };
 }
 
 /** A gesture with its channel changes edited by `to`; none are kept when nothing is left changed. */
@@ -79,7 +76,7 @@ export function withLevels(g: Gesture, on: number): Gesture {
 }
 
 /** A gesture that can turn a page, as the detector takes it. */
-export interface Active { id: string; direction: TurnDir; on: number; release: number; zero: number; hold: number; template: Template }
+export interface Active { id: string; direction: TurnDir; on: number; zero: number; hold: number; template: Template }
 
 /** The gestures that can turn a page: fitted, with a direction. */
 export function activeOf(s: FaceSettings): Active[] {

@@ -67,16 +67,14 @@ describe('faceSettingsFrom', () => {
 });
 
 describe('levelsOf', () => {
-  it('is the fit\'s On, with Release halfway from the rest level, and the hold given', () => {
+  it('is the fit\'s On, and the hold given', () => {
     const l = levelsOf(gesture(), 500)!;
     expect(l.on).toBe(0.6);
-    expect(l.release).toBeCloseTo(0.05 + 0.5 * (0.6 - 0.05));
     expect(l.hold).toBe(500);
+    expect(l).not.toHaveProperty('release');
   });
-  it('is On by hand, with Release halfway from the rest level to it', () => {
-    const l = levelsOf(gesture({ on: 0.4 }), 500)!;
-    expect(l.on).toBe(0.4);
-    expect(l.release).toBeCloseTo(0.05 + 0.5 * (0.4 - 0.05));
+  it('is On by hand', () => {
+    expect(levelsOf(gesture({ on: 0.4 }), 500)!.on).toBe(0.4);
   });
   it('is undefined when it is not fitted', () => {
     expect(levelsOf(newGesture('x'), 500)).toBeUndefined();
@@ -102,10 +100,10 @@ describe('the zero point', () => {
 });
 
 describe('withLevels', () => {
-  it('sets On by hand, and Release follows it', () => {
+  it('sets On by hand', () => {
     const g = withLevels(gesture(), 0.2);
     expect(g.on).toBe(0.2);
-    expect(levelsOf(g, 500)!.release).toBeCloseTo(0.05 + 0.5 * 0.15);
+    expect(levelsOf(g, 500)!.on).toBe(0.2);
   });
   it('keeps On in range', () => {
     expect(withLevels(gesture(), 0.001).on).toBe(0.05);
@@ -149,6 +147,6 @@ describe('activeOf', () => {
     const a = activeOf(settings([gesture({ id: 'a', on: 0.5 }), gesture({ id: 'b' })], 700));
     expect(a.map((x) => x.hold)).toEqual([700, 700]);
     expect(a[0]).toMatchObject({ on: 0.5, template });
-    expect(a[0].release).toBeCloseTo(0.05 + 0.5 * 0.45);
+    expect(a[0].zero).toBeCloseTo(0.05);
   });
 });

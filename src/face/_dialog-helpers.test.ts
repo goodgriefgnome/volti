@@ -86,6 +86,23 @@ describe('trialView with strength shown', () => {
   });
 });
 
+describe('trialView\'s strength levels', () => {
+  it('draws On and the zero point', () => {
+    const v = trialView(ts[1], 1, ts, good, 'strength');
+    expect(v.levels[0]).toBeCloseTo(good.fit.on!);
+    expect(v.levels[1]).toBeLessThan(v.levels[0]);
+    expect(v.levels[1]).toBeGreaterThanOrEqual(good.fit.rest!);
+  });
+  it('warns of a rest strength at or over halfway from the rest level to On', () => {
+    const rough = { ...storedTrial(wink, { eyeBlinkLeft: 0.5, eyeBlinkRight: 0.03 }, random), disabled: true as const };
+    const all = [...ts, rough];
+    const v = trialView(rough, 5, all, made(all), 'strength');
+    expect(v.numbers[1]).toBeGreaterThan(good.fit.rest! + 0.5 * (good.fit.on! - good.fit.rest!));
+    expect(v.bad[1]).toBe(true);
+    expect(trialView(ts[0], 0, ts, good, 'strength').bad[1]).toBe(false);
+  });
+});
+
 describe('trialView with a channel shown', () => {
   it('shows a moving channel: its edge and rest value, Held, At rest and Past', () => {
     const v = trialView(ts[0], 0, ts, good, idx('eyeBlinkLeft'));

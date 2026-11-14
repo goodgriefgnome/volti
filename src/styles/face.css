@@ -73,19 +73,16 @@
 .face-meter { position: relative; height: 32px; max-width: 300px; touch-action: pan-y; cursor: pointer; }
 .face-meter .track { position: absolute; left: 0; right: 0; top: 12px; height: 8px; border-radius: 4px; background: var(--accent-soft); overflow: hidden; }
 .face-meter .fill { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--accent); }
-.face-meter .release { position: absolute; top: 10px; height: 12px; border-left: 2px dashed var(--muted); }
 .face-meter .on { position: absolute; top: 4px; width: 14px; height: 24px; margin-left: -7px; display: grid; justify-items: center; align-content: start; }
 .face-meter .on::before { content: ''; width: 14px; height: 6px; border-radius: 2px; background: var(--fg); }
 .face-meter .on .line { width: 3px; height: 18px; background: var(--fg); }
 .face-meter .on:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .face-meter.tall { height: auto; max-width: none; padding: 30px 0 26px; }
 .face-meter.tall .track { position: relative; top: 0; height: 24px; border-radius: 6px; }
-.face-meter.tall .release, .face-meter.tall .on { top: 0; height: auto; width: 44px; margin-left: -22px; border-left: 0; display: grid; justify-items: center; align-content: start; }
+.face-meter.tall .on { top: 0; height: auto; width: 44px; margin-left: -22px; border-left: 0; display: grid; justify-items: center; align-content: start; }
 .face-meter.tall .on::before { display: none; }
 .face-meter .tag { font-size: 12px; font-weight: 600; padding: 1px 6px; border-radius: 4px; background: var(--fg); color: var(--surface); font-variant-numeric: tabular-nums; white-space: nowrap; height: 20px; line-height: 18px; }
 .face-meter.tall .on .line { width: 3px; height: 34px; margin-top: 2px; border-radius: 2px; }
-.face-meter .release .tag { background: transparent; color: var(--muted); border: 1px dashed var(--muted); }
-.face-meter .release .line { width: 0; height: 34px; margin-top: 2px; border-left: 2px dashed var(--muted); }
 .face-meter .ticks { position: absolute; left: 0; right: 0; bottom: 0; height: 22px; }
 .face-meter .tick { position: absolute; top: 0; width: 2px; height: 10px; margin-left: -1px; background: var(--accent); }
 .face-meter .tick.low { background: var(--warn); }
