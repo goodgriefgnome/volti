@@ -7,10 +7,11 @@ on (the tokens, the scales, the shared parts) is in `STYLES.md`. How to get ther
 
 ## What changes for the user
 
-- A thing that floats over the screen sits 12 px from its edge: the back arrow (was 6 px), the face
-  button, the toast and the score card (were 16 px), the scope note while editing cuts in a setlist
-  (was 8 px), the recording screen's instruction. Dialogs, menus and notes keep 12 px clear of each
-  side of the screen (dialogs and notes were 16 px, menus 8 px).
+- A thing that floats over the screen sits 8 px from its edge: the back arrow (was 6 px), the toast
+  and the score card (were 16 px), the scope note while editing cuts in a setlist (as now), the
+  recording screen's instruction (was 12 px). The face button's rings, which reach 10 px past it,
+  sit 8 px from the edge, so the button itself is 18 px in (was 12 px). Dialogs, menus and notes keep
+  8 px clear of each side of the screen (dialogs and notes were 16 px; menus are as now).
 - A row being dragged to a new place (a setlist's entry in the library, an entry in the title menu,
   a group in the Symbols panel) is dimmed. The library's entry was tinted in the accent.
 - Hovering over, or pressing, a row or a menu item shows one faint grey tint. Menus in the reader
@@ -28,8 +29,8 @@ on (the tokens, the scales, the shared parts) is in `STYLES.md`. How to get ther
   buttons were 40%).
 - The secondary text in the reader's title (the "2/3" of a setlist, the page info) and the score
   card's "2 OF 3" are in the muted colour instead of see-through.
-- The toolbar shows and hides, the expanders open and the arrows turn in 200 ms; the score card
-  fades in 300 ms.
+- The toolbar shows and hides, the expanders open and the arrows turn in 160 ms (the expanders took
+  200 ms and 220 ms); the score card still fades out in 300 ms.
 - Add scores' chips and named excerpts line up with the titles above them again (they are 4 px too
   far in), and a gesture's head in the face dialog sits flush with the dialog's top again (2 px off).
 
@@ -41,14 +42,14 @@ In `base.css`'s token block, with the others:
 
 | Token | Value | For |
 | --- | --- | --- |
-| `--edge` | 12 px | How far anything floating keeps from the screen's edge (with `max(var(--edge), env(safe-area-inset-…))`), and how far dialogs, menus and notes keep from each side (`calc(100vw - 2 * var(--edge))`) |
+| `--edge` | 8 px | How far anything floating keeps from the screen's edge (with `max(var(--edge), env(safe-area-inset-…))`; the face button adds its rings' 10 px, so they are what sits at the edge), and how far dialogs, menus and notes keep from each side (`calc(100vw - 2 * var(--edge))`) |
 | `--hover` | `color-mix(in srgb, var(--fg) 6%, transparent)` | A row, menu item or bare button under the pointer or being pressed |
 | `--focus` | `3px solid var(--accent)` | The keyboard's focus ring: `outline: var(--focus)` |
 | `--tile` | 56 px | A symbol's tile: the Symbols panel, the glyph picker, the library editor |
 | `--check` | 20 px | A checkbox's size; indents that line up with the text beside a checkbox are `calc(var(--check) + var(--space-2))` |
 | `--dim` | 0.5 | The opacity of something disabled, switched off, or not applicable; and of a symbol whose copy is being dragged |
 | `--dragged` | 0.6 | The opacity of a row being dragged to a new place |
-| `--quick`, `--slow` | 200 ms, 300 ms | Transitions: showing, hiding, opening and turning are quick; fading the score card out is slow |
+| `--quick`, `--slow` | 160 ms, 300 ms | Transitions: everything that answers a tap (showing, hiding, opening, turning) is quick; only the score card's fade-out, which happens by itself, is slow |
 | `--surface-float` | `color-mix(in srgb, var(--surface) 85%, transparent)` | The floating buttons' background |
 | `--hatch` | `repeating-linear-gradient(135deg, var(--muted) 0 1.5px, transparent 1.5px 5px)` | Hatching: the face dialog's rest band and its trials' left-out frames |
 
@@ -136,8 +137,8 @@ under the scales that secondary text is muted and never see-through, and a short
 
 ## Decisions not discussed
 
-- The 12 px edge also sets how far dialogs, menus and notes keep from the screen's sides, so every
-  "keep clear of the edge" is one value (dialogs were 16 px, menus 8 px).
+- The face button is placed by its rings, not by the button: its rings sit 8 px from the edge, like
+  the back arrow opposite, and none of them is cut off by the screen.
 - Disabled and switched-off share one dimming, 50%; disabled was 40%.
 - A symbol whose copy is being dragged dims to `--dim` (was 35%), not `--dragged`: it is the place
   the symbol is leaving, not a row on the move.
@@ -147,6 +148,6 @@ under the scales that secondary text is muted and never see-through, and a short
   doesn't leave a row tinted; pressing shows the tint everywhere.
 - The secondary text in the reader's title and score card is muted instead of see-through.
 - The two hatchings become one, with 1.5 px stripes (they were 2 px and 1 px).
-- Transitions are 200 ms or 300 ms: the toolbar was 160 ms, the chevrons 200 ms, a setlist opening
-  220 ms.
+- The score card's fade-out stays 300 ms: it comes 2.2 s after the card appears, not in answer to
+  anything the user did, and at 160 ms it would read as a blink rather than a fade.
 - The + in the title menu and the › in the Drive crumbs stay characters.

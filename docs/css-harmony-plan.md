@@ -50,14 +50,15 @@ Record a face gesture: the instruction sits at the top as before.
 
 ## Stage 2: the new tokens
 
-Add to the token block `--edge: 12px`, `--hover`, `--focus`, `--tile: 56px`, `--dim: 0.5`,
-`--dragged: 0.6`, `--quick: 200ms`, `--slow: 300ms` and `--hatch`, with the values in the spec and
+Add to the token block `--edge: 8px`, `--hover`, `--focus`, `--tile: 56px`, `--dim: 0.5`,
+`--dragged: 0.6`, `--quick: 160ms`, `--slow: 300ms` and `--hatch`, with the values in the spec and
 a short comment on each that isn't obvious from its name (as the token block's comments now are).
 Then:
 
 1. **The edge.**
-   - Floating things: `.reader > .back` (`reader.css:36`, `max(6px, …)` twice), `.reader >
-     .face-button` (`face.css:6`), `.toast` (`ui.css:53`), `.score-card` (`reader.css:218`),
+   - The face button (`face.css:6`): `max(calc(var(--edge) + 10px), env(…))` for its `top` and
+     `right`, so its rings (10 px past it, `face.css:12`) sit at the edge; say so in its comment.
+   - Other floating things: `.reader > .back` (`reader.css:36`, `max(6px, …)` twice), `.toast` (`ui.css:53`), `.score-card` (`reader.css:218`),
      `.face-recording-bar` (`face.css:191`: `left`, `right` and `top`): each length becomes
      `var(--edge)`, inside the `max(…, env(…))` where there is one.
    - `.scope` (`reader.css:227`): `top: calc(var(--bar-h, 56px) + var(--edge))`; `.chrome-hidden
@@ -101,10 +102,11 @@ Extend the test:
 - `it('rings focus with the one ring')`: every `outline` value is `var(--focus)`, `none` or `0`.
 
 **Checks in the app.** Hide the reader's toolbar: the back arrow and the face button sit the same
-distance from the top and from their sides. Remove a score and see the toast; turn into a setlist's
+distance from the top and from their sides, counting the face button's rings. Remove a score and see the toast; turn into a setlist's
 next score and see the score card; edit cuts in a setlist and see the scope note, with the toolbar
-shown and hidden: each 12 px from its edge. On a phone width, a dialog and a menu keep 12 px from
-each side. With a keyboard, press Tab through the library, a dialog, the Excerpt picker's bands, the
+shown and hidden: each 8 px from its edge. Start the face button watching and hide the toolbar: its
+rings are whole, 8 px from the top and right, level with the back arrow. On a phone width, a dialog
+and a menu keep 8 px from each side. With a keyboard, press Tab through the library, a dialog, the Excerpt picker's bands, the
 cut tabs and the face meter's handle: the same accent ring each time. Hover over a library row and a
 menu item with a mouse: a faint grey, the same in the reader's menus. Open the Symbols panel, the
 glyph picker and the library editor: the symbols' tiles are one size. The reader's title in a
