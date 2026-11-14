@@ -226,8 +226,13 @@ N is the enabled trials. The warnings are in the warning colour.
 From the top:
 
 1. **The header**: ‹ (back to the list), the name with its pencil, the direction dropdown, and
-   **Delete…** (asks first: “Delete “Wink right”?” “Its trials are deleted with it.”).
-2. **The preview** (camera and button, as on the list; no hold).
+   **Delete…** (asks first: “Delete “Wink right”?” “Its trials are deleted with it.”). The header
+   stays at the top of the dialog while the rest scrolls under it. For a gesture with no On level
+   yet (not fitted), the face button is at its right end (item 2).
+2. **The face button**, as on the list, ring included, to the right of the On level meter (item 4).
+   The camera's picture is not shown here, nor the hold; the camera still runs, so starting,
+   paused and no face show on the button. A camera that failed to start only turns the button off,
+   and the line saying why stays.
 3. **What is wrong**, if anything, in a box in the warning colour: each flag in full, the conflict
    note, and why the last recording ended early. Fires while resting names the trials to blame:
    "All 4 are in trial 9." when they are in one trial, "In trials 3 and 9." otherwise, then "Disable
@@ -241,7 +246,7 @@ From the top:
 5. **Channels**, with **Reset** beside the title (shown once a channel was changed). One row per
    channel (below), moving channels in the template's order. With no template: "No channel moves
    clearly enough." Under the rows, **Add channel…** (below).
-6. **The trials** (below).
+6. **The trials** (below). They scroll with the dialog, not in a box of their own.
 7. A row: **Delete N disabled trials…** (shown with any disabled; asks first), then **Record** and
    **Done**.
 
@@ -283,8 +288,8 @@ It is worked out from the enabled trials when the details open.
 
 - **Show**, a row of chips: **Strength**, then each channel in the template, then each limit's
   channel. Strength is picked when the details open.
-- Every trial, the latest first, in a box that scrolls (at most about six rows high), its header
-  row staying in sight. A row:
+- Every trial, the latest first, scrolling with the dialog, its header
+  row on top. A row:
   - a switch: enabled or disabled;
   - its number (1 for the first recorded);
   - a trace: what is shown, through the trial, 0 at the bottom and 1 at the top, with its held part

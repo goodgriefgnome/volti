@@ -76,9 +76,11 @@ export function openFaceGestures(closed: (() => void) | undefined, playFrom: Pla
   const hold = el('div', 'face-hold');
   hold.append(holdLabel, holdValue, holdInput);
 
+  // The button's place, beside the camera's picture; a gesture's details take it, and give it back.
+  const previewSlot = el('div', 'face-preview-button');
+  previewSlot.append(preview.el);
   const stage = el('div', 'face-stage');
-  stage.append(watcher.video, el('div', 'face-preview-button'), hold);
-  stage.querySelector('.face-preview-button')!.append(preview.el);
+  stage.append(watcher.video, previewSlot, hold);
   showButton();
   // What a gesture's details put above the preview.
   const headSlot = el('div', 'face-view-head-slot');
@@ -174,6 +176,9 @@ export function openFaceGestures(closed: (() => void) | undefined, playFrom: Pla
     rows.hidden = !!viewId;
     buttons.hidden = !!viewId;
     hold.hidden = !!viewId;
+    // The picture goes in a gesture's details, but the video stays on the page, for the camera to read.
+    stage.classList.toggle('compact', !!viewId);
+    if (!viewId) stage.insertBefore(previewSlot, hold);
     headSlot.hidden = !viewId;
     detailsBody.hidden = !viewId;
   };
@@ -232,6 +237,7 @@ export function openFaceGestures(closed: (() => void) | undefined, playFrom: Pla
     frames: frameListeners,
     hold: () => settings.hold,
     nameCell: (g) => nameCell(g),
+    faceButton: previewSlot,
     setDirection,
     deleteGesture: (g) => confirm(`Delete “${g.name}”?`, 'Its trials are deleted with it.', 'Delete', () => later(async () => {
       commit({ ...settings, gestures: settings.gestures.filter((x) => x.id !== g.id) });

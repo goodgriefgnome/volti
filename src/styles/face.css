@@ -44,6 +44,8 @@
 
 /* The Face gestures dialog (face/dialog.ts). */
 .face-stage { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+/* In a gesture's details the picture goes, but the video stays rendered (a hidden one may stop). */
+.face-stage.compact { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
 .face-video { width: 160px; border-radius: 8px; transform: scaleX(-1); background: #000; flex: none; max-width: 100%; }
 .face-preview-button { padding: 10px; flex: none; }
 .face-hold { flex: 1; min-width: 180px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; align-items: center; }
@@ -88,6 +90,9 @@
 .face-meter .tick.low { background: var(--warn); }
 .face-meter .tick.rest { background: var(--fg); }
 .face-meter .tick .label { position: absolute; top: 10px; left: 50%; font-size: 11px; color: var(--muted); transform: translateX(-50%); white-space: nowrap; }
+/* A gesture's head stays at the top of the dialog while the rest scrolls under it (over the dialog's 16px padding too). */
+.face-view-head-slot { position: sticky; top: -16px; z-index: 2; margin-top: -10px; padding-block: 16px 6px; background: var(--surface); box-shadow: 0 1px 0 var(--line); }
+.face-view-head-slot:empty { display: none; }
 .face-view-head { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 .face-view-head .face-named { flex: 1; }
 .face-view-head > button:first-child { padding: 0 10px; font-size: 22px; }
@@ -164,11 +169,12 @@
 .face-chips .chip { min-height: 32px; padding: 0 10px; border-radius: 16px; border: 1px solid var(--line); font-size: 13px; background: var(--surface); color: var(--fg); }
 .face-chips .chip.mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; }
 .face-chips .chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
-.face-trials-box { overflow-x: hidden; overflow-y: auto; max-height: 336px; border-block: 1px solid var(--line); }
-.face-trials-table { display: grid; }
+.face-trials-table { display: grid; border-bottom: 1px solid var(--line); }
+.face-level-row { display: flex; align-items: center; gap: 4px; }
+.face-level-row > .face-meter { flex: 1; min-width: 0; }
 .face-trials .tr { display: grid; grid-template-columns: 44px 2em minmax(60px, 1fr) repeat(3, 4.4em); gap: 4px 8px; align-items: center; min-height: 52px; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; font-size: 14px; }
 .face-trials .tr.two { grid-template-columns: 44px 2em minmax(60px, 1fr) repeat(2, 4.4em); }
-.face-trials .tr.head { min-height: 32px; font-size: 12px; color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--surface); z-index: 1; box-shadow: 0 1px 0 var(--line); border-top: 0; }
+.face-trials .tr.head { min-height: 32px; font-size: 12px; color: var(--muted); font-weight: 600; border-top: 0; }
 .face-trials .tr .n { text-align: right; }
 .face-trials .tr .bad { color: var(--warn); font-weight: 600; }
 .face-trials .tr.flagged { background: color-mix(in srgb, var(--warn) 12%, transparent); }

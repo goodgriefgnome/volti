@@ -1,5 +1,5 @@
 // The trials panel in a gesture's details: a row of chips for what to show (the strength, a channel,
-// a limit's channel), and every trial, the latest first, in a box that scrolls: a switch to enable
+// a limit's channel), and every trial, the latest first, scrolling with the dialog: a switch to enable
 // or disable it, its number, a trace of what is shown, and its numbers. What the traces and numbers
 // are is _dialog-helpers.ts's.
 
@@ -63,7 +63,6 @@ export function trialsPanel(o: TrialsPanelOptions): HTMLElement {
   }
   if (template) panel.append(chips);
 
-  const box = el('div', 'face-trials-box');
   const table = el('div', 'face-trials-table');
   const names = shown === 'strength' ? ['Held', 'At rest'] : ['Held', 'At rest', 'Past'];
   const head = el('div', `tr head${names.length === 2 ? ' two' : ''}`);
@@ -93,7 +92,6 @@ export function trialsPanel(o: TrialsPanelOptions): HTMLElement {
     }
     table.append(row);
   }
-  box.append(table);
-  panel.append(box);
+  panel.append(table);
   return panel;
 }

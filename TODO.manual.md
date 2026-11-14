@@ -527,3 +527,13 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     point.
   - Give two gestures where one contains the other the same direction: both stay; give them
     different directions: the later one is set to None, and its note names On.
+- **A gesture's details keep their head, without the camera's picture** (on the tablet, with the
+  camera on):
+  - Open a fitted gesture's details: no picture of the camera; the face button is to the right of
+    the On level meter, and shows starting, then watching; cover the camera or look away: no face.
+  - Scroll down through the trials: the head (back, name, direction, Delete…) stays at the top; the
+    trials scroll with the dialog, with no box of their own.
+  - Open the details of a gesture with no On level yet (one with trials but no fit): the button is
+    at the right end of the head.
+  - Deny the camera: the button is off and the line saying why is still under the head.
+  - Back to the list: the picture and the hold are there again, the button beside the picture.

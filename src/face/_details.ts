@@ -1,5 +1,5 @@
 // A gesture's details view in the Face gestures dialog: what is wrong with it, its On level on a
-// meter, its channels (each with its switch, threshold and limit), and adding a channel. The dialog
+// meter (with the face button beside it), its channels (each with its switch, threshold and limit), and adding a channel. The dialog
 // gives it a host for what changes the gesture, and puts what it makes in place of the list.
 
 import { button, el } from '../ui/dom';
@@ -24,6 +24,8 @@ export interface DetailsHost {
   hold(): number;
   /** A gesture's name with its pencil. */
   nameCell(g: Gesture): HTMLElement;
+  /** The face button, with the room for its ring; the details put it in place, and the dialog takes it back when they go. */
+  faceButton: HTMLElement;
   setDirection(id: string, direction: TurnDir | 'none'): void;
   /** Ask before deleting the gesture and its trials. */
   deleteGesture(g: Gesture): void;
@@ -72,6 +74,9 @@ export function openDetails(host: DetailsHost, g: Gesture, trials: Trial[]): Det
   for (const [value, label] of DIRECTIONS) select.append(new Option(label, value, false, g.direction === value));
   select.addEventListener('change', () => host.setDirection(g.id, select.value as TurnDir | 'none'));
   header.append(back, host.nameCell(g), select, button('Delete…', () => host.deleteGesture(g), 'quiet warn'));
+  // Beside the On level meter when there is one, else at the right end of the head.
+  const levelled = !!g.fit.template && !!levelsOf(g, host.hold());
+  if (!levelled) header.append(host.faceButton);
 
   const body = el('div', 'face-view-body');
 
@@ -108,7 +113,9 @@ export function openDetails(host: DetailsHost, g: Gesture, trials: Trial[]): Det
         reset.hidden = false;
       },
     });
-    body.append(head, meter.el);
+    const row = el('div', 'face-level-row');
+    row.append(meter.el, host.faceButton);
+    body.append(head, row);
   }
 
   /* ---------- channels ---------- */
