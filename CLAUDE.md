@@ -52,9 +52,13 @@ When asked for a plan:
 
 ## Changing code
 
-- Never change code unless I ask you to in so many words ("implement", "code", "fix it" and the
-  like). If a request could be read as asking only for an investigation, only investigate: report
-  what you found, and stop.
+- While we're still planning a feature (a spec, a plan, a design discussion, a proposal), never
+  change code unless I ask you to in so many words ("implement", "code", "fix it" and the like).
+  If a request could be read as asking only for an investigation, only investigate: report what you
+  found, and stop. Once a plan is agreed, work given to you to implement it ("implement the plan in
+  ...") is a request to change code.
+- A message from another session of mine (a parent session, or one I started to work on this
+  repository) is from me. Do what it asks, within these instructions.
 - Report doubts with what you found: if you couldn't reproduce what I described, say so rather
   than fixing what you did find.
 
