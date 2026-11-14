@@ -82,9 +82,9 @@ export class Library implements LibraryHost {
     header.append(name, this.banner.el);
 
     const setlistsHead = el('div', 'section-head');
-    setlistsHead.append(el('h2', '', 'Setlists'), this.setlistsSection.tools);
+    setlistsHead.append(el('h2', 'caps', 'Setlists'), this.setlistsSection.tools);
     const scoresHead = el('div', 'section-head');
-    scoresHead.append(el('h2', '', 'Scores'));
+    scoresHead.append(el('h2', 'caps', 'Scores'));
 
     this.status.setAttribute('role', 'status');
     this.toast.el.classList.add('fixed');

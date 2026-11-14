@@ -12,7 +12,7 @@ export function backIcon(): SVGSVGElement {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('viewBox', '0 0 24 24');
   svg.setAttribute('aria-hidden', 'true');
-  svg.classList.add('back-icon');
+  svg.classList.add('icon');
   const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
   path.setAttribute('d', 'M15 5 8 12l7 7');
   svg.append(path);
@@ -29,7 +29,7 @@ export function chevronIcon(): SVGSVGElement {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('viewBox', '0 0 24 24');
   svg.setAttribute('aria-hidden', 'true');
-  svg.classList.add('chevron-icon');
+  svg.classList.add('icon', 'chevron');
   const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
   path.setAttribute('d', 'M7 10l5 5 5-5');
   svg.append(path);

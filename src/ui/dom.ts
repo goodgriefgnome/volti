@@ -36,7 +36,7 @@ export function icon(d: string): SVGSVGElement {
   const svg = document.createElementNS(SVG, 'svg');
   svg.setAttribute('viewBox', '0 0 24 24');
   svg.setAttribute('aria-hidden', 'true');
-  svg.classList.add('row-icon');
+  svg.classList.add('icon');
   const path = document.createElementNS(SVG, 'path');
   path.setAttribute('d', d);
   svg.append(path);

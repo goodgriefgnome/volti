@@ -73,12 +73,23 @@ input.name, input.search, select {
 .start { position: fixed; inset: 0; display: grid; place-content: center; justify-items: center; gap: var(--space-3); background: var(--bg); }
 .start-note { margin: 0; color: var(--muted); min-height: 1.5em; }
 
+/* A line icon: an SVG drawn with strokes, sized by where it sits. */
+.icon { display: block; width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+/* A round button over the score: the back arrow and the face button. */
+.float-button {
+  display: grid; place-items: center; width: var(--control); height: var(--control); min-height: 0; padding: 0; border: 0; border-radius: 50%;
+  background: color-mix(in srgb, var(--surface) 85%, transparent); color: var(--fg); box-shadow: 0 0 0 1px var(--line); opacity: 0.9;
+}
+
 /* Used by more than one directory. */
 .brand { font: italic 600 2.4rem/1 var(--font-brand); margin: 0; letter-spacing: 0.01em; }
 .tools { display: flex; gap: var(--space-3); flex-wrap: wrap; }
 .search { flex: 1 1 240px; min-width: 0; }
 .meta { color: var(--muted); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
-.pill { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.06em; border: 1px solid currentColor; border-radius: var(--radius-pill); padding: 0 var(--space-2); white-space: nowrap; color: var(--accent); }
+/* Small capitals: section heads, labels over a value. */
+.caps, .pill { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+/* A label, not a button: small capitals in a thin rounded outline. */
+.pill { border: 1px solid currentColor; border-radius: var(--radius-pill); padding: 0 var(--space-2); white-space: nowrap; color: var(--accent); }
 .pill.missing { color: var(--warn); }
 .more { flex: none; width: var(--control); padding: 0; }
 .chev { display: inline-block; width: 10px; height: 10px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform 200ms ease; }

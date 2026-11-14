@@ -348,7 +348,7 @@ class Reader {
       this.showFaceButton();
     }, (e) => failedOnce("load the face gestures' settings", e));
     // While the toolbar is hidden, a small back arrow at the top left still leads to the library.
-    const back = el('button', 'back');
+    const back = el('button', 'back float-button');
     back.type = 'button';
     back.append(backIcon());
     back.setAttribute('aria-label', 'Library');

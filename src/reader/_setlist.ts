@@ -20,9 +20,9 @@ const UNREAD_LABEL: Record<Unread, string> = {
  */
 export function blankBox(next: string | undefined, unread?: { title: string; why: Unread }): HTMLElement {
   const box = el('div', 'page blank');
-  if (unread) box.append(el('span', 'label', UNREAD_LABEL[unread.why]), el('span', 't', `“${unread.title}”`));
-  else if (next) box.append(el('span', 'label', 'Next'), el('span', 't', next));
-  else box.append(el('span', 'label', 'End of the setlist'));
+  if (unread) box.append(el('span', 'label caps', UNREAD_LABEL[unread.why]), el('span', 't', `“${unread.title}”`));
+  else if (next) box.append(el('span', 'label caps', 'Next'), el('span', 't', next));
+  else box.append(el('span', 'label caps', 'End of the setlist'));
   return box;
 }
 
@@ -46,7 +46,7 @@ export class ScoreCard {
     this.card?.remove();
     clearTimeout(this.timer);
     const card = el('p', 'score-card');
-    card.append(el('b', '', `${k + 1} OF ${n}`), title);
+    card.append(el('b', 'caps', `${k + 1} OF ${n}`), title);
     this.root.append(card);
     this.card = card;
     this.timer = setTimeout(() => card.classList.add('gone'), SCORE_CARD_MS);

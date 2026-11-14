@@ -45,12 +45,12 @@ const RING_R = 28.5;
 /** The button. `tap` and `longPress` are not called when made with `interactive: false` (the dialog's). */
 export function faceButton(o: { tap?: () => void; longPress?: () => void; interactive?: boolean }): FaceButton {
   const interactive = o.interactive !== false;
-  const b = el('button', 'face-button');
+  const b = el('button', 'face-button float-button');
   b.type = 'button';
   b.setAttribute('aria-label', 'Face gestures');
   b.setAttribute('aria-pressed', 'false');
 
-  const glyph = svgEl('svg', { viewBox: '0 0 24 24', class: 'face-glyph', 'aria-hidden': 'true' });
+  const glyph = svgEl('svg', { viewBox: '0 0 24 24', class: 'icon face-glyph', 'aria-hidden': 'true' });
   glyph.append(svgEl('path', { d: VIEWFINDER }));
   const slash = svgEl('path', { d: SLASH, class: 'face-slash' });
   glyph.append(slash);
