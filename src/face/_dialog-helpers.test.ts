@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { blameLine, listOrder, statusOf, trialView } from './_dialog-model';
+import { blameLine, listOrder, statusOf, trialView } from './_dialog-helpers';
 import { seeded, storedTrial } from './_test-frames';
 import { buildFit } from './_fit';
 import { newGesture, type Gesture } from './gestures';
