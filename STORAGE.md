@@ -318,7 +318,7 @@ It is the device's own, like `tool-settings`. Missing is no gestures; so is the 
 gestures' shape of before version 5. A gesture without an id, a name or a fit is dropped when
 read, and values out of range are clamped; a gesture's own `hold` or `release`, and `thresholds` in
 its `channels`, from earlier versions, are ignored. The reader reads only this key: a fit has all
-that turning needs. Release is not stored: it is halfway from `rest` to On. When a gesture was
+that turning needs. When a gesture was
 fitted by an earlier `FIT_VERSION`, every gesture is fitted again from its trials when the settings
 are next loaded (On moved by hand is dropped), the conflicts are checked again, and the result is
 saved.

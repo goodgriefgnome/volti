@@ -41,16 +41,18 @@ With `prefers-reduced-motion`, nothing turns, blinks or pulses; the states still
 While watching, a split ring outside the button shows how close each direction is to turning:
 the right half for next, the left half for back. Each half starts at the top and runs down its
 side, at most 170° (a gap is left at the bottom), on a circle 6.5 px outside the button's edge,
-4 px wide, with round ends.
+with round ends. Each half is one direction (Turning, below), with two arcs, the solid drawn over the
+faint:
 
-Each half shows the gesture nearest to turning among those set to its direction:
+- **Faint**, 6 px wide (the accent colour at 35%): how close the direction's strongest gesture is to
+  its On, from its zero point: the largest, over the direction's gestures, of
+  `(strength − zero) / (On − zero)`, from 0 to 1. A gesture whose On is at or under its zero point
+  counts 1 at On or above, else 0. It is full exactly when the direction is on.
+- **Solid**, 2 px wide (the accent colour): the direction's fill over the hold, from 0 to 1, drawn
+  whatever the faint arc shows. A spent direction looks no different.
 
-- **Faint** (the accent colour at 35%) grows as the gesture's strength climbs from its Release level
-  to its On level: `(strength − release) / (on − release)`, from 0 to 1. Under the Release level it
-  shows nothing.
-- Once the gesture is on (below), faint is full, and **solid** (the accent colour) grows over it
-  with the time held: `held / hold`, the hold being the one for every gesture. The page turns when it is full.
-- After a turn, that gesture shows nothing until it is let go.
+Where the faint arc is longer it shows either side of the solid, and where the solid is longer it
+runs on alone.
 
 ### When it watches
 
@@ -119,17 +121,46 @@ can't be a gesture for now.
 - **On** is the fitted level until it is set by hand (dragged); it goes back to the fitted one on
   **Reset**, or when new trials are recorded. Channel changes and disabling a trial leave it, and
   Reset leaves the channels.
-- **Release** can't be set: it is always halfway between the gesture's rest level and its On level,
-  whether On is the fitted one or one set by hand.
+- The **zero point** is where the ring's faint arc starts. It is the most strength any of the
+  gesture's rest frames reached (against its fitted template, over its enabled trials), but never
+  more than halfway from its rest level to On: `min(rest max, rest + 0.5 × (On − rest))`. It follows
+  On when On is moved by hand, and can't be set.
 
-A gesture **can turn a page** when it is fitted and has a direction. It comes **on** when its
-strength reaches its On level, and stays on until its strength falls under its Release level (it is
-**let go**), or no face is seen. It turns the page when it has been on for the hold, unless it
-already turned and hasn't been let go since. Turning also goes through the gate above.
+There is no Release level. Nothing that turns pages, draws the ring or checks conflicts uses one.
+
+A gesture **can turn a page** when it is fitted and has a direction. Turning is by direction, Next
+and Back (a gesture set to None plays no part). On each frame with a face, a direction is **on**
+when at least one of its gestures has a strength at or above its own On. Each direction has a
+**fill**, from 0 to the hold, and is either **armed** or **spent**; it starts armed, at 0:
+
+- **Armed**: the fill rises by the time since the last frame while the direction is on, and falls
+  by twice that while it isn't, never below 0. When it reaches the hold, the page turns in that
+  direction, and the direction is spent with its fill full.
+- **Spent**: the fill falls by the time since the last frame while the direction isn't on, and
+  rises by twice that while it is, never above the hold. When it reaches 0, the direction is armed
+  again.
+
+So a clean hold turns the page after the hold. A dip below On while holding costs three times its
+length, and a direction that is on less than two thirds of the time never turns. After a turn the
+direction turns no more while it is held: to be armed again it has to be let go for the hold, by
+the same rule the other way round (a flicker back above On while letting go costs three times its
+length).
+
+- Gestures of one direction add up: a frame counts if any of them is on. Two Next gestures can't
+  turn twice, since they share one fill.
+- **One turn at a time.** When a direction turns the page, the other is spent too, with its fill
+  full. If both would turn on the same frame, Next turns and Back is spent.
+- The time since the last frame is counted at most 200 ms, so a stall doesn't jump the fill. The
+  first frame counts 0.
+- A frame without a face lets go: both directions are armed at 0.
+- New gestures (a change in the dialog, settings loaded again), and the camera pausing, start both
+  directions afresh, armed at 0.
+
+Turning goes through the gate above.
 
 Gestures that can turn a page can't **conflict** (`face-classifier-spec.md`): one that would is set
-to none when it is recorded or given its direction, and its row says why. If two gestures reach
-the hold on the same frame, only the first, in the order they were added, turns the page.
+to none when it is recorded or given its direction, and its row says why. Only gestures of
+different directions conflict.
 
 A new gesture starts set to Next. Names may repeat.
 
@@ -171,7 +202,7 @@ From the top:
    it."
    - A **fitted** gesture's row: its name, a pencil (renames it, asking for the new name: not
      empty), its direction as a dropdown (Next, Back, None), **Record**, and a meter: its strength
-     now, 0 to 1, with On as a handle that can be dragged (Release, dashed, follows it). Under the
+     now, 0 to 1, with On as a handle that can be dragged. Under the
      meter, its status (below). Tapping the row anywhere but its controls opens its details, and a
      › at its end says so.
    - A gesture **not fitted**: its name, the pencil, **Record**, and "Record N more trials" (N is
@@ -204,7 +235,7 @@ From the top:
    trials).
 4. **On level**, with **Reset** beside the title (shown once On was set by hand). A meter 24 px
    tall: the strength now; On as a dark handle with its value on a tag (`On 0.64`), dragged directly
-   (keyboard: arrows, 0.01 a step); Release as a dashed line with its value on a dashed tag. Under
+   (keyboard: arrows, 0.01 a step). Under
    the meter, ticks: the rest level (labelled `rest`) and each enabled trial's held strength
    (labelled `trials`); a trial's tick under On is in the warning colour.
 5. **Channels**, with **Reset** beside the title (shown once a channel was changed). One row per
@@ -260,11 +291,11 @@ It is worked out from the enabled trials when the details open.
     shaded and two levels dashed, unlabelled;
   - two or three numbers;
   - a disabled trial's row is faded, and its numbers struck through.
-- **Strength** shown: the trace is its strength against the fit, the levels On and Release, and a
-  short tick in the warning colour under each misfire (a rest frame whose strength reaches On).
+- **Strength** shown: the trace is its strength against the fit, the levels On and the zero
+  point, and a short tick in the warning colour under each misfire (a rest frame whose strength reaches On).
   Numbers: **Held** (its held strength against a fit without it, as the meter's ticks) and **At
   rest** (the 95th percentile of its strength over its rest frames). Held under On, or At rest at
-  Release or over, is in the warning colour, and so is the row's background.
+  or over halfway from the rest level to On, is in the warning colour, and so is the row's background.
 - **A channel** shown: the trace is the channel's value, the levels its threshold and its rest
   value. Numbers: **Held** (the median over its held frames), **At rest** (the rest's reach: its
   90th percentile over rest frames toward the gesture's side) and **Past** (the share of its held
@@ -341,7 +372,8 @@ trials.
 
 The fitting has a version (`FIT_VERSION`). When stored gestures were fitted by an earlier one, they
 are fitted again from their trials when the settings are next loaded (their On moved by hand is
-dropped, and so is a hold or a Release a gesture had of its own, from before there was one hold),
+dropped, and so is a hold or a Release a gesture had of its own, from before there was one hold, and
+its fit keeps `restMax`, the most strength any rest frame reached),
 and the conflict check runs again. A fit of an earlier version is read as its version and trials
 only, so its gesture is kept.
 

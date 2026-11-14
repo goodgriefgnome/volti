@@ -479,7 +479,7 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - Record a round with the face out of the camera's view: the round ends after the first trial,
     saying the face wasn't seen.
   - Cancel a round during the third trial: the gesture has two more trials than before.
-  - Move On and Release by hand, then record another round: they are back to the fitted ones.
+  - Move On by hand, then record another round: it is back at the fitted one.
   - Clear a gesture's trials: its meter goes, its direction stays, and the reader's button is
     struck through if it was the only one.
   - In the reader, with the toolbar hidden: tap the face button, and turn pages with each gesture;
@@ -488,11 +488,11 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     `{ gestures: [...] }` and `data-version` is 5.
 - **Face gestures dialog, redesigned** (on the tablet, with the camera and the sound on):
   - After updating: every gesture is kept, with its trials; Gesture hold shows 500 ms; each fitted
-    gesture's On is the fitted one, and Release is halfway between rest and On.
+    gesture's On is the fitted one.
   - The list: fitted gestures first; one with two trials shows only its name, pencil, Record and
     "Record 1 more trial", and tapping it opens nothing. Rename one with the pencil.
-  - Drag On on a list row's meter: its dashed Release follows; open its details: On is where it was
-    left, and Reset beside On level puts it back.
+  - Drag On on a list row's meter; open its details: On is where it was left, and Reset beside On
+    level puts it back.
   - In the details, wink: the winking eye's dot moves along its lane and passes the pennant; the
     other eye's ring stays left of the bracket; blink: the ring passes the bracket, and the strength
     stays low. The dot, the ring and the bands line up with their lanes, and the row looks right at
@@ -514,3 +514,16 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     three more trials. Record again: Play from offers the same page; Start goes straight to it.
   - With the library empty, Change… offers only Empty staves.
   - In the reader, turn pages with each gesture: each turns after about half a second's hold.
+- **Turning by direction, without Release** (in the app, with a face):
+  - Hold a gesture: the faint arc fills as you go toward it, then the thin solid arc fills, and the
+    page turns after the hold. Keep holding: no second turn; the solid arc stays full.
+  - Let go: the solid arc drains over the hold; hold again before it empties: it fills back up, and
+    no turn. Let it empty, hold again: it turns.
+  - Blink or twitch briefly during a hold: the turn comes a little later, not from the start.
+  - Two gestures set to Next: either turns the page; switching from one to the other mid-hold keeps
+    the fill.
+  - A Next gesture and a Back gesture at once: only one turn; the other direction needs letting go.
+  - In the dialog: the meter has no Release line; a trial's Strength trace shows On and the zero
+    point.
+  - Give two gestures where one contains the other the same direction: both stay; give them
+    different directions: the later one is set to None, and its note names On.

@@ -4,8 +4,8 @@ Instead of eight predefined gestures, the person defines their own: they name a 
 themselves doing it while playing, and map it to Next, Back or None. Each gesture is fitted from its
 own recordings as a **template**: a few blendshape channels, each with the value it must reach, and
 limits on the other side of the face. A frame's **strength** `y`, from 0 to 1, is how far those
-channels have come from rest to the gesture. `y` feeds the turning (On, Release, Hold, the 100 ms
-gate).
+channels have come from rest to the gesture. `y` feeds the turning (On, the zero point, Hold, the
+100 ms gate).
 
 There is no network and no training: fitting is medians and percentiles, done at once whenever a
 recording changes. What is left of playing (the background) is no class of its own: a frame is
@@ -151,24 +151,26 @@ limit, so averaged in they would raise every rest frame's strength.
 
 ## The levels
 
-A gesture's On and Release levels come from its own enabled trials:
+A gesture's levels come from its own enabled trials:
 
 - its **rest level**: the 95th percentile of `y` over its rest frames;
 - each trial's **peak**: the median of `y` over its held frames, against a template fitted without
   that trial;
 - **On** = rest level + 0.65 × (lowest peak − rest level), from 0.05 to 0.95, the fitted one;
-- **Release** = rest level + 0.5 × (On − rest level), always: it can't be set, and it follows On
-  when On is moved by hand.
+- its **rest max**: the most `y` any rest frame reached;
+- the **zero point** = the rest max, but never more than halfway from the rest level to On:
+  `min(rest max, rest level + 0.5 × (On − rest level))`. It is where the ring's faint arc starts. It
+  follows On when On is moved by hand, and can't be set.
 
-On can be moved by hand; it goes back to the fitted one on Reset, or when new trials are recorded; a channel change or a
-trial disabled or enabled leaves it. Hold is one for every
-gesture, 500 ms to start with (`face-gestures-spec.md`).
+There is no Release level. On can be moved by hand; it goes back to the fitted one on Reset, or when
+new trials are recorded; a channel change or a trial disabled or enabled leaves it. Hold is one for
+every gesture, 500 ms to start with (`face-gestures-spec.md`).
 
 ## Turning
 
-`y` feeds the turning of `face-gestures-spec.md`: a gesture comes on when `y` reaches its On level,
-stays on until `y` falls under its Release level, and turns the page in its direction after being
-on for the hold, once until let go, through the 100 ms gate. A stretch of over 200 ms without a
+`y` feeds the turning of `face-gestures-spec.md`, which is by direction: a direction is on when any of
+its gestures has a `y` at or above its own On; its fill rises while it is on and drains while it
+isn't, and the page turns when the fill reaches the hold, through the 100 ms gate. A frame without a
 face lets every gesture go.
 
 ## Checking
@@ -189,18 +191,21 @@ A flagged gesture can still be tried.
 
 ### Gestures that conflict
 
-Gestures that turn pages can't conflict. Gesture `j` **fires on** gesture `i` when, for any of `i`'s
-enabled trials, the median of `j`'s strength over that trial's held frames reaches `j`'s Release
-level: `j` would stay on through it. Two gestures conflict when either fires on the other.
+Gestures that turn pages in different directions can't conflict. Gesture `j` **fires on** gesture
+`i` when, for any of `i`'s enabled trials, the median of `j`'s strength over that trial's held
+frames reaches `j`'s On: `j` would be on through it. Two gestures conflict when they have different
+directions (Next and Back) and either fires on the other. Gestures of one direction never conflict:
+they share a fill.
 
 - Gestures set to None are not checked.
 - The gestures with a direction are gone through in the order they were added, but with the one
   just recorded, or just given a direction, last. One that conflicts with a gesture already gone
-  through is set to None, and says why: which fires on which, the strength and the Release level,
+  through is set to None, and says why: which fires on which, the strength and the On level,
   and the moving channels the two share (or, if they share none, the ones the firing gesture
   needs).
-- So a gesture that contains another can't turn pages beside it: "mouth to the left" and "mouth to
-  the left with the brows up" conflict, since the first asks for nothing the second lacks.
+- So a gesture that contains another can't turn pages the other way beside it: "mouth to the left"
+  and "mouth to the left with the brows up" conflict if one is Next and the other Back, since the
+  first asks for nothing the second lacks; as two Next gestures they don't.
 
 ## How the constants were chosen
 
@@ -208,7 +213,8 @@ On recordings of three gestures (a mouth pushed to one side, and a wink of each 
 each, by leaving one trial out at a time: the template and the levels fitted on the gesture's other
 four, then run through the turning (On, Release, a 250 ms hold) over the trial left out and every
 trial of the other two gestures, and over a made-up blink (the left-out wink with the winking
-side's eye and brow channels copied onto the other side).
+side's eye and brow channels copied onto the other side). This was measured with Release, before
+turning by direction.
 
 | | Root mean square, On at 0.8 | As specified |
 | --- | --- | --- |
@@ -257,7 +263,7 @@ service worker leaves it alone. It has no tests.
   aren't kept: they are fitted again on loading. Recordings from before the tones counted down are
   dropped, as are the background recordings and levels of the network this replaced.
 
-The page keeps the words it was written in (score, cap, clear); the app's are strength, limit and
+The page keeps the words it was written in (score, cap, clear) and its turning with Release; the app's are strength, limit and
 separation, and the app has one hold for every gesture and no boxes for the fractions.
 
 ## Decisions and limits
