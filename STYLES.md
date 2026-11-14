@@ -51,6 +51,8 @@ No colour is written outside the token block at the top of `base.css`: no hex, n
 | `--warn`, `--warn-soft` | Errors, warnings, destructive actions, and their tint |
 | `--paused` | Something switched off or paused |
 | `--bar` | Chrome that floats over content: the reader's toolbar and menus, toasts, the score card |
+| `--surface-float` | The floating buttons' background: the surface, a little see-through |
+| `--hover` | A row, menu item or bare button under the pointer or being pressed: one faint grey tint |
 | `--paper` | A score's page and its thumbnails: white in both themes |
 | `--scrim` | Behind a dialog |
 | `--shade` | Over music that is left out |
@@ -74,8 +76,19 @@ Fonts are `--font-ui` (everything), `--font-brand` (the name, titles in the read
 | Shadow | `--shadow-paper`, `--shadow-float`, `--shadow-popup` | A page or thumbnail on its background; something floating over content; menus and dialogs |
 | Layer | `--z-reader`, `--z-toast`, `--z-popup`, `--z-over-popup`, `--z-top`, `--z-capture` | Stacking across the whole app, lowest first. Inside the reader, layers are small local numbers, listed in a comment in `reader.css` |
 
+| Edge | `--edge` (8 px) | How far anything floating keeps from the screen's edge (`max(var(--edge), env(safe-area-inset-…))`), and dialogs, menus and notes from each side (`calc(100vw - 2 * var(--edge))`) |
+| Tile | `--tile` (56 px) | A symbol's tile: the Symbols panel, the glyph picker, the library editor |
+| Checkbox | `--check` (20 px) | A checkbox's size; what lines up with the text beside one is `calc(var(--check) + var(--space-2))` |
+| Dimming | `--dim` (0.5), `--dragged` (0.6) | The opacity of something disabled, switched off or not applicable, and of a symbol whose copy is dragged; and of a row being dragged to a new place |
+| Timing | `--quick` (160 ms), `--slow` (300 ms) | Transitions: what answers a tap is quick; only what happens by itself (the score card's fade-out) is slow |
+| Focus | `--focus` (3 px accent line) | The keyboard's focus ring, `outline: var(--focus)`; `:focus-visible` sets it on every element, so a rule only moves it |
+
 Rows are 48 px high when nested or compact and 56 px at the top level. A list inside a dialog or menu
-grows to `--scroll-max` and then scrolls.
+grows to `--scroll-max` and then scrolls. A dialog sets `--pad` and `--gap` (its padding and gap), and
+a negative margin that cancels either is written from it; the library does the same with its `--gap`.
+
+Secondary text takes `--muted`; opacity is for dimming (`--dim`, `--dragged`) and drawing, never to
+make text look secondary.
 
 **What the scales don't cover.** Drawing and alignment keep their own pixel values: the marks over
 the music (the selection, the cut tabs, the loupe), the face dialog's bars and meters, the sizes of
@@ -96,10 +109,22 @@ don't restate what they set.
 | `.chip` (`.mono`) | A small rounded button: a filter, a removable choice, a toggle in a row of them |
 | `.pill` | A label in a thin rounded outline, not a button (`.missing` for a warning) |
 | `.caps` | Small capitals: section heads, labels over a value |
-| `.icon` | A line icon (an SVG drawn with strokes); size it by where it sits |
+| `.icon` | A line icon (an SVG drawn with strokes); size it by where it sits. `.icon.chevron` is the right-pointing chevron, `.down` turns it down |
+| `.icon-button` | A square button (`--control`, `.small` is `--control-sm`) showing an icon or a single character; with `quiet` it has no border or background |
+| `.row-button` | A button that is a whole row, or the text of one: library rows, folder heads, menu items. Faint hover tint where the device can hover, and while pressed |
+| `button.small` | A button with text, beside others in a tight row (`--control-sm` high) |
+| `.note` | A short message floating over the screen: the toast, the score card, the scope note. Add where it sits |
+| `.reordering` | A row being dragged to a new place; `dragToReorder` sets it |
+| `:focus-visible` | The focus ring on every element; don't set `outline` except to move it, with `var(--focus)` |
 | `.float-button` | A round button over the score |
 | `--dialog-w` | A dialog's width (`.dialog` in `ui.css` reads it, default 720 px): set it on the dialog's class only when that is too narrow; `.wide` is 900 px |
 | Divided lists | A list of rows has a line above and below it and one between rows; a list nested in a row has only the lines between rows |
+
+## Icons
+
+Every icon is drawn by `icon(d, cls?)` in `ui/dom.ts`, from a path in a 24 × 24 box. The paths used
+in more than one place are exported beside it: `BACK`, `CHEVRON`, `DOTS` and `GRIP`. No character
+stands in for an icon.
 
 Dialogs, menus and toasts are made by `ui/` (`showDialog` in `ui/overlay.ts`, `ask-text.ts`,
 `Toast`), and come styled; fill them with `el`, `button` and `buttonRow` from `ui/dom.ts` and
@@ -108,5 +133,7 @@ Dialogs, menus and toasts are made by `ui/` (`showDialog` in `ui/overlay.ts`, `a
 ## Checking
 
 `npm test` runs `src/styles/styles.test.ts`, which fails on a colour outside the tokens, a text size,
-radius or gap that isn't from its scale, or a global z-index that isn't a layer token. Look at the
+radius or gap that isn't from its scale, a global z-index that isn't a layer token, a `color-mix()`
+written outside the tokens, a transition whose duration isn't `--quick` or `--slow`, and an `outline`
+that isn't `var(--focus)`. Look at the
 change in the app in both themes (switch the system's theme), and on a phone width.

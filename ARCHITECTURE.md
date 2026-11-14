@@ -207,7 +207,7 @@ change goes through the `LibraryHost`. The reader's `⋯` menu (`reader/_toolbar
 has the same items for what it reads, so add the item there too.
 
 **A dialog**: `ui/ask-text.ts` for one that asks for a line of text; otherwise `showDialog` from
-`ui/overlay.ts`, filled with `el`, `button` and `buttonRow` from `ui/dom.ts` and `ui/overlay.ts`.
+`ui/overlay.ts`, filled with `el`, `button`, `icon` (and the icon paths beside it) and `buttonRow` from `ui/dom.ts` and `ui/overlay.ts`.
 It goes with the screen that opens it, or in `dialogs/` when both do.
 
 **Styling a new element**: reuse a shared part from `styles/base.css` (a button, a toggle with
