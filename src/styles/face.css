@@ -180,7 +180,9 @@
 .face-trials .tr.flagged { background: color-mix(in srgb, var(--warn) 12%, transparent); }
 .face-trials .tr.off { opacity: 0.5; }
 .face-trials .tr.off .n { text-decoration: line-through; }
-.face-trials .trace-cell { min-width: 0; }
+.face-trials .trace-cell { min-width: 0; position: relative; }
+/* The frames left out round a tone (face/_trials.ts), hatched under the trace; the held part is solid in the trace. */
+.face-trials .trace-cell .guard { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, var(--muted) 0 1px, transparent 1px 5px); opacity: 0.45; }
 .face-trials svg.trace { width: 100%; height: 36px; display: block; color: var(--accent); overflow: hidden; }
 .face-trials .tr.flagged svg.trace { color: var(--warn); }
 .face-trials svg.trace .held { fill: var(--accent-soft); }

@@ -537,3 +537,9 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     at the right end of the head.
   - Deny the camera: the button is off and the line saying why is still under the head.
   - Back to the list: the picture and the hold are there again, the button beside the picture.
+- **A trial's trace marks the frames left out round each tone** (in a gesture's details, with
+  trials):
+  - Each trial's trace has a solid shaded part, lightly hatched bands either side of it (500 ms
+    each side of each tone), and nothing outside them; no line marks the tones.
+  - A misfire tick (red) inside a hatched band is not possible: ticks are only at rest, outside them.
+  - A channel's chip shows the same bands.

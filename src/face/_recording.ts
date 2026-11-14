@@ -10,7 +10,7 @@ export const STRIDE = 55;
 export interface Trial { tUp: number; tDown: number; n: number; data: Float32Array; /** Kept, but left out of the fit. */ disabled?: true }
 
 /** Frames this close to a third tone (ms) are left out: the change is expected within that second. */
-const GUARD = 500;
+export const GUARD = 500;
 
 /** A trial's held and rest frames, by the labels of face-classifier-spec.md (500 ms either side of each tone left out). */
 export function framesOf(t: Trial): TrialFrames {

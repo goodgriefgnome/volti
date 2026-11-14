@@ -55,7 +55,8 @@ describe('trialView with strength shown', () => {
   it('traces every frame, with On and Release, the trial\'s peak and its rest strength', () => {
     const v = trialView(ts[1], 1, ts, good, 'strength');
     expect(v.trace).toHaveLength(ts[1].n);
-    expect(v.held).toEqual([3000, 8000]);
+    expect(v.held).toEqual([3500, 7500]);
+    expect(v.guards).toEqual([[2500, 3500], [7500, 8500]]);
     expect(v.levels[0]).toBeGreaterThan(v.levels[1]);
     expect(v.numbers[0]).toBeCloseTo(good.fit.peaks![1]);
     expect(v.numbers[1]).toBeLessThan(v.levels[1]);

@@ -30,9 +30,24 @@ const svg = <K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string,
 };
 const two = (v: number) => (Number.isFinite(v) ? v.toFixed(2) : '–');
 
+/** How long a trial's trace runs (ms). */
+const lengthOf = (v: TrialView) => Math.max(1, v.trace[v.trace.length - 1]?.t ?? 1);
+
+/** The bands left out round the tones, hatched, as spans under the trace (a hatch in the trace's own svg would be stretched with it). */
+function guards(v: TrialView): HTMLElement[] {
+  const length = lengthOf(v);
+  return v.guards.map(([a, b]) => {
+    const from = Math.min(length, Math.max(0, a));
+    const band = el('span', 'guard');
+    band.style.left = `${(from / length) * 100}%`;
+    band.style.width = `${(Math.min(length, Math.max(from, b)) - from) / length * 100}%`;
+    return band;
+  });
+}
+
 /** A trial's trace: what is shown through the trial, 0 at the bottom and 1 at the top, its held part shaded, the two levels dashed, a tick under each misfire. */
 function trace(v: TrialView): SVGSVGElement {
-  const length = Math.max(1, v.trace[v.trace.length - 1]?.t ?? 1);
+  const length = lengthOf(v);
   const s = svg('svg', { class: 'trace', viewBox: `0 0 ${length} 1`, preserveAspectRatio: 'none', 'aria-hidden': 'true' });
   s.append(svg('rect', { class: 'held', x: v.held[0], y: 0, width: Math.max(0, v.held[1] - v.held[0]), height: 1 }));
   for (const level of v.levels) s.append(svg('line', { class: 'level', x1: 0, x2: length, y1: 1 - level, y2: 1 - level }));
@@ -83,7 +98,7 @@ export function trialsPanel(o: TrialsPanelOptions): HTMLElement {
     row.append(sw, el('span', 'n', String(i + 1)));
     if (v) {
       const cell = el('span', 'trace-cell');
-      cell.append(trace(v));
+      cell.append(...guards(v), trace(v));
       row.append(cell);
       v.numbers.forEach((n, k) => {
         const text = shown !== 'strength' && k === 2 ? `${Math.round(n * 100)}%` : two(n);

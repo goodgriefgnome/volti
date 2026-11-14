@@ -292,8 +292,11 @@ It is worked out from the enabled trials when the details open.
   row on top. A row:
   - a switch: enabled or disabled;
   - its number (1 for the first recorded);
-  - a trace: what is shown, through the trial, 0 at the bottom and 1 at the top, with its held part
-    shaded and two levels dashed, unlabelled;
+  - a trace: what is shown, through the trial, 0 at the bottom and 1 at the top, with two levels
+    dashed, unlabelled, and three kinds of time shaded as the fit takes them: **held** (from the
+    rising tone + 500 ms to the falling tone − 500 ms) solid; the 500 ms either side of each tone,
+    which the fit leaves out, lightly hatched; rest not at all. No line marks the tones, which sit
+    in the middle of their hatched bands;
   - two or three numbers;
   - a disabled trial's row is faded, and its numbers struck through.
 - **Strength** shown: the trace is its strength against the fit, the levels On and the zero

@@ -3,7 +3,7 @@
 // that says which trials to blame for a gesture firing while resting. Pure: no DOM.
 
 import { MIN_TRIALS } from './_fit';
-import { STRIDE, framesOf, type Trial } from './_recording';
+import { GUARD, STRIDE, framesOf, type Trial } from './_recording';
 import { CHANNELS, median, quantile, strength, type Template, type TrialFrames } from './_template';
 import { HOLD_DEFAULT, levelsOf, ZERO_LIMIT_FRAC, type Gesture } from './gestures';
 
@@ -37,8 +37,10 @@ export function statusOf(g: Gesture): { text: string; warn: boolean } {
 export interface TrialView {
   /** Every frame, t in ms from the trial's start. */
   trace: { t: number; v: number }[];
-  /** tUp, tDown. */
+  /** The held part, left out of nothing: from the rising tone + GUARD to the falling tone − GUARD. */
   held: [number, number];
+  /** The frames left out round each tone: GUARD either side of the rising tone, then of the falling one. */
+  guards: [[number, number], [number, number]];
   /** The two dashed levels. */
   levels: [number, number];
   /** Held, At rest (and Past, 0 to 1, for a channel). */
@@ -56,7 +58,13 @@ function allFrames(t: Trial): { t: number; x: Float32Array }[] {
   return out;
 }
 
-const NOTHING = (t: Trial): TrialView => ({ trace: [], held: [t.tUp, t.tDown], levels: [0, 0], numbers: [], bad: [], misfires: [] });
+/** A trial's held part and the bands left out round its tones, as `framesOf` leaves them. */
+const timesOf = (t: Trial) => ({
+  held: [t.tUp + GUARD, t.tDown - GUARD] as [number, number],
+  guards: [[t.tUp - GUARD, t.tUp + GUARD], [t.tDown - GUARD, t.tDown + GUARD]] as [[number, number], [number, number]],
+});
+
+const NOTHING = (t: Trial): TrialView => ({ trace: [], ...timesOf(t), levels: [0, 0], numbers: [], bad: [], misfires: [] });
 
 /** The share of `values` for which `past` holds. */
 const share = (values: number[], past: (v: number) => boolean) => (values.length ? values.filter(past).length / values.length : 0);
@@ -67,7 +75,7 @@ export function trialView(trial: Trial, index: number, all: Trial[], g: Gesture,
   if (!template || !levels) return NOTHING(trial);
   const frames = allFrames(trial);
   const split = framesOf(trial);
-  const view = { held: [trial.tUp, trial.tDown] as [number, number], misfires: [] as number[] };
+  const view = { ...timesOf(trial), misfires: [] as number[] };
   if (shown === 'strength') {
     // A trial's held strength is its peak against a fit without it; one left out of the fit has no such, so it is against the fit itself.
     const enabledIndex = all.slice(0, index).filter((t) => !t.disabled).length;

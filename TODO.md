@@ -13,14 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **A trial's trace marks the frames left out round each tone:** the shaded part of a trial's
-  trace runs from its third rising tone to its third falling one (`trialView`'s `held`,
-  `face/_dialog-helpers.ts`; drawn in `trace`, `face/_trials.ts`), but the fit leaves out every
-  frame within 500 ms of either tone (`framesOf`, `face/_recording.ts`). The trace shades three
-  kinds of time: held (from the rising tone + 500 ms to the falling tone − 500 ms) solid, as now;
-  the 500 ms either side of each tone lightly hatched; rest not at all. No line marks the tones
-  themselves, which sit in the middle of their hatched bands. `docs/face-gestures-spec.md` (the
-  trace) says so too.
 - **Re-arming after a turn takes at least a second:** after a turn, a direction is spent until
   it has been let go for the hold (`step`, `face/_detector.ts`), 500 ms to start with, so a
   gesture let go briefly turns the page again too soon. It is to be let go for the longer of the
