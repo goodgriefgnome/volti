@@ -13,6 +13,15 @@ scores.
 
 ## Work for the immediate future
 
+- **A gesture's details keep their head on screen, without the camera:** in a gesture's details
+  (Face gestures dialog), the camera's picture and the face button over it go
+  (`.face-stage`, `face/dialog.ts`; the hold slider already hides there), and so does the line
+  saying the camera failed to start. The camera keeps running, as the meter and the channel rows
+  still follow the face. The head (back, the name, the direction, Delete…: `.face-view-head`,
+  `face/_details.ts`) stays at the top of the dialog while the rest scrolls under it. The trials no
+  longer scroll in a box of their own (`.face-trials-box`, `styles/face.css`): they scroll with the
+  dialog.
+
 ## Confirmed features which require more thought
 
 - **The cache giving room back when the origin runs short of quota**: pinned
