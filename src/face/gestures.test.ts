@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activeOf, faceSettingsFrom, hasGestures, levelsOf, newGesture, NO_GESTURES, withFit, withLevels, withoutOn, type FaceSettings, type Gesture } from './gestures';
+import { activeOf, faceSettingsFrom, hasGestures, levelsOf, newGesture, NO_GESTURES, withFit, withChannels, withLevels, withoutOn, type FaceSettings, type Gesture } from './gestures';
 import { FIT_VERSION, type Fit } from './_fit';
 
 const template = { rows: [{ c: 0, side: 1 as const, edge: 0.8, far: 0.1, rest: 0.02, span: 0.78, separation: 0.9 }], limits: [] };
@@ -92,6 +92,15 @@ describe('withLevels', () => {
   it('keeps On in range', () => {
     expect(withLevels(gesture(), 0.001).on).toBe(0.05);
     expect(withLevels(gesture(), 3).on).toBe(0.95);
+  });
+});
+
+describe('withChannels', () => {
+  it('edits the changes, and keeps none when nothing is left', () => {
+    const g = withChannels(gesture(), (c) => ({ ...c, forcedOff: ['eyeBlinkLeft'] }));
+    expect(g.channels).toEqual({ forcedOff: ['eyeBlinkLeft'], forcedOn: [], thresholds: {} });
+    const back = withChannels(g, (c) => ({ ...c, forcedOff: [] }));
+    expect(back).not.toHaveProperty('channels');
   });
 });
 

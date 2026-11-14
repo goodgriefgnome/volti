@@ -59,6 +59,13 @@ export function levelsOf(g: Gesture, hold: number): { on: number; release: numbe
   return { on: o, release: rest + RELEASE_FRAC * (o - rest), hold };
 }
 
+/** A gesture with its channel changes edited by `to`; none are kept when nothing is left changed. */
+export function withChannels(g: Gesture, to: (c: GestureChannels) => GestureChannels): Gesture {
+  const c = to({ forcedOff: [...(g.channels?.forcedOff ?? [])], forcedOn: [...(g.channels?.forcedOn ?? [])], thresholds: { ...g.channels?.thresholds } });
+  const { channels: _old, ...rest } = g;
+  return c.forcedOff.length || c.forcedOn.length || Object.keys(c.thresholds).length ? { ...rest, channels: c } : rest;
+}
+
 /** A gesture with On moved by hand, kept in range. */
 export function withLevels(g: Gesture, on: number): Gesture {
   return { ...g, on: clamp(on, LEVEL_RANGE.min, LEVEL_RANGE.max) };

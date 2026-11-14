@@ -5,18 +5,19 @@
 import { buttonStatus } from './button-status';
 import { faceButton } from './face-button';
 import { activeOf, HOLD_RANGE, hasGestures, levelsOf, newGesture, NO_GESTURES, withFit, withLevels, type FaceSettings, type Gesture, type TurnDir } from './gestures';
+import { openDetails, type Details, type DetailsHost } from './_details';
 import { buildFit } from './_fit';
 import { listOrder, statusOf, isFitted } from './_dialog-helpers';
 import { strengthMeter } from './_meter';
 import { readyTones } from './_tones';
 import type { Trial } from './_recording';
 import { settled } from './_settling';
-import { loadFaceSettings, loadTrials, saveFaceSettings, saveTrials } from './store';
+import { deleteTrials, loadFaceSettings, loadTrials, saveFaceSettings, saveTrials } from './store';
 import { strength } from './_template';
 import { FaceWatcher, type CameraStatus } from './watcher';
 import { button, el } from '../ui/dom';
 import { failed, failedOnce } from '../ui/failure';
-import { buttonRow, closeOverlay, showDialog, whenOverlayCloses } from '../ui/overlay';
+import { buttonRow, closeOverlay, showDialog, showOnTop, whenOverlayCloses } from '../ui/overlay';
 import { recordRound, type FrameListener, type Round } from './_round';
 
 const DIRECTIONS: [value: string, label: string][] = [['next', 'Next'], ['prev', 'Back'], ['none', 'None']];
@@ -68,7 +69,10 @@ export function openFaceGestures(closed?: () => void): void {
   stage.append(watcher.video, el('div', 'face-preview-button'), hold);
   stage.querySelector('.face-preview-button')!.append(preview.el);
   showButton();
-  d.append(stage, problem);
+  // What a gesture's details put above the preview.
+  const headSlot = el('div', 'face-view-head-slot');
+  headSlot.hidden = true;
+  d.append(headSlot, stage, problem);
 
   /* ---------- the settings ---------- */
 
@@ -103,9 +107,11 @@ export function openFaceGestures(closed?: () => void): void {
   /* ---------- the list ---------- */
 
   const rows = el('div', 'face-rows');
+  const detailsBody = el('div', 'face-view-body-slot');
+  detailsBody.hidden = true;
   const meters = new Map<string, (x: Float32Array | null) => void>();
   frameListeners.add((_f, x) => meters.forEach((m) => m(x)));
-  d.append(rows);
+  d.append(rows, detailsBody);
 
   /** Why a round ended early, by the gesture it was for, until the next round. */
   const problems = new Map<string, string>();
@@ -115,7 +121,7 @@ export function openFaceGestures(closed?: () => void): void {
     const next: FaceSettings = { ...settings, gestures: settings.gestures.map((g) => { if (g.id !== id) return g; const { note: _note, ...rest } = g; return { ...rest, direction }; }) };
     // A gesture given a direction can conflict: it is the first to give way.
     commit(direction === 'none' ? next : settled(next, await trialsOfActive(next), id));
-    renderRows();
+    render();
   });
 
   /** A gesture's name with its pencil; the pencil swaps the name for a field, with OK and Cancel. */
@@ -135,7 +141,7 @@ export function openFaceGestures(closed?: () => void): void {
       const ok = () => {
         const text = input.value.trim();
         if (!text) return;
-        later(() => { change(g.id, (x) => ({ ...x, name: text })); renderRows(); });
+        later(() => { change(g.id, (x) => ({ ...x, name: text })); render(); });
       };
       input.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok(); else if (e.key === 'Escape') { e.stopPropagation(); show(); } });
       cell.replaceChildren(input, button('OK', ok, 'primary'), button('Cancel', show, 'quiet'));
@@ -146,8 +152,82 @@ export function openFaceGestures(closed?: () => void): void {
     return cell;
   };
 
-  /** Open a gesture's details. */
-  const openDetails = (_g: Gesture) => {};
+  /* ---------- a gesture's details ---------- */
+
+  /** The gesture whose details are shown, if any, and what they made. */
+  let viewId: string | undefined;
+  let details: Details | undefined;
+  let recordingOn = false;
+
+  /** What shows: the list or a gesture's details, or the recording over both. */
+  const applyView = () => {
+    rows.hidden = recordingOn || !!viewId;
+    buttons.hidden = recordingOn || !!viewId;
+    hold.hidden = !!viewId;
+    headSlot.hidden = recordingOn || !viewId;
+    detailsBody.hidden = recordingOn || !viewId;
+    recording.hidden = !recordingOn;
+  };
+
+  /** Show the list again, or a gesture's details again. */
+  const render = () => {
+    if (!viewId || !settings.gestures.some((g) => g.id === viewId)) {
+      details?.dispose();
+      details = undefined;
+      viewId = undefined;
+      applyView();
+      renderRows();
+      return;
+    }
+    const id = viewId;
+    later(async () => {
+      const g = settings.gestures.find((x) => x.id === id);
+      if (!g) return render();
+      const trials = await loadTrials(id);
+      // Where a handle had the focus, it keeps it (the keys fit again at each step).
+      const focused = (document.activeElement as HTMLElement | null)?.dataset?.focus;
+      details?.dispose();
+      details = openDetails(host, g, trials);
+      headSlot.replaceChildren(details.header);
+      detailsBody.replaceChildren(details.body);
+      viewId = id;
+      applyView();
+      if (focused) detailsBody.querySelector<HTMLElement>(`[data-focus="${focused}"]`)?.focus();
+    });
+  };
+  const showDetails = (id: string) => { viewId = id; render(); };
+
+  /** Ask before `ok`, over the dialog (which stays). */
+  const confirm = (title: string, text: string, label: string, ok: () => void) => {
+    const { dialog, close } = showOnTop(title);
+    dialog.append(el('p', '', text), buttonRow(button('Cancel', close), button(label, () => { close(); ok(); }, 'danger')));
+  };
+
+  const host: DetailsHost = {
+    frames: frameListeners,
+    hold: () => settings.hold,
+    nameCell: (g) => nameCell(g),
+    setDirection,
+    deleteGesture: (g) => confirm(`Delete “${g.name}”?`, 'Its trials are deleted with it.', 'Delete', () => later(async () => {
+      commit({ ...settings, gestures: settings.gestures.filter((x) => x.id !== g.id) });
+      await deleteTrials(g.id);
+      render();
+    })),
+    change: (id, to, soon) => change(id, to, soon),
+    refit: (id, edit) => later(async () => {
+      const cur = settings.gestures.find((x) => x.id === id);
+      if (!cur) return;
+      const g = edit ? edit(cur) : cur;
+      const trials = await loadTrials(id);
+      const fitted: FaceSettings = { ...settings, gestures: settings.gestures.map((x) => (x.id === id ? withFit(g, buildFit(trials, g.channels)) : x)) };
+      commit(settled(fitted, await trialsOfActive(fitted), id));
+      render();
+    }),
+    tryTemplate: (id, template) => watcher.setGestures(activeOf(settings).map((a) => (a.id === id && template ? { ...a, template } : a))),
+    record: (g) => startRound(g),
+    problemOf: (id) => problems.get(id),
+    back: () => { viewId = undefined; render(); },
+  };
 
   const renderRows = () => {
     rows.replaceChildren();
@@ -182,7 +262,7 @@ export function openFaceGestures(closed?: () => void): void {
           row.append(meter.el);
         }
         row.append(record, el('span', 'face-chevron', '›'));
-        row.addEventListener('click', (e) => { if (!(e.target as Element).closest('button, select, input, .face-meter')) openDetails(g); });
+        row.addEventListener('click', (e) => { if (!(e.target as Element).closest('button, select, input, .face-meter')) showDetails(g.id); });
       } else row.append(record);
       const lines = el('div', 'face-status');
       lines.append(el('p', status.warn ? 'bad' : '', status.text));
@@ -223,13 +303,12 @@ export function openFaceGestures(closed?: () => void): void {
   d.append(recording);
   let round: Round | undefined;
 
-  /** Show the rows, or the round. */
+  /** Show the round, or what it replaced. */
   const showRound = (on: boolean) => {
-    rows.hidden = on;
-    buttons.hidden = on;
+    recordingOn = on;
     nameRow.hidden = true;
     add.hidden = false;
-    recording.hidden = !on;
+    applyView();
   };
 
   /** Record a round of trials of `g`; nothing turns meanwhile. */
@@ -250,7 +329,7 @@ export function openFaceGestures(closed?: () => void): void {
           commit(settled(fitted, await trialsOfActive(fitted), g.id));
         } else commit(settings);
         if (why) problems.set(g.id, why);
-        renderRows();
+        render();
       });
     });
   }
