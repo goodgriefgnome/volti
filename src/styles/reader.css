@@ -105,7 +105,7 @@ button.selection-pass[aria-pressed="true"] { background: var(--select); color: v
 .menu .title-row { display: flex; align-items: center; border-radius: var(--radius); }
 /* The title menu is as wide as its longest title needs, up to 90% of the page. A title longer than that scrolls sideways; the icons beside it stay in view. */
 .menu:has(.title-list) { max-width: 90vw; }
-.menu .title-row .go { flex: 1; min-width: 0; background: transparent; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+.menu .title-row .go { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
 .menu .title-row .go::-webkit-scrollbar { display: none; }
 .menu .title-row.current { background: var(--accent-soft); }
 .menu .title-row.current .go { font-weight: 600; }
@@ -124,8 +124,7 @@ button.selection-pass[aria-pressed="true"] { background: var(--select); color: v
 .bar .ink { width: 20px; height: 4px; border-radius: var(--radius-pill); box-shadow: 0 0 0 1px var(--hairline); }
 /* Every menu and panel opened in the reader is the bar's off-white, and a button not picked shows it; a picked one has the pressed look. Dialogs keep their own. */
 body.reading .menu { background: var(--bar); }
-body.reading .menu button:not([aria-pressed="true"]) { background: transparent; }
-body.reading .menu button:hover, body.reading .menu button:focus-visible { background: var(--hover); }
+body.reading .menu button:not([aria-pressed="true"], .row-button) { background: transparent; }
 /* The tools' long-press panels: rows of colour swatches and background shapes. */
 .swatch-row, .shape-row { display: flex; gap: var(--space-2); align-items: center; padding: var(--space-1) 0; }
 .swatch-row .swatch { position: relative; }

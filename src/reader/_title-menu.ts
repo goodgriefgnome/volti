@@ -110,7 +110,7 @@ export function showTitleMenu(h: MenusHost) {
       });
       li.append(grip);
     }
-    const go = button(row.label, () => { closeOverlay(); row.go(); }, 'go');
+    const go = button(row.label, () => { closeOverlay(); row.go(); }, 'go row-button');
     go.setAttribute('role', 'menuitem');
     li.append(go);
     if (row.change) li.append(iconButton('swap', SWAP, inSetlist ? `Change excerpt of ${row.name}` : `Change ${row.name}`, row.change));

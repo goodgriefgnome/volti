@@ -5,8 +5,7 @@
   box-shadow: var(--shadow-popup); padding: var(--space-2);
 }
 .menu .label { color: var(--muted); font-size: var(--text-sm); padding: var(--space-2) var(--space-3); }
-.menu button { border: 0; text-align: left; min-height: var(--control); }
-.menu button:hover, .menu button:focus-visible { background: var(--hover); }
+.menu button { border: 0; }
 
 /* Centred in what can be seen of the page: above the on-screen keyboard while it is open. */
 .dialog {

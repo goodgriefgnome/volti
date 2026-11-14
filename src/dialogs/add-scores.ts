@@ -105,7 +105,7 @@ export function openAddScores(h: _AddScoresHost) {
         group.classList.toggle('open', now);
         head.setAttribute('aria-expanded', String(now));
         if (!q) { if (now) openFolders.add(folder); else openFolders.delete(folder); }
-      }, 'folder-head');
+      }, 'folder-head row-button');
       head.append(el('span', 'chev'), el('span', '', folder.split('/').join(' / ')));
       head.setAttribute('aria-expanded', String(open));
       group.append(head, body);

@@ -64,7 +64,7 @@ export function showMenu(at: Element | { x: number; y: number }, title: string, 
     // A string heads the items after it; an element shows as it is.
     if (typeof it === 'string') { menu.append(el('div', 'label', it)); continue; }
     if (it instanceof HTMLElement) { menu.append(it); continue; }
-    const b = button(it.label, () => { closeOverlay(); it.run(); });
+    const b = button(it.label, () => { closeOverlay(); it.run(); }, 'row-button');
     b.setAttribute('role', it.checked === undefined ? 'menuitem' : 'menuitemradio');
     if (it.checked !== undefined) b.setAttribute('aria-checked', String(it.checked));
     menu.append(b);

@@ -167,7 +167,7 @@ export function openDetails(host: DetailsHost, g: Gesture, trials: Trial[]): Det
     head.append(el('span', '', 'Channel'), el('span', '', 'span'), el('span', '', 'separation ▾'));
     list.append(head);
     for (const c of candidates(frames, shown)) {
-      const item = el('button', c.moves ? 'pk' : 'pk none');
+      const item = el('button', c.moves ? 'row-button pk' : 'row-button pk none');
       item.type = 'button';
       item.disabled = !c.moves;
       item.append(el('span', 'fname', CHANNELS[c.c]), el('span', 'n', c.span.toFixed(2)), el('span', 'n', c.separation.toFixed(2)));

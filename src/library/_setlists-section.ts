@@ -70,7 +70,7 @@ export class SetlistsSection {
     const play = button('', () => {
       if (s.entries.length) lib.play(s);
       else lib.toast.say('This setlist has no scores yet.');
-    }, 'open');
+    }, 'open row-button');
     play.append(el('span', 'item-title setlist-title', s.title), el('span', 'meta', (s.archived ? 'Archived · ' : '') + plural(s.entries.length, 'score')));
 
     const now = () => lib.setlist(s.id)!;
@@ -140,7 +140,7 @@ export class SetlistsSection {
     const handle = button('⋮⋮', () => {}, 'quiet icon-button handle');
     handle.setAttribute('aria-label', `Move ${title}`);
     dragToReorder(handle, li, list, i, (to) => void this.lib.update(moveEntry(s, i, to)));
-    const open = button('', () => lib.play(s, e.id), 'open');
+    const open = button('', () => lib.play(s, e.id), 'open row-button');
     open.append(el('span', 'item-title', title));
     if (score?.key) open.append(el('span', 'meta', score.key));
     if (excerpt) open.append(el('span', 'pill', excerpt));

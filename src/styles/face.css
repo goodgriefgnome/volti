@@ -156,7 +156,7 @@
 .face-picker { display: grid; max-height: var(--scroll-max); overflow-y: auto; }
 .face-picker .pk-head, .face-picker .pk { display: grid; grid-template-columns: minmax(0, 1fr) 3em 5.5em; gap: var(--space-2); align-items: center; padding: 0 var(--space-2); font-variant-numeric: tabular-nums; }
 .face-picker .pk-head { min-height: var(--control-sm); font-size: var(--text-xs); color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--surface); }
-.face-picker .pk { min-height: var(--control); border: 0; border-radius: var(--radius); background: transparent; text-align: left; font-size: var(--text-sm); }
+.face-picker .pk { min-height: var(--control); font-size: var(--text-sm); }
 .face-picker .pk .n, .face-picker .pk-head span + span { text-align: right; }
 .face-picker .pk.none { color: var(--muted); opacity: var(--dim); }
 /* The trials panel (face/_trials.ts). */

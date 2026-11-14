@@ -148,8 +148,8 @@ export const playFrom: PlayFrom = (name, start) => {
     const showScores = () => {
       dialog.replaceChildren(el('h2', '', 'Pick a page'), scores, buttonRow(button('Cancel', cancel)));
     };
-    for (const file of [...files].sort((a, b) => titleOf(a.path).localeCompare(titleOf(b.path)))) scores.append(button(titleOf(file.path), () => void showPages(file), 'quiet'));
-    scores.append(button('Empty staves', () => pickPage({ empty: true }), 'quiet'));
+    for (const file of [...files].sort((a, b) => titleOf(a.path).localeCompare(titleOf(b.path)))) scores.append(button(titleOf(file.path), () => void showPages(file), 'quiet row-button'));
+    scores.append(button('Empty staves', () => pickPage({ empty: true }), 'quiet row-button'));
     showScores();
 
     /** One score's pages as thumbnails. */

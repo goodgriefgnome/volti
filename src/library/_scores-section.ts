@@ -104,7 +104,7 @@ export class ScoresSection {
       if (searching) return;
       if (now) closed.delete(folder); else closed.add(folder);
       void saveClosedFolders([...closed]).catch((e) => failedOnce('save the closed folders', e));
-    }, 'folder-head');
+    }, 'folder-head row-button');
     head.append(el('span', 'chev'), el('span', '', folder.split('/').join(' / ')));
     head.setAttribute('aria-expanded', String(open));
     head.setAttribute('aria-controls', list.id);
@@ -115,7 +115,7 @@ export class ScoresSection {
   /** A named excerpt found by searching: its name, with its score's, as names are only unique within a score. */
   private excerptHit(o: SourceFile, score: Score, x: NamedExcerpt): HTMLLIElement {
     const li = el('li', 'score hit');
-    const open = button('', () => this.lib.readExcerpt(o, x), 'open');
+    const open = button('', () => this.lib.readExcerpt(o, x), 'open row-button');
     const pages = excerptLabel(score.cuts, x, this.lib.aspects.get(score.id));
     open.append(el('span', 'score-title', `${x.name} · ${titleOf(o.path)}`));
     if (pages) open.append(el('span', 'score-folder', pages));
@@ -128,7 +128,7 @@ export class ScoresSection {
   private scoreRow(s: SourceFile): HTMLLIElement {
     const { lib } = this;
     const score = lib.saved.get(s.id), namedExcerpts = score ? sortedExcerpts(score) : [];
-    const title = button('', () => lib.open(s), 'open');
+    const title = button('', () => lib.open(s), 'open row-button');
     const name = el('span', 'score-title', titleOf(s.path));
     title.append(name);
     const n = setlistsWith(lib.setlists, s.id).length;
@@ -173,7 +173,7 @@ export class ScoresSection {
     const { lib } = this;
     const li = el('li', 'excerpt');
     const pages = excerptLabel(score.cuts, x, lib.aspects.get(score.id));
-    const open = button('', () => lib.readExcerpt(o, x), 'open');
+    const open = button('', () => lib.readExcerpt(o, x), 'open row-button');
     open.append(el('span', 'item-title', x.name));
     if (pages) open.append(el('span', 'meta', pages));
     li.append(open, this.excerptMore(o, score, x));
