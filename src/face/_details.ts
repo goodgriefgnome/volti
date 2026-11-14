@@ -8,6 +8,7 @@ import { channelRow, type ChannelRow } from './_channel-row';
 import { blameLine } from './_dialog-helpers';
 import { flagText } from './_fit';
 import { strengthMeter } from './_meter';
+import { trialsPanel, type Shown } from './_trials';
 import { framesOf, type Trial } from './_recording';
 import type { FrameListener } from './_round';
 import { candidates, CHANNELS, fit, partnerOf, strength, withThreshold, type Template } from './_template';
@@ -32,6 +33,16 @@ export interface DetailsHost {
   refit(id: string, edit?: (g: Gesture) => Gesture): void;
   /** Try `template` for the gesture, while a threshold is dragged; none puts the fitted one back. */
   tryTemplate(id: string, template?: Template): void;
+  /** Enable or disable the trial at `index` (stored order), and fit again. */
+  disableTrial(id: string, index: number, disabled: boolean): void;
+  /** Delete the gesture's disabled trials for good, and fit again. */
+  deleteDisabled(id: string): void;
+  /** Ask before `ok`, over the dialog. */
+  confirm(title: string, text: string, label: string, ok: () => void): void;
+  /** Show the details again (nothing changed to fit again). */
+  refresh(): void;
+  /** What the trials panel shows, kept while the details are shown again. */
+  shown: { get(id: string): Shown; set(id: string, shown: Shown): void };
   record(g: Gesture): void;
   /** Why the last recording ended early, if it did. */
   problemOf(id: string): string | undefined;
@@ -179,9 +190,30 @@ export function openDetails(host: DetailsHost, g: Gesture, trials: Trial[]): Det
     dialog.append(list, buttonRow(button('Cancel', close)));
   };
 
+  /* ---------- the trials ---------- */
+
+  const trialsHead = el('div', 'face-sec-head');
+  trialsHead.append(el('h3', '', 'Trials'));
+  body.append(trialsHead);
+  body.append(trialsPanel({
+    g,
+    trials,
+    shown: host.shown.get(g.id),
+    show: (shown) => { host.shown.set(g.id, shown); host.refresh(); },
+    disable: (index, disabled) => host.disableTrial(g.id, index, disabled),
+  }));
+
   /* ---------- the foot ---------- */
 
-  body.append(buttonRow(button('Record', () => host.record(g)), button('Done', closeOverlay, 'primary')));
+  const disabled = trials.filter((t) => t.disabled).length;
+  const foot = buttonRow(button('Record', () => host.record(g)), button('Done', closeOverlay, 'primary'));
+  if (disabled) {
+    const noun = `${disabled} disabled ${disabled === 1 ? 'trial' : 'trials'}`;
+    const drop = button(`Delete ${noun}…`, () => host.confirm(`Delete ${noun}?`, 'They are deleted for good.', 'Delete', () => host.deleteDisabled(g.id)), 'quiet warn');
+    foot.prepend(drop);
+    drop.style.marginRight = 'auto';
+  }
+  body.append(foot);
 
   listen((_f, x) => {
     rowUis.forEach((r) => r.show(x));

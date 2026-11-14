@@ -12,7 +12,8 @@ import { strengthMeter } from './_meter';
 import { readyTones } from './_tones';
 import type { Trial } from './_recording';
 import { settled } from './_settling';
-import { deleteTrials, loadFaceSettings, loadTrials, saveFaceSettings, saveTrials } from './store';
+import { deleteDisabledTrials, deleteTrials, loadFaceSettings, loadTrials, saveFaceSettings, saveTrials, setTrialDisabled } from './store';
+import type { Shown } from './_trials';
 import { strength } from './_template';
 import { FaceWatcher, type CameraStatus } from './watcher';
 import { button, el } from '../ui/dom';
@@ -184,6 +185,7 @@ export function openFaceGestures(closed?: () => void): void {
       const g = settings.gestures.find((x) => x.id === id);
       if (!g) return render();
       const trials = await loadTrials(id);
+      const scrolled = d.scrollTop;
       // Where a handle had the focus, it keeps it (the keys fit again at each step).
       const focused = (document.activeElement as HTMLElement | null)?.dataset?.focus;
       details?.dispose();
@@ -193,6 +195,7 @@ export function openFaceGestures(closed?: () => void): void {
       viewId = id;
       applyView();
       if (focused) detailsBody.querySelector<HTMLElement>(`[data-focus="${focused}"]`)?.focus();
+      d.scrollTop = scrolled;
     });
   };
   const showDetails = (id: string) => { viewId = id; render(); };
@@ -202,6 +205,20 @@ export function openFaceGestures(closed?: () => void): void {
     const { dialog, close } = showOnTop(title);
     dialog.append(el('p', '', text), buttonRow(button('Cancel', close), button(label, () => { close(); ok(); }, 'danger')));
   };
+
+  /** What each gesture's trials panel shows, until the dialog closes. */
+  const shownOf = new Map<string, Shown>();
+
+  /** Fit a gesture again from its enabled trials, after `edit`, settle the conflicts with it first to give way, and show it again. */
+  async function refitNow(id: string, edit?: (g: Gesture) => Gesture) {
+    const cur = settings.gestures.find((x) => x.id === id);
+    if (!cur) return;
+    const g = edit ? edit(cur) : cur;
+    const trials = await loadTrials(id);
+    const fitted: FaceSettings = { ...settings, gestures: settings.gestures.map((x) => (x.id === id ? withFit(g, buildFit(trials, g.channels)) : x)) };
+    commit(settled(fitted, await trialsOfActive(fitted), id));
+    render();
+  }
 
   const host: DetailsHost = {
     frames: frameListeners,
@@ -214,15 +231,18 @@ export function openFaceGestures(closed?: () => void): void {
       render();
     })),
     change: (id, to, soon) => change(id, to, soon),
-    refit: (id, edit) => later(async () => {
-      const cur = settings.gestures.find((x) => x.id === id);
-      if (!cur) return;
-      const g = edit ? edit(cur) : cur;
-      const trials = await loadTrials(id);
-      const fitted: FaceSettings = { ...settings, gestures: settings.gestures.map((x) => (x.id === id ? withFit(g, buildFit(trials, g.channels)) : x)) };
-      commit(settled(fitted, await trialsOfActive(fitted), id));
-      render();
+    refit: (id, edit) => later(() => refitNow(id, edit)),
+    disableTrial: (id, index, disabled) => later(async () => {
+      await setTrialDisabled(id, index, disabled);
+      await refitNow(id);
     }),
+    deleteDisabled: (id) => later(async () => {
+      await deleteDisabledTrials(id);
+      await refitNow(id);
+    }),
+    confirm,
+    refresh: () => render(),
+    shown: { get: (id) => shownOf.get(id) ?? 'strength', set: (id, shown) => { shownOf.set(id, shown); } },
     tryTemplate: (id, template) => watcher.setGestures(activeOf(settings).map((a) => (a.id === id && template ? { ...a, template } : a))),
     record: (g) => startRound(g),
     problemOf: (id) => problems.get(id),

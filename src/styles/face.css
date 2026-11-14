@@ -93,7 +93,7 @@
 .face-view-head { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 .face-view-head .face-named { flex: 1; }
 .face-view-head > button:first-child { padding: 0 10px; font-size: 22px; }
-.face-view-body, .face-view-body-slot { display: grid; gap: 12px; }
+.face-view-body, .face-view-body-slot { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .face-issue { display: grid; gap: 6px; padding: 10px 12px; border-radius: 8px; background: color-mix(in srgb, var(--warn) 12%, transparent); color: var(--warn); font-size: 15px; }
 .face-issue p { margin: 0; }
 .face-sec-head { display: flex; align-items: center; gap: 4px; margin-top: 6px; }
@@ -164,6 +164,28 @@
 .face-picker .pk { min-height: 44px; border: 0; border-radius: 6px; background: transparent; text-align: left; font-size: 14px; }
 .face-picker .pk .n, .face-picker .pk-head span + span { text-align: right; }
 .face-picker .pk.none { color: var(--muted); opacity: 0.5; }
+/* The trials panel (face/_trials.ts). */
+.face-chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 14px; color: var(--muted); }
+.face-chips .chip { min-height: 32px; padding: 0 10px; border-radius: 16px; border: 1px solid var(--line); font-size: 13px; background: var(--surface); color: var(--fg); }
+.face-chips .chip.mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; }
+.face-chips .chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.face-trials-box { overflow: auto; max-height: 336px; border-block: 1px solid var(--line); }
+.face-trials-table { display: grid; min-width: 540px; }
+.face-trials .tr { display: grid; grid-template-columns: 52px 3em minmax(90px, 1fr) repeat(3, 5.2em); gap: 4px 10px; align-items: center; min-height: 52px; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; font-size: 14px; }
+.face-trials .tr.two { grid-template-columns: 52px 3em minmax(90px, 1fr) repeat(2, 5.2em); }
+.face-trials .tr.head { min-height: 32px; font-size: 12px; color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--surface); z-index: 1; box-shadow: 0 1px 0 var(--line); border-top: 0; }
+.face-trials .tr .n { text-align: right; }
+.face-trials .tr .bad { color: var(--warn); font-weight: 600; }
+.face-trials .tr.flagged { background: color-mix(in srgb, var(--warn) 12%, transparent); }
+.face-trials .tr.off { opacity: 0.5; }
+.face-trials .tr.off .n { text-decoration: line-through; }
+.face-trials .trace-cell { min-width: 0; }
+.face-trials svg.trace { width: 100%; height: 36px; display: block; color: var(--accent); overflow: hidden; }
+.face-trials .tr.flagged svg.trace { color: var(--warn); }
+.face-trials svg.trace .held { fill: var(--accent-soft); }
+.face-trials svg.trace .level { stroke: var(--fg); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.5; vector-effect: non-scaling-stroke; }
+.face-trials svg.trace .line { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.face-trials svg.trace .misfire { stroke: var(--warn); stroke-width: 2; vector-effect: non-scaling-stroke; }
 .face-add { display: flex; gap: 8px; align-items: center; }
 .face-add input { flex: 1; min-width: 0; }
 .face-recording { display: grid; gap: 8px; }
