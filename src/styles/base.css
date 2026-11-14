@@ -101,11 +101,7 @@ input.name, input.search, select {
 .empty { padding: var(--space-5) var(--space-1); color: var(--muted); }
 .thumbnails { display: flex; gap: var(--space-2); overflow-x: auto; padding: var(--space-1) var(--space-1) var(--space-2); align-items: flex-start; }
 
-/* Sits in base.css to stay ahead of the ui/ rule it must lose to. */
-.dialog.glyph-picker { width: min(900px, calc(100vw - 32px)); }
-/* Sits in base.css to stay ahead of the ui/ rule it must lose to. */
-.glyph-picker-body .buttons { position: static; margin: 0; padding: 0; flex: none; }
-/* Sits in base.css to stay ahead of the ui/ rule it must lose to. */
-.dialog.library-editor { width: min(720px, calc(100vw - 32px)); }
-/* Sits in base.css to stay ahead of the ui/ rule it must lose to. */
-.dialog.face-gestures { width: min(680px, calc(100vw - 32px)); }
+/* Divided lists: a list of rows has a line above and below it and one between rows; a list nested in a row has only the lines between. */
+.list, .removed-list, .incoming-list, .picklist, .face-rows, .face-channels, .face-trials-table { border-block: 1px solid var(--line); }
+.list.sub { border-block: 0; }
+.list > * + *, .entries > * + *, .removed-list > * + *, .incoming-list > * + *, .picklist > * + *, .face-rows > * + *, .face-channels > * + *, .face-trials-table > * + * { border-top: 1px solid var(--line); }

@@ -66,6 +66,8 @@
 button.selection-pass[aria-pressed="true"] { background: var(--select); color: var(--accent-fg); box-shadow: none; }
 
 /* The glyph picker: the characters and their preview above a search and the grid, which scrolls inside the dialog. */
+/* The picker's buttons sit under its grid, not stuck to the bottom of the dialog. */
+.glyph-picker-body .buttons { position: static; margin: 0; padding: 0; flex: none; }
 .glyph-picker-body { display: flex; flex-direction: column; gap: var(--space-3); height: calc(var(--seen-height, 100vh) - 130px); min-height: 0; }
 .glyph-picker-body .glyph-chars { display: flex; gap: var(--space-2); align-items: center; }
 .glyph-picker-body .glyph-text { flex: 1; min-width: 0; font-size: var(--text-xl); }
@@ -99,7 +101,7 @@ button.selection-pass[aria-pressed="true"] { background: var(--select); color: v
 .menu .menu-head { display: flex; align-items: center; justify-content: space-between; }
 .menu .menu-head .label { flex: 1; min-width: 0; }
 .menu .menu-action { width: var(--control); font-size: var(--text-xl); text-align: center; }
-.menu .title-list { display: grid; max-height: calc(var(--seen-height, 100vh) * 0.6); overflow: auto; }
+.menu .title-list { display: grid; max-height: var(--scroll-max); overflow: auto; }
 .menu .title-row { display: flex; align-items: center; border-radius: var(--radius); }
 /* The title menu is as wide as its longest title needs, up to 90% of the page. A title longer than that scrolls sideways; the icons beside it stay in view. */
 .menu:has(.title-list) { max-width: 90vw; }
@@ -122,7 +124,7 @@ button.selection-pass[aria-pressed="true"] { background: var(--select); color: v
 .bar .ink { width: 20px; height: 4px; border-radius: var(--radius-pill); box-shadow: 0 0 0 1px var(--hairline); }
 /* Every menu and panel opened in the reader is the bar's off-white, and a button not picked shows it; a picked one has the pressed look. Dialogs keep their own. */
 body.reading .menu { background: var(--bar); }
-body.reading .menu button { background: transparent; }
+body.reading .menu button:not([aria-pressed="true"]) { background: transparent; }
 body.reading .menu button:hover, body.reading .menu button:focus-visible { background: var(--select-soft); }
 /* The tools' long-press panels: rows of colour swatches and background shapes. */
 .swatch-row, .shape-row { display: flex; gap: var(--space-2); align-items: center; padding: var(--space-1) 0; }

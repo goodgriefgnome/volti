@@ -19,8 +19,8 @@
 .section-head h2 { margin: 0; color: var(--muted); }
 .head-tools { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: center; }
 
-.list { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
-.list > li { display: flex; align-items: center; gap: var(--space-2); border-bottom: 1px solid var(--line); min-width: 0; }
+.list { list-style: none; margin: 0; padding: 0; display: grid; }
+.list > li { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
 .list button.open {
   flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-3); text-align: left;
   border: 0; border-radius: 0; background: transparent; padding: var(--space-4) var(--space-1); min-height: 56px;
@@ -47,14 +47,11 @@
 .set.open .chev, .folder-list.open .chev { transform: rotate(45deg); }
 /* A subfolder's scores under its heading, which opens and closes the list. */
 .list > li.folder-list { display: block; }
-.list.sub { border-top: 1px solid var(--line); }
-.list.sub > li:last-child { border-bottom: 0; }
 .set-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 220ms ease; }
 .set.open .set-body { grid-template-rows: 1fr; }
 .set-inner { overflow: hidden; min-height: 0; }
-.entries { list-style: none; margin: 0 0 var(--space-2) 44px; padding: 0; display: grid; border-top: 1px solid var(--line); }
-.entries > li { display: flex; align-items: center; gap: var(--space-1); border-bottom: 1px solid var(--line); min-width: 0; }
-.entries > li:last-child { border-bottom: 0; }
+.entries { list-style: none; margin: 0 0 var(--space-2) 44px; padding: 0; display: grid; }
+.entries > li { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
 /* The title, however many lines it takes, is centred in its row, as the number beside it is. */
 .entries button.open { min-height: 48px; padding: var(--space-2) var(--space-1); align-content: center; }
 .entries .item-title { font-size: var(--text-md); overflow-wrap: anywhere; }
@@ -77,8 +74,8 @@
 
 /* A score's named excerpts, opened: set in further than the scores, on a thin rail down from the
    score, a size smaller, so they read as parts of it rather than more scores. */
-.entries.excerpts { margin: 0 0 var(--space-3) 62px; padding-left: var(--space-3); border-top: 0; border-left: 2px solid var(--line); }
-.entries.excerpts > li { border-bottom: 0; }
+.entries.excerpts { margin: 0 0 var(--space-3) 62px; padding-left: var(--space-3); border-left: 2px solid var(--line); }
+.entries.excerpts > * + * { border-top: 0; }
 .entries.excerpts button.open { min-height: var(--control); padding: var(--space-2) var(--space-1); }
 .entries.excerpts .item-title { font-size: var(--text-md); }
 
@@ -102,16 +99,14 @@
 .part-other { background: var(--muted); }
 
 /* Recently removed, from the library's ⋯ menu: a file a row, with Put back at its end. */
-.removed-list { list-style: none; margin: 0; padding: 0; display: grid; max-height: calc(var(--seen-height, 100vh) * 0.5); overflow: auto; border-block: 1px solid var(--line); }
+.removed-list { list-style: none; margin: 0; padding: 0; display: grid; max-height: var(--scroll-max); overflow: auto; }
 .removed-row { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) 0; }
-.removed-row + .removed-row { border-top: 1px solid var(--line); }
 
 /* Files coming into the library: a row each, its pages beside its name, folder and what happens to it. */
 .incoming-all { display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap; }
 .incoming-all .folder { flex: 1 1 200px; }
-.incoming-list { list-style: none; margin: 0; padding: 0; display: grid; max-height: calc(var(--seen-height, 100vh) * 0.65); overflow: auto; border-block: 1px solid var(--line); }
+.incoming-list { list-style: none; margin: 0; padding: 0; display: grid; max-height: var(--scroll-max); overflow: auto; }
 .incoming-row { display: grid; grid-template-columns: minmax(0, 3fr) minmax(200px, 2fr); gap: var(--space-3); padding: var(--space-3) 0; align-items: start; }
-.incoming-row + .incoming-row { border-top: 1px solid var(--line); }
 .incoming-row.have .incoming-preview { opacity: 0.5; }
 .incoming-preview { min-width: 0; }
 .incoming-preview .thumbnails.excerpt { max-height: min(calc(var(--seen-height, 100vh) * 0.35), 320px); }
