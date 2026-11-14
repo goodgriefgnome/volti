@@ -91,7 +91,7 @@ export function showSymbolPanel(at: HTMLElement, host: SymbolPanelHost, settings
       ...(recent ? [el('div', 'label', 'Recent'), recent.box] : []),
       el('div', 'symbol-actions'),
     );
-    library.lastElementChild!.append(button('+', () => { closeOverlay(); host.add(); }, 'symbol-add'), button('Edit library…', () => { closeOverlay(); host.edit(); }));
+    library.lastElementChild!.append(button('+', () => { closeOverlay(); host.add(); }, 'icon-button symbol-add'), button('Edit library…', () => { closeOverlay(); host.edit(); }));
 
     /** The drop under the pointer: a place in a box, or a new group. */
     const dropAt = (x: number, y: number, from: SymbolAt): { to: SymbolAt | 'new'; line: DOMRect | undefined } | undefined => {

@@ -66,7 +66,7 @@ export function editLibrary(host: LibraryEditorHost): void {
         b.addEventListener('click', () => void symbolView({ group: i, was: s }));
         symbols.append(b);
       });
-      const add = button('+', () => void symbolView({ group: i }));
+      const add = button('+', () => void symbolView({ group: i }), 'icon-button');
       add.setAttribute('aria-label', `Add a symbol to group ${i + 1}`);
       symbols.append(add);
       // The group's actions open in the row: a menu would close the dialog.
@@ -280,7 +280,7 @@ export function editLibrary(host: LibraryEditorHost): void {
       return row;
     };
     const scaleRow = el('div', 'scale-row');
-    scaleRow.append(button('−', () => setScale(draft.scale - SCALE_STEP)), scale, button('+', () => setScale(draft.scale + SCALE_STEP)));
+    scaleRow.append(button('−', () => setScale(draft.scale - SCALE_STEP), 'icon-button'), scale, button('+', () => setScale(draft.scale + SCALE_STEP), 'icon-button'));
     const previews = el('div', 'preview');
     previews.append(mine, ref);
     body.replaceChildren(
