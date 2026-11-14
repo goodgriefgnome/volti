@@ -67,16 +67,13 @@
 /* The box's line, over the handles: its border is centred on the box's edge (inset set by reader/_selection.ts). */
 .selection-line { position: absolute; box-sizing: border-box; border: 1px solid #1f6fe0; pointer-events: none; }
 .selection-handle { position: absolute; box-sizing: border-box; border-radius: 50%; border: 1.5px solid #1f6fe0; background: #ffffff; pointer-events: none; }
-.selection[hidden] { display: none; }
 .selection-delete { position: absolute; left: 50%; bottom: calc(100% + 10px); width: 28px; height: 28px; min-height: 0; margin-left: -14px; padding: 0; pointer-events: auto; border-radius: 50%; border: 0; background: #1f6fe0; color: #ffffff; font: 600 18px/28px sans-serif; text-align: center; }
 /* "This time only", to the right of the delete button on its line: a pill, filled while on. */
 .selection-pass { position: absolute; left: calc(50% + 20px); bottom: calc(100% + 10px); height: 28px; min-height: 0; padding: 0 10px; pointer-events: auto; border-radius: 14px; border: 1.5px solid #1f6fe0; background: #ffffff; color: #1f6fe0; font: 600 13px/25px sans-serif; white-space: nowrap; }
 .selection-pass[aria-pressed="true"] { background: #1f6fe0; color: #ffffff; }
-.selection-pass[hidden] { display: none; }
 
 /* The glyph picker: the characters and their preview above a search and the grid, which scrolls inside the dialog. */
 .glyph-picker-body { display: flex; flex-direction: column; gap: 10px; height: calc(var(--seen-height, 100vh) - 130px); min-height: 0; }
-.glyph-picker-body select[hidden] { display: none; }
 .glyph-picker-body .glyph-chars { display: flex; gap: 8px; align-items: center; }
 .glyph-picker-body .glyph-text { flex: 1; min-width: 0; font-size: 20px; }
 .glyph-picker-body .glyph-preview { flex: none; width: 72px; height: 72px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 8px; }
@@ -115,17 +112,16 @@
 .menu:has(.title-list) { max-width: 90vw; }
 .menu .title-row .go { flex: 1; min-width: 0; background: transparent; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
 .menu .title-row .go::-webkit-scrollbar { display: none; }
-.menu .title-row .grip, .menu .title-row .swap, .menu .title-row .bin { flex: none; }
-.menu .title-row.current { background: var(--accent-soft, var(--bg)); }
+.menu .title-row.current { background: var(--accent-soft); }
 .menu .title-row.current .go { font-weight: 600; }
-.menu .title-row .grip, .menu .title-row .swap, .menu .title-row .bin { width: 44px; padding: 0; display: grid; place-items: center; touch-action: none; }
+.menu .title-row .grip, .menu .title-row .swap, .menu .title-row .bin { flex: none; width: 44px; padding: 0; display: grid; place-items: center; touch-action: none; }
 .menu .title-row.dragging { opacity: 0.6; }
 .menu .row-icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .menu .grip .row-icon { stroke-width: 3; }
 .bar .title-button { display: flex; align-items: center; gap: 4px; min-width: 0; }
 .bar .chevron-icon { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 /* The Symbols button before it has a symbol to show. */
-.bar .tool-symbol .pp { font: italic 700 1.1rem var(--font-brand, serif); }
+.bar .tool-symbol .pp { font: italic 700 1.1rem var(--font-brand); }
 .bar .tool-symbol canvas { display: block; }
 
 /* Pen's and Highlight's colour, a short bar under the icon. */
@@ -153,10 +149,9 @@ body.reading .menu button:not([aria-pressed="true"]):hover, body.reading .menu b
 .tool-panel .font-select { font: inherit; min-height: 44px; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
 /* The Symbols panel: the library (boxes of symbols; scrolls) beside the settings. */
 .menu:has(.symbol-panel) { max-width: calc(100vw - 32px); }
-.symbol-panel { display: flex; gap: 12px; align-items: flex-start; }
+.symbol-panel { display: flex; gap: 12px; align-items: flex-start; max-height: 100%; }
 .symbol-panel .symbol-library { display: grid; gap: 8px; width: min(440px, calc(100vw - 300px)); min-width: 200px; max-height: inherit; overflow-y: auto; overscroll-behavior: contain; align-content: start; }
 .symbol-panel .symbol-settings { flex: none; display: grid; gap: 8px; }
-.symbol-panel { max-height: 100%; }
 .symbol-panel .group-box { display: flex; flex-wrap: wrap; gap: 4px; min-height: 52px; padding: 4px; border: 1px solid var(--bar-line); border-radius: 10px; touch-action: none; }
 .symbol-panel .group-list { display: grid; gap: 8px; }
 .symbol-panel .group-grip { flex: none; align-self: stretch; width: 28px; display: grid; place-items: center; color: var(--muted); touch-action: none; }
@@ -174,11 +169,9 @@ body.reading .menu button:not([aria-pressed="true"]):hover, body.reading .menu b
 
 /* A tool's chrome over a frame (reader/_tools/): shown only for the active tool; elements in it that take their own presses are marked data-own-presses. */
 .tool-layer { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
-.tool-layer[hidden] { display: none; }
 .tool-layer [data-own-presses] { pointer-events: auto; }
 
 /* Editing cuts: the tabs and marks over each frame, and the page thumbnails in their dialogs (reader/_cuts/). */
-.reader { --select: #1f6fe0; --tab-grey: #5b6170; --cut: #8a5a12; }
 /* The layer over a frame passes taps through to the music, except on its tabs. */
 .cuts-ui { position: absolute; inset: 0; pointer-events: none; }
 .cuts-ui button { pointer-events: auto; position: absolute; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; touch-action: none; }
@@ -187,14 +180,14 @@ body.reading .menu button:not([aria-pressed="true"]):hover, body.reading .menu b
  * with the frame's side and the seam, at 3:1 contrast with the white page (WCAG 1.4.11).
  */
 .tab { width: 64px; height: 48px; }
-.tab::after { content: ""; position: absolute; width: 40px; height: 28px; background: var(--cut); opacity: 0.7; }
+.tab::after { content: ""; position: absolute; width: 40px; height: 28px; background: var(--accent); opacity: 0.7; }
 .tab.top, .tab.pad { margin-top: -12px; }
 .tab.top { left: 0; }
 .tab.top::after { left: 0; top: 12px; border-radius: 0 0 8px 0; }
 .tab.bottom { right: 0; margin-top: -36px; }
 .tab.bottom::after { right: 0; bottom: 12px; border-radius: 8px 0 0 0; }
 .tab.pad { right: 0; }
-.tab.pad::after { right: 0; top: 12px; border-radius: 0 0 0 8px; background: var(--tab-grey); }
+.tab.pad::after { right: 0; top: 12px; border-radius: 0 0 0 8px; background: var(--muted); }
 .tab.dragging::after { background: var(--select); opacity: 1; }
 .tab:focus-visible { outline: none; }
 .tab:focus-visible::after { opacity: 1; outline: 3px solid var(--select); }
@@ -225,8 +218,8 @@ body.reading .menu button:not([aria-pressed="true"]):hover, body.reading .menu b
 .bar .title b { font: inherit; font-style: normal; opacity: 0.6; }
 /* Fills the rest of a score's last screen: what comes next, or a score that can't be found. */
 .page.blank {
-  background: transparent; box-shadow: none; border: 1px dashed rgba(255, 255, 255, 0.2);
-  display: grid; place-content: center; text-align: center; gap: 6px; padding: 16px; color: rgba(236, 238, 242, 0.7);
+  background: transparent; box-shadow: none; border: 1px dashed var(--line);
+  display: grid; place-content: center; text-align: center; gap: 6px; padding: 16px; color: var(--muted);
 }
 .page.blank .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
 .page.blank .t { font: italic 1.4rem var(--font-brand); color: var(--bar-fg); overflow-wrap: anywhere; }
@@ -243,7 +236,7 @@ body.reading .menu button:not([aria-pressed="true"]):hover, body.reading .menu b
 .scope {
   position: absolute; z-index: 12; left: 50%; top: calc(var(--bar-h, 56px) + 8px); transform: translateX(-50%); margin: 0;
   pointer-events: none; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  background: var(--cut); color: #ffffff; border-radius: 999px; padding: 4px 14px; font-size: 13px;
+  background: var(--accent); color: #ffffff; border-radius: 999px; padding: 4px 14px; font-size: 13px;
 }
 .chrome-hidden .scope { top: 8px; }
 

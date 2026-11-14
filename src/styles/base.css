@@ -30,12 +30,6 @@
     --part-meta: #6f9be6; --part-added: #d6a64a; --part-setlists: #6cc19f; --part-cache: #a393e6; --part-removed: #e07a90; --part-drive: #5cc0dc; --part-app: #8d93a1;
   }
 }
-:root[data-theme="dark"] {
-  --bg: #121419; --surface: #1b1e25; --fg: #e9eaee; --muted: #9aa0ad; --line: #2c313b;
-  --accent: #d6a64a; --accent-soft: rgba(214, 166, 74, 0.16); --accent-fg: #17130a;
-  --select: #7da6ff; --warn: #e58a5c; color-scheme: dark;
-  --part-meta: #6f9be6; --part-added: #d6a64a; --part-setlists: #6cc19f; --part-cache: #a393e6; --part-removed: #e07a90; --part-drive: #5cc0dc; --part-app: #8d93a1;
-}
 
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
@@ -54,7 +48,6 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); ou
 button:disabled { opacity: 0.4; cursor: default; }
 /* The start screen, shown while looking for a new version of the app. */
 .start { position: fixed; inset: 0; display: grid; place-content: center; justify-items: center; gap: 12px; background: var(--bg); }
-.start .brand { font: italic 600 2.4rem/1 var(--font-brand); margin: 0; }
 .start-note { margin: 0; color: var(--muted); min-height: 1.5em; }
 
 /* Used by more than one directory. */

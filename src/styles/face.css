@@ -100,7 +100,7 @@
 .face-issue { display: grid; gap: 6px; padding: 10px 12px; border-radius: 8px; background: color-mix(in srgb, var(--warn) 12%, transparent); color: var(--warn); font-size: 15px; }
 .face-issue p { margin: 0; }
 .face-sec-head { display: flex; align-items: center; gap: 4px; margin-top: 6px; }
-.face-sec-head h3 { margin: 0 !important; }
+.face-sec-head h3 { margin: 0; }
 .face-sec-head button { min-height: 32px; padding: 0 8px; font-size: 13px; }
 .face-channels { display: grid; }
 .face-ft-foot { display: flex; justify-content: flex-end; gap: 8px; }
@@ -115,7 +115,7 @@
 .face-thr { display: grid; justify-items: end; gap: 6px; line-height: 1.15; font-variant-numeric: tabular-nums; font-size: 14px; }
 .face-ft.off .face-thr span { color: var(--muted); text-decoration: line-through; }
 .face-thr .lim { color: var(--muted); }
-.face-thr .lim.off { color: var(--muted); text-decoration: line-through; }
+.face-thr .lim.off { text-decoration: line-through; }
 .face-ft.off .face-names { opacity: 0.55; }
 @media (max-width: 560px) {
   .face-ft { grid-template-columns: 52px minmax(0, 1fr) 6.5em; }
@@ -201,4 +201,3 @@
 .face-recording-screen .instruction { margin: 0; font-size: 24px; font-weight: 600; line-height: 1.2; }
 .face-recording-screen .info { display: grid; text-align: right; font-size: 13px; color: var(--muted); line-height: 1.3; }
 .face-recording-screen .info strong { color: inherit; font-size: 15px; font-weight: 600; }
-@media (prefers-reduced-motion: reduce) { .face-video { transition: none; } }

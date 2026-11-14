@@ -12,10 +12,8 @@
 .banner-tools { margin-left: auto; }
 /* The status line takes no room while it has nothing to say. */
 .library > .status:empty { display: none; }
-.tagline { margin: 0; color: var(--muted); font: italic 1rem var(--font-brand); }
-
-
 .status { margin: 0; color: var(--muted); min-height: 1.5em; }
+.tagline { margin: 0; color: var(--muted); font: italic 1rem var(--font-brand); }
 
 .section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: -10px; }
 .section-head h2 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 600; }
@@ -57,11 +55,10 @@
 .entries { list-style: none; margin: 0 0 8px 44px; padding: 0; display: grid; border-top: 1px solid var(--line); }
 .entries > li { display: flex; align-items: center; gap: 4px; border-bottom: 1px solid var(--line); min-width: 0; }
 .entries > li:last-child { border-bottom: 0; }
-.entries button.open { min-height: 48px; padding: 8px 4px; }
+/* The title, however many lines it takes, is centred in its row, as the number beside it is. */
+.entries button.open { min-height: 48px; padding: 8px 4px; align-content: center; }
 .entries .item-title { font-size: 16px; overflow-wrap: anywhere; }
 .entry .num { width: 1.6em; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
-/* The title, however many lines it takes, is centred in its row, as the number beside it is. */
-.entries button.open { align-content: center; }
 .entry .handle {
   flex: none; width: 36px; min-height: 48px; padding: 0; border: 0; background: transparent; color: var(--muted);
   cursor: grab; touch-action: none; font-size: 16px; letter-spacing: -2px;
@@ -71,7 +68,6 @@
 /* Scores: tap to open one. */
 .score-title { font-size: 17px; overflow-wrap: anywhere; }
 .score-folder { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
-.badge { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); border: 1px solid currentColor; border-radius: 999px; padding: 0 8px; }
 /* An empty setlist, opened: a button to add its first scores. */
 .empty-set { padding: 8px 4px 12px; }
 /* A named excerpt found by searching, set in on a rail as under its score. */
