@@ -41,7 +41,7 @@ export function expandableRow(r: ExpandableRow): HTMLLIElement {
     li.classList.toggle('open', now);
     expand.setAttribute('aria-expanded', String(now));
     body.inert = !now;
-  }, 'expand');
+  }, 'icon-button quiet expand');
   expand.append(el('span', 'chev'));
   expand.setAttribute('aria-expanded', String(open));
   expand.setAttribute('aria-controls', body.id);
@@ -53,7 +53,7 @@ export function expandableRow(r: ExpandableRow): HTMLLIElement {
 
 /** A ⋯ button opening a menu about `what`. */
 export function moreButton(what: string, open: (anchor: HTMLElement) => void, label = `More for ${what}`): HTMLButtonElement {
-  const more = button('⋯', () => open(more), 'quiet more');
+  const more = button('⋯', () => open(more), 'quiet icon-button more');
   more.setAttribute('aria-label', label);
   more.setAttribute('aria-haspopup', 'menu');
   return more;

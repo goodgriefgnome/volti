@@ -124,7 +124,7 @@ export class SetlistsSection {
       row.ring = button('', () => {
         const now = lib.offline.get(id);
         if (now) lib.toast.say(offlineText(now));
-      }, 'quiet ring');
+      }, 'quiet icon-button ring');
       row.more.before(row.ring);
     }
     row.ring.dataset.status = status.kind;
@@ -137,7 +137,7 @@ export class SetlistsSection {
     const title = lib.titleOf(e.scoreId), score = lib.saved.get(e.scoreId), missing = !lib.originalOf(e.scoreId);
     const excerpt = score ? excerptName(score, e, lib.aspects.get(e.scoreId)) : null;
     const li = el('li', 'entry');
-    const handle = button('⋮⋮', () => {}, 'handle');
+    const handle = button('⋮⋮', () => {}, 'quiet icon-button handle');
     handle.setAttribute('aria-label', `Move ${title}`);
     dragToReorder(handle, li, list, i, (to) => void this.lib.update(moveEntry(s, i, to)));
     const open = button('', () => lib.play(s, e.id), 'open');

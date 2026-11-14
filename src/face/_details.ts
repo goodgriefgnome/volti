@@ -67,7 +67,7 @@ export function openDetails(host: DetailsHost, g: Gesture, trials: Trial[]): Det
   /* ---------- the head ---------- */
 
   const header = el('div', 'face-view-head');
-  const back = button('‹', () => host.back(), 'quiet');
+  const back = button('‹', () => host.back(), 'quiet icon-button');
   back.setAttribute('aria-label', 'Back to the list');
   const select = document.createElement('select');
   select.setAttribute('aria-label', `${g.name}: turns`);

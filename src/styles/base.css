@@ -92,6 +92,9 @@ input.name, input.search, select {
 
 /* A line icon: an SVG drawn with strokes, sized by where it sits. */
 .icon { display: block; width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+/* A square button showing an icon or a single character; with quiet it has no border or background. */
+.icon-button { display: grid; place-items: center; width: var(--control); height: var(--control); padding: 0; }
+.icon-button.small { width: var(--control-sm); height: var(--control-sm); min-height: var(--control-sm); }
 /* A round button over the score: the back arrow and the face button. */
 .float-button {
   display: grid; place-items: center; width: var(--control); height: var(--control); min-height: 0; padding: 0; border: 0; border-radius: 50%;
@@ -108,7 +111,7 @@ input.name, input.search, select {
 /* A label, not a button: small capitals in a thin rounded outline. */
 .pill { border: 1px solid currentColor; border-radius: var(--radius-pill); padding: 0 var(--space-2); white-space: nowrap; color: var(--accent); }
 .pill.missing { color: var(--warn); }
-.more { flex: none; width: var(--control); padding: 0; }
+.more { flex: none; }
 .chev { display: inline-block; width: 10px; height: 10px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform var(--quick) ease; }
 .folder-head {
   width: 100%; display: flex; align-items: center; gap: var(--space-4); min-height: 48px; padding: var(--space-3) var(--space-1) var(--space-3) var(--space-4);

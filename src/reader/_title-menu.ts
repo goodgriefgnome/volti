@@ -80,7 +80,7 @@ const BIN = 'M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12';
 
 /** A round icon button in a row, with its label for screen readers and a tooltip. */
 function iconButton(cls: string, d: string, label: string, run?: () => void): HTMLButtonElement {
-  const b = button('', () => { closeOverlay(); run?.(); }, `${cls} quiet`);
+  const b = button('', () => { closeOverlay(); run?.(); }, `${cls} quiet icon-button`);
   b.append(icon(d));
   b.setAttribute('aria-label', label);
   b.title = label;
@@ -96,7 +96,7 @@ export function showTitleMenu(h: MenusHost) {
     const li = el('div', 'title-row');
     if (row.current) { li.classList.add('current'); li.setAttribute('aria-current', 'true'); }
     if (row.index !== undefined) {
-      const grip = button('', () => {}, 'grip quiet');
+      const grip = button('', () => {}, 'grip quiet icon-button');
       grip.append(icon(GRIP));
       grip.setAttribute('aria-label', `Move ${row.name}`);
       const i = row.index;
@@ -117,7 +117,7 @@ export function showTitleMenu(h: MenusHost) {
     if (row.remove) li.append(iconButton('bin', BIN, inSetlist ? `Remove ${row.name} from setlist` : `Delete ${row.name}`, row.remove));
     list.append(li);
   }
-  const add = button('+', () => { closeOverlay(); if (inSetlist) void addScores(h); else void addNamed(h); }, 'menu-action quiet');
+  const add = button('+', () => { closeOverlay(); if (inSetlist) void addScores(h); else void addNamed(h); }, 'menu-action quiet icon-button');
   const addLabel = inSetlist ? 'Add scores…' : 'Add excerpt…';
   add.setAttribute('aria-label', addLabel);
   add.title = addLabel;

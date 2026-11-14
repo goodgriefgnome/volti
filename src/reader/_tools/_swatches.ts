@@ -43,7 +43,7 @@ export function swatchRow(colors: readonly string[], defaultColor: string, picke
   const row = el('div', 'swatch-row');
   row.setAttribute('role', 'group');
   const swatch = (choice: ColorChoice, fill: string, label: string, cls = '') => {
-    const b = el('button', `swatch ${cls}`.trim());
+    const b = el('button', `icon-button swatch ${cls}`.trim());
     b.type = 'button';
     b.style.setProperty('--swatch', fill);
     b.setAttribute('aria-label', label);
@@ -60,7 +60,7 @@ export function shapeRow(picked: BackgroundChoice, fill: string, pick: (b: Backg
   const row = el('div', 'shape-row');
   row.setAttribute('role', 'group');
   for (const [choice, label] of BACKGROUNDS) {
-    const b = el('button', 'shape');
+    const b = el('button', 'icon-button shape');
     b.type = 'button';
     b.setAttribute('aria-label', label);
     b.title = label;

@@ -66,7 +66,7 @@
 .face-named .name { font-weight: 600; overflow-wrap: anywhere; }
 .face-named input.name { flex: 1; min-width: 0; min-height: var(--control-sm); font-weight: 400; }
 .face-named button { min-height: var(--control-sm); padding: 0 var(--space-3); }
-.face-named button.pencil { min-width: var(--control-sm); padding: 0; color: var(--muted); border-color: transparent; background: transparent; }
+.face-named button.pencil { color: var(--muted); }
 .face-named button.pencil svg { width: 16px; height: 16px; }
 /* The strength meter (face/_meter.ts): small on the list, tall in a gesture's details. */
 .face-meter { position: relative; height: 32px; max-width: 300px; touch-action: pan-y; cursor: pointer; }
@@ -91,7 +91,7 @@
 .face-view-head-slot:empty { display: none; }
 .face-view-head { display: flex; align-items: center; gap: var(--space-1); flex-wrap: wrap; }
 .face-view-head .face-named { flex: 1; }
-.face-view-head > button:first-child { padding: 0 var(--space-3); font-size: var(--text-xl); }
+.face-view-head > button:first-child { font-size: var(--text-xl); }
 .face-view-body, .face-view-body-slot { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); }
 .face-issue { display: grid; gap: var(--space-2); padding: var(--space-3) var(--space-3); border-radius: var(--radius); background: var(--warn-soft); color: var(--warn); font-size: var(--text-md); }
 .face-issue p { margin: 0; }

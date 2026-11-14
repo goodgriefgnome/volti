@@ -141,7 +141,7 @@ export function openFaceGestures(closed: (() => void) | undefined, playFrom: Pla
   const nameCell = (g: Gesture) => {
     const cell = el('div', 'face-named');
     const show = () => {
-      const pencil = button('', () => edit(), 'pencil');
+      const pencil = button('', () => edit(), 'quiet icon-button small pencil');
       pencil.setAttribute('aria-label', `Rename “${g.name}”`);
       pencil.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M11.3 2.3l2.4 2.4-8.2 8.2-3.2.8.8-3.2z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
       cell.replaceChildren(el('span', 'name', g.name), pencil);
