@@ -294,41 +294,42 @@ colours that differ from the built-in ones are stored.
 ### `face-gestures`: the face gestures the person defined
 
 ```ts
-interface FaceSettings { gestures: Gesture[] }   // face/gestures.ts, in the order they were added
-interface Gesture {
+interface FaceSettings { hold: number; gestures: Gesture[] }   // face/gestures.ts; hold in ms, 100 to 1500, 500 when missing
+interface Gesture {                              // in the order they were added
   id: string; name: string;
   direction: 'next' | 'prev' | 'none';
-  hold: number;                                  // ms, 100 to 1500
-  on?: number; release?: number;                 // the levels moved by hand, 0.05 to 0.95; none is the fit's
+  on?: number;                                   // On moved by hand, 0.05 to 0.95; none is the fit's
   note?: string;                                 // why it was set to none, in words
+  channels?: { forcedOff: string[]; forcedOn: string[] };   // channel names; missing when none was changed
   fit: Fit;
 }
-interface Fit {                                  // face/_fit.ts: what its trials gave
+interface Fit {                                  // face/_fit.ts: what its enabled trials gave
   version: number;                               // FIT_VERSION when it was fitted
-  trials: number;                                // how many it was fitted from
+  trials: number;                                // how many enabled trials it was fitted from
   flags: Flag[];                                 // tooFew, noChannels, unreliable, firesAtRest { frames, ms }
-  template?: Template;                           // face/_template.ts; with it, the gesture is fitted:
-  on?: number; release?: number;                 //   its fitted levels,
-  rest?: number; peaks?: number[];               //   its rest level and each rep's peak
-  missed?: Row[];                                // with no template: the clearest channels
+  template?: Template;                           // face/_template.ts: rows and limits; with it, the gesture is fitted:
+  on?: number;                                   //   its fitted On,
+  rest?: number; peaks?: number[];               //   its rest level and each trial's peak
 }
 ```
 
 It is the device's own, like `tool-settings`. Missing is no gestures; so is the eight built-in
 gestures' shape of before version 5. A gesture without an id, a name or a fit is dropped when
-read, and values out of range are clamped. The reader reads only this key: a fit has all that
-turning needs. When a gesture was fitted by an earlier `FIT_VERSION`, every gesture is fitted again
-from its trials when the settings are next loaded (levels moved by hand are dropped), the conflicts
-are checked again, and the result is saved.
+read, and values out of range are clamped; a gesture's own `hold` or `release`, and `thresholds` in
+its `channels`, from earlier versions, are ignored. The reader reads only this key: a fit has all
+that turning needs. Release is not stored: it is halfway from `rest` to On. When a gesture was
+fitted by an earlier `FIT_VERSION`, every gesture is fitted again from its trials when the settings
+are next loaded (On moved by hand is dropped), the conflicts are checked again, and the result is
+saved.
 
 ### `face-trials:<gesture id>`: a face gesture's trials
 
 A `Trial[]` (`face/_recording.ts`), read by the Face gestures dialog and when fitting again, never
-by the reader. A trial is `{ tUp, tDown, n, data }`: the times of its third rising and falling tones
-(ms from its start), and `n` frames in a `Float32Array`, each `STRIDE` (55) floats: its time in ms
+by the reader. A trial is `{ tUp, tDown, n, data, disabled? }`: the times of its third rising and falling tones
+(ms from its start), `n` frames in a `Float32Array`, each `STRIDE` (55) floats: its time in ms
 from the trial's start, the 52 scores in the template's channel order (`CHANNELS` in
-`face/_template.ts`), and the head's yaw and pitch in degrees. Some 33 kB a trial. Deleted with the
-gesture, and when its trials are cleared.
+`face/_template.ts`), and the head's yaw and pitch in degrees; `disabled: true` leaves it out of the fit. Some 33 kB a
+trial. Deleted with the gesture, and when its disabled trials are deleted.
 
 ### `face-recording-page`: the page recordings play over
 

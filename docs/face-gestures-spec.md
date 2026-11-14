@@ -142,9 +142,9 @@ Each is changed by its channel name:
   the limit's own forced-off stays as it was set;
 - **forced on**: a channel the fit didn't pick is put in, whether or not it is clear of rest,
   beside the ten the fit picks (it doesn't count toward them). Only a channel that moves can be
-  forced on: its held median differs from its rest median;
-- a **threshold** moved: a channel's threshold (its edge), or a limit's limit, fixed where it was
-  put.
+  forced on: its held median differs from its rest median.
+
+Thresholds are the fit's: they can't be moved by hand.
 
 Each of these, and disabling or enabling a trial, fits the gesture again from its enabled trials,
 with its channel changes. Its On, if moved by hand, stays: it is independent of the channels and the trials. Channel changes
@@ -200,8 +200,8 @@ From the top:
 3. **What is wrong**, if anything, in a box in the warning colour: each flag in full, the conflict
    note, and why the last recording ended early. Fires while resting names the trials to blame:
    "All 4 are in trial 9." when they are in one trial, "In trials 3 and 9." otherwise, then "Disable
-   it if it went wrong; otherwise force off a channel that rest reaches, or move its threshold away
-   from the hatching." (or "them", for several trials).
+   it if it went wrong; otherwise force off a channel that rest reaches." (or "them", for several
+   trials).
 4. **On level**, with **Reset** beside the title (shown once On was set by hand). A meter 24 px
    tall: the strength now; On as a dark handle with its value on a tag (`On 0.64`), dragged directly
    (keyboard: arrows, 0.01 a step); Release as a dashed line with its value on a dashed tag. Under
@@ -221,25 +221,25 @@ From the top:
 - If it has a limit, **its partner's name** in a chip under it, with the limit's bracket before the
   name. Tapping the chip forces the limit alone off or back on. Off, the chip is grey and its name
   struck through.
-- **A bar**, 0 to 1, in one lane, or two when it has a limit:
-  - **The channel's lane**: its range at rest hatched (from its rest value to the rest's reach); a
-    tick at its rest value (where it counts for nothing); its value now as a filled dot (accent
-    when past its threshold, else grey).
-  - **The partner's lane**, under it: the bracket at the limit (`]` for a limit to stay under, `[`
-    to stay over), and the partner's value now as a hollow ring (warning colour once past the
-    limit, else grey). No shading.
+- **A bar**, 0 to 1, in one lane (28 px tall), or two when it has a limit (50 px). Nothing in it is
+  moved by hand. Each lane holds where the trials' frames lie, as two bands from the 10th to the
+  90th percentile of that channel over the enabled trials' frames: **at rest**, hatched, and
+  **held**, solid, the hatching drawn over the solid where they overlap; so the threshold is where
+  the held band starts, and the limit where the partner's held band ends.
+  - **The channel's lane**, in the accent colour: the bands; a tick at its rest value (where it
+    counts for nothing); its value now as a dot.
+  - **The partner's lane**, under it, neutral: the same two bands; the bracket at the limit (`]`
+    for a limit to stay under, `[` to stay over); its value now as a ring.
   - **The pennant** at the threshold: a line with a flag pointing toward the gesture's side (right
     for "at least", left for "at most"). With a limit, its line runs down through the partner's
     lane, as that is where the limit cuts the strength to nothing.
-  - The pennant, the bracket and the tick are drawn over the lanes and the dots.
-  - Dragging the pennant moves the threshold; dragging the bracket moves the limit. While dragging,
-    the meters, the ring and the dots use the new threshold at once; the gesture is fitted again
-    when it is let go. Keyboard: arrows, 0.01 a step, fitting again on each.
+  - The pennant, the bracket and the tick are drawn over the lanes and the bands; the dot and the
+    ring over everything. The dot and the ring are one colour always.
 - **The thresholds**, on the right: the channel's (`≥ 0.58`, `≤ 0.08`), and under it the limit's in
-  the warning colour (`≤ 0.39`). No words.
+  the muted colour (`≤ 0.39`). No words.
 - **Forced off**: the row's switch off greys the whole row, with everything left where it was, and
-  strikes through its thresholds; a limit forced off greys its chip, its lane and its bracket, and
-  strikes through its threshold.
+  strikes through its thresholds; a limit forced off greys its chip, its lane, its bands and its
+  bracket, and strikes through its threshold. The values now still show on a row forced off, grey.
 
 #### Add channel…
 
@@ -322,8 +322,8 @@ In the kv store, the device's own, like the tool settings:
 
 - `face-gestures`, owned by `face/store.ts`: a `FaceSettings`: the one hold (ms; missing is 500)
   and the gestures in order, each with its id, name, direction, On if moved by hand, why it was set
-  to none (if it was), its channel changes (`channels?: { forcedOff: string[]; forcedOn: string[];
-  thresholds: Record<string, number> }`, by channel name, missing when none was changed) and its
+  to none (if it was), its channel changes (`channels?: { forcedOff: string[]; forcedOn: string[] }`,
+  by channel name, missing when none was changed) and its
   **fit**: the fitting's version, how many enabled trials it was fitted from, and, when it is
   fitted, its template (moving channels, with their separations, and limits), its fitted On, its
   rest level, each trial's peak, and its flags. Missing is no gestures.

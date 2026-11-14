@@ -122,7 +122,7 @@ export function blameLine(g: Gesture, trials: Trial[]): string | undefined {
     ? (frames === 1 ? `It is in trial ${numbers[0]}.` : `All ${frames} are in trial ${numbers[0]}.`)
     : `In trials ${list(numbers)}.`;
   const [what, they] = numbers.length === 1 ? ['it', 'it'] : ['them', 'they'];
-  return `${where} Disable ${what} if ${they} went wrong; otherwise force off a channel that rest reaches, or move its threshold away from the hatching.`;
+  return `${where} Disable ${what} if ${they} went wrong; otherwise force off a channel that rest reaches.`;
 }
 
 

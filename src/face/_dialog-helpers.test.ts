@@ -129,12 +129,12 @@ describe('blameLine', () => {
     const bad = trials(10, { 8: 4 });
     const g = made(bad);
     expect(g.fit.flags).toContainEqual({ kind: 'firesAtRest', frames: 4, ms: expect.any(Number) });
-    expect(blameLine(g, bad)).toBe('All 4 are in trial 9. Disable it if it went wrong; otherwise force off a channel that rest reaches, or move its threshold away from the hatching.');
+    expect(blameLine(g, bad)).toBe('All 4 are in trial 9. Disable it if it went wrong; otherwise force off a channel that rest reaches.');
   });
   it('names two trials', () => {
     const bad = trials(10, { 2: 4, 8: 4 });
     const g = made(bad);
-    expect(blameLine(g, bad)).toBe('In trials 3 and 9. Disable them if they went wrong; otherwise force off a channel that rest reaches, or move its threshold away from the hatching.');
+    expect(blameLine(g, bad)).toBe('In trials 3 and 9. Disable them if they went wrong; otherwise force off a channel that rest reaches.');
   });
 });
 

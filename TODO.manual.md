@@ -493,12 +493,16 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     "Record 1 more trial", and tapping it opens nothing. Rename one with the pencil.
   - Drag On on a list row's meter: its dashed Release follows; open its details: On is where it was
     left, and Reset beside On level puts it back.
-  - In the details, wink: the right eye's dot passes the pennant and fills; blink: the left eye's
-    ring passes the bracket and turns orange, and the strength stays low.
+  - In the details, wink: the winking eye's dot moves along its lane and passes the pennant; the
+    other eye's ring stays left of the bracket; blink: the ring passes the bracket, and the strength
+    stays low. The dot, the ring and the bands line up with their lanes, and the row looks right at
+    phone width.
   - Tap `eyeBlinkLeft`'s chip: it greys and strikes through; blink: the strength now rises. Tap it
     again. Switch `eyeBlinkRight`'s row off: the whole row greys, pennant and bracket in place.
-  - Drag a pennant: the meter and the ring follow at once; let go: the gesture is fitted again, On
-    stays where it was, and Reset shows beside Channels; Reset puts the channels back, and Reset beside On level puts On back, each leaving the other.
+  - The pennant and the bracket can't be dragged. Switch a channel off: the gesture is fitted again,
+    On stays where it was, and Reset shows beside Channels; Reset puts the channels back, and Reset
+    beside On level puts On back, each leaving the other.
+  - A row switched off still shows its values now, in grey.
   - Add channel…: the list is by separation, those that don't move greyed at the end; add one: it
     shows as a row.
   - Trials: the latest first, all of them scrolling; Show a channel: the traces and numbers change.

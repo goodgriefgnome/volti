@@ -116,7 +116,7 @@ as it does when both sides do the gesture.
 
 ### Channel changes
 
-A gesture's channels can be changed by hand, each by its channel name, and the changes are kept
+A gesture's channels can be forced off or on by hand, each by its channel name, and the changes are kept
 across recordings and changes to trials:
 
 - **forced off**: a channel the fit would use is left out; it is neither a moving channel nor a
@@ -126,10 +126,11 @@ across recordings and changes to trials:
   and whatever its span, beside the ten picked (it doesn't count toward them). Only a channel that
   moves can be forced on: its held median differs from its rest median. Its side, edge, rest's
   reach, rest value, span and separation are worked out as for any channel;
-- a **threshold** moved: a channel's edge, or a limit's limit, fixed where it was put. The span and
-  separation follow from it. A limit's `full` is always its moving channel's edge, moved or not;
-- a threshold is kept at least 0.02 from the channel's rest value, on the side it moves; a limit is
-  kept at least 0.02 short of its full.
+- a channel forced on is given at least 0.02 of span, so it can be scored: its edge is kept that far
+  from its rest value, on the side it moves.
+
+The thresholds themselves (a channel's edge, a limit's limit) are the fit's: they can't be moved by
+hand.
 
 ## The strength
 
