@@ -19,6 +19,8 @@
   --bar: light-dark(rgba(239, 240, 243, 0.97), rgba(27, 30, 37, 0.97));
   /* A score's page and its thumbnails: white in both themes. */
   --paper: #ffffff;
+  /* The floating buttons' background. */
+  --surface-float: color-mix(in srgb, var(--surface) 85%, transparent);
   --scrim: rgba(10, 11, 14, 0.45);
   --shade: rgba(40, 42, 48, 0.55);
   /* A thin ring round a colour so it reads on white. */
@@ -32,6 +34,8 @@
   --text-xs: 12px; --text-sm: 14px; --text-md: 16px; --text-lg: 18px; --text-xl: 22px;
   --radius-sm: 4px; --radius: 8px; --radius-lg: 12px; --radius-pill: 999px;
   --control: 44px; --control-sm: 32px;
+  /* A checkbox's size; what lines up with the text beside one is its size and a gap. */
+  --check: 20px;
   /* The most a list inside a dialog or menu grows before it scrolls. */
   --scroll-max: calc(var(--seen-height, 100vh) * 0.6);
   /* Layers across the whole app; inside the reader see the comment in reader.css. */
@@ -78,7 +82,7 @@ input.name, input.search, select {
 /* A round button over the score: the back arrow and the face button. */
 .float-button {
   display: grid; place-items: center; width: var(--control); height: var(--control); min-height: 0; padding: 0; border: 0; border-radius: 50%;
-  background: color-mix(in srgb, var(--surface) 85%, transparent); color: var(--fg); box-shadow: 0 0 0 1px var(--line); opacity: 0.9;
+  background: var(--surface-float); color: var(--fg); box-shadow: 0 0 0 1px var(--line); opacity: 0.9;
 }
 
 /* Used by more than one directory. */

@@ -35,7 +35,7 @@ function all(props: readonly string[]): { name: string; prop: string; value: str
 describe('styles', () => {
   it('writes no colour outside the tokens', () => {
     for (const name of FILES) {
-      const m = rules(name).match(/#[0-9a-f]{3,8}\b|\b(rgba?|hsla?)\(/i);
+      const m = rules(name).match(/#[0-9a-f]{3,8}\b|\b(rgba?|hsla?)\(|\bcolor-mix\(/i);
       expect(m, `${name}.css has a colour literal (${m?.[0]}): use a colour token: see STYLES.md`).toBeNull();
     }
   });
@@ -56,8 +56,8 @@ describe('styles', () => {
   });
 
   it('spaces from the scale', () => {
-    // The excerpt picker's strip scales with its zoom, so its gap is `calc(var(--u) * 8)`.
-    const ok = /^(0|var\(--space-\d\)( var\(--space-\d\))?|calc\(var\(--u\) \* \d+\))$/;
+    // The excerpt picker's strip scales with its zoom, so its gap is `calc(var(--u) * 8)`; `--gap` is a dialog's or the library's own, a space token.
+    const ok = /^(0|var\(--gap\)|var\(--space-\d\)( var\(--space-\d\))?|calc\(var\(--u\) \* \d+\))$/;
     for (const { name, prop, value } of all(['gap', 'row-gap', 'column-gap'])) {
       expect(ok.test(value), `${name}.css has ${prop}: ${value}: use a space token: see STYLES.md`).toBe(true);
     }

@@ -37,7 +37,7 @@ export function recordUntilTapped(o: RecordingScreenOptions): RecordingScreen {
   screen.setAttribute('aria-label', `Recording “${o.name}”`);
   const picture = el('div', 'page');
   picture.append(o.page);
-  const bar = el('div', 'bar');
+  const bar = el('div', 'face-recording-bar');
   const instruction = el('p', 'instruction');
   const which = el('strong', '', `Recording “${o.name}”`);
   const second = el('span', '', 'Turn the sound on to hear the tones.');

@@ -22,7 +22,7 @@
 /* Add scores: a score to tick, and its Preview. */
 .dialog .view { display: grid; gap: var(--space-3); }
 .pick-row { display: flex; align-items: center; gap: var(--space-1); flex-wrap: wrap; }
-.pick-row .picked { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: var(--space-2); padding: 0 0 var(--space-2) var(--space-6); }
+.pick-row .picked { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: var(--space-2); padding: 0 0 var(--space-2) calc(var(--check) + var(--space-2)); }
 /* The checkboxes in a column, and beside each its title, which wraps within its own column. */
 .pick-row .check { flex: 1; min-width: 0; align-items: flex-start; padding-block: var(--space-3); }
 .pick-row .check input { margin: var(--space-1) 0 0; }
@@ -32,7 +32,7 @@
 .pick-folder.open .chev { transform: rotate(45deg); }
 .pick-folder-body { padding-left: var(--space-3); }
 /* A score's named excerpts, indented under it, each with its Preview. */
-.pick-sub { flex-basis: 100%; display: flex; align-items: center; gap: var(--space-1); padding-left: var(--space-6); }
+.pick-sub { flex-basis: 100%; display: flex; align-items: center; gap: var(--space-1); padding-left: calc(var(--check) + var(--space-2)); }
 
 /* Play from, for a face gesture's recording (dialogs/_face-play-from.ts). */
 .face-play-from { display: flex; gap: var(--space-4); align-items: center; }

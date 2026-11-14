@@ -87,14 +87,14 @@
 .face-meter .tick.low { background: var(--warn); }
 .face-meter .tick.rest { background: var(--fg); }
 .face-meter .tick .label { position: absolute; top: 10px; left: 50%; font-size: var(--text-xs); color: var(--muted); transform: translateX(-50%); white-space: nowrap; }
-/* A gesture's head stays at the top of the dialog while the rest scrolls under it (over the dialog's 16px padding too). */
-.face-view-head-slot { position: sticky; top: -16px; z-index: 2; margin-top: -10px; padding-block: var(--space-4) var(--space-2); background: var(--surface); box-shadow: 0 1px 0 var(--line); }
+/* A gesture's head stays at the top of the dialog while the rest scrolls under it (over the dialog's padding too). */
+.face-view-head-slot { position: sticky; top: calc(-1 * var(--pad)); z-index: 2; margin-top: calc(-1 * var(--gap)); padding-block: var(--pad) var(--space-2); background: var(--surface); box-shadow: 0 1px 0 var(--line); }
 .face-view-head-slot:empty { display: none; }
 .face-view-head { display: flex; align-items: center; gap: var(--space-1); flex-wrap: wrap; }
 .face-view-head .face-named { flex: 1; }
 .face-view-head > button:first-child { padding: 0 var(--space-3); font-size: var(--text-xl); }
 .face-view-body, .face-view-body-slot { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); }
-.face-issue { display: grid; gap: var(--space-2); padding: var(--space-3) var(--space-3); border-radius: var(--radius); background: color-mix(in srgb, var(--warn) 12%, transparent); color: var(--warn); font-size: var(--text-md); }
+.face-issue { display: grid; gap: var(--space-2); padding: var(--space-3) var(--space-3); border-radius: var(--radius); background: var(--warn-soft); color: var(--warn); font-size: var(--text-md); }
 .face-issue p { margin: 0; }
 .face-sec-head { display: flex; align-items: center; gap: var(--space-1); margin-top: var(--space-2); }
 .face-sec-head h3 { margin: 0; }
@@ -170,7 +170,7 @@
 .face-trials .tr.head { min-height: var(--control-sm); font-size: var(--text-xs); color: var(--muted); font-weight: 600; }
 .face-trials .tr .n { text-align: right; }
 .face-trials .tr .bad { color: var(--warn); font-weight: 600; }
-.face-trials .tr.flagged { background: color-mix(in srgb, var(--warn) 12%, transparent); }
+.face-trials .tr.flagged { background: var(--warn-soft); }
 .face-trials .tr.off { opacity: 0.5; }
 .face-trials .tr.off .n { text-decoration: line-through; }
 .face-trials .trace-cell { min-width: 0; position: relative; }
@@ -188,7 +188,7 @@
 .face-recording-screen { position: fixed; inset: 0; z-index: var(--z-capture); background: var(--paper); display: grid; place-items: center; touch-action: none; user-select: none; }
 .face-recording-screen .page { width: 100%; height: 100%; display: grid; place-items: center; }
 .face-recording-screen .page canvas { max-width: 100%; max-height: 100%; display: block; }
-.face-recording-screen .bar { position: absolute; left: 12px; right: 12px; top: max(12px, env(safe-area-inset-top)); background: var(--bar); color: var(--fg); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: var(--space-3) var(--space-4); display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); align-items: center; justify-content: space-between; box-shadow: var(--shadow-float); pointer-events: none; }
+.face-recording-screen .face-recording-bar { position: absolute; left: 12px; right: 12px; top: max(12px, env(safe-area-inset-top)); background: var(--bar); color: var(--fg); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: var(--space-3) var(--space-4); display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); align-items: center; justify-content: space-between; box-shadow: var(--shadow-float); pointer-events: none; }
 .face-recording-screen .instruction { margin: 0; font-size: var(--text-xl); font-weight: 600; line-height: 1.2; }
 .face-recording-screen .info { display: grid; text-align: right; font-size: var(--text-sm); color: var(--muted); line-height: 1.3; }
 .face-recording-screen .info strong { color: inherit; font-size: var(--text-md); font-weight: 600; }
