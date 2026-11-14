@@ -35,8 +35,12 @@ scores.
   gesture let go briefly turns the page again too soon. It is to be let go for the longer of the
   hold and 1 s (a constant, not a setting) by the same rule as now: the spent fill starts at that
   length, falls while the direction isn't on and rises twice as fast while it is, and at 0 the
-  direction is armed. The other direction, spent by the turn, likewise. A frame without a face
-  still arms both at once. The ring shows the fill as a share of the hold while armed, so a spent
+  direction is armed. A frame without a face still arms both at once.
+  - The other direction is no longer spent by a turn, so a mistaken turn can be undone at once:
+    it is armed at 0 (`state[other]` in `step`), and turns back after a hold of its own. If both
+    would turn on the same frame, Next still turns, and Back is armed at 0. The cost: a face that
+    reaches both directions' On together turns forward, then back a hold later; the conflict
+    check between directions is what keeps such gestures apart. The ring shows the fill as a share of the hold while armed, so a spent
   fill is shown as a share of its own length, never past full. `docs/face-gestures-spec.md` and
   `docs/face-classifier-spec.md` (turning) say so too.
 
