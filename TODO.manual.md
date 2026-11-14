@@ -543,3 +543,12 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     each side of each tone), and nothing outside them; no line marks the tones.
   - A misfire tick (red) inside a hatched band is not possible: ticks are only at rest, outside them.
   - A channel's chip shows the same bands.
+- **Re-arming after a turn takes at least a second** (in the reader, with a face and the hold at
+  500 ms):
+  - Turn a page with a gesture, let it go for half a second, hold it again: no second turn; let it
+    go for over a second, hold again: it turns.
+  - The solid arc after a turn is full and drains over a second, not half a second; with the hold
+    at 2 s it drains over 2 s. It never shows past full.
+  - A Next gesture and a Back gesture: turn forward, then hold Back at once: it turns back after
+    its hold, without being let go first.
+  - Hold both together (if they aren't set apart): it turns forward, then back a hold later.

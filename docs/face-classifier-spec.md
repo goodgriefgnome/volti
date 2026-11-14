@@ -170,7 +170,9 @@ every gesture, 500 ms to start with (`face-gestures-spec.md`).
 
 `y` feeds the turning of `face-gestures-spec.md`, which is by direction: a direction is on when any of
 its gestures has a `y` at or above its own On; its fill rises while it is on and drains while it
-isn't, and the page turns when the fill reaches the hold, through the 100 ms gate. A frame without a
+isn't, and the page turns when the fill reaches the hold, through the 100 ms gate. After a turn the
+direction is armed again only once it has been let go for the longer of the hold and 1 s, and the
+other direction is armed at once, so a turn can be undone with a hold of its own. A frame without a
 face lets every gesture go.
 
 ## Checking

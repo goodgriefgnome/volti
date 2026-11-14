@@ -13,20 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **Re-arming after a turn takes at least a second:** after a turn, a direction is spent until
-  it has been let go for the hold (`step`, `face/_detector.ts`), 500 ms to start with, so a
-  gesture let go briefly turns the page again too soon. It is to be let go for the longer of the
-  hold and 1 s (a constant, not a setting) by the same rule as now: the spent fill starts at that
-  length, falls while the direction isn't on and rises twice as fast while it is, and at 0 the
-  direction is armed. A frame without a face still arms both at once.
-  - The other direction is no longer spent by a turn, so a mistaken turn can be undone at once:
-    it is armed at 0 (`state[other]` in `step`), and turns back after a hold of its own. If both
-    would turn on the same frame, Next still turns, and Back is armed at 0. The cost: a face that
-    reaches both directions' On together turns forward, then back a hold later; the conflict
-    check between directions is what keeps such gestures apart. The ring shows the fill as a share of the hold while armed, so a spent
-  fill is shown as a share of its own length, never past full. `docs/face-gestures-spec.md` and
-  `docs/face-classifier-spec.md` (turning) say so too.
-
 ## Confirmed features which require more thought
 
 - **The cache giving room back when the origin runs short of quota**: pinned

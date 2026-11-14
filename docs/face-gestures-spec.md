@@ -48,8 +48,9 @@ faint:
   its On, from its zero point: the largest, over the direction's gestures, of
   `(strength − zero) / (On − zero)`, from 0 to 1. A gesture whose On is at or under its zero point
   counts 1 at On or above, else 0. It is full exactly when the direction is on.
-- **Solid**, 2 px wide (the accent colour): the direction's fill over the hold, from 0 to 1, drawn
-  whatever the faint arc shows. A spent direction looks no different.
+- **Solid**, 2 px wide (the accent colour): the direction's fill over the hold while armed, over
+  its own length while spent (Turning, below), from 0 to 1 and never past full, drawn whatever the
+  faint arc shows.
 
 Where the faint arc is longer it shows either side of the solid, and where the solid is longer it
 runs on alone.
@@ -135,21 +136,25 @@ when at least one of its gestures has a strength at or above its own On. Each di
 
 - **Armed**: the fill rises by the time since the last frame while the direction is on, and falls
   by twice that while it isn't, never below 0. When it reaches the hold, the page turns in that
-  direction, and the direction is spent with its fill full.
+  direction, and the direction is spent with its fill at the **let-go length**: the longer of the
+  hold and 1 s (a constant, not a setting).
 - **Spent**: the fill falls by the time since the last frame while the direction isn't on, and
-  rises by twice that while it is, never above the hold. When it reaches 0, the direction is armed
-  again.
+  rises by twice that while it is, never above the let-go length. When it reaches 0, the direction
+  is armed again.
 
 So a clean hold turns the page after the hold. A dip below On while holding costs three times its
 length, and a direction that is on less than two thirds of the time never turns. After a turn the
-direction turns no more while it is held: to be armed again it has to be let go for the hold, by
-the same rule the other way round (a flicker back above On while letting go costs three times its
+direction turns no more while it is held: to be armed again it has to be let go for the let-go
+length, by the same rule the other way round (a flicker back above On while letting go costs three times its
 length).
 
 - Gestures of one direction add up: a frame counts if any of them is on. Two Next gestures can't
   turn twice, since they share one fill.
-- **One turn at a time.** When a direction turns the page, the other is spent too, with its fill
-  full. If both would turn on the same frame, Next turns and Back is spent.
+- **A turn doesn't spend the other direction**, so a mistaken turn can be undone at once: the other
+  is armed at 0 (its fill started again), and turns after a hold of its own. If both would turn on
+  the same frame, Next turns and Back is armed at 0. The cost: a face that reaches both directions'
+  On together turns forward, then back a hold later; the conflict check between directions is what
+  keeps such gestures apart.
 - The time since the last frame is counted at most 200 ms, so a stall doesn't jump the fill. The
   first frame counts 0.
 - A frame without a face lets go: both directions are armed at 0.
