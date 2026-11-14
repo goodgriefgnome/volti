@@ -25,7 +25,7 @@
   flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-3); text-align: left;
   border: 0; border-radius: 0; background: transparent; padding: var(--space-4) var(--space-1); min-height: 56px;
 }
-.list button.open:active { background: var(--line); }
+.list button.open:active { background: var(--hover); }
 
 /* How much of a setlist is saved for offline, by its ⋯ button: a ring filling as pages save, a green tick when all are, a dashed warning ring when some can't be. */
 .ring { flex: none; width: var(--control); padding: 0; display: inline-flex; align-items: center; justify-content: center; }
@@ -47,7 +47,7 @@
 .set.open .chev, .folder-list.open .chev { transform: rotate(45deg); }
 /* A subfolder's scores under its heading, which opens and closes the list. */
 .list > li.folder-list { display: block; }
-.set-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 220ms ease; }
+.set-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--quick) ease; }
 .set.open .set-body { grid-template-rows: 1fr; }
 .set-inner { overflow: hidden; min-height: 0; }
 .entries { list-style: none; margin: 0 0 var(--space-2) 44px; padding: 0; display: grid; }
@@ -107,7 +107,7 @@
 .incoming-all .folder { flex: 1 1 200px; }
 .incoming-list { list-style: none; margin: 0; padding: 0; display: grid; max-height: var(--scroll-max); overflow: auto; }
 .incoming-row { display: grid; grid-template-columns: minmax(0, 3fr) minmax(200px, 2fr); gap: var(--space-3); padding: var(--space-3) 0; align-items: start; }
-.incoming-row.have .incoming-preview { opacity: 0.5; }
+.incoming-row.have .incoming-preview { opacity: var(--dim); }
 .incoming-preview { min-width: 0; }
 .incoming-preview .thumbnails.excerpt { max-height: min(calc(var(--seen-height, 100vh) * 0.35), 320px); }
 .incoming-fields { display: grid; gap: var(--space-2); align-content: start; }

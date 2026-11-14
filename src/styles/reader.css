@@ -17,7 +17,7 @@
   background: var(--bar); color: var(--fg);
   padding: max(var(--space-2), env(safe-area-inset-top, 0px)) max(var(--space-3), env(safe-area-inset-right, 0px)) var(--space-2) max(var(--space-3), env(safe-area-inset-left, 0px));
   box-shadow: 0 1px 0 var(--line), var(--shadow-paper);
-  transition: transform 160ms ease, opacity 160ms ease;
+  transition: transform var(--quick) ease, opacity var(--quick) ease;
 }
 /* The one row: [back][title][page info] — tools — [⋯], with room on both sides of the tools. The title shortens before anything wraps. */
 .bar-main { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
@@ -33,7 +33,7 @@
 }
 .chrome-hidden .bar { transform: translateY(-100%); opacity: 0; pointer-events: none; }
 /* The back arrow: on the toolbar's Library button, and on its own at the top left while the toolbar is hidden. */
-.reader > .back { position: absolute; z-index: 6; left: max(6px, env(safe-area-inset-left, 0px)); top: max(6px, env(safe-area-inset-top, 0px)); display: none; }
+.reader > .back { position: absolute; z-index: 6; left: max(var(--edge), env(safe-area-inset-left, 0px)); top: max(var(--edge), env(safe-area-inset-top, 0px)); display: none; }
 .reader.chrome-hidden > .back { display: grid; }
 /*
  * While the toolbar shows, only a band at each side turns the page (TURN_BAND_PX in
@@ -49,7 +49,7 @@
 .bar button { min-height: var(--control); min-width: var(--control); padding: var(--space-2) var(--space-3); background: transparent; color: inherit; border: 0; border-radius: var(--radius); }
 .bar .cuts-button { display: flex; align-items: center; gap: var(--space-2); }
 .bar .title { font: italic var(--text-md) var(--font-brand); line-height: 22px; max-width: 32ch; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bar .page-info { font-size: var(--text-sm); font-variant-numeric: tabular-nums; opacity: 0.85; white-space: nowrap; }
+.bar .page-info { font-size: var(--text-sm); font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
 /* The title above the page info, both starting at the same edge. */
 .bar .title-block { display: flex; flex-direction: column; min-width: 0; }
 .bar .title-block .title-button { min-height: 24px; padding: 0 var(--space-2); }
@@ -72,8 +72,8 @@ button.selection-pass[aria-pressed="true"] { background: var(--select); color: v
 .glyph-picker-body .glyph-chars { display: flex; gap: var(--space-2); align-items: center; }
 .glyph-picker-body .glyph-text { flex: 1; min-width: 0; font-size: var(--text-xl); }
 .glyph-picker-body .glyph-preview { flex: none; width: 72px; height: 72px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: var(--radius); }
-.glyph-picker-body .glyph-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(auto-fill, 56px); gap: var(--space-1); align-content: start; justify-content: center; overflow: auto; overscroll-behavior: contain; border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-1); }
-.glyph-picker-body .glyph-cell { width: 56px; height: 56px; min-height: 0; padding: var(--space-1); display: grid; place-items: center; }
+.glyph-picker-body .glyph-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(auto-fill, var(--tile)); gap: var(--space-1); align-content: start; justify-content: center; overflow: auto; overscroll-behavior: contain; border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-1); }
+.glyph-picker-body .glyph-cell { width: var(--tile); height: var(--tile); min-height: 0; padding: var(--space-1); display: grid; place-items: center; }
 .glyph-picker-body .glyph-cell svg { width: 100%; height: 100%; fill: currentColor; }
 .glyph-picker-body .glyph-caption { min-height: 1.5em; }
 
@@ -84,7 +84,7 @@ button.selection-pass[aria-pressed="true"] { background: var(--select); color: v
 .library-editor .group-name { flex-basis: 100%; color: var(--muted); font-size: var(--text-sm); }
 .library-editor .group-symbols { flex: 1; display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
 .library-editor .group-actions { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: var(--space-2); }
-.library-editor .symbol-choice { display: inline-grid; place-items: center; width: 56px; min-height: var(--control); padding: var(--space-1); }
+.library-editor .symbol-choice { display: inline-grid; place-items: center; width: var(--tile); min-height: var(--control); padding: var(--space-1); }
 .library-editor .field { display: grid; gap: var(--space-1); }
 .library-editor .field-label { color: var(--muted); font-size: var(--text-sm); }
 .library-editor .scale-row { display: flex; gap: var(--space-2); align-items: center; }
@@ -110,7 +110,7 @@ button.selection-pass[aria-pressed="true"] { background: var(--select); color: v
 .menu .title-row.current { background: var(--accent-soft); }
 .menu .title-row.current .go { font-weight: 600; }
 .menu .title-row .grip, .menu .title-row .swap, .menu .title-row .bin { flex: none; width: var(--control); padding: 0; display: grid; place-items: center; touch-action: none; }
-.menu .title-row.dragging { opacity: 0.6; }
+.menu .title-row.dragging { opacity: var(--dragged); }
 .menu .icon { width: 20px; height: 20px; }
 .menu .grip .icon, .symbol-panel .group-grip .icon { stroke-width: 3; }
 .bar .title-button { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
@@ -125,7 +125,7 @@ button.selection-pass[aria-pressed="true"] { background: var(--select); color: v
 /* Every menu and panel opened in the reader is the bar's off-white, and a button not picked shows it; a picked one has the pressed look. Dialogs keep their own. */
 body.reading .menu { background: var(--bar); }
 body.reading .menu button:not([aria-pressed="true"]) { background: transparent; }
-body.reading .menu button:hover, body.reading .menu button:focus-visible { background: var(--select-soft); }
+body.reading .menu button:hover, body.reading .menu button:focus-visible { background: var(--hover); }
 /* The tools' long-press panels: rows of colour swatches and background shapes. */
 .swatch-row, .shape-row { display: flex; gap: var(--space-2); align-items: center; padding: var(--space-1) 0; }
 .swatch-row .swatch { width: var(--control); min-height: var(--control); padding: 0; position: relative; }
@@ -142,17 +142,17 @@ body.reading .menu button:hover, body.reading .menu button:focus-visible { backg
 .tool-panel { display: grid; gap: var(--space-2); }
 .tool-panel .panel-part { display: grid; gap: var(--space-1); }
 /* The Symbols panel: the library (boxes of symbols; scrolls) beside the settings. */
-.menu:has(.symbol-panel) { max-width: calc(100vw - 32px); }
+.menu:has(.symbol-panel) { max-width: calc(100vw - 2 * var(--edge)); }
 .symbol-panel { display: flex; gap: var(--space-3); align-items: flex-start; max-height: 100%; }
 .symbol-panel .symbol-library { display: grid; gap: var(--space-2); width: min(440px, calc(100vw - 300px)); min-width: 200px; max-height: inherit; overflow-y: auto; overscroll-behavior: contain; align-content: start; }
 .symbol-panel .symbol-settings { flex: none; display: grid; gap: var(--space-2); }
-.symbol-panel .group-box { display: flex; flex-wrap: wrap; gap: var(--space-1); min-height: 52px; padding: var(--space-1); border: 1px solid var(--line); border-radius: var(--radius); touch-action: none; }
+.symbol-panel .group-box { display: flex; flex-wrap: wrap; gap: var(--space-1); min-height: var(--tile); padding: var(--space-1); border: 1px solid var(--line); border-radius: var(--radius); touch-action: none; }
 .symbol-panel .group-list { display: grid; gap: var(--space-2); }
 .symbol-panel .group-grip { flex: none; align-self: stretch; width: 28px; display: grid; place-items: center; color: var(--muted); touch-action: none; }
-.symbol-panel .group-box.dragging { opacity: 0.6; }
-.symbol-panel .symbol-choice { display: inline-grid; place-items: center; width: 52px; min-height: 52px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius); touch-action: none; }
-.symbol-panel .symbol-choice.dragging { opacity: 0.35; }
-.symbol-panel .new-group { display: grid; place-items: center; min-height: 52px; border: 1.5px dashed var(--muted); border-radius: var(--radius); color: var(--muted); font-size: var(--text-sm); }
+.symbol-panel .group-box.dragging { opacity: var(--dragged); }
+.symbol-panel .symbol-choice { display: inline-grid; place-items: center; width: var(--tile); min-height: var(--tile); padding: 0; border: 1px solid var(--line); border-radius: var(--radius); touch-action: none; }
+.symbol-panel .symbol-choice.dragging { opacity: var(--dim); }
+.symbol-panel .new-group { display: grid; place-items: center; min-height: var(--tile); border: 1.5px dashed var(--muted); border-radius: var(--radius); color: var(--muted); font-size: var(--text-sm); }
 .symbol-panel .new-group.over { border-color: var(--select); color: var(--select); }
 .symbol-panel .symbol-actions { display: flex; gap: var(--space-2); }
 .symbol-panel .drag-ghost { position: fixed; z-index: var(--z-top); pointer-events: none; opacity: 0.85; }
@@ -183,7 +183,7 @@ body.reading .menu button:hover, body.reading .menu button:focus-visible { backg
 .tab.pad::after { right: 0; top: 12px; border-radius: 0 0 0 var(--radius); background: var(--muted); }
 .tab.dragging::after { background: var(--select); opacity: 1; }
 .tab:focus-visible { outline: none; }
-.tab:focus-visible::after { opacity: 1; outline: 3px solid var(--select); }
+.tab:focus-visible::after { opacity: 1; outline: var(--focus); }
 /* A top tab's pass, on the tab itself, when its page is played in more than one pass. */
 .tab .tab-pass {
   position: absolute; left: 0; top: 12px; z-index: 1; width: 40px; height: 28px; display: grid; place-items: center;
@@ -206,7 +206,7 @@ body.reading .menu button:hover, body.reading .menu button:focus-visible { backg
 .dialog .pass-row .pass-label { color: var(--muted); margin-right: var(--space-1); }
 
 /* Setlists in the reader. */
-.bar .title b { font: inherit; font-style: normal; opacity: 0.6; }
+.bar .title b { font: inherit; font-style: normal; color: var(--muted); }
 /* Fills the rest of a score's last screen: what comes next, or a score that can't be found. */
 .page.blank {
   background: transparent; box-shadow: none; border: 1px dashed var(--line);
@@ -215,19 +215,19 @@ body.reading .menu button:hover, body.reading .menu button:focus-visible { backg
 .page.blank .t { font: italic var(--text-xl) var(--font-brand); color: var(--fg); overflow-wrap: anywhere; }
 /* Names the score for a moment when the reader turns into it. */
 .score-card {
-  position: absolute; z-index: 12; left: 50%; bottom: max(16px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  position: absolute; z-index: 12; left: 50%; bottom: max(var(--edge), env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
   margin: 0; pointer-events: none; background: var(--bar); color: var(--fg); border-radius: var(--radius-pill); padding: var(--space-2) var(--space-4);
-  font: italic var(--text-md) var(--font-brand); white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis;
-  transition: opacity 300ms ease;
+  font: italic var(--text-md) var(--font-brand); white-space: nowrap; max-width: calc(100vw - 2 * var(--edge)); overflow: hidden; text-overflow: ellipsis;
+  transition: opacity var(--slow) ease;
 }
-.score-card b { font-family: var(--font-ui); font-style: normal; opacity: 0.7; margin-right: var(--space-2); }
+.score-card b { font-family: var(--font-ui); font-style: normal; color: var(--muted); margin-right: var(--space-2); }
 .score-card.gone { opacity: 0; }
 /* While editing cuts in a setlist: they change the score. */
 .scope {
-  position: absolute; z-index: 12; left: 50%; top: calc(var(--bar-h, 56px) + 8px); transform: translateX(-50%); margin: 0;
-  pointer-events: none; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  position: absolute; z-index: 12; left: 50%; top: calc(var(--bar-h, 56px) + var(--edge)); transform: translateX(-50%); margin: 0;
+  pointer-events: none; max-width: calc(100vw - 2 * var(--edge)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   background: var(--accent); color: var(--accent-fg); border-radius: var(--radius-pill); padding: var(--space-1) var(--space-4); font-size: var(--text-sm);
 }
-.chrome-hidden .scope { top: 8px; }
+.chrome-hidden .scope { top: var(--edge); }
 
 @media (prefers-reduced-motion: reduce) { .bar, .score-card, .set-body, .chev { transition: none; } }

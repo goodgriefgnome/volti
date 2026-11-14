@@ -69,4 +69,16 @@ describe('styles', () => {
       expect(ok, `${name}.css has z-index: ${value}: use a layer token: see STYLES.md`).toBe(true);
     }
   });
+
+  it('times transitions by the tokens', () => {
+    for (const { name, prop, value } of all(['transition', 'transition-duration'])) {
+      expect(/\b\d*\.?\d+m?s\b/.test(value), `${name}.css has ${prop}: ${value}: use var(--quick) or var(--slow): see STYLES.md`).toBe(false);
+    }
+  });
+
+  it('rings focus with the one ring', () => {
+    for (const { name, value } of all(['outline'])) {
+      expect(['var(--focus)', 'none', '0'].includes(value), `${name}.css has outline: ${value}: use var(--focus): see STYLES.md`).toBe(true);
+    }
+  });
 });

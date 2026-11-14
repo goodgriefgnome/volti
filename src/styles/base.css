@@ -19,6 +19,8 @@
   --bar: light-dark(rgba(239, 240, 243, 0.97), rgba(27, 30, 37, 0.97));
   /* A score's page and its thumbnails: white in both themes. */
   --paper: #ffffff;
+  /* A row, menu item or bare button under the pointer or being pressed. */
+  --hover: color-mix(in srgb, var(--fg) 6%, transparent);
   /* The floating buttons' background. */
   --surface-float: color-mix(in srgb, var(--surface) 85%, transparent);
   --scrim: rgba(10, 11, 14, 0.45);
@@ -36,6 +38,16 @@
   --control: 44px; --control-sm: 32px;
   /* A checkbox's size; what lines up with the text beside one is its size and a gap. */
   --check: 20px;
+  /* How far anything floating keeps from the screen's edge, and dialogs, menus and notes from each side. */
+  --edge: 8px;
+  /* A symbol's tile. */
+  --tile: 56px;
+  /* The opacity of something disabled, switched off or not applicable; and of a row being dragged to a new place. */
+  --dim: 0.5; --dragged: 0.6;
+  /* Transitions: what answers a tap is quick; only the score card's fade-out, which happens by itself, is slow. */
+  --quick: 160ms; --slow: 300ms;
+  /* The keyboard's focus ring. */
+  --focus: 3px solid var(--accent);
   /* The most a list inside a dialog or menu grows before it scrolls. */
   --scroll-max: calc(var(--seen-height, 100vh) * 0.6);
   /* Layers across the whole app; inside the reader see the comment in reader.css. */
@@ -61,8 +73,9 @@ button {
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
 button.quiet { border-color: transparent; background: transparent; color: var(--muted); }
 button.danger { background: var(--warn); border-color: var(--warn); color: var(--accent-fg); }
-button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-button:disabled { opacity: 0.4; cursor: default; }
+/* The keyboard's focus ring, on every element; where it must sit inside or on a drawn part, the rule moves it. */
+:focus-visible { outline: var(--focus); outline-offset: 2px; }
+button:disabled { opacity: var(--dim); cursor: default; }
 /* Pressed: the one look of every toggle (set aria-pressed). The floating buttons show their state with rings of their own. */
 button[aria-pressed="true"]:not(.float-button) { background: var(--select-soft); box-shadow: inset 0 0 0 2px var(--select); }
 /* A text field or a select. */
@@ -96,7 +109,7 @@ input.name, input.search, select {
 .pill { border: 1px solid currentColor; border-radius: var(--radius-pill); padding: 0 var(--space-2); white-space: nowrap; color: var(--accent); }
 .pill.missing { color: var(--warn); }
 .more { flex: none; width: var(--control); padding: 0; }
-.chev { display: inline-block; width: 10px; height: 10px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform 200ms ease; }
+.chev { display: inline-block; width: 10px; height: 10px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform var(--quick) ease; }
 .folder-head {
   width: 100%; display: flex; align-items: center; gap: var(--space-4); min-height: 48px; padding: var(--space-3) var(--space-1) var(--space-3) var(--space-4);
   border: 0; border-radius: 0; background: transparent; color: var(--muted); text-align: left; font-weight: 600; font-size: var(--text-sm);

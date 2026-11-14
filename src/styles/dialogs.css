@@ -14,7 +14,7 @@
 }
 .band.out { background: var(--shade); }
 .band.pending { box-shadow: inset 0 0 0 3px var(--select); }
-.band:focus-visible { outline: 3px solid var(--select); outline-offset: -3px; }
+.band:focus-visible { outline: var(--focus); outline-offset: -3px; }
 
 .picklist { display: grid; max-height: var(--scroll-max); overflow: auto; }
 /* The picker's strip scrolls both ways once zoomed; its own gestures pan and pinch it. */

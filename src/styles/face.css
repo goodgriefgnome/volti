@@ -3,7 +3,7 @@
 /* On the reader: at the top right while the toolbar is hidden, opposite the back arrow, clear of the edges for its ring. */
 .reader > .face-button {
   position: absolute; z-index: 6; display: none;
-  top: max(12px, env(safe-area-inset-top, 0px)); right: max(12px, env(safe-area-inset-right, 0px));
+  top: max(calc(var(--edge) + 10px), env(safe-area-inset-top, 0px)); right: max(calc(var(--edge) + 10px), env(safe-area-inset-right, 0px));
 }
 .reader.chrome-hidden > .face-button { display: grid; }
 .face-button.inert { pointer-events: none; }
@@ -17,7 +17,7 @@
 .face-button.pressing .face-press { display: block; animation: face-press linear forwards; }
 @keyframes face-press { to { stroke-dashoffset: 0; } }
 
-.face-button[data-status="unavailable"] .face-glyph { opacity: 0.4; }
+.face-button[data-status="unavailable"] .face-glyph { opacity: var(--dim); }
 .face-button[data-status="starting"]::after {
   content: ''; position: absolute; inset: 0; border-radius: 50%; border: 2.5px solid transparent; border-top-color: var(--accent);
   animation: face-spin 0.9s linear infinite;
@@ -26,7 +26,7 @@
 .face-button[data-status="noFace"] { box-shadow: 0 0 0 2.5px var(--warn); color: var(--warn); }
 .face-button[data-status="noFace"] .face-glyph { animation: face-blink 3.6s infinite; }
 .face-button[data-status="paused"] { box-shadow: 0 0 0 2.5px var(--paused); }
-.face-button[data-status="paused"] .face-glyph { opacity: 0.55; }
+.face-button[data-status="paused"] .face-glyph { opacity: var(--dim); }
 .face-button.pulse::before {
   content: ''; position: absolute; inset: 0; border-radius: 50%; animation: face-pulse 0.7s ease-out;
 }
@@ -75,7 +75,6 @@
 .face-meter .on { position: absolute; top: 4px; width: 14px; height: 24px; margin-left: -7px; display: grid; justify-items: center; align-content: start; }
 .face-meter .on::before { content: ''; width: 14px; height: 6px; border-radius: var(--radius-sm); background: var(--fg); }
 .face-meter .on .line { width: 3px; height: 18px; background: var(--fg); }
-.face-meter .on:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .face-meter.tall { height: auto; max-width: none; padding: 30px 0 26px; }
 .face-meter.tall .track { position: relative; top: 0; height: 24px; border-radius: var(--radius); }
 .face-meter.tall .on { top: 0; height: auto; width: 44px; margin-left: -22px; border-left: 0; display: grid; justify-items: center; align-content: start; }
@@ -112,7 +111,7 @@
 .face-ft.off .face-thr span { color: var(--muted); text-decoration: line-through; }
 .face-thr .lim { color: var(--muted); }
 .face-thr .lim.off { text-decoration: line-through; }
-.face-ft.off .face-names { opacity: 0.55; }
+.face-ft.off .face-names { opacity: var(--dim); }
 @media (max-width: 560px) {
   .face-ft { grid-template-columns: 52px minmax(0, 1fr) 6.5em; }
   .face-ft .face-bar { grid-column: 1 / 4; }
@@ -150,7 +149,7 @@
 .face-ft.off .pennant, .face-ft.off .pennant::before, .face-ft.off .rest-tick { background: var(--paused); }
 .face-ft.off .br, .face-bar .br.grey { border-color: var(--paused); }
 .face-ft.off .face-band, .face-bar .lane.grey .face-band { opacity: 0.3; }
-.face-bar .lane.grey { opacity: 0.5; }
+.face-bar .lane.grey { opacity: var(--dim); }
 .face-ft.off .dot { background: var(--paused); box-shadow: 0 0 0 1px var(--paused); }
 .face-ft.off .ring { border-color: var(--paused); }
 /* Add channel…: every channel not in the template, by separation. */
@@ -159,7 +158,7 @@
 .face-picker .pk-head { min-height: var(--control-sm); font-size: var(--text-xs); color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--surface); }
 .face-picker .pk { min-height: var(--control); border: 0; border-radius: var(--radius); background: transparent; text-align: left; font-size: var(--text-sm); }
 .face-picker .pk .n, .face-picker .pk-head span + span { text-align: right; }
-.face-picker .pk.none { color: var(--muted); opacity: 0.5; }
+.face-picker .pk.none { color: var(--muted); opacity: var(--dim); }
 /* The trials panel (face/_trials.ts). */
 .face-chips { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: center; font-size: var(--text-sm); color: var(--muted); }
 .face-trials-table { display: grid; }
@@ -171,7 +170,7 @@
 .face-trials .tr .n { text-align: right; }
 .face-trials .tr .bad { color: var(--warn); font-weight: 600; }
 .face-trials .tr.flagged { background: var(--warn-soft); }
-.face-trials .tr.off { opacity: 0.5; }
+.face-trials .tr.off { opacity: var(--dim); }
 .face-trials .tr.off .n { text-decoration: line-through; }
 .face-trials .trace-cell { min-width: 0; position: relative; }
 /* The frames left out round a tone (face/_trials.ts), hatched under the trace; the held part is solid in the trace. */
@@ -188,7 +187,7 @@
 .face-recording-screen { position: fixed; inset: 0; z-index: var(--z-capture); background: var(--paper); display: grid; place-items: center; touch-action: none; user-select: none; }
 .face-recording-screen .page { width: 100%; height: 100%; display: grid; place-items: center; }
 .face-recording-screen .page canvas { max-width: 100%; max-height: 100%; display: block; }
-.face-recording-screen .face-recording-bar { position: absolute; left: 12px; right: 12px; top: max(12px, env(safe-area-inset-top)); background: var(--bar); color: var(--fg); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: var(--space-3) var(--space-4); display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); align-items: center; justify-content: space-between; box-shadow: var(--shadow-float); pointer-events: none; }
+.face-recording-screen .face-recording-bar { position: absolute; left: var(--edge); right: var(--edge); top: max(var(--edge), env(safe-area-inset-top)); background: var(--bar); color: var(--fg); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: var(--space-3) var(--space-4); display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); align-items: center; justify-content: space-between; box-shadow: var(--shadow-float); pointer-events: none; }
 .face-recording-screen .instruction { margin: 0; font-size: var(--text-xl); font-weight: 600; line-height: 1.2; }
 .face-recording-screen .info { display: grid; text-align: right; font-size: var(--text-sm); color: var(--muted); line-height: 1.3; }
 .face-recording-screen .info strong { color: inherit; font-size: var(--text-md); font-weight: 600; }
