@@ -1,18 +1,18 @@
 /* What dialogs/ makes: the excerpt picker and its strip of thumbnails, adding scores to a setlist, and the score-file, setlist and export dialogs. */
 /* The Excerpt picker: each cut is a band over the score's frames, shaded when the excerpt leaves it out. */
-.thumbnail-frame { position: relative; flex: none; background: #ffffff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); }
+.thumbnail-frame { position: relative; flex: none; background: var(--paper); box-shadow: var(--shadow-paper); }
 .thumbnail-frame canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .thumbnail-frame canvas.under { mix-blend-mode: multiply; }
 .band {
   position: absolute; left: 0; right: 0; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent;
-  border-top: 1px dashed rgba(138, 90, 18, 0.7);
+  border-top: 1px dashed var(--accent);
 }
 .band:first-of-type { border-top-color: transparent; }
 .band::before {
-  content: attr(data-n); position: absolute; left: 3px; top: 3px; font: 600 11px/1 var(--font-ui); color: #ffffff;
-  background: rgba(40, 42, 48, 0.7); border-radius: 3px; padding: 2px 4px;
+  content: attr(data-n); position: absolute; left: 3px; top: 3px; font: 600 11px/1 var(--font-ui); color: var(--paper);
+  background: var(--shade); border-radius: 3px; padding: 2px 4px;
 }
-.band.out { background: rgba(40, 42, 48, 0.55); }
+.band.out { background: var(--shade); }
 .band.pending { box-shadow: inset 0 0 0 3px var(--select); }
 .band:focus-visible { outline: 3px solid var(--select); outline-offset: -3px; }
 
@@ -38,7 +38,7 @@
 
 /* Play from, for a face gesture's recording (dialogs/_face-play-from.ts). */
 .face-play-from { display: flex; gap: 16px; align-items: center; }
-.face-play-thumbnail { width: 96px; min-height: 64px; flex: none; background: #ffffff; border: 1px solid var(--line); border-radius: 4px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15); }
+.face-play-thumbnail { width: 96px; min-height: 64px; flex: none; background: var(--paper); border: 1px solid var(--line); border-radius: 4px; box-shadow: var(--shadow-paper); }
 .face-play-thumbnail canvas { display: block; width: 100%; height: auto; }
 .face-play-text { display: grid; gap: 2px; justify-items: start; }
 .face-play-text strong { font-size: 17px; }
@@ -46,5 +46,5 @@
 .face-pick-list { display: grid; max-height: 60vh; overflow-y: auto; }
 .face-pick-list button { justify-content: flex-start; text-align: left; }
 .face-pick-pages { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; max-height: 60vh; overflow-y: auto; padding: 2px; }
-.face-pick-page { padding: 0; min-height: 0; background: #ffffff; border: 1px solid var(--line); overflow: hidden; }
+.face-pick-page { padding: 0; min-height: 0; background: var(--paper); border: 1px solid var(--line); overflow: hidden; }
 .face-pick-page canvas { display: block; width: 100%; height: auto; }
