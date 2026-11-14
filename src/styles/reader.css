@@ -1,5 +1,6 @@
 /* The score screen: frames on a light stage, with a toolbar that floats over the score. */
-.reader { position: fixed; inset: 0; background: var(--bg); z-index: 10; user-select: none; -webkit-user-select: none; }
+/* Layers inside the reader, local to its stacking context: the selection and the tools' layers 3, the turn bands and the typing field 4, the back and face buttons 6, the loupe 8, the score card and the scope note 12. */
+.reader { position: fixed; inset: 0; background: var(--bg); z-index: var(--z-reader); user-select: none; -webkit-user-select: none; }
 .stage { position: absolute; inset: 0; touch-action: none; user-select: none; -webkit-user-select: none; overflow: hidden; }
 /* Positioned by the reader on whole screen pixels. */
 .page { position: absolute; background: var(--paper); box-shadow: var(--shadow-paper); }
@@ -14,15 +15,15 @@
 .bar {
   position: absolute; top: 0; left: 0; right: 0; display: grid;
   background: var(--bar); color: var(--fg);
-  padding: max(8px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) 8px max(12px, env(safe-area-inset-left, 0px));
+  padding: max(var(--space-2), env(safe-area-inset-top, 0px)) max(var(--space-3), env(safe-area-inset-right, 0px)) var(--space-2) max(var(--space-3), env(safe-area-inset-left, 0px));
   box-shadow: 0 1px 0 var(--line), var(--shadow-paper);
   transition: transform 160ms ease, opacity 160ms ease;
 }
 /* The one row: [back][title][page info] — tools — [⋯], with room on both sides of the tools. The title shortens before anything wraps. */
-.bar-main { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.bar-main { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
 .bar-main > .left { flex: 0 1 auto; min-width: 0; flex-wrap: nowrap; }
 .bar-main > .tools { margin-inline: auto; flex: none; flex-wrap: nowrap; }
-.bar .rule { width: 1px; height: 24px; background: var(--line); margin-inline: 4px; }
+.bar .rule { width: 1px; height: 24px; background: var(--line); margin-inline: var(--space-1); }
 /* Below 680 px the tools take a centred row of their own and Cuts is only its icon. */
 @media (max-width: 679px) {
   .bar-main { flex-wrap: wrap; }
@@ -35,11 +36,11 @@
 .back-icon { width: 22px; height: 22px; display: block; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 .reader > .back {
   position: absolute; z-index: 6; left: max(6px, env(safe-area-inset-left, 0px)); top: max(6px, env(safe-area-inset-top, 0px));
-  width: 44px; height: 44px; min-height: 0; padding: 0; display: none; place-items: center; border-radius: 50%;
+  width: var(--control); height: var(--control); min-height: 0; padding: 0; display: none; place-items: center; border-radius: 50%;
   border: 0; background: color-mix(in srgb, var(--surface) 85%, transparent); color: var(--fg); box-shadow: 0 0 0 1px var(--line); opacity: 0.9;
 }
 .reader.chrome-hidden > .back { display: grid; }
-.bar button:has(> .back-icon) { padding: 6px 9px; }
+.bar button:has(> .back-icon) { padding: var(--space-2) var(--space-2); }
 /*
  * While the toolbar shows, only a band at each side turns the page (TURN_BAND_PX in
  * reader/gestures.ts, 64 px to touch); a scrim 40 px wide marks it, as wide as a cut tab shows.
@@ -50,53 +51,53 @@
 .turn-band.right { right: 0; }
 .chrome-hidden .turn-band { display: none; }
 /* A group never wraps; the bar wraps whole groups (above). */
-.bar .group { display: flex; gap: 4px; align-items: center; min-width: 0; }
-.bar button { min-height: 44px; min-width: 44px; padding: 6px 10px; background: transparent; color: inherit; border: 0; border-radius: 10px; }
+.bar .group { display: flex; gap: var(--space-1); align-items: center; min-width: 0; }
+.bar button { min-height: var(--control); min-width: var(--control); padding: var(--space-2) var(--space-3); background: transparent; color: inherit; border: 0; border-radius: var(--radius); }
 .bar button[aria-pressed="true"] { background: var(--surface); color: inherit; box-shadow: 0 0 0 2px var(--select); }
 .bar .tool-icon { width: 22px; height: 22px; display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.bar .cuts-button { display: flex; align-items: center; gap: 6px; }
-.bar .title { font: italic 1.05rem var(--font-brand); line-height: 22px; max-width: 32ch; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bar .page-info { font-size: 14px; font-variant-numeric: tabular-nums; opacity: 0.85; white-space: nowrap; }
+.bar .cuts-button { display: flex; align-items: center; gap: var(--space-2); }
+.bar .title { font: italic var(--text-md) var(--font-brand); line-height: 22px; max-width: 32ch; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar .page-info { font-size: var(--text-sm); font-variant-numeric: tabular-nums; opacity: 0.85; white-space: nowrap; }
 /* The title above the page info, both starting at the same edge. */
 .bar .title-block { display: flex; flex-direction: column; min-width: 0; }
-.bar .title-block .title-button { min-height: 24px; padding: 0 6px; }
-.bar .title-block .page-info { padding: 0 6px; font-size: 13px; line-height: 17px; }
+.bar .title-block .title-button { min-height: 24px; padding: 0 var(--space-2); }
+.bar .title-block .page-info { padding: 0 var(--space-2); font-size: var(--text-sm); line-height: 17px; }
 
 /* The selected marking: its box, a handle at each corner and a delete button above; sizes that must keep their size on screen are set by reader/_selection.ts. */
 .selection { position: absolute; z-index: 3; pointer-events: none; }
 /* The box's line, over the handles: its border is centred on the box's edge (inset set by reader/_selection.ts). */
 .selection-line { position: absolute; box-sizing: border-box; border: 1px solid var(--select); pointer-events: none; }
 .selection-handle { position: absolute; box-sizing: border-box; border-radius: 50%; border: 1.5px solid var(--select); background: var(--paper); pointer-events: none; }
-.selection-delete { position: absolute; left: 50%; bottom: calc(100% + 10px); width: 28px; height: 28px; min-height: 0; margin-left: -14px; padding: 0; pointer-events: auto; border-radius: 50%; border: 0; background: var(--select); color: var(--accent-fg); font: 600 18px/28px sans-serif; text-align: center; }
+.selection-delete { position: absolute; left: 50%; bottom: calc(100% + 10px); width: 28px; height: 28px; min-height: 0; margin-left: -14px; padding: 0; pointer-events: auto; border-radius: 50%; border: 0; background: var(--select); color: var(--accent-fg); font: 600 var(--text-lg)/28px sans-serif; text-align: center; }
 /* "This time only", to the right of the delete button on its line: a pill, filled while on. */
-.selection-pass { position: absolute; left: calc(50% + 20px); bottom: calc(100% + 10px); height: 28px; min-height: 0; padding: 0 10px; pointer-events: auto; border-radius: 14px; border: 1.5px solid var(--select); background: var(--paper); color: var(--select); font: 600 13px/25px sans-serif; white-space: nowrap; }
+.selection-pass { position: absolute; left: calc(50% + 20px); bottom: calc(100% + 10px); height: 28px; min-height: 0; padding: 0 var(--space-3); pointer-events: auto; border-radius: var(--radius-pill); border: 1.5px solid var(--select); background: var(--paper); color: var(--select); font: 600 var(--text-sm)/25px sans-serif; white-space: nowrap; }
 .selection-pass[aria-pressed="true"] { background: var(--select); color: var(--accent-fg); }
 
 /* The glyph picker: the characters and their preview above a search and the grid, which scrolls inside the dialog. */
-.glyph-picker-body { display: flex; flex-direction: column; gap: 10px; height: calc(var(--seen-height, 100vh) - 130px); min-height: 0; }
-.glyph-picker-body .glyph-chars { display: flex; gap: 8px; align-items: center; }
-.glyph-picker-body .glyph-text { flex: 1; min-width: 0; font-size: 20px; }
-.glyph-picker-body .glyph-preview { flex: none; width: 72px; height: 72px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 8px; }
-.glyph-picker-body .glyph-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(auto-fill, 56px); gap: 4px; align-content: start; justify-content: center; overflow: auto; overscroll-behavior: contain; border: 1px solid var(--line); border-radius: 8px; padding: 4px; }
-.glyph-picker-body .glyph-cell { width: 56px; height: 56px; min-height: 0; padding: 4px; display: grid; place-items: center; }
+.glyph-picker-body { display: flex; flex-direction: column; gap: var(--space-3); height: calc(var(--seen-height, 100vh) - 130px); min-height: 0; }
+.glyph-picker-body .glyph-chars { display: flex; gap: var(--space-2); align-items: center; }
+.glyph-picker-body .glyph-text { flex: 1; min-width: 0; font-size: var(--text-xl); }
+.glyph-picker-body .glyph-preview { flex: none; width: 72px; height: 72px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: var(--radius); }
+.glyph-picker-body .glyph-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(auto-fill, 56px); gap: var(--space-1); align-content: start; justify-content: center; overflow: auto; overscroll-behavior: contain; border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-1); }
+.glyph-picker-body .glyph-cell { width: 56px; height: 56px; min-height: 0; padding: var(--space-1); display: grid; place-items: center; }
 .glyph-picker-body .glyph-cell svg { width: 100%; height: 100%; fill: currentColor; }
 .glyph-picker-body .glyph-caption { min-height: 1.5em; }
 
 /* The library editor: group rows wrapping their pictures; the symbol view's fields one per line. */
-.library-editor .editor-body { display: grid; gap: 10px; }
-.library-editor .group-list { display: grid; gap: 8px; }
-.library-editor .group-row { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 8px; border: 1px solid var(--line); border-radius: 8px; }
-.library-editor .group-name { flex-basis: 100%; color: var(--muted); font-size: 13px; }
-.library-editor .group-symbols { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.library-editor .group-actions { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px; }
-.library-editor .symbol-choice { display: inline-grid; place-items: center; width: 56px; min-height: 44px; padding: 4px; }
-.library-editor .field { display: grid; gap: 4px; }
-.library-editor .field-label { color: var(--muted); font-size: 13px; }
-.library-editor .scale-row { display: flex; gap: 8px; align-items: center; }
+.library-editor .editor-body { display: grid; gap: var(--space-3); }
+.library-editor .group-list { display: grid; gap: var(--space-2); }
+.library-editor .group-row { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: center; padding: var(--space-2); border: 1px solid var(--line); border-radius: var(--radius); }
+.library-editor .group-name { flex-basis: 100%; color: var(--muted); font-size: var(--text-sm); }
+.library-editor .group-symbols { flex: 1; display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.library-editor .group-actions { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.library-editor .symbol-choice { display: inline-grid; place-items: center; width: 56px; min-height: var(--control); padding: var(--space-1); }
+.library-editor .field { display: grid; gap: var(--space-1); }
+.library-editor .field-label { color: var(--muted); font-size: var(--text-sm); }
+.library-editor .scale-row { display: flex; gap: var(--space-2); align-items: center; }
 .library-editor .scale-row input { width: 7em; }
-.library-editor .move-row { display: flex; gap: 8px; }
-.library-editor .preview { display: flex; gap: 12px; align-items: center; }
-.library-editor .preview-slot { width: 128px; height: 128px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 8px; }
+.library-editor .move-row { display: flex; gap: var(--space-2); }
+.library-editor .preview { display: flex; gap: var(--space-3); align-items: center; }
+.library-editor .preview-slot { width: 128px; height: 128px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: var(--radius); }
 .library-editor .glyph-picker-body { height: calc(var(--seen-height, 100vh) - 130px); }
 
 /* The field text is typed in, over the music where the text will be (reader/_typing.ts); its font, size and place are set on it. */
@@ -105,65 +106,65 @@
 /* The title menu: a row per entry or excerpt, the one read highlighted. */
 .menu .menu-head { display: flex; align-items: center; justify-content: space-between; }
 .menu .menu-head .label { flex: 1; min-width: 0; }
-.menu .menu-action { width: 44px; font-size: 22px; text-align: center; }
+.menu .menu-action { width: var(--control); font-size: var(--text-xl); text-align: center; }
 .menu .title-list { display: grid; max-height: calc(var(--seen-height, 100vh) * 0.6); overflow: auto; }
-.menu .title-row { display: flex; align-items: center; border-radius: 8px; }
+.menu .title-row { display: flex; align-items: center; border-radius: var(--radius); }
 /* The title menu is as wide as its longest title needs, up to 90% of the page. A title longer than that scrolls sideways; the icons beside it stay in view. */
 .menu:has(.title-list) { max-width: 90vw; }
 .menu .title-row .go { flex: 1; min-width: 0; background: transparent; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
 .menu .title-row .go::-webkit-scrollbar { display: none; }
 .menu .title-row.current { background: var(--accent-soft); }
 .menu .title-row.current .go { font-weight: 600; }
-.menu .title-row .grip, .menu .title-row .swap, .menu .title-row .bin { flex: none; width: 44px; padding: 0; display: grid; place-items: center; touch-action: none; }
+.menu .title-row .grip, .menu .title-row .swap, .menu .title-row .bin { flex: none; width: var(--control); padding: 0; display: grid; place-items: center; touch-action: none; }
 .menu .title-row.dragging { opacity: 0.6; }
 .menu .row-icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .menu .grip .row-icon { stroke-width: 3; }
-.bar .title-button { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.bar .title-button { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
 .bar .chevron-icon { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 /* The Symbols button before it has a symbol to show. */
-.bar .tool-symbol .pp { font: italic 700 1.1rem var(--font-brand); }
+.bar .tool-symbol .pp { font: italic 700 var(--text-lg) var(--font-brand); }
 .bar .tool-symbol canvas { display: block; }
 
 /* Pen's and Highlight's colour, a short bar under the icon. */
-.bar button:has(> .ink) { display: grid; justify-items: center; align-content: center; gap: 2px; }
-.bar .ink { width: 20px; height: 4px; border-radius: 2px; box-shadow: 0 0 0 1px var(--hairline); }
+.bar button:has(> .ink) { display: grid; justify-items: center; align-content: center; gap: var(--space-1); }
+.bar .ink { width: 20px; height: 4px; border-radius: var(--radius-pill); box-shadow: 0 0 0 1px var(--hairline); }
 /* Every menu and panel opened in the reader is the bar's off-white, and a button not picked shows it; a picked one is white with a blue ring (below). Dialogs keep their own. */
 body.reading .menu { background: var(--bar); }
 body.reading .menu button { background: transparent; }
 body.reading .menu button:not([aria-pressed="true"]):hover, body.reading .menu button:not([aria-pressed="true"]):focus-visible { background: var(--select-soft); }
 /* The tools' long-press panels: rows of colour swatches and background shapes. */
-.swatch-row, .shape-row { display: flex; gap: 6px; align-items: center; padding: 4px 0; }
-.swatch-row .swatch { width: 44px; min-height: 44px; padding: 0; position: relative; }
+.swatch-row, .shape-row { display: flex; gap: var(--space-2); align-items: center; padding: var(--space-1) 0; }
+.swatch-row .swatch { width: var(--control); min-height: var(--control); padding: 0; position: relative; }
 .swatch-row .swatch::after { content: ""; position: absolute; inset: 11px; border-radius: 50%; background: var(--swatch); box-shadow: 0 0 0 1px var(--hairline); }
 .swatch-row .swatch.default::before { content: ""; position: absolute; inset: 8px; border-radius: 50%; border: 1.5px dashed var(--muted); }
 /* The picked colour, shape or symbol: white, with a ring in the selection blue; no dark fill, so colours read true. */
 .swatch-row .swatch[aria-pressed="true"], .shape-row .shape[aria-pressed="true"], .symbol-panel .symbol-choice[aria-pressed="true"] { background: var(--surface); box-shadow: 0 0 0 2px var(--select); }
-.shape-row .shape { min-width: 44px; padding: 4px; display: grid; place-items: center; }
+.shape-row .shape { min-width: var(--control); padding: var(--space-1); display: grid; place-items: center; }
 
 /* The Text button's T, on its background; the Symbols button's picture is a canvas. */
 .bar .text-look { position: relative; display: inline-grid; place-items: center; width: 30px; height: 22px; }
 .bar .text-look svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.bar .text-look .t { position: relative; font: 600 18px/1 var(--font-brand); }
-.tool-panel { display: grid; gap: 8px; }
-.tool-panel .panel-part { display: grid; gap: 2px; }
-.tool-panel .font-select { font: inherit; min-height: 44px; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
+.bar .text-look .t { position: relative; font: 600 var(--text-lg)/1 var(--font-brand); }
+.tool-panel { display: grid; gap: var(--space-2); }
+.tool-panel .panel-part { display: grid; gap: var(--space-1); }
+.tool-panel .font-select { font: inherit; min-height: var(--control); padding: var(--space-1) var(--space-2); border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
 /* The Symbols panel: the library (boxes of symbols; scrolls) beside the settings. */
 .menu:has(.symbol-panel) { max-width: calc(100vw - 32px); }
-.symbol-panel { display: flex; gap: 12px; align-items: flex-start; max-height: 100%; }
-.symbol-panel .symbol-library { display: grid; gap: 8px; width: min(440px, calc(100vw - 300px)); min-width: 200px; max-height: inherit; overflow-y: auto; overscroll-behavior: contain; align-content: start; }
-.symbol-panel .symbol-settings { flex: none; display: grid; gap: 8px; }
-.symbol-panel .group-box { display: flex; flex-wrap: wrap; gap: 4px; min-height: 52px; padding: 4px; border: 1px solid var(--line); border-radius: 10px; touch-action: none; }
-.symbol-panel .group-list { display: grid; gap: 8px; }
+.symbol-panel { display: flex; gap: var(--space-3); align-items: flex-start; max-height: 100%; }
+.symbol-panel .symbol-library { display: grid; gap: var(--space-2); width: min(440px, calc(100vw - 300px)); min-width: 200px; max-height: inherit; overflow-y: auto; overscroll-behavior: contain; align-content: start; }
+.symbol-panel .symbol-settings { flex: none; display: grid; gap: var(--space-2); }
+.symbol-panel .group-box { display: flex; flex-wrap: wrap; gap: var(--space-1); min-height: 52px; padding: var(--space-1); border: 1px solid var(--line); border-radius: var(--radius); touch-action: none; }
+.symbol-panel .group-list { display: grid; gap: var(--space-2); }
 .symbol-panel .group-grip { flex: none; align-self: stretch; width: 28px; display: grid; place-items: center; color: var(--muted); touch-action: none; }
 .symbol-panel .group-grip .row-icon { stroke-width: 3; }
 .symbol-panel .group-box.dragging { opacity: 0.6; }
-.symbol-panel .symbol-choice { display: inline-grid; place-items: center; width: 52px; min-height: 52px; padding: 0; border: 1px solid var(--line); border-radius: 8px; touch-action: none; }
+.symbol-panel .symbol-choice { display: inline-grid; place-items: center; width: 52px; min-height: 52px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius); touch-action: none; }
 .symbol-panel .symbol-choice.dragging { opacity: 0.35; }
-.symbol-panel .new-group { display: grid; place-items: center; min-height: 52px; border: 1.5px dashed var(--muted); border-radius: 10px; color: var(--muted); font-size: 13px; }
+.symbol-panel .new-group { display: grid; place-items: center; min-height: 52px; border: 1.5px dashed var(--muted); border-radius: var(--radius); color: var(--muted); font-size: var(--text-sm); }
 .symbol-panel .new-group.over { border-color: var(--select); color: var(--select); }
-.symbol-panel .symbol-actions { display: flex; gap: 6px; }
-.symbol-panel .drag-ghost { position: fixed; z-index: 30; pointer-events: none; opacity: 0.85; }
-.symbol-panel .drop-line { position: fixed; z-index: 30; width: 3px; border-radius: 2px; background: var(--select); pointer-events: none; }
+.symbol-panel .symbol-actions { display: flex; gap: var(--space-2); }
+.symbol-panel .drag-ghost { position: fixed; z-index: var(--z-top); pointer-events: none; opacity: 0.85; }
+.symbol-panel .drop-line { position: fixed; z-index: var(--z-top); width: 3px; border-radius: var(--radius-sm); background: var(--select); pointer-events: none; }
 /* The loupe: a round magnifier above the finger while a marking is dragged (reader/_loupe.ts). */
 .reader > .loupe { position: fixed; z-index: 8; pointer-events: none; border-radius: 50%; background: var(--paper); box-shadow: 0 0 0 2px var(--paper), 0 0 0 3px var(--hairline), var(--shadow-float); }
 
@@ -183,11 +184,11 @@ body.reading .menu button:not([aria-pressed="true"]):hover, body.reading .menu b
 .tab::after { content: ""; position: absolute; width: 40px; height: 28px; background: var(--accent); opacity: 0.7; }
 .tab.top, .tab.pad { margin-top: -12px; }
 .tab.top { left: 0; }
-.tab.top::after { left: 0; top: 12px; border-radius: 0 0 8px 0; }
+.tab.top::after { left: 0; top: 12px; border-radius: 0 0 var(--radius) 0; }
 .tab.bottom { right: 0; margin-top: -36px; }
-.tab.bottom::after { right: 0; bottom: 12px; border-radius: 8px 0 0 0; }
+.tab.bottom::after { right: 0; bottom: 12px; border-radius: var(--radius) 0 0 0; }
 .tab.pad { right: 0; }
-.tab.pad::after { right: 0; top: 12px; border-radius: 0 0 0 8px; background: var(--muted); }
+.tab.pad::after { right: 0; top: 12px; border-radius: 0 0 0 var(--radius); background: var(--muted); }
 .tab.dragging::after { background: var(--select); opacity: 1; }
 .tab:focus-visible { outline: none; }
 .tab:focus-visible::after { opacity: 1; outline: 3px solid var(--select); }
@@ -205,13 +206,13 @@ body.reading .menu button:not([aria-pressed="true"]):hover, body.reading .menu b
 /* Where "Cut here" would cut, while the menu is open. */
 .cut-mark { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--select); }
 
-.thumbnail { flex: none; display: grid; gap: 4px; justify-items: center; padding: 4px; min-height: 0; border: 2px solid transparent; background: transparent; }
+.thumbnail { flex: none; display: grid; gap: var(--space-1); justify-items: center; padding: var(--space-1); min-height: 0; border: 2px solid transparent; background: transparent; }
 .thumbnail canvas, .thumbnail .thumbnail-space { width: 84px; background: var(--paper); box-shadow: var(--shadow-paper); }
-.thumbnail span { font-size: 13px; color: var(--muted); }
+.thumbnail span { font-size: var(--text-sm); color: var(--muted); }
 .thumbnail[aria-pressed="true"] { border-color: var(--select); background: color-mix(in srgb, var(--select) 12%, transparent); }
 /* The insert dialog's choice of pass, under the page strip. */
-.dialog .pass-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.dialog .pass-row .pass-label { color: var(--muted); margin-right: 4px; }
+.dialog .pass-row { display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap; }
+.dialog .pass-row .pass-label { color: var(--muted); margin-right: var(--space-1); }
 .dialog .pass-row button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
 
 /* Setlists in the reader. */
@@ -219,24 +220,24 @@ body.reading .menu button:not([aria-pressed="true"]):hover, body.reading .menu b
 /* Fills the rest of a score's last screen: what comes next, or a score that can't be found. */
 .page.blank {
   background: transparent; box-shadow: none; border: 1px dashed var(--line);
-  display: grid; place-content: center; text-align: center; gap: 6px; padding: 16px; color: var(--muted);
+  display: grid; place-content: center; text-align: center; gap: var(--space-2); padding: var(--space-4); color: var(--muted);
 }
-.page.blank .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
-.page.blank .t { font: italic 1.4rem var(--font-brand); color: var(--fg); overflow-wrap: anywhere; }
+.page.blank .label { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em; }
+.page.blank .t { font: italic var(--text-xl) var(--font-brand); color: var(--fg); overflow-wrap: anywhere; }
 /* Names the score for a moment when the reader turns into it. */
 .score-card {
   position: absolute; z-index: 12; left: 50%; bottom: max(16px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
-  margin: 0; pointer-events: none; background: var(--bar); color: var(--bar-fg); border-radius: 999px; padding: 6px 16px;
-  font: italic 1rem var(--font-brand); white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis;
+  margin: 0; pointer-events: none; background: var(--bar); color: var(--fg); border-radius: var(--radius-pill); padding: var(--space-2) var(--space-4);
+  font: italic var(--text-md) var(--font-brand); white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis;
   transition: opacity 300ms ease;
 }
-.score-card b { font: 600 12px var(--font-ui); letter-spacing: 0.06em; opacity: 0.7; margin-right: 8px; }
+.score-card b { font: 600 var(--text-xs) var(--font-ui); letter-spacing: 0.06em; opacity: 0.7; margin-right: var(--space-2); }
 .score-card.gone { opacity: 0; }
 /* While editing cuts in a setlist: they change the score. */
 .scope {
   position: absolute; z-index: 12; left: 50%; top: calc(var(--bar-h, 56px) + 8px); transform: translateX(-50%); margin: 0;
   pointer-events: none; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  background: var(--accent); color: var(--accent-fg); border-radius: 999px; padding: 4px 14px; font-size: 13px;
+  background: var(--accent); color: var(--accent-fg); border-radius: var(--radius-pill); padding: var(--space-1) var(--space-4); font-size: var(--text-sm);
 }
 .chrome-hidden .scope { top: 8px; }
 

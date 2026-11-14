@@ -1,22 +1,22 @@
 /* What ui/ makes: menus and dialogs (overlay.ts, ask-text.ts), toasts and the drag handle. */
 .menu {
-  position: fixed; z-index: 20; min-width: 220px; max-width: min(340px, calc(100vw - 16px)); display: grid;
-  background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 10px;
-  box-shadow: var(--shadow-popup); padding: 6px;
+  position: fixed; z-index: var(--z-popup); min-width: 220px; max-width: min(340px, calc(100vw - 16px)); display: grid;
+  background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-popup); padding: var(--space-2);
 }
-.menu .label { color: var(--muted); font-size: 13px; padding: 6px 10px; }
-.menu button { border: 0; text-align: left; min-height: 44px; }
+.menu .label { color: var(--muted); font-size: var(--text-sm); padding: var(--space-2) var(--space-3); }
+.menu button { border: 0; text-align: left; min-height: var(--control); }
 .menu button:hover, .menu button:focus-visible { background: var(--bg); }
 
 /* Centred in what can be seen of the page: above the on-screen keyboard while it is open. */
 .dialog {
-  position: fixed; z-index: 20; left: 50%; top: calc(var(--seen-top, 0px) + var(--seen-height, 100vh) / 2); transform: translate(-50%, -50%);
+  position: fixed; z-index: var(--z-popup); left: 50%; top: calc(var(--seen-top, 0px) + var(--seen-height, 100vh) / 2); transform: translate(-50%, -50%);
   width: min(720px, calc(100vw - 32px)); max-height: calc(var(--seen-height, 100vh) - 32px); overflow: auto; overscroll-behavior: contain;
-  background: var(--surface); color: var(--fg); border-radius: 12px; padding: 16px 18px;
-  box-shadow: var(--shadow-popup); display: grid; gap: 10px;
+  background: var(--surface); color: var(--fg); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-4);
+  box-shadow: var(--shadow-popup); display: grid; gap: var(--space-3);
 }
-.dialog h2 { margin: 0; font-size: 18px; }
-.dialog h3 { margin: 4px 0 0; font-size: 14px; color: var(--muted); font-weight: 600; }
+.dialog h2 { margin: 0; font-size: var(--text-lg); }
+.dialog h3 { margin: var(--space-1) 0 0; font-size: var(--text-sm); color: var(--muted); font-weight: 600; }
 .dialog .hint { margin: 0; color: var(--muted); }
 .dialog .hint.error { color: var(--warn); }
 .dialog .hint.error:empty { display: none; }
@@ -33,30 +33,30 @@
 .keyboard .dialog .thumbnails.excerpt, .keyboard .dialog .picklist { max-height: none; }
 /* The buttons stay in sight when the dialog is too tall and scrolls. */
 .dialog .buttons {
-  display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap;
-  position: sticky; bottom: -16px; z-index: 1; margin-bottom: -16px; padding-block: 8px 16px; background: var(--surface);
+  display: flex; gap: var(--space-2); justify-content: flex-end; flex-wrap: wrap;
+  position: sticky; bottom: -16px; z-index: 1; margin-bottom: -16px; padding-block: var(--space-2) var(--space-4); background: var(--surface);
 }
-.dialog .check { display: flex; gap: 8px; align-items: center; min-height: 44px; }
+.dialog .check { display: flex; gap: var(--space-2); align-items: center; min-height: var(--control); }
 .dialog .check input { width: 20px; height: 20px; flex: none; accent-color: var(--accent); }
 .dialog .check .meta { margin-left: auto; }
 .dialog.wide { width: min(760px, calc(100vw - 32px)); }
-.dialog select { font: inherit; min-height: 44px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); justify-self: start; max-width: 100%; }
-.dialog input.name { font: inherit; min-height: 44px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
+.dialog select { font: inherit; min-height: var(--control); padding: var(--space-2) var(--space-3); border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); color: var(--fg); justify-self: start; max-width: 100%; }
+.dialog input.name { font: inherit; min-height: var(--control); padding: var(--space-2) var(--space-3); border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
 /* Behind a dialog, or invisibly behind a menu: a tap on it closes them. */
-.catcher, .scrim { position: fixed; inset: 0; z-index: 19; touch-action: none; }
+.catcher, .scrim { position: fixed; inset: 0; z-index: calc(var(--z-popup) - 1); touch-action: none; }
 .scrim { background: var(--scrim); }
 /* A dialog over the one open (a PDF's password). */
-.scrim.on-top { z-index: 29; }
-.dialog.on-top { z-index: 30; }
+.scrim.on-top { z-index: calc(var(--z-top) - 1); }
+.dialog.on-top { z-index: var(--z-top); }
 .menu button[aria-checked="true"]::before { content: "✓ "; }
 
 .toast {
-  position: absolute; z-index: 15; left: 50%; bottom: max(16px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
-  margin: 0; max-width: calc(100vw - 32px); padding: 10px 16px; border-radius: 10px;
-  background: var(--bar); color: var(--fg); font-size: 15px; pointer-events: none;
+  position: absolute; z-index: var(--z-toast); left: 50%; bottom: max(16px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  margin: 0; max-width: calc(100vw - 32px); padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg);
+  background: var(--bar); color: var(--fg); font-size: var(--text-md); pointer-events: none;
 }
 .toast:empty { display: none; }
-.toast.fixed { position: fixed; z-index: 25; }
+.toast.fixed { position: fixed; z-index: var(--z-over-popup); }
 /* A toast with an action (Undo) can be tapped. */
-.toast.act { pointer-events: auto; display: flex; gap: 14px; align-items: center; padding-block: 6px; }
-.toast.act button { min-height: 36px; padding: 4px 12px; background: transparent; color: inherit; border-color: var(--line); }
+.toast.act { pointer-events: auto; display: flex; gap: var(--space-4); align-items: center; padding-block: var(--space-2); }
+.toast.act button { min-height: var(--control-sm); padding: var(--space-1) var(--space-3); background: transparent; color: inherit; border-color: var(--line); }

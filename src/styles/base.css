@@ -28,6 +28,14 @@
   --shadow-paper: 0 1px 4px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.05);
   --shadow-float: 0 4px 16px rgba(0, 0, 0, 0.22);
   --shadow-popup: 0 12px 40px rgba(0, 0, 0, 0.35);
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px; --space-6: 32px;
+  --text-xs: 12px; --text-sm: 14px; --text-md: 16px; --text-lg: 18px; --text-xl: 22px;
+  --radius-sm: 4px; --radius: 8px; --radius-lg: 12px; --radius-pill: 999px;
+  --control: 44px; --control-sm: 32px;
+  /* The most a list inside a dialog or menu grows before it scrolls. */
+  --scroll-max: calc(var(--seen-height, 100vh) * 0.6);
+  /* Layers across the whole app; inside the reader see the comment in reader.css. */
+  --z-reader: 10; --z-toast: 15; --z-popup: 20; --z-over-popup: 25; --z-top: 30; --z-capture: 40;
   --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-brand: "Iowan Old Style", "Palatino Linotype", Palatino, "Noto Serif", Georgia, serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -38,12 +46,12 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
-body { background: var(--bg); color: var(--fg); font: 16px/1.5 var(--font-ui); -webkit-tap-highlight-color: transparent; }
+body { background: var(--bg); color: var(--fg); font: var(--text-md)/1.5 var(--font-ui); -webkit-tap-highlight-color: transparent; }
 body.reading { overflow: hidden; background: var(--bg); }
 [hidden] { display: none !important; }
 
 button {
-  font: inherit; font-size: 15px; min-height: 44px; padding: 8px 16px; border-radius: 8px;
+  font: inherit; font-size: var(--text-md); min-height: var(--control); padding: var(--space-2) var(--space-4); border-radius: var(--radius);
   border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer;
 }
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
@@ -52,28 +60,28 @@ button.danger { background: var(--warn); border-color: var(--warn); color: var(-
 button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 button:disabled { opacity: 0.4; cursor: default; }
 /* The start screen, shown while looking for a new version of the app. */
-.start { position: fixed; inset: 0; display: grid; place-content: center; justify-items: center; gap: 12px; background: var(--bg); }
+.start { position: fixed; inset: 0; display: grid; place-content: center; justify-items: center; gap: var(--space-3); background: var(--bg); }
 .start-note { margin: 0; color: var(--muted); min-height: 1.5em; }
 
 /* Used by more than one directory. */
 .brand { font: italic 600 2.4rem/1 var(--font-brand); margin: 0; letter-spacing: 0.01em; }
-.tools { display: flex; gap: 10px; flex-wrap: wrap; }
+.tools { display: flex; gap: var(--space-3); flex-wrap: wrap; }
 .search {
-  flex: 1 1 240px; min-width: 0; min-height: 44px; font: inherit; padding: 8px 14px;
-  border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg);
+  flex: 1 1 240px; min-width: 0; min-height: var(--control); font: inherit; padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); color: var(--fg);
 }
-.meta { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
-.pill { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; border: 1px solid currentColor; border-radius: 999px; padding: 0 8px; white-space: nowrap; color: var(--accent); }
+.meta { color: var(--muted); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+.pill { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.06em; border: 1px solid currentColor; border-radius: var(--radius-pill); padding: 0 var(--space-2); white-space: nowrap; color: var(--accent); }
 .pill.missing { color: var(--warn); }
-.more { flex: none; width: 48px; padding: 0; }
+.more { flex: none; width: var(--control); padding: 0; }
 .chev { display: inline-block; width: 10px; height: 10px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform 200ms ease; }
 .folder-head {
-  width: 100%; display: flex; align-items: center; gap: 14px; min-height: 48px; padding: 10px 4px 10px 17px;
-  border: 0; border-radius: 0; background: transparent; color: var(--muted); text-align: left; font-weight: 600; font-size: 14px;
+  width: 100%; display: flex; align-items: center; gap: var(--space-4); min-height: 48px; padding: var(--space-3) var(--space-1) var(--space-3) var(--space-4);
+  border: 0; border-radius: 0; background: transparent; color: var(--muted); text-align: left; font-weight: 600; font-size: var(--text-sm);
 }
 .folder-head .chev { width: 8px; height: 8px; flex: none; }
-.empty { padding: 24px 4px; color: var(--muted); }
-.thumbnails { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 8px; align-items: flex-start; }
+.empty { padding: var(--space-5) var(--space-1); color: var(--muted); }
+.thumbnails { display: flex; gap: var(--space-2); overflow-x: auto; padding: var(--space-1) var(--space-1) var(--space-2); align-items: flex-start; }
 
 /* Sits in base.css to stay ahead of the ui/ rule it must lose to. */
 .dialog.glyph-picker { width: min(900px, calc(100vw - 32px)); }
