@@ -13,8 +13,48 @@ scores.
 
 ## Work for the immediate future
 
+- **No tagline on a phone**: the library's masthead is "Volti" and the tagline "volti subito · turn
+  the page" (`library/library.ts:81`, `.tagline` in `styles/library.css`). On a phone's width there
+  isn't room for both; leave the tagline out there (hide `.tagline` below a narrow width).
+- **Dialogs that scroll sideways on a phone**: a dialog scrolls in both directions (`.dialog`'s
+  `overflow: auto`, `styles/ui.css`), so anything wider than it makes the whole dialog scroll left
+  and right. By reading the styles, the face dialog's trials table is one: its columns
+  (`.face-trials .tr`, `styles/face.css`: 44 px, 2em, at least 60 px, three of 4.4em, and the gaps)
+  need about 390 px, and a dialog on a 375 px phone has about 327 px inside it. Others are not yet
+  found; text that can't break (a long file name) is another way to get there.
+  - First find them all: with Playwright at a phone's size (360 × 640 and 640 × 360), open each
+    dialog and list those whose `scrollWidth` is more than their `clientWidth`, and what is wider.
+  - Then make each fit rather than clip it: make `.dialog` a size container
+    (`container-type: inline-size`) and give the wide parts a narrow layout under a container query
+    (the trials table drops to fewer columns or puts the numbers under the trace), and let text
+    break (`min-width: 0`, `overflow-wrap: anywhere`) where it can be long.
+  - Keep the dialog able to scroll up and down only; clipping sideways (`overflow-x: hidden`)
+    would hide what doesn't fit instead of fitting it.
+- **The face dialog's Done bar doesn't cover the content scrolling under it**: when the face
+  gestures dialog scrolls (a phone in landscape, the keyboard up), its buttons stay in sight
+  (`.dialog .buttons`, sticky, `styles/ui.css`), but the content passing under them shows at the
+  left edge. The likely cause, by reading: the bar's background covers only the dialog's content
+  box, not its padding at the sides, so what scrolls shows beside it. The fix would give the bar
+  negative side margins of the dialog's `--pad` and as much padding back, as wide as the dialog;
+  the face dialog's sticky head (`.face-view-head-slot`, `styles/face.css`) has the same shape and
+  may need the same. Check in the app that this is the cause before fixing it.
+- **The reader's toolbar wraps on a phone instead of overflowing**: below 680 px the tools take a
+  row of their own, but neither that row nor its groups may wrap (`.bar-main > .tools` and
+  `.bar .group`, `flex-wrap: nowrap`, `styles/reader.css`), so on a phone the tools run off the
+  screen and can't be reached. Let the tools' row wrap, a whole group at a time; the toolbar's
+  height is read into `--bar-h` (`reader/reader.ts:578`), which places the turn bands and the scope
+  note, so check it is read again when the bar grows a row.
+
 ## Confirmed features which require more thought
 
+- **Reading on a phone, a system at a time**: on a phone in landscape, a whole page is too small to
+  read; the wish is to see one system at a time. Cuts can already cut a page into systems, but a
+  frame takes the shape of the page its first cut is from (`Frame.aspect`, `pack` in
+  `scores/frames.ts`), so a system cut from a portrait page sits in a tall portrait frame. Reading
+  a system at a time needs frames shaped otherwise than the page: wide, as the screen is.
+  - To work out: whether the frame's shape is chosen per score, per device or per reading (the
+    same score read on a tablet and on a phone); what fills a wide frame (one system, or as many as
+    fit); and how this meets the cuts, padding and page turns, which all reason in frames today.
 - **The cache giving room back when the origin runs short of quota**: pinned
   pages are never evicted, and the others only to stay within 30% of the quota (`diskBudget`,
   `page-cache/_budget.ts`); nothing shrinks the cache when the origin as a whole (scores added,
