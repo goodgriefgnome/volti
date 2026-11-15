@@ -83,10 +83,12 @@ scores.
   - `.bar-main > .tools { flex-wrap: wrap; }`: the tools wrap, a whole group at a time
     (`.bar .group` stays `nowrap`), centred, at any width; wide enough, they stay in the one row as
     now.
-  - `.bar-main > .tools { max-height: calc(20dvh - var(--control) - 3 * var(--space-2));
-    overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; }`: the tools' rows take
-    at most a fifth of the screen's height, less the main row (back, title, ⋯) and the bar's
-    padding, which always show. A row cut part-way by the limit is the sign that there is more.
+  - `.bar-main > .tools { max-height: max(var(--control), calc(20dvh - var(--control) - 3 *
+    var(--space-2))); overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; }`: the
+    tools' rows take at most a fifth of the screen's height, less the main row (back, title, ⋯) and
+    the bar's padding, which always show; but always at least one row of tools, where a fifth of
+    the height is less than the main row and one row (a phone in landscape). A row cut part-way by
+    the limit is the sign that there is more.
   - The bar's own `max-height` is not set: the main row never scrolls.
   - A long press on a tool (its panel, `ui/long-press.ts`) is cancelled when the press turns into a
     scroll (the browser sends `pointercancel`), so scrolling the tools never opens a panel.
