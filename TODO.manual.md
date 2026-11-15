@@ -563,3 +563,8 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     under them, and with a channel shown too.
   - A channel's row, in portrait, has its bar on a line under the name.
   - The incoming screen on a tablet in portrait still has the preview beside the fields.
+- **A dialog's sticky bars cover its whole width** (on a phone, with the keyboard up):
+  - Face gestures: add three gestures, tap Add gesture…, focus the name field and scroll it under
+    the bottom bar: nothing of its ring shows beside the bar.
+  - Open a gesture with a field (its pencil) and scroll it under the head: the same.
+  - The head and the bottom bar also hide a channel's bar and its dots as they scroll under them.

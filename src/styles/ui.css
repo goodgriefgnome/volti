@@ -36,10 +36,10 @@
   max-height: calc(var(--seen-height, 100vh) - 2 * var(--edge)); grid-auto-rows: max-content; align-content: start;
 }
 .keyboard .dialog .thumbnails.excerpt, .keyboard .dialog .picklist { max-height: none; }
-/* The buttons stay in sight when the dialog is too tall and scrolls. */
+/* The buttons stay in sight when the dialog is too tall and scrolls; the bar spans the dialog's whole width, so a focus ring scrolled under it doesn't show at its sides. */
 .dialog .buttons {
   display: flex; gap: var(--space-2); justify-content: flex-end; flex-wrap: wrap;
-  position: sticky; bottom: calc(-1 * var(--pad)); z-index: 1; margin-bottom: calc(-1 * var(--pad)); padding-block: var(--space-2) var(--pad); background: var(--surface);
+  position: sticky; bottom: calc(-1 * var(--pad)); z-index: 4; margin: 0 calc(-1 * var(--pad)) calc(-1 * var(--pad)); padding: var(--space-2) var(--pad) var(--pad); background: var(--surface);
 }
 .dialog .check { display: flex; gap: var(--space-2); align-items: center; min-height: var(--control); }
 .dialog .check input { width: var(--check); height: var(--check); flex: none; accent-color: var(--accent); }

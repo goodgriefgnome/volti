@@ -13,19 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **A dialog's sticky bars cover its whole width**: in a dialog that scrolls, the bar of buttons at
-  the bottom stays in sight (`.dialog .buttons`, `position: sticky`, `styles/ui.css`), and content
-  scrolls under it. But the bar is only as wide as the dialog's content, not its padding, and the
-  focus ring of a field (`:focus-visible`, `outline: var(--focus); outline-offset: 2px`,
-  `styles/base.css`) reaches 5 px past the field into that padding. So a focused field scrolled
-  under the bar shows the side of its ring beside the bar, as in the face gestures dialog with the
-  keyboard up, while naming a gesture (seen on a phone; reproduced in Chromium at 640 × 360).
-  Make the bar as wide as the dialog: `margin-inline: calc(-1 * var(--pad)); padding-inline:
-  var(--pad);` on `.dialog .buttons` (the dialog's `--pad`, `styles/ui.css`). The face dialog's
-  sticky head at the top (`.face-view-head-slot`, `styles/face.css`) has the same shape: give it
-  the same. Check: in the face gestures dialog at 640 × 360, add three gestures, tap Add gesture…,
-  focus the name field and scroll it under the bar: nothing of the ring shows beside the bar; open
-  a gesture with a field and scroll it under the head: the same.
 - **The reader's toolbar: one row when it fits or the screen is short, else two; back and ⋯ pinned**: today below
   680 px wide the tools take a row of their own that can't wrap, so on a phone they run off the
   screen and can't be reached; and the first row can wrap ⋯ onto a line of its own when the title
