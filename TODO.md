@@ -99,8 +99,13 @@ scores.
   - **One row**: `.bar-main { display: flex; flex-wrap: nowrap; overflow-x: auto; }`. The back
     arrow `position: sticky; left: 0;` and ⋯ `position: sticky; right: 0;` (both `z-index: 1;
     background: var(--bar);`), so they stay at the ends while the title and the tools between them
-    scroll sideways. The title block and the tools `flex: none` (the title at its own width, up to
-    its 32ch); ⋯ `margin-inline-start: auto`, so it sits at the right end when everything fits.
+    scroll sideways. The title shrinks so that at least one tool, and part of the next, always
+    shows beside it before any scrolling: the sign that there are tools, and that the row
+    scrolls. `.title-block { flex: none; min-width: 0; max-width: calc(100% - 3.5 *
+    var(--control) - 3 * var(--space-2)); }` (100% is the row's width: less the back arrow, ⋯,
+    one and a half tools and the gaps between; the title cuts itself short with an ellipsis). The
+    tools `flex: none`; ⋯ `margin-inline-start: auto`, so it sits at the right end when
+    everything fits.
   - **The row with the tools scrolls sideways when they don't fit**: in two rows, the tools' row
     (`.bar-main > .tools { flex-wrap: nowrap; overflow-x: auto; }`); in one row, the whole row as
     above. Either scroller: `overscroll-behavior: contain; touch-action: pan-x; scrollbar-width:
@@ -122,7 +127,8 @@ scores.
     1024 × 768), with a long score title: tall screens have two rows, the back arrow and ⋯ at the
     ends of the first with the title cut short between them, and the tools below, scrolling
     sideways only if they must; short screens have one row whose back arrow and ⋯ stay put while
-    the title and tools scroll; every tool is reachable; a long press still opens a panel; a swipe
+    the title and tools scroll, and before scrolling a tool and part of the next show beside the
+    cut-short title; every tool is reachable; a long press still opens a panel; a swipe
     on the bar doesn't turn the page; turning the phone moves the turn bands to just below the bar.
 
 ## Confirmed features which require more thought
