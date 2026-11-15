@@ -11,8 +11,8 @@ and when to reach for which.
 
 In this order:
 
-1. **Use a part that is already there.** A button is a `<button>`, with `primary`, `quiet` or
-   `danger` when it is one of those; a toggle sets `aria-pressed`; a text field is `input.name`; a
+1. **Use a part that is already there.** A button is a `<button>`, with `primary`, `danger`
+   or `warn` when it is one of those (`quiet` is for icon buttons only); a toggle sets `aria-pressed`; a text field is `input.name`; a
    small rounded button is `.chip`; a line icon is an SVG with class `icon`. Most new elements need
    no CSS of their own beyond where they sit.
 2. **Lay it out with the tokens.** Gaps, padding and margins from `--space-*`; text sizes from
@@ -103,7 +103,7 @@ don't restate what they set.
 
 | Part | Use it for |
 | --- | --- |
-| `button`, `.primary`, `.quiet`, `.danger` | Every button. `primary` for the one action a dialog is for, `quiet` for secondary actions in a row, `danger` for one that removes something |
+| `button`, `.primary`, `.danger`, `.warn`, `.quiet` | Every button. A button with words always has an edge: the default, `primary` for the one action a dialog is for, `danger` (filled) for one that removes something, `warn` (outlined) for one that removes something after asking ("Delete…"), or a `.chip`; `small` changes its size, never its edge. `quiet` (no border or background) is only for `quiet icon-button`. Tappable rows (`.row-button`) are not buttons in this sense |
 | `button[aria-pressed="true"]` | Every toggle: set `aria-pressed` and it gets the pressed look (blue tint, blue ring inside its edge). Don't add a class for "on" |
 | `input.name`, `input.search`, `select` | Text fields and selects |
 | `.chip` (`.mono`) | A small rounded button: a filter, a removable choice, a toggle in a row of them |

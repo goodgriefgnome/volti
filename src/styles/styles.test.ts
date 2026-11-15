@@ -1,6 +1,6 @@
 // The styles draw their values from base.css's tokens: no colour is written outside them, and
 // sizes, radii, gaps and layers come from the scales (docs/css-system-spec.md).
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 const FILES = ['base', 'ui', 'library', 'dialogs', 'reader', 'face'] as const;
@@ -79,6 +79,20 @@ describe('styles', () => {
   it('rings focus with the one ring', () => {
     for (const { name, value } of all(['outline'])) {
       expect(['var(--focus)', 'none', '0'].includes(value), `${name}.css has outline: ${value}: use var(--focus): see STYLES.md`).toBe(true);
+    }
+  });
+
+  it('keeps quiet for icon buttons', () => {
+    const root = new URL('..', import.meta.url);
+    const files = (readdirSync(root, { recursive: true }) as string[]).filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts'));
+    for (const file of files) {
+      const text = readFileSync(new URL(file, root), 'utf8');
+      for (const m of text.matchAll(/'[^'\n]*'|"[^"\n]*"|`[^`]*`/g)) {
+        const lit = m[0];
+        if (/\bquiet\b/.test(lit) && !/\bicon-button\b/.test(lit)) {
+          expect.fail(`${file} has ${lit}: a button with words has an edge: see STYLES.md`);
+        }
+      }
     }
   });
 });
