@@ -49,6 +49,10 @@ When asked for a plan:
   link that opens it. Send it again each time it changes.
   - Send it so it opens in the viewer, not as a download: one file per send, with `display:
     'render'`.
+  - Send files one after the other, never two sends at once, and give each its absolute path.
+  - Don't `cd` in a session where you send files: the app opens only files inside the session's
+    working directory, and a `cd` moves it, so files sent before stop opening. Use absolute paths
+    and `git -C <repo>` instead.
 
 ## Changing code
 
