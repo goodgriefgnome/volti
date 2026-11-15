@@ -5,6 +5,7 @@ import { BACK, CHEVRON, DOTS, el, icon } from '../ui/dom';
 import { onLongPress } from '../ui/long-press';
 import { TOOL_LABELS, type ButtonFace, type Tool, type ToolName } from './_tools/_tool';
 import { TOOLBAR } from './_tools/_tools';
+import { barRows } from './_bar-rows';
 
 const SCISSORS = 'M6 3a3 3 0 1 0 .01 0M6 15a3 3 0 1 0 .01 0M8.5 7.5L20 19M8.5 16.5L20 5';
 const UNDO = 'M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3';
@@ -61,7 +62,7 @@ export class Toolbar {
   /** `reading` is what the reader reads, which decides the buttons on the right. */
   constructor(reading: 'score' | 'excerpt' | 'setlist', act: ToolbarActions, tools: Record<ToolName, Tool>) {
     const left = el('div', 'group left');
-    const back = this.button('close', '', act.close);
+    const back = this.button('close', '', act.close, 'bar-back');
     back.append(icon(BACK));
     back.setAttribute('aria-label', 'Library');
     back.title = 'Library';
@@ -103,6 +104,45 @@ export class Toolbar {
     const main = el('div', 'bar-main');
     main.append(left, group, more);
     this.el.append(main);
+    this.main = main;
+    this.back = back;
+    this.moreButton = more;
+    this.tools = group;
+    // Refit when the bar's width changes (its height does with the rows), when the screen's height does, and when a tool's face does.
+    let width = 0;
+    this.observer = new ResizeObserver(() => { if (this.el.clientWidth !== width) { width = this.el.clientWidth; this.fit(); } });
+    this.observer.observe(this.el);
+    window.addEventListener('resize', this.onResize);
+  }
+
+  private observer: ResizeObserver;
+  private onResize = () => this.fit();
+
+  /** Stop watching the bar and the window, for when the reader closes. */
+  dispose() {
+    this.observer.disconnect();
+    window.removeEventListener('resize', this.onResize);
+  }
+
+  private main: HTMLElement;
+  private back: HTMLElement;
+  private moreButton: HTMLElement;
+  private tools: HTMLElement;
+
+  /** One row or two (`_bar-rows.ts`), by what is measured now: the `one-row` class says which. */
+  fit() {
+    const style = getComputedStyle(this.el);
+    const width = this.el.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    if (width <= 0) return;
+    const px = (v: string) => parseFloat(v) || 0;
+    const gap = px(getComputedStyle(this.main).columnGap);
+    const toolGap = px(getComputedStyle(this.tools).columnGap);
+    const kids = [...this.tools.children] as HTMLElement[];
+    // The rules between groups have margins (the first and last tools' are auto, and not counted).
+    const margins = (k: HTMLElement) => (k.classList.contains('rule') ? px(getComputedStyle(k).marginLeft) + px(getComputedStyle(k).marginRight) : 0);
+    const tools = kids.reduce((sum, k) => sum + k.offsetWidth + margins(k), 0) + toolGap * Math.max(0, kids.length - 1);
+    const fixed = this.back.offsetWidth + this.moreButton.offsetWidth + 3 * gap;
+    this.el.classList.toggle('one-row', barRows({ width, fixed, tools, height: window.innerHeight }) === 1);
   }
 
   private button(key: string, label: string, onClick: () => void, cls = ''): HTMLButtonElement {
@@ -122,6 +162,7 @@ export class Toolbar {
     if (!b || this.faces.get(tool) === face.key) return;
     this.faces.set(tool, face.key);
     b.replaceChildren(face.draw());
+    this.fit();
   }
 
   sync(v: ToolbarView) {

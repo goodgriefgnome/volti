@@ -19,18 +19,38 @@
   box-shadow: 0 1px 0 var(--line), var(--shadow-paper);
   transition: transform var(--quick) ease, opacity var(--quick) ease;
 }
-/* The one row: [back][title][page info] — tools — [⋯], with room on both sides of the tools. The title shortens before anything wraps. */
+/*
+ * One row or two, which the toolbar decides in code (reader/_bar-rows.ts) and says with `one-row` on
+ * `.bar`. Two rows: the back arrow, the title and ⋯ on the first, the tools on the second. One row:
+ * the back arrow and ⋯ stay at the ends while the title and the tools between them scroll sideways.
+ * In both, the back arrow is pinned at the left of the first row and ⋯ at its right. (The back arrow and the title are in `.left`, which is `display: contents`, so they place as if in `.bar-main`; selectors reach them with a descendant, not a child.)
+ */
 .bar-main { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
-.bar-main > .left { flex: 0 1 auto; min-width: 0; flex-wrap: nowrap; }
-.bar-main > .tools { margin-inline: auto; flex: none; flex-wrap: nowrap; }
+.bar .group.left { display: contents; }
+.bar-main .bar-back { grid-area: back; }
+.bar-main .title-block { grid-area: title; }
+.bar-main > .more { grid-area: more; }
+.bar-main > .tools { grid-area: tools; flex: none; flex-wrap: nowrap; }
 .bar .rule { width: 1px; height: 24px; background: var(--line); margin-inline: var(--space-1); }
-/* Below 680 px the tools take a centred row of their own and Cuts is only its icon. */
-@media (max-width: 679px) {
-  .bar-main { flex-wrap: wrap; }
-  .bar-main > .tools { order: 3; flex-basis: 100%; justify-content: center; margin-inline: 0; }
-  .bar-main > .more { order: 2; }
-  .bar .cuts-button .label { display: none; }
+.bar .tools > * { flex: none; }
+/* Never centred (centring pushes content out of reach): the tools' end buttons' auto margins centre them when they fit. */
+.bar .tools > :first-child { margin-inline-start: auto; }
+.bar .tools > :last-child { margin-inline-end: auto; }
+.bar:not(.one-row) .bar-main {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "back title more" "tools tools tools"; gap: var(--space-2);
 }
+.bar:not(.one-row) .bar-main > .tools { overflow-x: auto; }
+.bar.one-row .bar-main { flex-wrap: nowrap; overflow-x: auto; }
+/* The title leaves room for one tool and a half beside it, so there is always a sign that the row scrolls. */
+.bar.one-row .bar-main .title-block { flex: none; min-width: 0; max-width: calc(100% - 3.5 * var(--control) - 3 * var(--space-2)); }
+.bar.one-row .bar-main .bar-back, .bar.one-row .bar-main > .more { position: sticky; z-index: 1; background: var(--bar); }
+.bar.one-row .bar-main .bar-back { left: 0; }
+.bar.one-row .bar-main > .more { right: 0; margin-inline-start: auto; }
+/* Either scroller: no bar, and only sideways. */
+.bar:not(.one-row) .bar-main > .tools, .bar.one-row .bar-main { overscroll-behavior: contain; touch-action: pan-x; scrollbar-width: none; }
+.bar:not(.one-row) .bar-main > .tools::-webkit-scrollbar, .bar.one-row .bar-main::-webkit-scrollbar { display: none; }
+/* Below 680 px Cuts is only its icon. */
+@media (max-width: 679px) { .bar .cuts-button .label { display: none; } }
 .chrome-hidden .bar { transform: translateY(-100%); opacity: 0; pointer-events: none; }
 /* The back arrow: on the toolbar's Library button, and on its own at the top left while the toolbar is hidden. */
 .reader > .back { position: absolute; z-index: 6; left: max(var(--edge), env(safe-area-inset-left, 0px)); top: max(var(--edge), env(safe-area-inset-top, 0px)); display: none; }

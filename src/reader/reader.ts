@@ -190,6 +190,8 @@ class Reader {
     this.resizeTimer = setTimeout(() => void this.show(), 150);
   });
 
+  private barObserver = new ResizeObserver(() => this.barResized());
+
   private reading: Reading;
   private menus: ReaderMenus;
   /** The toast asking for access to the scores folder shows, until a page is drawn. */
@@ -358,6 +360,7 @@ class Reader {
     bands[0].append(turnIcon('prev'));
     bands[1].append(turnIcon('next'));
     this.root.append(this.stage, ...bands, back, this.faceButton.el, this.toolbar.el, this.scope, this.toast.el);
+    this.barObserver.observe(this.toolbar.el);
     document.body.append(this.root);
     document.body.classList.add('reading');
     document.documentElement.dataset.theme = 'light';
@@ -575,6 +578,11 @@ class Reader {
     this.scope.hidden = this.reading.what.kind === 'score' || !this.editor.enabled;
     this.root.classList.toggle('writing', this.tool !== 'hand');
     this.root.classList.toggle('editing', this.editor.enabled);
+    this.barResized();
+  }
+
+  /** Where the toolbar ends, for what is placed under it; it changes with its rows, so also when it is resized. */
+  private barResized() {
     this.root.style.setProperty('--bar-h', this.toolbar.el.offsetHeight + 'px');
     // The toolbar growing lowers the smallest zoom; shrinking it leaves the smallest zoom be.
     if (this.annotating) this.minScale = Math.min(this.minScale, fitScale(this.view()));
@@ -1081,6 +1089,8 @@ class Reader {
     this.input.detach();
     document.removeEventListener('visibilitychange', this.onVisible);
     this.observer.disconnect();
+    this.toolbar.dispose();
+    this.barObserver.disconnect();
     this.closeUp.stop();
     this.seq++;
     this.ahead.abort();

@@ -568,3 +568,13 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     the bottom bar: nothing of its ring shows beside the bar.
   - Open a gesture with a field (its pencil) and scroll it under the head: the same.
   - The head and the bottom bar also hide a channel's bar and its dots as they scroll under them.
+- **The reader's toolbar: one row when it fits or the screen is short, else two; back and ⋯ pinned**
+  (a phone and the tablet, a long score title and a short one):
+  - Tablet: one row, nothing scrolls, the tools centred between the title and ⋯.
+  - Phone in portrait: two rows: the back arrow, the cut-short title and ⋯ on the first; the tools
+    below, scrolling sideways if they must (a button cut at the edge is the sign).
+  - Phone in landscape: one row: the back arrow and ⋯ stay put while the title and tools scroll; a
+    tool and part of the next show beside the cut-short title before any scrolling.
+  - Every tool is reachable; a long press on a tool still opens its panel, but scrolling the row by
+    a press on a tool doesn't; a swipe on the bar doesn't turn the page.
+  - Turn the phone: the turn bands start just below the bar, in each layout.
