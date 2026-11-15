@@ -18,7 +18,13 @@ scores.
   `.tagline` rule in `styles/library.css`; the masthead is then the name and the folder's tools.
 - **No dialog scrolls sideways**: a dialog scrolls in both directions (`.dialog`, `overflow: auto`,
   `styles/ui.css`), so anything in it wider than its inside makes the whole dialog scroll left and
-  right. Make a dialog's content always fit its width:
+  right. Seen on a phone in portrait in the face gestures dialog while naming a new gesture, and
+  reproduced in Chromium at 320 to 350 px wide: the naming row (`.face-add`: the field, Add,
+  Cancel) widens the dialog to 447 px, because a field's natural width (about 20 characters) counts
+  toward its row's smallest width even with `min-width: 0`, and the dialog's column grows to it.
+  With the first part below applied in the browser, the dialog stays 304 px at 320 wide and the
+  field shrinks. Also at 360 px, a gesture's trials table with a channel shown (three numbers) is
+  45 px too wide. Make a dialog's content always fit its width:
   - **The dialog's column can't be widened by its content.** `.dialog` is a grid with one implicit
     `auto` column, which grows to its widest child's smallest width. Give it
     `grid-template-columns: minmax(0, 1fr)`, so the column is the dialog's width and its children
@@ -39,6 +45,11 @@ scores.
     minmax(0, 1fr))` (`repeat(2, …)` for `.two`), the trace cell moves to a second line under the
     numbers (`.trace-cell { grid-row: 2; grid-column: 2 / -1; }`), and the head row's "trace" label
     (its third child, `face/_trials.ts:85`) is hidden.
+  - **A gesture's head keeps its name readable.** At 360 px a gesture's head (`.face-view-head`:
+    back, the name and its pencil, the direction, Delete…) squeezes the name to a few letters a
+    line ("Rais / e / bro / ws"), as `.face-named` has `flex: 1` and `min-width: 0`. Give
+    `.face-view-head .face-named` `flex: 1 1 8em` and `min-width: 8em`, so the row wraps the
+    direction and Delete… to a second line before the name gets narrower than that.
   - **Strips scroll inside themselves.** The thumbnail strips (`.thumbnails`, `styles/base.css`)
     already scroll sideways in their own box; with the column fixed above they stay inside the
     dialog. Nothing else in a dialog may be wider than it.
@@ -67,14 +78,14 @@ scores.
   680 px wide the tools take a row of their own, but neither that row nor its groups may wrap
   (`.bar-main > .tools` and `.bar .group`, `flex-wrap: nowrap`, `styles/reader.css`), so on a phone
   the tools run off the screen and can't be reached. Instead, the toolbar takes as many rows as its
-  tools need, up to a third of the screen's height; past that, the tools' rows scroll up and down
+  tools need, up to a fifth of the screen's height; past that, the tools' rows scroll up and down
   inside it. All in CSS, so it changes by itself when the phone turns:
   - `.bar-main > .tools { flex-wrap: wrap; }`: the tools wrap, a whole group at a time
     (`.bar .group` stays `nowrap`), centred, at any width; wide enough, they stay in the one row as
     now.
-  - `.bar-main > .tools { max-height: calc(33dvh - var(--control) - 3 * var(--space-2));
+  - `.bar-main > .tools { max-height: calc(20dvh - var(--control) - 3 * var(--space-2));
     overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; }`: the tools' rows take
-    at most a third of the screen's height, less the main row (back, title, ⋯) and the bar's
+    at most a fifth of the screen's height, less the main row (back, title, ⋯) and the bar's
     padding, which always show. A row cut part-way by the limit is the sign that there is more.
   - The bar's own `max-height` is not set: the main row never scrolls.
   - A long press on a tool (its panel, `ui/long-press.ts`) is cancelled when the press turns into a
@@ -84,7 +95,7 @@ scores.
     the phone leaves it stale. Observe the toolbar's element with a `ResizeObserver` and set
     `--bar-h` from it (and lower `minScale` as `syncBar` does).
   - Check on a phone (or Playwright at 360 × 640 and 640 × 360): in portrait the tools wrap and
-    every tool shows; in landscape the bar stops at a third of the height, its tools scroll up and
+    every tool shows; in landscape the bar stops at a fifth of the height, its tools scroll up and
     down, a long press still opens a panel, and a swipe on the tools doesn't turn the page; turning
     the phone moves the turn bands to just below the bar.
 
