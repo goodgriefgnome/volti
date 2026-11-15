@@ -13,40 +13,78 @@ scores.
 
 ## Work for the immediate future
 
-- **No tagline on a phone**: the library's masthead is "Volti" and the tagline "volti subito · turn
-  the page" (`library/library.ts:81`, `.tagline` in `styles/library.css`). On a phone's width there
-  isn't room for both; leave the tagline out there (hide `.tagline` below a narrow width).
-- **Dialogs that scroll sideways on a phone**: a dialog scrolls in both directions (`.dialog`'s
-  `overflow: auto`, `styles/ui.css`), so anything wider than it makes the whole dialog scroll left
-  and right. By reading the styles, the face dialog's trials table is one: its columns
-  (`.face-trials .tr`, `styles/face.css`: 44 px, 2em, at least 60 px, three of 4.4em, and the gaps)
-  need about 390 px, and a dialog on a 375 px phone has about 327 px inside it. Others are not yet
-  found; text that can't break (a long file name) is another way to get there.
-  - First find them all: with Playwright at a phone's size (360 × 640 and 640 × 360), open each
-    dialog and list those whose `scrollWidth` is more than their `clientWidth`, and what is wider.
-  - Then make each fit rather than clip it: make `.dialog` a size container
-    (`container-type: inline-size`) and give the wide parts a narrow layout under a container query
-    (the trials table drops to fewer columns or puts the numbers under the trace), and let text
-    break (`min-width: 0`, `overflow-wrap: anywhere`) where it can be long.
-  - Keep the dialog able to scroll up and down only; clipping sideways (`overflow-x: hidden`)
-    would hide what doesn't fit instead of fitting it.
-- **The face dialog's Done bar doesn't cover the content scrolling under it**: when the face
-  gestures dialog scrolls (a phone in landscape, the keyboard up), its buttons stay in sight
-  (`.dialog .buttons`, sticky, `styles/ui.css`), but the content passing under them shows at the
-  left edge. The likely cause, by reading: the bar's background covers only the dialog's content
-  box, not its padding at the sides, so what scrolls shows beside it. The fix would give the bar
-  negative side margins of the dialog's `--pad` and as much padding back, as wide as the dialog;
-  the face dialog's sticky head (`.face-view-head-slot`, `styles/face.css`) has the same shape and
-  may need the same. Check in the app that this is the cause before fixing it.
-- **The reader's toolbar wraps on a phone instead of overflowing**: below 680 px the tools take a
-  row of their own, but neither that row nor its groups may wrap (`.bar-main > .tools` and
-  `.bar .group`, `flex-wrap: nowrap`, `styles/reader.css`), so on a phone the tools run off the
-  screen and can't be reached. Let the tools' row wrap, a whole group at a time; the toolbar's
-  height is read into `--bar-h` (`reader/reader.ts:578`), which places the turn bands and the scope
-  note, so check it is read again when the bar grows a row.
+- **No tagline**: the library's masthead shows "Volti" and the tagline "volti subito · turn the
+  page" (`library/library.ts:81`). Remove the tagline: the `p.tagline` element there and the
+  `.tagline` rule in `styles/library.css`; the masthead is then the name and the folder's tools.
+- **No dialog scrolls sideways**: a dialog scrolls in both directions (`.dialog`, `overflow: auto`,
+  `styles/ui.css`), so anything in it wider than its inside makes the whole dialog scroll left and
+  right. Make a dialog's content always fit its width:
+  - **The dialog's column can't be widened by its content.** `.dialog` is a grid with one implicit
+    `auto` column, which grows to its widest child's smallest width. Give it
+    `grid-template-columns: minmax(0, 1fr)`, so the column is the dialog's width and its children
+    shrink to it. Also give `.dialog` `overflow-wrap: anywhere` (inherited), so a long file or
+    gesture name breaks instead of pushing out. In a flex row in a dialog, the item holding a name
+    needs `min-width: 0` to be allowed to shrink: check `.removed-row`, `.marking-colors-row`,
+    `.pick-row`, `.face-named`, `.face-play-text` and `.incoming-fields`, and add it where missing.
+  - **Layouts inside a dialog follow the dialog's width, not the screen's.** Make `.dialog` a size
+    container: `container: dialog / inline-size` (its width never depends on its content, so this
+    is safe). Turn the two screen-width rules that lay out dialog content into container queries,
+    at the content width the screen width gave: `.face-ft`'s `@media (max-width: 560px)`
+    (`styles/face.css`) becomes `@container dialog (width < 512px)`, and `.incoming-row`'s
+    `@media (max-width: 600px)` (`styles/library.css`) becomes `@container dialog (width < 552px)`.
+  - **The face trials table gets a narrow layout.** Its row (`.face-trials .tr`, `styles/face.css`)
+    is a switch (44 px), the trial's number (2em), the trace (at least 60 px) and three numbers
+    (4.4em each): about 390 px with its gaps, wider than a phone's dialog (about 327 px inside).
+    Under `@container dialog (width < 400px)`: the columns become `44px 2em repeat(3,
+    minmax(0, 1fr))` (`repeat(2, …)` for `.two`), the trace cell moves to a second line under the
+    numbers (`.trace-cell { grid-row: 2; grid-column: 2 / -1; }`), and the head row's "trace" label
+    (its third child, `face/_trials.ts:85`) is hidden.
+  - **Strips scroll inside themselves.** The thumbnail strips (`.thumbnails`, `styles/base.css`)
+    already scroll sideways in their own box; with the column fixed above they stay inside the
+    dialog. Nothing else in a dialog may be wider than it.
+  - The styles test: no `@media (max-width` in `ui.css`, `dialogs.css`, `face.css` or
+    `library.css` (after the two above, none is left; only `reader.css`'s toolbar has one). Its
+    message says content in a dialog uses `@container dialog`; add that rule to `STYLES.md`.
+  - Check: with Playwright at 360 × 640 and 640 × 360, open every dialog (add a PDF first, made with
+    pdf-lib, so Add scores, the Excerpt picker, the insert dialog, Export and importing can open;
+    record a face gesture's trials by setting them in storage if the camera can't), and for each
+    compare `scrollWidth` with `clientWidth`: none is wider. Then look at the face trials table and
+    a channel's row at 360 wide.
+- **The reader's toolbar on a phone: wrapping on a tall screen, scrolling on a short one**: today
+  below 680 px wide the tools take a row of their own, but neither that row nor its groups may wrap
+  (`.bar-main > .tools` and `.bar .group`, `flex-wrap: nowrap`, `styles/reader.css`), so on a phone
+  the tools run off the screen and can't be reached. Choose by the screen's height, in CSS, so it
+  changes by itself when the phone turns:
+  - **Tall screens** (`@media (min-height: 500px)`): the tools' row may wrap (`.bar-main > .tools
+    { flex-wrap: wrap; }`), a whole group at a time (`.bar .group` stays `nowrap`), centred. This
+    applies at any width: wide enough, the tools stay in the one row as now.
+  - **Short screens** (`@media (max-height: 499px)`, a phone in landscape): the toolbar is one row
+    at any width, and the tools scroll sideways in it: `.bar-main { flex-wrap: nowrap; }`,
+    `.bar-main > .tools { flex: 1 1 auto; min-width: 0; overflow-x: auto; overscroll-behavior:
+    contain; touch-action: pan-x; scrollbar-width: none; }` (and `::-webkit-scrollbar { display:
+    none; }`), with `margin-inline: 0` and `justify-content: flex-start` so the first tool is
+    reachable. A faint fade at an edge with more tools past it says it scrolls
+    (`mask-image` on `.tools`, set from the scroll position by a class `more-left` /
+    `more-right` the toolbar toggles on `scroll`, in `reader/_toolbar.ts`). The below-680 px rule
+    that puts the tools on their own row (`order: 3; flex-basis: 100%`) applies only to tall
+    screens.
+  - A long press on a tool (its panel, `ui/long-press.ts`) is cancelled when the press turns into a
+    scroll (the browser sends `pointercancel`), so scrolling the tools never opens a panel.
+  - **The toolbar's height**: `--bar-h` (which places the turn bands and the scope note) is set
+    only in `syncBar` (`reader/reader.ts:578`), so a toolbar that wraps differently after turning
+    the phone leaves it stale. Observe the toolbar's element with a `ResizeObserver` and set
+    `--bar-h` from it (and lower `minScale` as `syncBar` does).
+  - Check on a phone (or Playwright at 360 × 640 and 640 × 360): portrait wraps, every tool
+    reachable; landscape is one row whose tools scroll, a long press still opens a panel, a swipe
+    on the tools doesn't turn the page; turning the phone moves the turn bands to below the bar.
 
 ## Confirmed features which require more thought
 
+- **The face dialog's Done bar showing content under it, not reproduced yet**: on a phone, with the
+  face gestures dialog scrolling (landscape, keyboard up), the content passing under the sticky
+  Done bar (`.dialog .buttons`, `styles/ui.css`) shows at its left edge. In Chromium at 640 × 360,
+  scrolled, with the keyboard emulated (`keyboard` on the root, a short `--seen-height`), the bar
+  covers it. Needs a screenshot and the phone's browser to find the cause before it is fixed.
 - **Reading on a phone, a system at a time**: on a phone in landscape, a whole page is too small to
   read; the wish is to see one system at a time. Cuts can already cut a page into systems, but a
   frame takes the shape of the page its first cut is from (`Frame.aspect`, `pack` in
