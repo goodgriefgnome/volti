@@ -50,41 +50,46 @@ scores.
     record a face gesture's trials by setting them in storage if the camera can't), and for each
     compare `scrollWidth` with `clientWidth`: none is wider. Then look at the face trials table and
     a channel's row at 360 wide.
-- **The reader's toolbar on a phone: wrapping on a tall screen, scrolling on a short one**: today
-  below 680 px wide the tools take a row of their own, but neither that row nor its groups may wrap
+- **A dialog's sticky bars cover its whole width**: in a dialog that scrolls, the bar of buttons at
+  the bottom stays in sight (`.dialog .buttons`, `position: sticky`, `styles/ui.css`), and content
+  scrolls under it. But the bar is only as wide as the dialog's content, not its padding, and the
+  focus ring of a field (`:focus-visible`, `outline: var(--focus); outline-offset: 2px`,
+  `styles/base.css`) reaches 5 px past the field into that padding. So a focused field scrolled
+  under the bar shows the side of its ring beside the bar, as in the face gestures dialog with the
+  keyboard up, while naming a gesture (seen on a phone; reproduced in Chromium at 640 × 360).
+  Make the bar as wide as the dialog: `margin-inline: calc(-1 * var(--pad)); padding-inline:
+  var(--pad);` on `.dialog .buttons` (the dialog's `--pad`, `styles/ui.css`). The face dialog's
+  sticky head at the top (`.face-view-head-slot`, `styles/face.css`) has the same shape: give it
+  the same. Check: in the face gestures dialog at 640 × 360, add three gestures, tap Add gesture…,
+  focus the name field and scroll it under the bar: nothing of the ring shows beside the bar; open
+  a gesture with a field and scroll it under the head: the same.
+- **The reader's toolbar on a phone: it grows to a limit, then its tools scroll**: today below
+  680 px wide the tools take a row of their own, but neither that row nor its groups may wrap
   (`.bar-main > .tools` and `.bar .group`, `flex-wrap: nowrap`, `styles/reader.css`), so on a phone
-  the tools run off the screen and can't be reached. Choose by the screen's height, in CSS, so it
-  changes by itself when the phone turns:
-  - **Tall screens** (`@media (min-height: 500px)`): the tools' row may wrap (`.bar-main > .tools
-    { flex-wrap: wrap; }`), a whole group at a time (`.bar .group` stays `nowrap`), centred. This
-    applies at any width: wide enough, the tools stay in the one row as now.
-  - **Short screens** (`@media (max-height: 499px)`, a phone in landscape): the toolbar is one row
-    at any width, and the tools scroll sideways in it: `.bar-main { flex-wrap: nowrap; }`,
-    `.bar-main > .tools { flex: 1 1 auto; min-width: 0; overflow-x: auto; overscroll-behavior:
-    contain; touch-action: pan-x; scrollbar-width: none; }` (and `::-webkit-scrollbar { display:
-    none; }`), with `margin-inline: 0` and `justify-content: flex-start` so the first tool is
-    reachable. A faint fade at an edge with more tools past it says it scrolls
-    (`mask-image` on `.tools`, set from the scroll position by a class `more-left` /
-    `more-right` the toolbar toggles on `scroll`, in `reader/_toolbar.ts`). The below-680 px rule
-    that puts the tools on their own row (`order: 3; flex-basis: 100%`) applies only to tall
-    screens.
+  the tools run off the screen and can't be reached. Instead, the toolbar takes as many rows as its
+  tools need, up to a third of the screen's height; past that, the tools' rows scroll up and down
+  inside it. All in CSS, so it changes by itself when the phone turns:
+  - `.bar-main > .tools { flex-wrap: wrap; }`: the tools wrap, a whole group at a time
+    (`.bar .group` stays `nowrap`), centred, at any width; wide enough, they stay in the one row as
+    now.
+  - `.bar-main > .tools { max-height: calc(33dvh - var(--control) - 3 * var(--space-2));
+    overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; }`: the tools' rows take
+    at most a third of the screen's height, less the main row (back, title, ⋯) and the bar's
+    padding, which always show. A row cut part-way by the limit is the sign that there is more.
+  - The bar's own `max-height` is not set: the main row never scrolls.
   - A long press on a tool (its panel, `ui/long-press.ts`) is cancelled when the press turns into a
     scroll (the browser sends `pointercancel`), so scrolling the tools never opens a panel.
   - **The toolbar's height**: `--bar-h` (which places the turn bands and the scope note) is set
     only in `syncBar` (`reader/reader.ts:578`), so a toolbar that wraps differently after turning
     the phone leaves it stale. Observe the toolbar's element with a `ResizeObserver` and set
     `--bar-h` from it (and lower `minScale` as `syncBar` does).
-  - Check on a phone (or Playwright at 360 × 640 and 640 × 360): portrait wraps, every tool
-    reachable; landscape is one row whose tools scroll, a long press still opens a panel, a swipe
-    on the tools doesn't turn the page; turning the phone moves the turn bands to below the bar.
+  - Check on a phone (or Playwright at 360 × 640 and 640 × 360): in portrait the tools wrap and
+    every tool shows; in landscape the bar stops at a third of the height, its tools scroll up and
+    down, a long press still opens a panel, and a swipe on the tools doesn't turn the page; turning
+    the phone moves the turn bands to just below the bar.
 
 ## Confirmed features which require more thought
 
-- **The face dialog's Done bar showing content under it, not reproduced yet**: on a phone, with the
-  face gestures dialog scrolling (landscape, keyboard up), the content passing under the sticky
-  Done bar (`.dialog .buttons`, `styles/ui.css`) shows at its left edge. In Chromium at 640 × 360,
-  scrolled, with the keyboard emulated (`keyboard` on the root, a short `--seen-height`), the bar
-  covers it. Needs a screenshot and the phone's browser to find the cause before it is fixed.
 - **Reading on a phone, a system at a time**: on a phone in landscape, a whole page is too small to
   read; the wish is to see one system at a time. Cuts can already cut a page into systems, but a
   frame takes the shape of the page its first cut is from (`Frame.aspect`, `pack` in
