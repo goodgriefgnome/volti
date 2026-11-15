@@ -74,32 +74,53 @@ scores.
   the same. Check: in the face gestures dialog at 640 × 360, add three gestures, tap Add gesture…,
   focus the name field and scroll it under the bar: nothing of the ring shows beside the bar; open
   a gesture with a field and scroll it under the head: the same.
-- **The reader's toolbar on a phone: it grows to a limit, then its tools scroll**: today below
-  680 px wide the tools take a row of their own, but neither that row nor its groups may wrap
-  (`.bar-main > .tools` and `.bar .group`, `flex-wrap: nowrap`, `styles/reader.css`), so on a phone
-  the tools run off the screen and can't be reached. Instead, the toolbar takes as many rows as its
-  tools need, up to a fifth of the screen's height; past that, the tools' rows scroll up and down
-  inside it. All in CSS, so it changes by itself when the phone turns:
-  - `.bar-main > .tools { flex-wrap: wrap; }`: the tools wrap, a whole group at a time
-    (`.bar .group` stays `nowrap`), centred, at any width; wide enough, they stay in the one row as
-    now.
-  - `.bar-main > .tools { max-height: max(var(--control), calc(20dvh - var(--control) - 3 *
-    var(--space-2))); overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; }`: the
-    tools' rows take at most a fifth of the screen's height, less the main row (back, title, ⋯) and
-    the bar's padding, which always show; but always at least one row of tools, where a fifth of
-    the height is less than the main row and one row (a phone in landscape). A row cut part-way by
-    the limit is the sign that there is more.
-  - The bar's own `max-height` is not set: the main row never scrolls.
+- **The reader's toolbar on a phone: rows up to a fifth of the screen, or one scrolling row**:
+  today below 680 px wide the tools take a row of their own that can't wrap (`.bar-main > .tools`
+  and `.bar .group`, `flex-wrap: nowrap`, `styles/reader.css`), so on a phone the tools run off the
+  screen and can't be reached. The toolbar's DOM (`reader/_toolbar.ts`, the constructor) is
+  `.bar-main` holding `.group.left` (the back arrow and the title block), `.group.tools` (all the
+  tools, Cuts, Undo and Redo, with `.rule`s between their groups, in one element) and the ⋯ button.
+  Two layouts, chosen by the screen's height in CSS, so the toolbar changes by itself when the
+  phone turns:
+  - **The tools in groups that can wrap** (code, for the tall layout): in the constructor, the
+    tools' element becomes `el('div', 'tools')` holding one `el('div', 'group')` per group of
+    `TOOLBAR` (`reader/_tools/_tools.ts:12`), one for Cuts, and one for Undo and Redo, with the
+    `rule()`s between the groups as now. `.bar .group` stays `nowrap`, so the tools wrap only
+    between groups; a rule may end a line.
+  - **Tall screens** (`@media (min-height: 560px)`): as today (below 680 px wide the tools take a
+    row of their own under the back arrow, title and ⋯), but the tools' row wraps
+    (`.bar-main > .tools { flex-wrap: wrap; justify-content: center; }`), up to a fifth of the
+    screen's height for the whole toolbar; past that its rows scroll up and down:
+    `.bar-main > .tools { max-height: max(var(--control), calc(20dvh - var(--control) - 3 *
+    var(--space-2))); overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; }`
+    (the main row and the bar's padding come off the fifth; at least one row of tools always
+    shows). A row cut part-way by the limit is the sign there is more.
+  - **Short screens** (`@media (max-height: 559px)`: where a fifth of the height can't hold the
+    main row and one row of tools, so a phone in landscape): the toolbar is one row at any width.
+    The back arrow stays at the left and ⋯ at the right; the title, the page info and the tools
+    between them scroll sideways. In CSS:
+    `.bar-main { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior: contain; touch-action:
+    pan-x; scrollbar-width: none; }` (and `.bar-main::-webkit-scrollbar { display: none; }`);
+    `.bar-main > .left { display: contents; }` so the back arrow is a child of the row itself;
+    the back arrow `position: sticky; left: 0; z-index: 1; background: var(--bar);` and ⋯
+    `position: sticky; right: 0; z-index: 1; background: var(--bar);`; the title block and the
+    tools `flex: none`, the tools `margin-inline: 0` and `flex-wrap: nowrap`. The below-680 px rule
+    that puts the tools on their own row (`order: 3; flex-basis: 100%`) applies only to tall
+    screens (move it inside the tall media query). When everything fits, nothing scrolls.
   - A long press on a tool (its panel, `ui/long-press.ts`) is cancelled when the press turns into a
-    scroll (the browser sends `pointercancel`), so scrolling the tools never opens a panel.
+    scroll (the browser sends `pointercancel`), so scrolling the tools never opens a panel. A
+    menu opened from a tool or the title (`anchor`) is placed from the button's position on screen
+    when it opens, so it opens under the button wherever the row is scrolled.
   - **The toolbar's height**: `--bar-h` (which places the turn bands and the scope note) is set
     only in `syncBar` (`reader/reader.ts:578`), so a toolbar that wraps differently after turning
     the phone leaves it stale. Observe the toolbar's element with a `ResizeObserver` and set
     `--bar-h` from it (and lower `minScale` as `syncBar` does).
-  - Check on a phone (or Playwright at 360 × 640 and 640 × 360): in portrait the tools wrap and
-    every tool shows; in landscape the bar stops at a fifth of the height, its tools scroll up and
-    down, a long press still opens a panel, and a swipe on the tools doesn't turn the page; turning
-    the phone moves the turn bands to just below the bar.
+  - Check (a phone, or Playwright at 360 × 640, 390 × 844, 640 × 360 and 844 × 390): in portrait
+    the tools wrap between groups and every tool shows, and the bar is no taller than a fifth of
+    the screen (or the main row and one row of tools); in landscape the bar is one row, the back
+    arrow and ⋯ stay put while the rest scrolls, a long press still opens a panel, a swipe on the
+    bar doesn't turn the page, and the title menu opens under the title; turning the phone moves
+    the turn bands to just below the bar.
 
 ## Confirmed features which require more thought
 
