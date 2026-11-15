@@ -109,7 +109,7 @@ export const playFrom: PlayFrom = (name, start) => {
     const label = el('div', 'face-play-text');
     label.append(el('strong', '', 'empty' in page ? 'Empty staves' : titleOf(file!.path)));
     if (!('empty' in page)) label.append(el('span', '', `page ${page.page + 1}`));
-    label.append(button('Change…', () => { close(); pick(true); }, 'quiet'));
+    label.append(button('Change…', () => { close(); pick(true); }, 'small'));
     const row = el('div', 'face-play-from');
     row.append(thumbnail, label);
     const problem = el('p', 'hint error');
@@ -148,8 +148,8 @@ export const playFrom: PlayFrom = (name, start) => {
     const showScores = () => {
       dialog.replaceChildren(el('h2', '', 'Pick a page'), scores, buttonRow(button('Cancel', cancel)));
     };
-    for (const file of [...files].sort((a, b) => titleOf(a.path).localeCompare(titleOf(b.path)))) scores.append(button(titleOf(file.path), () => void showPages(file), 'quiet row-button'));
-    scores.append(button('Empty staves', () => pickPage({ empty: true }), 'quiet row-button'));
+    for (const file of [...files].sort((a, b) => titleOf(a.path).localeCompare(titleOf(b.path)))) scores.append(button(titleOf(file.path), () => void showPages(file), 'row-button'));
+    scores.append(button('Empty staves', () => pickPage({ empty: true }), 'row-button'));
     showScores();
 
     /** One score's pages as thumbnails. */

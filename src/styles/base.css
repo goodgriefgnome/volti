@@ -73,6 +73,8 @@ button {
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
 button.quiet { border-color: transparent; background: transparent; color: var(--muted); }
 button.danger { background: var(--warn); border-color: var(--warn); color: var(--accent-fg); }
+/* An action that removes something, after asking: outlined; the danger button that does it is filled. */
+button.warn { background: transparent; border-color: var(--warn); color: var(--warn); }
 /* The keyboard's focus ring, on every element; where it must sit inside or on a drawn part, the rule moves it. */
 :focus-visible { outline: var(--focus); outline-offset: 2px; }
 button:disabled { opacity: var(--dim); cursor: default; }

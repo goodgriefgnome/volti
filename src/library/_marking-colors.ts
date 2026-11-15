@@ -17,7 +17,7 @@ export function openMarkingColors(): void {
     input.type = 'color';
     input.value = markingColors()[key];
     input.setAttribute('aria-label', `${name} colour`);
-    const builtIn = button('Built-in', () => set(BUILT_IN_COLORS[key]), 'quiet');
+    const builtIn = button('Built-in', () => set(BUILT_IN_COLORS[key]));
     const set = (color: string) => {
       input.value = color;
       builtIn.disabled = color === BUILT_IN_COLORS[key];

@@ -157,7 +157,7 @@ export function openFaceGestures(closed: (() => void) | undefined, playFrom: Pla
         later(() => { change(g.id, (x) => ({ ...x, name: text })); render(); });
       };
       input.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok(); else if (e.key === 'Escape') { e.stopPropagation(); show(); } });
-      cell.replaceChildren(input, button('OK', ok, 'primary small'), button('Cancel', show, 'quiet small'));
+      cell.replaceChildren(input, button('OK', ok, 'primary small'), button('Cancel', show, 'small'));
       input.focus();
       input.select();
     };
@@ -320,7 +320,7 @@ export function openFaceGestures(closed: (() => void) | undefined, playFrom: Pla
     later(() => { commit({ ...settings, gestures: [...settings.gestures, newGesture(text)] }); renderRows(); });
   }, 'primary small');
   name.addEventListener('keydown', (e) => { if (e.key === 'Enter') addOk.click(); });
-  nameRow.append(name, addOk, button('Cancel', () => { nameRow.hidden = true; add.hidden = false; }, 'quiet small'));
+  nameRow.append(name, addOk, button('Cancel', () => { nameRow.hidden = true; add.hidden = false; }, 'small'));
   const add = button('Add gesture…', () => { add.hidden = true; nameRow.hidden = false; name.focus(); });
   add.disabled = true;
   const done = button('Done', closeOverlay, 'primary');

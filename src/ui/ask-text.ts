@@ -56,7 +56,7 @@ export function askText(h: _AskText) {
     input, ...(h.choices ? [choices] : []), ...(h.below ?? []), error,
     buttonRow(
       button('Cancel', closeOverlay),
-      h.alt ? button(h.alt.label, () => void take(h.alt!.text), 'quiet') : null,
+      h.alt ? button(h.alt.label, () => void take(h.alt!.text)) : null,
       button(h.okLabel, () => void take(input.value), 'primary'),
     ),
   );

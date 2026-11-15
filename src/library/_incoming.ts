@@ -104,7 +104,7 @@ export async function openIncoming(lib: LibraryHost, files: readonly Arriving[],
     replace.type = 'checkbox';
     const status = el('p', 'hint');
     status.setAttribute('aria-live', 'polite');
-    const leave = button('Leave out', () => { li.remove(); rows.splice(rows.indexOf(r), 1); check(); }, 'quiet');
+    const leave = button('Leave out', () => { li.remove(); rows.splice(rows.indexOf(r), 1); check(); });
     const preview = el('div', 'incoming-preview');
     const fields = el('div', 'incoming-fields');
     const replaceLabel = el('label', 'check replace');

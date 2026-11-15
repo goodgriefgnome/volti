@@ -42,7 +42,7 @@ export async function openRecentlyRemoved(lib: LibraryHost) {
     const folder = folderOf(r.path);
     text.append(el('span', 'name', titleOf(r.path)), el('span', 'meta', `${folder ? folder.split('/').join(' / ') + ' · ' : ''}removed ${removedWhen(r.at)}`));
     if (!canPutBack) { li.append(text); return li; }
-    const restore = button('Put back', () => void putBack(), 'quiet');
+    const restore = button('Put back', () => void putBack());
     restore.setAttribute('aria-label', `Put back “${titleOf(r.path)}”`);
     li.append(text, restore);
     const putBack = async () => {

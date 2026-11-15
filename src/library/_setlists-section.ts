@@ -45,7 +45,7 @@ export class SetlistsSection {
       const b = button(this.showArchived ? 'Hide archived' : `Show archived (${archived.length})`, () => {
         this.showArchived = !this.showArchived;
         this.render();
-      }, 'quiet');
+      });
       b.setAttribute('aria-pressed', String(this.showArchived));
       this.tools.append(b);
     }

@@ -31,7 +31,7 @@ export function pickDriveFolder(): Promise<Place | null> {
       const here = trail.at(-1)!;
       crumbs.replaceChildren(...trail.flatMap((p, i) => [
         ...(i ? [el('span', 'meta', '›')] : []),
-        button(p.name, () => { trail.length = i + 1; void show(); }, 'quiet row-button'),
+        button(p.name, () => { trail.length = i + 1; void show(); }, 'chip'),
       ]));
       list.replaceChildren();
       note.textContent = 'Loading…';
@@ -49,7 +49,7 @@ export function pickDriveFolder(): Promise<Place | null> {
       use.disabled = false;
       for (const f of folders) {
         const li = el('li', 'removed-row');
-        li.append(button(f.name, () => { trail.push(f); void show(); }, 'quiet row-button'));
+        li.append(button(f.name, () => { trail.push(f); void show(); }, 'row-button'));
         list.append(li);
       }
     }

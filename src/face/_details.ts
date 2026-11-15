@@ -74,7 +74,7 @@ export function openDetails(host: DetailsHost, g: Gesture, trials: Trial[]): Det
   select.setAttribute('aria-label', `${g.name}: turns`);
   for (const [value, label] of DIRECTIONS) select.append(new Option(label, value, false, g.direction === value));
   select.addEventListener('change', () => host.setDirection(g.id, select.value as TurnDir | 'none'));
-  header.append(back, host.nameCell(g), select, button('Delete…', () => host.deleteGesture(g), 'quiet warn'));
+  header.append(back, host.nameCell(g), select, button('Delete…', () => host.deleteGesture(g), 'warn'));
   // Beside the On level meter when there is one, else at the right end of the head.
   const levelled = !!g.fit.template && !!levelsOf(g, host.hold());
   if (!levelled) header.append(host.faceButton);
@@ -101,7 +101,7 @@ export function openDetails(host: DetailsHost, g: Gesture, trials: Trial[]): Det
   let meter: ReturnType<typeof strengthMeter> | undefined;
   if (template && levels) {
     const head = el('div', 'face-sec-head');
-    const reset = button('Reset', () => { host.change(g.id, withoutOn); host.refresh(); }, 'quiet small');
+    const reset = button('Reset', () => { host.change(g.id, withoutOn); host.refresh(); }, 'small');
     reset.hidden = g.on === undefined;
     head.append(el('h3', '', 'On level'), reset);
     meter = strengthMeter({
@@ -122,7 +122,7 @@ export function openDetails(host: DetailsHost, g: Gesture, trials: Trial[]): Det
   /* ---------- channels ---------- */
 
   const head = el('div', 'face-sec-head');
-  const resetChannels = button('Reset', () => host.refit(g.id, (x) => withChannels(x, () => ({ forcedOff: [], forcedOn: [] }))), 'quiet small');
+  const resetChannels = button('Reset', () => host.refit(g.id, (x) => withChannels(x, () => ({ forcedOff: [], forcedOn: [] }))), 'small');
   resetChannels.hidden = !g.channels;
   head.append(el('h3', '', 'Channels'), resetChannels);
   body.append(head);
@@ -200,7 +200,7 @@ export function openDetails(host: DetailsHost, g: Gesture, trials: Trial[]): Det
   const foot = buttonRow(button('Record', () => host.record(g)), button('Done', closeOverlay, 'primary'));
   if (disabled) {
     const noun = `${disabled} disabled ${disabled === 1 ? 'trial' : 'trials'}`;
-    const drop = button(`Delete ${noun}…`, () => host.confirm(`Delete ${noun}?`, 'They are deleted for good.', 'Delete', () => host.deleteDisabled(g.id)), 'quiet warn');
+    const drop = button(`Delete ${noun}…`, () => host.confirm(`Delete ${noun}?`, 'They are deleted for good.', 'Delete', () => host.deleteDisabled(g.id)), 'warn');
     foot.prepend(drop);
     drop.style.marginRight = 'auto';
   }

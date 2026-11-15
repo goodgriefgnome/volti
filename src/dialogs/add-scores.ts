@@ -136,7 +136,7 @@ export function openAddScores(h: _AddScoresHost) {
     const redraw = () => { sync(); r.replaceWith(row(sc, names)); };
     const has = s.entries.filter((e) => e.scoreId === sc.id).length;
     label.append(box, pickText(titleOf(sc.path), has ? `in this setlist${has > 1 ? ` ${has}×` : ''}` : ''));
-    const preview = button('Preview', () => void showPreview(sc), 'quiet');
+    const preview = button('Preview', () => void showPreview(sc), 'small');
     preview.setAttribute('aria-label', `Preview ${titleOf(sc.path)}`);
     r.append(label, preview);
     // Named excerpts, indented under their score, each with its own Preview.
@@ -153,7 +153,7 @@ export function openAddScores(h: _AddScoresHost) {
         redraw();
       });
       named.append(b, pickText(x.name));
-      const look = button('Preview', () => void showPreview(sc, x), 'quiet');
+      const look = button('Preview', () => void showPreview(sc, x), 'small');
       look.setAttribute('aria-label', `Preview ${x.name}`);
       sub.append(named, look);
       r.append(sub);
