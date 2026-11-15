@@ -45,8 +45,8 @@ When asked for a plan:
 
 ## Reviewing
 
-- Whenever I'm to review a Markdown file (a spec, a plan, docs), send it to me as a file, so I get a
-  link that opens it. Send it again each time it changes.
+- Whenever I'm to review a Markdown file (a spec, docs), send it to me as a file, so I get a link
+  that opens it. Send it again each time it changes. Don't send plans: I don't review them.
   - Send it so it opens in the viewer, not as a download: one file per send, with `display:
     'render'`.
   - If I say a file won't open in the viewer, send it again, on its own, by its absolute path. That
