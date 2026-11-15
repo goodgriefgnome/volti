@@ -74,53 +74,47 @@ scores.
   the same. Check: in the face gestures dialog at 640 × 360, add three gestures, tap Add gesture…,
   focus the name field and scroll it under the bar: nothing of the ring shows beside the bar; open
   a gesture with a field and scroll it under the head: the same.
-- **The reader's toolbar on a phone: rows up to a fifth of the screen, or one scrolling row**:
-  today below 680 px wide the tools take a row of their own that can't wrap (`.bar-main > .tools`
-  and `.bar .group`, `flex-wrap: nowrap`, `styles/reader.css`), so on a phone the tools run off the
-  screen and can't be reached. The toolbar's DOM (`reader/_toolbar.ts`, the constructor) is
-  `.bar-main` holding `.group.left` (the back arrow and the title block), `.group.tools` (all the
-  tools, Cuts, Undo and Redo, with `.rule`s between their groups, in one element) and the ⋯ button.
-  Two layouts, chosen by the screen's height in CSS, so the toolbar changes by itself when the
-  phone turns:
-  - **The tools in groups that can wrap** (code, for the tall layout): in the constructor, the
-    tools' element becomes `el('div', 'tools')` holding one `el('div', 'group')` per group of
-    `TOOLBAR` (`reader/_tools/_tools.ts:12`), one for Cuts, and one for Undo and Redo, with the
-    `rule()`s between the groups as now. `.bar .group` stays `nowrap`, so the tools wrap only
-    between groups; a rule may end a line.
-  - **Tall screens** (`@media (min-height: 560px)`): as today (below 680 px wide the tools take a
-    row of their own under the back arrow, title and ⋯), but the tools' row wraps
-    (`.bar-main > .tools { flex-wrap: wrap; justify-content: center; }`), up to a fifth of the
-    screen's height for the whole toolbar; past that its rows scroll up and down:
-    `.bar-main > .tools { max-height: max(var(--control), calc(20dvh - var(--control) - 3 *
-    var(--space-2))); overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; }`
-    (the main row and the bar's padding come off the fifth; at least one row of tools always
-    shows). A row cut part-way by the limit is the sign there is more.
-  - **Short screens** (`@media (max-height: 559px)`: where a fifth of the height can't hold the
-    main row and one row of tools, so a phone in landscape): the toolbar is one row at any width.
-    The back arrow stays at the left and ⋯ at the right; the title, the page info and the tools
-    between them scroll sideways. In CSS:
-    `.bar-main { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior: contain; touch-action:
-    pan-x; scrollbar-width: none; }` (and `.bar-main::-webkit-scrollbar { display: none; }`);
-    `.bar-main > .left { display: contents; }` so the back arrow is a child of the row itself;
-    the back arrow `position: sticky; left: 0; z-index: 1; background: var(--bar);` and ⋯
-    `position: sticky; right: 0; z-index: 1; background: var(--bar);`; the title block and the
-    tools `flex: none`, the tools `margin-inline: 0` and `flex-wrap: nowrap`. The below-680 px rule
-    that puts the tools on their own row (`order: 3; flex-basis: 100%`) applies only to tall
-    screens (move it inside the tall media query). When everything fits, nothing scrolls.
+- **The reader's toolbar: one row or two, and the tools scroll sideways when they don't fit**:
+  today below 680 px wide the tools take a row of their own that can't wrap, so on a phone they
+  run off the screen and can't be reached; and the first row can wrap ⋯ onto a line of its own
+  when the title is long. The toolbar's DOM (`reader/_toolbar.ts`, the constructor) is `.bar-main`
+  holding `.group.left` (the back arrow and the title block), `.group.tools` (the tools, Cuts, Undo
+  and Redo) and the ⋯ button; the rules are in `styles/reader.css` (`.bar-main`, `.bar-main > …`,
+  and the `@media (max-width: 679px)` block). The toolbar is never more than two rows:
+  - **The first row never wraps.** The back arrow, the title block and ⋯ always share it; the
+    title shrinks (it already cuts itself short with an ellipsis) to make room, never pushing ⋯
+    to another line. `.bar-main > .left { flex: 1 1 0; min-width: 0; }` (a basis of 0, so a long
+    title never decides where the row breaks) and ⋯ `flex: none`.
+  - **680 px wide or more: one row.** The tools sit in the first row between the title and ⋯, as
+    now. The title gives up its room first, down to 8em; only then the tools scroll sideways:
+    `.bar-main > .left { flex: 100 1 auto; min-width: calc(var(--control) + 8em); }` (it shrinks a
+    hundred times faster than the tools) and `.bar-main > .tools { flex: 0 1 auto; min-width: 0;
+    }` with the scrolling below. `.bar-main { flex-wrap: nowrap; }`.
+  - **Below 680 px wide: two rows.** The first row is the back arrow, the title and ⋯; the tools
+    are the second row, the whole width (as now: `order: 3; flex-basis: 100%` on the tools,
+    `.bar-main { flex-wrap: wrap; }`, with the first row's `.left { flex: 1 1 0; }` above so the
+    first row always holds ⋯).
+  - **The tools scroll sideways in either layout when they don't fit:** `.bar-main > .tools {
+    flex-wrap: nowrap; overflow-x: auto; overscroll-behavior: contain; touch-action: pan-x;
+    scrollbar-width: none; }` (and `::-webkit-scrollbar { display: none; }`). They stay centred
+    when they fit and start at the left edge when they don't: instead of `justify-content: center`,
+    give the first and last of their children `margin-inline-start: auto` and
+    `margin-inline-end: auto` (auto margins never push content out of reach, where centring
+    would). A button cut part-way at the edge is the sign there is more.
   - A long press on a tool (its panel, `ui/long-press.ts`) is cancelled when the press turns into a
-    scroll (the browser sends `pointercancel`), so scrolling the tools never opens a panel. A
-    menu opened from a tool or the title (`anchor`) is placed from the button's position on screen
-    when it opens, so it opens under the button wherever the row is scrolled.
+    scroll (the browser sends `pointercancel`), so scrolling the tools never opens a panel. Menus
+    are placed from their button's position when they open (`ui/overlay.ts:77`), so a tool's panel
+    opens under it wherever the row is scrolled.
   - **The toolbar's height**: `--bar-h` (which places the turn bands and the scope note) is set
-    only in `syncBar` (`reader/reader.ts:578`), so a toolbar that wraps differently after turning
-    the phone leaves it stale. Observe the toolbar's element with a `ResizeObserver` and set
-    `--bar-h` from it (and lower `minScale` as `syncBar` does).
-  - Check (a phone, or Playwright at 360 × 640, 390 × 844, 640 × 360 and 844 × 390): in portrait
-    the tools wrap between groups and every tool shows, and the bar is no taller than a fifth of
-    the screen (or the main row and one row of tools); in landscape the bar is one row, the back
-    arrow and ⋯ stay put while the rest scrolls, a long press still opens a panel, a swipe on the
-    bar doesn't turn the page, and the title menu opens under the title; turning the phone moves
-    the turn bands to just below the bar.
+    only in `syncBar` (`reader/reader.ts:578`), so turning the phone between one row and two leaves
+    it stale. Observe the toolbar's element with a `ResizeObserver` and set `--bar-h` from it (and
+    lower `minScale` as `syncBar` does).
+  - Check (a phone, or Playwright at 360 × 640, 390 × 844, 640 × 360 and 844 × 390), with a long
+    score title: below 680 px wide the bar is two rows, ⋯ always at the end of the first, the title
+    cut short, the tools one row that scrolls sideways if it must, every tool reachable; at 680 px
+    or wider, one row, the title shrinking before the tools scroll; a long press still opens a
+    panel; a swipe on the tools doesn't turn the page; turning the phone moves the turn bands to
+    just below the bar.
 
 ## Confirmed features which require more thought
 
