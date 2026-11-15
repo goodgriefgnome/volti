@@ -87,8 +87,8 @@ scores.
     title never decides where the row breaks) and ⋯ `flex: none`.
   - **680 px wide or more: one row.** The tools sit in the first row between the title and ⋯, as
     now. The title gives up its room first, down to 8em; only then the tools scroll sideways:
-    `.bar-main > .left { flex: 100 1 auto; min-width: calc(var(--control) + 8em); }` (it shrinks a
-    hundred times faster than the tools) and `.bar-main > .tools { flex: 0 1 auto; min-width: 0;
+    `.bar-main > .left { flex: 1 100 auto; min-width: calc(var(--control) + 8em); }`, in place of
+    the first row's rule above (it shrinks a hundred times faster than the tools) and `.bar-main > .tools { flex: 0 1 auto; min-width: 0;
     }` with the scrolling below. `.bar-main { flex-wrap: nowrap; }`.
   - **Below 680 px wide: two rows.** The first row is the back arrow, the title and ⋯; the tools
     are the second row, the whole width (as now: `order: 3; flex-basis: 100%` on the tools,
