@@ -13,7 +13,6 @@
 /* The status line takes no room while it has nothing to say. */
 .library > .status:empty { display: none; }
 .status { margin: 0; color: var(--muted); min-height: 1.5em; }
-.tagline { margin: 0; color: var(--muted); font: italic var(--text-md) var(--font-brand); }
 
 .section-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; margin-bottom: calc(var(--space-2) - var(--gap)); }
 .section-head h2 { margin: 0; color: var(--muted); }

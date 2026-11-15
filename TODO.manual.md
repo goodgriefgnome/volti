@@ -552,3 +552,5 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - A Next gesture and a Back gesture: turn forward, then hold Back at once: it turns back after
     its hold, without being let go first.
   - Hold both together (if they aren't set apart): it turns forward, then back a hold later.
+- **No tagline** (library, on the tablet and a phone): the masthead shows "Volti" and the folder's
+  tools, with no line under the name; nothing is left misaligned.

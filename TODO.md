@@ -13,9 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **No tagline**: the library's masthead shows "Volti" and the tagline "volti subito · turn the
-  page" (`library/library.ts:81`). Remove the tagline: the `p.tagline` element there and the
-  `.tagline` rule in `styles/library.css`; the masthead is then the name and the folder's tools.
 - **No dialog scrolls sideways**: a dialog scrolls in both directions (`.dialog`, `overflow: auto`,
   `styles/ui.css`), so anything in it wider than its inside makes the whole dialog scroll left and
   right. Seen on a phone in portrait in the face gestures dialog while naming a new gesture, and

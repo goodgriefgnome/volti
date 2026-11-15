@@ -78,7 +78,7 @@ export class Library implements LibraryHost {
   constructor() {
     const header = el('header', 'masthead');
     const name = el('div', 'brand-line');
-    name.append(el('h1', 'brand', 'Volti'), el('p', 'tagline', 'volti subito · turn the page'));
+    name.append(el('h1', 'brand', 'Volti'));
     header.append(name, this.banner.el);
 
     const setlistsHead = el('div', 'section-head');
