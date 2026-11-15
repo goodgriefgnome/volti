@@ -74,29 +74,58 @@ scores.
   the same. Check: in the face gestures dialog at 640 × 360, add three gestures, tap Add gesture…,
   focus the name field and scroll it under the bar: nothing of the ring shows beside the bar; open
   a gesture with a field and scroll it under the head: the same.
-- **The reader's toolbar: two rows, or one on a short screen; back and ⋯ pinned**: today below
+- **The reader's toolbar: one row when it fits or the screen is short, else two; back and ⋯ pinned**: today below
   680 px wide the tools take a row of their own that can't wrap, so on a phone they run off the
   screen and can't be reached; and the first row can wrap ⋯ onto a line of its own when the title
   is long. The toolbar's DOM (`reader/_toolbar.ts`, the constructor) is `.bar-main` holding
   `.group.left` (the back arrow and the title block), `.group.tools` (the tools, Cuts, Undo and
   Redo) and the ⋯ button (`.more`); its rules are in `styles/reader.css` (`.bar-main`,
   `.bar-main > …`, and the `@media (max-width: 679px)` block, which goes). The new layout:
-  - **Which layout, by the screen's height.** Two rows take 112 px (two rows of `--control`, the
-    8 px between them and the bar's 8 px padding above and below). Where that is more than a fifth
-    of the screen's height, below 560 px tall (a phone in landscape), the toolbar is one row;
-    otherwise it is two, at any width (a tablet too). In CSS: the two-row rules apply by default,
-    the one-row rules under `@media (max-height: 559px)`, with a comment saying where 560 comes
-    from. It changes by itself when the phone turns.
+  - **Which layout.** One row when everything fits on it without scrolling: the back arrow, ⋯, all
+    the tools and at least 120 px of the title (it cuts itself short beyond that). Otherwise one
+    row still when two would take more than a fifth of the screen's height (a phone in landscape),
+    and two rows when they wouldn't. Two rows take 112 px (two rows of `--control`, the 8 px between
+    them and the bar's 8 px padding above and below), so "short" is below 560 px tall. CSS can't
+    tell whether the tools fit, so the toolbar decides in code and sets a class: `one-row` on the
+    `.bar` element, the two-row rules applying without it.
+    - A new pure module, `src/reader/_bar-rows.ts`, starting with a comment saying what it holds:
+
+      ```ts
+      /** The room the title keeps, at least, in a toolbar of one row that fits (px). */
+      export const TITLE_MIN_PX = 120;
+      /** How tall the toolbar is in two rows (px): two rows of 44, 8 between, 8 above and below. */
+      export const TWO_ROWS_PX = 112;
+
+      /**
+       * How many rows the toolbar takes. `width` is the bar's inside width, `fixed` the back arrow,
+       * ⋯ and the gaps between the row's four parts, `tools` the tools' own width, and `height` the
+       * screen's height (all px).
+       */
+      export function barRows(o: { width: number; fixed: number; tools: number; height: number }): 1 | 2;
+      ```
+
+      It is 1 when `fixed + tools + TITLE_MIN_PX <= width`, or when `TWO_ROWS_PX > height / 5`;
+      else 2. A test, `_bar-rows.test.ts`: everything fits on a tall screen → 1; doesn't fit on a
+      tall screen (844 high) → 2; doesn't fit on a short one (390 high) → 1; exactly fitting → 1;
+      a height of exactly 560 → 2.
+    - In `Toolbar` (`reader/_toolbar.ts`), a method `fit()` measures and sets the class:
+      `width` is the bar's `clientWidth` less its side padding; `fixed` the back arrow's and ⋯'s
+      `offsetWidth` plus three of `.bar-main`'s gaps; `tools` the sum of the tools' children's
+      `offsetWidth` plus their gaps (not the tools element's own width, which the layout changes);
+      `height` is `window.innerHeight`. It toggles `one-row` on `this.el` by `barRows(...) === 1`.
+      Call it once the bar is in the page, from a `ResizeObserver` on the bar (its height changes
+      with the rows, so refit only when its width changed), on `window` `resize` (the height), and
+      after `setFace` (a tool's face can change its width).
   - **In both, the back arrow is pinned at the left of the first row and ⋯ at its right.** Give the
     back button a class, `bar-back` (`this.button('close', '', act.close, 'bar-back')`), to place
     it; `.bar-main > .left { display: contents; }` in both layouts, so the back arrow and the
     title block are children of `.bar-main` themselves.
-  - **Two rows**: `.bar-main { display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+  - **Two rows** (`.bar:not(.one-row)`): `.bar-main { display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-areas: "back title more" "tools tools tools"; gap: var(--space-2); }`, with
     `grid-area` set on `.bar-back`, `.title-block`, `.more` and `.tools`. The first row is the back
     arrow, the title and ⋯; the title shrinks to fit between them (it already cuts itself short
     with an ellipsis; `min-width: 0`), so ⋯ never moves. The second row is the tools.
-  - **One row**: `.bar-main { display: flex; flex-wrap: nowrap; overflow-x: auto; }`. The back
+  - **One row** (`.bar.one-row`): `.bar-main { display: flex; flex-wrap: nowrap; overflow-x: auto; }`. The back
     arrow `position: sticky; left: 0;` and ⋯ `position: sticky; right: 0;` (both `z-index: 1;
     background: var(--bar);`), so they stay at the ends while the title and the tools between them
     scroll sideways. The title shrinks so that at least one tool, and part of the next, always
@@ -124,7 +153,8 @@ scores.
     it stale. Observe the toolbar's element with a `ResizeObserver` and set `--bar-h` from it (and
     lower `minScale` as `syncBar` does).
   - Check (a phone, or Playwright at 360 × 640, 390 × 844, 640 × 360, 844 × 390 and a tablet's
-    1024 × 768), with a long score title: tall screens have two rows, the back arrow and ⋯ at the
+    1024 × 768), with a long score title and a short one: where everything fits (a tablet, a wide
+    landscape phone with a short title) one row and nothing scrolls; otherwise tall screens have two rows, the back arrow and ⋯ at the
     ends of the first with the title cut short between them, and the tools below, scrolling
     sideways only if they must; short screens have one row whose back arrow and ⋯ stay put while
     the title and tools scroll, and before scrolling a tool and part of the next show beside the
