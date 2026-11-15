@@ -89,7 +89,7 @@
 .face-view-head-slot { position: sticky; top: calc(-1 * var(--pad)); z-index: 2; margin-top: calc(-1 * var(--gap)); padding-block: var(--pad) var(--space-2); background: var(--surface); box-shadow: 0 1px 0 var(--line); }
 .face-view-head-slot:empty { display: none; }
 .face-view-head { display: flex; align-items: center; gap: var(--space-1); flex-wrap: wrap; }
-.face-view-head .face-named { flex: 1; }
+.face-view-head .face-named { flex: 1 1 8em; min-width: 8em; }
 .face-view-body, .face-view-body-slot { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); }
 .face-issue { display: grid; gap: var(--space-2); padding: var(--space-3) var(--space-3); border-radius: var(--radius); background: var(--warn-soft); color: var(--warn); font-size: var(--text-md); }
 .face-issue p { margin: 0; }
@@ -109,7 +109,7 @@
 .face-thr .lim { color: var(--muted); }
 .face-thr .lim.off { text-decoration: line-through; }
 .face-ft.off .face-names { opacity: var(--dim); }
-@media (max-width: 560px) {
+@container dialog (width < 512px) {
   .face-ft { grid-template-columns: 52px minmax(0, 1fr) 6.5em; }
   .face-ft .face-bar { grid-column: 1 / 4; }
   .face-ft .face-thr { grid-column: 3; grid-row: 1; }
@@ -163,6 +163,14 @@
 .face-level-row > .face-meter { flex: 1; min-width: 0; }
 .face-trials .tr { display: grid; grid-template-columns: 44px 2em minmax(60px, 1fr) repeat(3, 4.4em); gap: var(--space-1) var(--space-2); align-items: center; min-height: 48px; font-variant-numeric: tabular-nums; font-size: var(--text-sm); }
 .face-trials .tr.two { grid-template-columns: 44px 2em minmax(60px, 1fr) repeat(2, 4.4em); }
+/* Narrow (a phone): the numbers share the row, and the trace takes a line under them. */
+@container dialog (width < 400px) {
+  .face-trials .tr { grid-template-columns: 44px 2em repeat(3, minmax(0, 1fr)); }
+  .face-trials .tr.two { grid-template-columns: 44px 2em repeat(2, minmax(0, 1fr)); }
+  .face-trials .tr .trace-cell { grid-row: 2; grid-column: 2 / -1; }
+  .face-trials .tr.head > :nth-child(3) { display: none; }
+  .face-trials .tr.head > :nth-child(4) { grid-column: 3; }
+}
 .face-trials .tr.head { min-height: var(--control-sm); font-size: var(--text-xs); color: var(--muted); font-weight: 600; }
 .face-trials .tr .n { text-align: right; }
 .face-trials .tr .bad { color: var(--warn); font-weight: 600; }

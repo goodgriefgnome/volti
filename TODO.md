@@ -13,51 +13,6 @@ scores.
 
 ## Work for the immediate future
 
-- **No dialog scrolls sideways**: a dialog scrolls in both directions (`.dialog`, `overflow: auto`,
-  `styles/ui.css`), so anything in it wider than its inside makes the whole dialog scroll left and
-  right. Seen on a phone in portrait in the face gestures dialog while naming a new gesture, and
-  reproduced in Chromium at 320 to 350 px wide: the naming row (`.face-add`: the field, Add,
-  Cancel) widens the dialog to 447 px, because a field's natural width (about 20 characters) counts
-  toward its row's smallest width even with `min-width: 0`, and the dialog's column grows to it.
-  With the first part below applied in the browser, the dialog stays 304 px at 320 wide and the
-  field shrinks. Also at 360 px, a gesture's trials table with a channel shown (three numbers) is
-  45 px too wide. Make a dialog's content always fit its width:
-  - **The dialog's column can't be widened by its content.** `.dialog` is a grid with one implicit
-    `auto` column, which grows to its widest child's smallest width. Give it
-    `grid-template-columns: minmax(0, 1fr)`, so the column is the dialog's width and its children
-    shrink to it. Also give `.dialog` `overflow-wrap: anywhere` (inherited), so a long file or
-    gesture name breaks instead of pushing out. In a flex row in a dialog, the item holding a name
-    needs `min-width: 0` to be allowed to shrink: check `.removed-row`, `.marking-colors-row`,
-    `.pick-row`, `.face-named`, `.face-play-text` and `.incoming-fields`, and add it where missing.
-  - **Layouts inside a dialog follow the dialog's width, not the screen's.** Make `.dialog` a size
-    container: `container: dialog / inline-size` (its width never depends on its content, so this
-    is safe). Turn the two screen-width rules that lay out dialog content into container queries,
-    at the content width the screen width gave: `.face-ft`'s `@media (max-width: 560px)`
-    (`styles/face.css`) becomes `@container dialog (width < 512px)`, and `.incoming-row`'s
-    `@media (max-width: 600px)` (`styles/library.css`) becomes `@container dialog (width < 552px)`.
-  - **The face trials table gets a narrow layout.** Its row (`.face-trials .tr`, `styles/face.css`)
-    is a switch (44 px), the trial's number (2em), the trace (at least 60 px) and three numbers
-    (4.4em each): about 390 px with its gaps, wider than a phone's dialog (about 327 px inside).
-    Under `@container dialog (width < 400px)`: the columns become `44px 2em repeat(3,
-    minmax(0, 1fr))` (`repeat(2, …)` for `.two`), the trace cell moves to a second line under the
-    numbers (`.trace-cell { grid-row: 2; grid-column: 2 / -1; }`), and the head row's "trace" label
-    (its third child, `face/_trials.ts:85`) is hidden.
-  - **A gesture's head keeps its name readable.** At 360 px a gesture's head (`.face-view-head`:
-    back, the name and its pencil, the direction, Delete…) squeezes the name to a few letters a
-    line ("Rais / e / bro / ws"), as `.face-named` has `flex: 1` and `min-width: 0`. Give
-    `.face-view-head .face-named` `flex: 1 1 8em` and `min-width: 8em`, so the row wraps the
-    direction and Delete… to a second line before the name gets narrower than that.
-  - **Strips scroll inside themselves.** The thumbnail strips (`.thumbnails`, `styles/base.css`)
-    already scroll sideways in their own box; with the column fixed above they stay inside the
-    dialog. Nothing else in a dialog may be wider than it.
-  - The styles test: no `@media (max-width` in `ui.css`, `dialogs.css`, `face.css` or
-    `library.css` (after the two above, none is left; only `reader.css`'s toolbar has one). Its
-    message says content in a dialog uses `@container dialog`; add that rule to `STYLES.md`.
-  - Check: with Playwright at 360 × 640 and 640 × 360, open every dialog (add a PDF first, made with
-    pdf-lib, so Add scores, the Excerpt picker, the insert dialog, Export and importing can open;
-    record a face gesture's trials by setting them in storage if the camera can't), and for each
-    compare `scrollWidth` with `clientWidth`: none is wider. Then look at the face trials table and
-    a channel's row at 360 wide.
 - **A dialog's sticky bars cover its whole width**: in a dialog that scrolls, the bar of buttons at
   the bottom stays in sight (`.dialog .buttons`, `position: sticky`, `styles/ui.css`), and content
   scrolls under it. But the bar is only as wide as the dialog's content, not its padding, and the

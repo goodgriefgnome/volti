@@ -118,6 +118,7 @@ don't restate what they set.
 | `:focus-visible` | The focus ring on every element; don't set `outline` except to move it, with `var(--focus)` |
 | `.float-button` | A round button over the score |
 | `--dialog-w` | A dialog's width (`.dialog` in `ui.css` reads it, default 720 px): set it on the dialog's class only when that is too narrow; `.wide` is 900 px |
+| `@container dialog` | Content in a dialog that lays out differently when it is narrow: query the dialog's width (`.dialog` is a size container named `dialog`), not the screen's with `@media`. A dialog's column is as wide as the dialog, so what is in it shrinks to fit; a flex row in a dialog gives the item holding a name `min-width: 0` |
 | Divided lists | A list of rows has a line above and below it and one between rows; a list nested in a row has only the lines between rows |
 
 ## Icons

@@ -554,3 +554,12 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - Hold both together (if they aren't set apart): it turns forward, then back a hold later.
 - **No tagline** (library, on the tablet and a phone): the masthead shows "Volti" and the folder's
   tools, with no line under the name; nothing is left misaligned.
+- **No dialog scrolls sideways** (on a phone, portrait and landscape):
+  - Open each dialog (Add scores, the Excerpt picker, Export, importing, Recently removed, Marking
+    colours, Face gestures, the Drive folder picker): none scrolls sideways.
+  - Face gestures: Add gesture… shows the field, Add and Cancel on one row inside the dialog; a
+    gesture with a long name wraps it; its details' head puts the direction and Delete… on a second
+    line before the name gets narrow; the trials table has its numbers on one line and the trace
+    under them, and with a channel shown too.
+  - A channel's row, in portrait, has its bar on a line under the name.
+  - The incoming screen on a tablet in portrait still has the preview beside the fields.

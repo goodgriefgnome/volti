@@ -94,7 +94,7 @@
 
 /* Recently removed, from the library's ⋯ menu: a file a row, with Put back at its end. */
 .removed-list { list-style: none; margin: 0; padding: 0; display: grid; max-height: var(--scroll-max); overflow: auto; }
-.removed-row { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) 0; }
+.removed-row { min-width: 0; display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) 0; }
 
 /* Files coming into the library: a row each, its pages beside its name, folder and what happens to it. */
 .incoming-all { display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap; }
@@ -104,12 +104,12 @@
 .incoming-row.have .incoming-preview { opacity: var(--dim); }
 .incoming-preview { min-width: 0; }
 .incoming-preview .thumbnails.excerpt { max-height: min(calc(var(--seen-height, 100vh) * 0.35), 320px); }
-.incoming-fields { display: grid; gap: var(--space-2); align-content: start; }
+.incoming-fields { min-width: 0; display: grid; gap: var(--space-2); align-content: start; }
 .incoming-fields .hint { margin: 0; }
 .incoming-fields > button { justify-self: start; }
-@media (max-width: 600px) { .incoming-row { grid-template-columns: minmax(0, 1fr); } }
+@container dialog (width < 552px) { .incoming-row { grid-template-columns: minmax(0, 1fr); } }
 .marking-colors-row { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) 0; }
-.marking-colors-row .name { flex: 1; }
+.marking-colors-row .name { flex: 1; min-width: 0; }
 
 /* The folder picker for a Google Drive folder. */
 .drive-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); margin-bottom: var(--space-2); }

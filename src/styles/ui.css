@@ -7,13 +7,18 @@
 .menu .label { color: var(--muted); font-size: var(--text-sm); padding: var(--space-2) var(--space-3); }
 .menu button { border: 0; }
 
-/* Centred in what can be seen of the page: above the on-screen keyboard while it is open. */
+/*
+ * Centred in what can be seen of the page: above the on-screen keyboard while it is open. Its one
+ * column is as wide as the dialog, so what is in it shrinks to fit (nothing scrolls it sideways); it
+ * is a size container, so what is laid out inside follows the dialog's width, not the screen's.
+ */
 .dialog {
   position: fixed; z-index: var(--z-popup); left: 50%; top: calc(var(--seen-top, 0px) + var(--seen-height, 100vh) / 2); transform: translate(-50%, -50%);
   --pad: var(--space-4); --gap: var(--space-3);
   width: min(var(--dialog-w, 720px), calc(100vw - 2 * var(--edge))); max-height: calc(var(--seen-height, 100vh) - 2 * var(--edge)); overflow: auto; overscroll-behavior: contain;
   background: var(--surface); color: var(--fg); border-radius: var(--radius-lg); padding: var(--pad);
-  box-shadow: var(--shadow-popup); display: grid; gap: var(--gap);
+  box-shadow: var(--shadow-popup); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gap); overflow-wrap: anywhere;
+  container: dialog / inline-size;
 }
 .dialog h2 { margin: 0; font-size: var(--text-lg); }
 .dialog h3 { margin: var(--space-1) 0 0; font-size: var(--text-sm); color: var(--muted); font-weight: 600; }

@@ -76,6 +76,12 @@ describe('styles', () => {
     }
   });
 
+  it('lays a dialog out by its own width, not the screen\'s', () => {
+    for (const name of ['ui', 'dialogs', 'face', 'library'] as const) {
+      expect(rules(name), `${name}.css has @media (max-width: content in a dialog uses @container dialog: see STYLES.md`).not.toContain('@media (max-width');
+    }
+  });
+
   it('rings focus with the one ring', () => {
     for (const { name, value } of all(['outline'])) {
       expect(['var(--focus)', 'none', '0'].includes(value), `${name}.css has outline: ${value}: use var(--focus): see STYLES.md`).toBe(true);

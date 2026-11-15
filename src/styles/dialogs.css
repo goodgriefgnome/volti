@@ -38,7 +38,7 @@
 .face-play-from { display: flex; gap: var(--space-4); align-items: center; }
 .face-play-thumbnail { width: 96px; min-height: 64px; flex: none; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: var(--shadow-paper); }
 .face-play-thumbnail canvas { display: block; width: 100%; height: auto; }
-.face-play-text { display: grid; gap: var(--space-1); justify-items: start; }
+.face-play-text { min-width: 0; display: grid; gap: var(--space-1); justify-items: start; }
 .face-play-text strong { font-size: var(--text-lg); }
 .face-play-text button { margin-top: var(--space-2); }
 .face-pick-list { display: grid; max-height: var(--scroll-max); overflow-y: auto; }
