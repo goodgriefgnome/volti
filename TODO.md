@@ -74,47 +74,56 @@ scores.
   the same. Check: in the face gestures dialog at 640 × 360, add three gestures, tap Add gesture…,
   focus the name field and scroll it under the bar: nothing of the ring shows beside the bar; open
   a gesture with a field and scroll it under the head: the same.
-- **The reader's toolbar: one row or two, and the tools scroll sideways when they don't fit**:
-  today below 680 px wide the tools take a row of their own that can't wrap, so on a phone they
-  run off the screen and can't be reached; and the first row can wrap ⋯ onto a line of its own
-  when the title is long. The toolbar's DOM (`reader/_toolbar.ts`, the constructor) is `.bar-main`
-  holding `.group.left` (the back arrow and the title block), `.group.tools` (the tools, Cuts, Undo
-  and Redo) and the ⋯ button; the rules are in `styles/reader.css` (`.bar-main`, `.bar-main > …`,
-  and the `@media (max-width: 679px)` block). The toolbar is never more than two rows:
-  - **The first row never wraps.** The back arrow, the title block and ⋯ always share it; the
-    title shrinks (it already cuts itself short with an ellipsis) to make room, never pushing ⋯
-    to another line. `.bar-main > .left { flex: 1 1 0; min-width: 0; }` (a basis of 0, so a long
-    title never decides where the row breaks) and ⋯ `flex: none`.
-  - **680 px wide or more: one row.** The tools sit in the first row between the title and ⋯, as
-    now. The title gives up its room first, down to 8em; only then the tools scroll sideways:
-    `.bar-main > .left { flex: 1 100 auto; min-width: calc(var(--control) + 8em); }`, in place of
-    the first row's rule above (it shrinks a hundred times faster than the tools) and `.bar-main > .tools { flex: 0 1 auto; min-width: 0;
-    }` with the scrolling below. `.bar-main { flex-wrap: nowrap; }`.
-  - **Below 680 px wide: two rows.** The first row is the back arrow, the title and ⋯; the tools
-    are the second row, the whole width (as now: `order: 3; flex-basis: 100%` on the tools,
-    `.bar-main { flex-wrap: wrap; }`, with the first row's `.left { flex: 1 1 0; }` above so the
-    first row always holds ⋯).
-  - **The tools scroll sideways in either layout when they don't fit:** `.bar-main > .tools {
-    flex-wrap: nowrap; overflow-x: auto; overscroll-behavior: contain; touch-action: pan-x;
-    scrollbar-width: none; }` (and `::-webkit-scrollbar { display: none; }`). They stay centred
-    when they fit and start at the left edge when they don't: instead of `justify-content: center`,
-    give the first and last of their children `margin-inline-start: auto` and
-    `margin-inline-end: auto` (auto margins never push content out of reach, where centring
-    would). A button cut part-way at the edge is the sign there is more.
+- **The reader's toolbar: two rows, or one on a short screen; back and ⋯ pinned**: today below
+  680 px wide the tools take a row of their own that can't wrap, so on a phone they run off the
+  screen and can't be reached; and the first row can wrap ⋯ onto a line of its own when the title
+  is long. The toolbar's DOM (`reader/_toolbar.ts`, the constructor) is `.bar-main` holding
+  `.group.left` (the back arrow and the title block), `.group.tools` (the tools, Cuts, Undo and
+  Redo) and the ⋯ button (`.more`); its rules are in `styles/reader.css` (`.bar-main`,
+  `.bar-main > …`, and the `@media (max-width: 679px)` block, which goes). The new layout:
+  - **Which layout, by the screen's height.** Two rows take 112 px (two rows of `--control`, the
+    8 px between them and the bar's 8 px padding above and below). Where that is more than a fifth
+    of the screen's height, below 560 px tall (a phone in landscape), the toolbar is one row;
+    otherwise it is two, at any width (a tablet too). In CSS: the two-row rules apply by default,
+    the one-row rules under `@media (max-height: 559px)`, with a comment saying where 560 comes
+    from. It changes by itself when the phone turns.
+  - **In both, the back arrow is pinned at the left of the first row and ⋯ at its right.** Give the
+    back button a class, `bar-back` (`this.button('close', '', act.close, 'bar-back')`), to place
+    it; `.bar-main > .left { display: contents; }` in both layouts, so the back arrow and the
+    title block are children of `.bar-main` themselves.
+  - **Two rows**: `.bar-main { display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "back title more" "tools tools tools"; gap: var(--space-2); }`, with
+    `grid-area` set on `.bar-back`, `.title-block`, `.more` and `.tools`. The first row is the back
+    arrow, the title and ⋯; the title shrinks to fit between them (it already cuts itself short
+    with an ellipsis; `min-width: 0`), so ⋯ never moves. The second row is the tools.
+  - **One row**: `.bar-main { display: flex; flex-wrap: nowrap; overflow-x: auto; }`. The back
+    arrow `position: sticky; left: 0;` and ⋯ `position: sticky; right: 0;` (both `z-index: 1;
+    background: var(--bar);`), so they stay at the ends while the title and the tools between them
+    scroll sideways. The title block and the tools `flex: none` (the title at its own width, up to
+    its 32ch); ⋯ `margin-inline-start: auto`, so it sits at the right end when everything fits.
+  - **The row with the tools scrolls sideways when they don't fit**: in two rows, the tools' row
+    (`.bar-main > .tools { flex-wrap: nowrap; overflow-x: auto; }`); in one row, the whole row as
+    above. Either scroller: `overscroll-behavior: contain; touch-action: pan-x; scrollbar-width:
+    none;` (and `::-webkit-scrollbar { display: none; }`). The tools stay centred when they fit and
+    start at the left edge when they don't: instead of `justify-content: center`, give the tools'
+    first and last children `margin-inline-start: auto` and `margin-inline-end: auto` (auto margins
+    never push content out of reach, where centring would). A button cut part-way at an edge is
+    the sign there is more. Cuts keeps showing only its icon below 680 px wide
+    (`.bar .cuts-button .label`), now in a media query of its own.
   - A long press on a tool (its panel, `ui/long-press.ts`) is cancelled when the press turns into a
-    scroll (the browser sends `pointercancel`), so scrolling the tools never opens a panel. Menus
-    are placed from their button's position when they open (`ui/overlay.ts:77`), so a tool's panel
-    opens under it wherever the row is scrolled.
+    scroll (the browser sends `pointercancel`), so scrolling never opens a panel. Menus are placed
+    from their button's position when they open (`ui/overlay.ts:77`), so a panel or the title menu
+    opens under its button wherever the row is scrolled.
   - **The toolbar's height**: `--bar-h` (which places the turn bands and the scope note) is set
     only in `syncBar` (`reader/reader.ts:578`), so turning the phone between one row and two leaves
     it stale. Observe the toolbar's element with a `ResizeObserver` and set `--bar-h` from it (and
     lower `minScale` as `syncBar` does).
-  - Check (a phone, or Playwright at 360 × 640, 390 × 844, 640 × 360 and 844 × 390), with a long
-    score title: below 680 px wide the bar is two rows, ⋯ always at the end of the first, the title
-    cut short, the tools one row that scrolls sideways if it must, every tool reachable; at 680 px
-    or wider, one row, the title shrinking before the tools scroll; a long press still opens a
-    panel; a swipe on the tools doesn't turn the page; turning the phone moves the turn bands to
-    just below the bar.
+  - Check (a phone, or Playwright at 360 × 640, 390 × 844, 640 × 360, 844 × 390 and a tablet's
+    1024 × 768), with a long score title: tall screens have two rows, the back arrow and ⋯ at the
+    ends of the first with the title cut short between them, and the tools below, scrolling
+    sideways only if they must; short screens have one row whose back arrow and ⋯ stay put while
+    the title and tools scroll; every tool is reachable; a long press still opens a panel; a swipe
+    on the bar doesn't turn the page; turning the phone moves the turn bands to just below the bar.
 
 ## Confirmed features which require more thought
 
