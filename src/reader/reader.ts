@@ -1,7 +1,9 @@
-// The centre of the score screen: the frames on the screen, turning pages and scores, taking edits
-// (commit, undo, redo), and opening and closing. It joins the other reader files together: what is
-// read, and how edits carry to setlists, is _reading.ts; the toolbar's menus and dialogs are
-// _toolbar-menus.ts. Code that can stand on its own goes in one of them.
+// The score screen: it makes the parts (_stage-zoom.ts, _tool-desk.ts, _screen.ts, _pager.ts,
+// _changes.ts, _access.ts) and the toolbar, pointer input, the cut editor and the zoomed close-up,
+// and joins them through their hosts. It owns what is of the screen as a whole: the toolbar's
+// state, opening and closing, full screen and the wake lock. What is read, and how edits carry to
+// setlists, is _reading.ts; the toolbar's menus and dialogs are _toolbar-menus.ts. Code that can
+// stand on its own goes in one of them.
 
 import { ends } from '../scores/excerpts';
 import { knownTitles } from '../originals/library-files';
@@ -90,8 +92,8 @@ export async function openReader(what: ToRead, onClose: () => void, fullscreen?:
 }
 
 /**
- * The score screen, for a score or a setlist. It holds the scores being read and the frames on
- * the screen, and joins up the toolbar, pointer input, the cut editor and the zoomed close-up.
+ * The score screen, for a score or a setlist: the parts joined up with the toolbar, pointer input,
+ * the cut editor and the zoomed close-up.
  */
 class Reader {
   // Opens ready to play, with the toolbar hidden: a tap in the middle brings it up.
