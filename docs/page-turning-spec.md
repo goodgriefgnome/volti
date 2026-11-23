@@ -144,7 +144,7 @@ screen is now (whole below the toolbar when it shows).
   two, and the reader lands on the first frame it was showing (above).
 - It is the only place Advance is set. It applies to everything read on the device.
 - It is kept per device, in a new kv key `advance` (`'page' | 'screen'`), never synced. Without the
-  key, Screen.
+  key, Page.
 
 ## What else follows
 
@@ -173,7 +173,6 @@ Nothing stored is dropped.
 - The slide takes `--quick`, as everything that answers a tap does (`css-harmony-spec.md`); the
   demo used about 300 ms.
 - A jump doesn't slide.
-- Without the key, Advance is Screen, what screens of two do now.
 - A frame takes the largest share it can reach, so lowering the smallest scale fits more frames on a
   screen, not only two; one shown alone (an item's last) keeps its fitted size, so nothing changes
   size as the reader turns.
