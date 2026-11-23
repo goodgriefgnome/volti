@@ -6,7 +6,7 @@ import type { Frame } from '../scores/frames';
 import { framesOnScreen, _placeFrames, _sideBySide } from './layout';
 
 /** Space between frames on one screen, in CSS pixels. */
-const GAP = 6;
+export const GAP = 6;
 
 /** Where a frame sits on the stage, in CSS pixels, with its size in device pixels (`fw` x `fh`). */
 export interface ScreenBox { x: number; y: number; w: number; h: number; fw: number; fh: number }
