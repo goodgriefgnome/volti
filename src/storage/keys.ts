@@ -37,6 +37,11 @@ export const keys = {
   /** Each tool's settings for new markings, a ToolSettings (markings/store.ts). */
   toolSettings: 'tool-settings',
 
+  /** Whether a turn advances a page or a screen, 'page' | 'screen'; the device's own (settings/store.ts). */
+  advance: 'advance',
+  /** How far a page may shrink to fit more on a screen, in percent, 10 to 100; the device's own (settings/store.ts). */
+  smallestPageScale: 'smallest-page-scale',
+
   /** The face gestures the person defined, a FaceSettings: each with the fit its trials gave (face/store.ts). */
   faceGestures: 'face-gestures',
   /** A face gesture's trials, a Trial[], by the gesture's id; deleted with the gesture (face/store.ts). */

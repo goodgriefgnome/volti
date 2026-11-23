@@ -66,6 +66,8 @@ are done. Data from a newer version than the app's is not opened.
 | `symbols` | `SymbolLibrary` | `markings/store.ts` |
 | `placed-mark-colors` | `{ color?: string; background?: string }`, the default colours | `markings/store.ts` |
 | `tool-settings` | `ToolSettings`, each tool's settings for new markings | `markings/store.ts` |
+| `advance` | `'page' \| 'screen'`, whether a turn advances a page or a screen; the device's own | `settings/store.ts` |
+| `smallest-page-scale` | `number`, percent (10 to 100), how far a page may shrink to fit more on a screen; the device's own | `settings/store.ts` |
 | `face-gestures` | `FaceSettings`, the face gestures the person defined, each with its fit | `face/store.ts` |
 | `face-trials:<id>` | `Trial[]`, a face gesture's trials | `face/store.ts` |
 | `face-recording-page` | `RecordingPage`, the page face gesture recordings play over | `face/store.ts` |
@@ -290,6 +292,14 @@ the library. Its glyphs are in `glyph:` records, written before the library.
 `{ color?: string; background?: string }`: the colour of placed markings, and of their backgrounds,
 that have none of their own. A missing one is the built-in colour (`#1c1f26`, and `#cce0ff`); only
 colours that differ from the built-in ones are stored.
+
+### `advance` and `smallest-page-scale`: how pages turn on this device
+
+`advance` is `'page'` or `'screen'`: whether a turn moves the reader on by a page or by a screen.
+`smallest-page-scale` is a whole number of percent, a multiple of 5 from 10 to 100: how far a page
+may shrink, from the size it has alone on the screen, to fit more of them on one. A missing key, or
+a value that isn't one of these, is the default: `'page'` and 90. Both are the device's own, as they
+depend on its screen, and are never synced.
 
 ### `face-gestures`: the face gestures the person defined
 

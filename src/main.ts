@@ -5,6 +5,7 @@
 import { registerSW } from 'virtual:pwa-register';
 import { Library } from './library/library';
 import { loadMarkingColors } from './markings/store';
+import { loadTurningSettings } from './settings/store';
 import { finishSignIn } from './originals/drive/score-fs';
 import { tidyStorage } from './originals/library-files';
 import { purgeRemoved } from './originals/removed-fs';
@@ -49,6 +50,7 @@ async function start() {
   await library.addShared();
   if (location.search.includes('shared')) history.replaceState(null, '', location.pathname);
   await loadMarkingColors().catch((e) => failedOnce('load the marking colours', e));
+  await loadTurningSettings().catch((e) => failedOnce('load how pages turn', e));
   await library.refresh();
   if (signInFailed) library.say(signInFailed);
   // Signing in to link a folder goes on to pick it; signing in again was scanned by the refresh.
