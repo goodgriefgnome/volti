@@ -10,7 +10,6 @@ import type { SourceFile } from '../originals/types';
 import { canvasesOf } from '../page-cache/cache';
 import { titleOf } from '../originals/path-utils';
 import { type Hatches } from '../render/draw';
-import type { Selected } from '../scores/placing';
 import { type Aspects, type NamedExcerpt, type State } from '../scores/model';
 import type { Frame } from '../scores/frames';
 import { loadScore } from '../scores/store';
@@ -28,17 +27,15 @@ import { Toast } from '../ui/toast';
 import { CutEditor } from './_cuts/_editor';
 import { CloseUp } from './_close-up';
 import type { Gesture } from './_gestures';
-import { History } from './_history';
 import { Input } from './_input';
 import { OpenScores, openPages, type DrawPage, type DrawProgressive, type Item, type OpenScore } from './_open-scores';
-import { Reading, setlistItems, type ReadingKind, type ReadingSnapshot } from './_reading';
-import { Saver } from './_saver';
+import { Reading, setlistItems, type ReadingKind } from './_reading';
+import { Changes } from './_changes';
 import { Pager } from './_pager';
 import { Screen } from './_screen';
 import { StageZoom } from './_stage-zoom';
 import { ToolDesk, type DeskBase } from './_tool-desk';
 import { ScoreCard, showSetlistTitle } from './_setlist';
-import type { FrameSlot } from './_slots';
 import { Loupe } from './_loupe';
 import { Toolbar, turnIcon } from './_toolbar';
 import { ReaderMenus } from './_toolbar-menus';
@@ -48,12 +45,6 @@ import { resumeAt } from './_last-read';
 import { loadLastRead } from './_store';
 import type { ReaderView } from './_view';
 import { failed, failedOnce, showFailuresWith } from '../ui/failure';
-
-/**
- * Undo keeps whole states: each entry is a score's state before an edit, what was read with the
- * setlists (whose excerpts follow the edit), the item it was made in, and the cut to show.
- */
-interface Undo { open: OpenScore; state: State; reading: ReadingSnapshot; k: number; focus?: string }
 
 /** What the reader opens: a score on its own, a named excerpt of one, or a setlist. */
 export type ToRead =
@@ -132,8 +123,7 @@ class Reader {
   private face: FaceWatcher;
   private faceButton: FaceButton;
   private loupe: Loupe;
-  private undos = new History<Undo>();
-  private saver: Saver;
+  private changes: Changes;
   private editor: CutEditor;
   private input: Input;
 
@@ -206,7 +196,6 @@ class Reader {
       },
       allowAccess: () => this.allowAccess(),
     }, this.zoomer);
-    this.saver = new Saver(() => this.reading.setlists, setlists, (e) => this.say(`${failed('save your changes', e)} Volti keeps trying.`));
     const view: ReaderView = {
       stage: this.stage,
       aspects: () => this.aspects,
@@ -219,7 +208,7 @@ class Reader {
     };
     this.editor = new CutEditor({
       ...view,
-      commit: (s, focus) => this.commit(s, focus),
+      commit: (s, focus) => this.changes.commit(s, focus),
       preview: (s, frames, hatches) => this.preview(s, frames, hatches),
       thumbnails: (page, w) => canvasesOf(this.drawProgressive(page + 1, Math.round(w * dpr()))),
       cancelGesture: () => this.input.cancelGesture(),
@@ -239,9 +228,12 @@ class Reader {
       annotating: () => this.annotating,
       act: (g) => this.act(g),
       drawInk: (slot, extra) => this.screen.drawInk(slot, this.state, extra),
-      commit: (s, focus, selected) => this.commit(s, focus, selected),
-      show: (s, slot) => this.showState(s, slot),
-      undoTo: (before, slot) => this.undoTo(before, slot),
+      commit: (s, focus, selected) => {
+        if (selected) this.desk.keepSelected(selected);
+        this.changes.commit(s, focus);
+      },
+      show: (s, slot) => this.changes.showSweep(s, slot),
+      undoTo: (before, slot) => this.changes.endSweep(before, slot),
       lift: (px) => { this.stage.style.translate = px ? `0 -${px}px` : ''; },
       toggleToolbar: () => this.act('toggleChrome'),
       cutsOn: () => this.editor.enabled,
@@ -268,14 +260,19 @@ class Reader {
       changed: () => this.syncBar(),
       leave: () => history.back(),
     }, this.screen, this.desk);
+    this.changes = new Changes({
+      reading: this.reading,
+      changed: () => this.syncBar(),
+      saveFailed: (e) => this.say(`${failed('save your changes', e)} Volti keeps trying.`),
+    }, this.pager, this.screen, setlists);
     this.toolbar = new Toolbar(what.kind, {
       close: () => history.back(),
       titleMenu: () => this.menus.titleMenu(),
       more: () => void this.menus.more(),
       tool: (t) => this.desk.setTool(t),
       panel: (t) => this.desk.panel(t),
-      undo: () => this.undo(),
-      redo: () => this.redo(),
+      undo: () => this.changes.undo(),
+      redo: () => this.changes.redo(),
       toggleCuts: () => void this.withAccess(() => { this.editor.setEnabled(!this.editor.enabled); this.syncBar(); this.decorate(); }),
     }, this.desk.tools);
     // Faces the tools set before the toolbar was there.
@@ -283,7 +280,7 @@ class Reader {
     this.menus = new ReaderMenus({
       reading: this.reading,
       toolbar: this.toolbar,
-      saver: this.saver,
+      saver: this.changes.saver,
       k: () => this.pager.k,
       open: (k) => this.scores.get(this.items[k].scoreId),
       goTo: (k, at) => void this.pager.goTo(k, at, true),
@@ -378,8 +375,8 @@ class Reader {
       open: !!cur,
       tool: this.desk.active,
       cuts: this.editor.enabled,
-      canUndo: this.undos.canUndo,
-      canRedo: this.undos.canRedo,
+      canUndo: this.changes.canUndo,
+      canRedo: this.changes.canRedo,
     });
     this.scope.hidden = this.reading.what.kind === 'score' || !this.editor.enabled;
     this.root.classList.toggle('writing', this.desk.active !== 'hand');
@@ -514,65 +511,6 @@ class Reader {
     return false;
   }
 
-  /* ---------- editing ---------- */
-
-  /**
-   * Take a new state from an edit: remember the old one for undo, save, reflow, and show the
-   * frame holding `focus` (or stay where you are, if that cut is gone). Undo shows it too.
-   * `selected` is the selected marking as it is in `s`, when the edit replaced it: it stays
-   * selected, and a tool it lent stays lent.
-   */
-  private commit(s: State, focus?: string, selected?: Selected) {
-    const cur = this.current!;
-    if (selected) this.desk.keepSelected(selected);
-    this.undos.record({ open: cur, state: cur.state, reading: this.reading.snapshot(), k: this.pager.k, focus });
-    // Every setlist's excerpts of the score, and its named excerpts, follow the edit.
-    this.setState(this.reading.edited(this.pager.k, cur.id, cur.state.score.cuts, s), focus);
-  }
-
-  /** Show the current score in state `s`, saving it; the setlists have been changed already. */
-  private setState(s: State, focus?: string) {
-    const cur = this.current!;
-    cur.state = s;
-    this.saver.soon(cur);
-    this.syncBar();
-    this.pager.relayout(s, focus);
-  }
-
-  /** The eraser took strokes away: show and save them gone, but leave the undo step until it lifts. */
-  private showState(s: State, slot: FrameSlot) {
-    this.current!.state = s;
-    this.saver.soon(this.current);
-    this.screen.drawInk(slot, s);
-  }
-
-  /** One undo step for the whole sweep of the eraser. */
-  private undoTo(before: State, slot: FrameSlot) {
-    this.undos.record({ open: this.current!, state: before, reading: this.reading.snapshot(), k: this.pager.k, focus: slot.frame.items[0]?.cut.id });
-    this.pager.refreshFrames();
-    slot.frame = this.pager.frames[slot.index];
-    this.syncBar();
-  }
-
-  private undo() {
-    const e = this.undos.undo((e) => ({ ...e, state: e.open.state, reading: this.reading.snapshot() }));
-    if (e) this.restore(e);
-  }
-
-  private redo() {
-    const e = this.undos.redo((e) => ({ ...e, state: e.open.state, reading: this.reading.snapshot() }));
-    if (e) this.restore(e);
-  }
-
-  /** Put back a score and the setlists as they were, showing the score where the edit was made. */
-  private restore(e: Undo) {
-    this.reading.restore(e.reading);
-    if (e.k === this.pager.k && this.current === e.open) { this.setState(e.state, e.focus); return; }
-    e.open.state = e.state;
-    this.saver.soon(e.open);
-    void this.pager.goTo(e.k, e.focus);
-  }
-
   /* ---------- lifecycle ---------- */
 
   private async requestWake() {
@@ -583,7 +521,7 @@ class Reader {
     if (document.visibilityState === 'visible') void this.requestWake();
     else {
       this.watchEvent({ kind: 'pageHidden' });
-      void this.saver.flush().catch(() => {});
+      void this.changes.saver.flush().catch(() => {});
     }
   };
 
@@ -630,11 +568,11 @@ class Reader {
    */
   private async savedForClosing(): Promise<boolean> {
     try {
-      await this.saver.flush();
+      await this.changes.saver.flush();
       return true;
     } catch {
       if (this.leaveUnsaved) {
-        this.saver.stop();
+        this.changes.saver.stop();
         return true;
       }
       this.leaveUnsaved = true;
