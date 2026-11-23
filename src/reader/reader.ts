@@ -12,7 +12,6 @@ import { canvasesOf } from '../page-cache/cache';
 import { NotSaved, type Drawn } from '../page-cache/types';
 import { titleOf } from '../originals/path-utils';
 import { framesOnScreen } from '../render/layout';
-import { fitScale, isIdentity, NO_ZOOM, placeFresh, type View, type Zoom } from '../render/zoom';
 import { pageWidths, screenAt } from '../render/screen';
 import { type Hatches } from '../render/draw';
 import { replaceMarking } from '../scores/edits';
@@ -43,6 +42,7 @@ import { OpenScores, openPages, type DrawPage, type DrawProgressive, type Item, 
 import { Reading, setlistItems, type ReadingKind, type ReadingSnapshot } from './_reading';
 import { lastScreenStart, afterEdit, relistTarget } from './_landing';
 import { Saver } from './_saver';
+import { StageZoom } from './_stage-zoom';
 import { LendStack, type StackChange } from './_lending';
 import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
 import { drawSlot, drawSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_slots';
@@ -147,9 +147,7 @@ class Reader {
   /** Page canvases drawn at the frame's width, by 0-based page, for the frames on screen. */
   private pages = new Map<number, HTMLCanvasElement>();
 
-  private zoom: Zoom = NO_ZOOM;
-  /** The smallest zoom: the screen fits below the toolbar at its tallest since it showed. */
-  private minScale = 1;
+  private zoomer: StageZoom;
   private closeUp: CloseUp;
 
   /** The tool equipped by its button, with the tools a selection has lent on top of it. */
@@ -212,6 +210,13 @@ class Reader {
     this.reading = new Reading(items, what, setlists);
     this.stopShowingFailures = showFailuresWith((t) => this.say(t));
     this.scores = new OpenScores(items, first);
+    this.zoomer = new StageZoom({
+      stage: this.stage,
+      screen: this.screenEl,
+      annotating: () => this.annotating,
+      barHeight: () => this.toolbar.el.offsetHeight,
+      changed: () => { this.drawChromes(); this.syncBar(); this.closeUp.update(); },
+    });
     this.saver = new Saver(() => this.reading.setlists, setlists, (e) => this.say(`${failed('save your changes', e)} Volti keeps trying.`));
     const view: ReaderView = {
       stage: this.stage,
@@ -221,7 +226,7 @@ class Reader {
       state: () => this.state,
       frames: () => this.frames,
       slots: () => this.slots,
-      zoom: () => this.zoom,
+      zoom: () => this.zoomer.zoom,
     };
     this.editor = new CutEditor({
       ...view,
@@ -246,9 +251,9 @@ class Reader {
       settings: () => this.settings,
       setSettings: (change) => this.setSettings(change),
       say: (t) => this.say(t),
-      setZoom: (z) => this.setZoom(z),
-      view: () => this.view(),
-      minScale: () => this.minScale,
+      setZoom: (z) => this.zoomer.set(z),
+      view: () => this.zoomer.view(),
+      minScale: () => this.zoomer.minScale,
       annotating: () => this.annotating,
       act: (g) => this.act(g),
       drawInk: (slot, extra) => this.drawInk(slot, this.state, extra),
@@ -580,8 +585,7 @@ class Reader {
   /** Where the toolbar ends, for what is placed under it; it changes with its rows, so also when it is resized. */
   private barResized() {
     this.root.style.setProperty('--bar-h', this.toolbar.el.offsetHeight + 'px');
-    // The toolbar growing lowers the smallest zoom; shrinking it leaves the smallest zoom be.
-    if (this.annotating) this.minScale = Math.min(this.minScale, fitScale(this.view()));
+    this.zoomer.barChanged();
   }
 
   /** The toolbar showing means annotation mode: zooming and writing are available. */
@@ -589,7 +593,7 @@ class Reader {
 
   private showChrome(show: boolean) {
     this.root.classList.toggle('chrome-hidden', !show);
-    if (!show) { this.minScale = 1; this.setZoom(NO_ZOOM); }
+    if (!show) this.zoomer.reset();
     else {
       this.watchEvent({ kind: 'toolbarShown' });
       this.syncBar();
@@ -719,7 +723,7 @@ class Reader {
     this.slots = placeSlots(on, this.frame, W, H, scale, extra);
     for (const s of this.slots) this.drawPagesAndInk(s, this.state);
     this.screenEl.replaceChildren(...this.slots.map((s) => s.box), ...extra);
-    if (place === 'fresh') this.placeFresh();
+    if (place === 'fresh') this.zoomer.placeFresh();
     this.decorate();
     this.drawChromes();
     this.refreshSelection();
@@ -761,7 +765,7 @@ class Reader {
     const boxes = [blankBox(undefined, { title, why }), ...(framesOnScreen(A4, W, H) === 2 ? [this.blank()] : [])];
     placeBoxes(boxes, boxes.map(() => A4), W, H, dpr());
     this.screenEl.replaceChildren(...boxes);
-    if (place === 'fresh') this.placeFresh();
+    if (place === 'fresh') this.zoomer.placeFresh();
     this.toolbar.info.textContent = { access: 'Needs access', missing: 'Missing', unsaved: 'Not saved' }[why];
     this.showCard();
     // Offered until the screen shows something else, as the page can't be read without it.
@@ -1021,26 +1025,6 @@ class Reader {
     e.open.state = e.state;
     this.saver.soon(e.open);
     void this.goTo(e.k, e.focus);
-  }
-
-  /* ---------- zoom ---------- */
-
-  /** The part of the stage below the toolbar, which the screen is moved within. */
-  private view(): View {
-    return { top: this.annotating ? this.toolbar.el.offsetHeight : 0, W: this.stage.clientWidth, H: this.stage.clientHeight };
-  }
-
-  /** A new screen: whole below the toolbar and centred while it shows, at full size otherwise. */
-  private placeFresh() {
-    this.setZoom(this.annotating ? placeFresh(this.view()) : NO_ZOOM);
-  }
-
-  private setZoom(z: Zoom) {
-    this.zoom = z;
-    this.screenEl.style.transform = !isIdentity(z) ? `translate(${z.x}px, ${z.y}px) scale(${z.s})` : '';
-    this.drawChromes();
-    this.syncBar();
-    this.closeUp.update();
   }
 
   /* ---------- lifecycle ---------- */
