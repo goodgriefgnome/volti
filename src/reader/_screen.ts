@@ -8,7 +8,7 @@ import { NoAccess } from '../originals/types';
 import { NotSaved, type Drawn } from '../page-cache/types';
 import type { Hatches } from '../render/draw';
 import { pageWidths } from '../render/screen';
-import { layStrip, stripScreen } from '../render/strip';
+import { layStrip, stripDistance, stripScreen } from '../render/strip';
 import type { Frame } from '../scores/frames';
 import { A4, type State } from '../scores/model';
 import { smallestScale } from '../settings/turning';
@@ -71,6 +71,11 @@ export class Screen {
   private pages = new Map<number, HTMLCanvasElement>();
   /** The toast asking for access to the scores folder shows, until a page is drawn. */
   private askingAccess = false;
+  /** What the screen holds now: its boxes (slots and the blank), and the first frame it shows. */
+  private boxes: HTMLElement[] = [];
+  private firstFrame = 0;
+  /** A slide that is running: its animations, and the boxes it is taking away. */
+  private sliding: { animations: Animation[]; old: HTMLElement[] } | null = null;
 
   constructor(private host: ScreenHost, private zoom: StageZoom) {}
 
@@ -79,6 +84,38 @@ export class Screen {
 
   /** The last frame on the screen, whole or part. */
   get last(): number { return this.lastShown; }
+
+  /** A slide that is moving ends at once: the boxes it takes away go. */
+  private finishSlide() {
+    if (!this.sliding) return;
+    for (const a of this.sliding.animations) a.cancel();
+    for (const box of this.sliding.old) box.remove();
+    this.sliding = null;
+  }
+
+  /**
+   * Put `boxes` on the screen. With `slide` (a turn, 1 forward or -1 back, within the item), the old
+   * boxes stay under them and the strip slides by `distance` (CSS pixels along, signed) over
+   * `--quick`; otherwise the old are replaced at once.
+   */
+  private put(boxes: HTMLElement[], slide: 1 | -1 | undefined, along: 'x' | 'y', distance: number) {
+    const { screen } = this.host, old = this.boxes;
+    this.finishSlide();
+    this.boxes = boxes;
+    if (!slide || !old.length || !distance || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      screen.replaceChildren(...boxes);
+      return;
+    }
+    const move = (d: number) => `translate${along === 'x' ? 'X' : 'Y'}(${d}px)`;
+    const options = { duration: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--quick')) || 160, easing: 'ease-out' };
+    screen.append(...boxes);
+    const animations = [
+      ...old.map((box) => box.animate([{ transform: move(0) }, { transform: move(-distance) }], options)),
+      ...boxes.map((box) => box.animate([{ transform: move(distance) }, { transform: move(0) }], options)),
+    ];
+    this.sliding = { animations, old };
+    void Promise.all(animations.map((a) => a.finished)).then(() => { if (this.sliding?.animations === animations) this.finishSlide(); }, () => {});
+  }
 
   /** The frames of the screen at `sc` of `frames`, whole ones then the part, and the widths of their boxes. */
   private framesOf(frames: Frame[], sc: StripScreen) {
@@ -96,8 +133,9 @@ export class Screen {
    * without access to the scores folder asks for it then. Otherwise only the toolbar asks.
    * `place`: a new screen is placed fresh (see placeFresh); 'keep' leaves the screen where it is.
    */
-  async show({ turned = false, place = 'fresh' }: { turned?: boolean; place?: 'keep' | 'fresh'; slide?: 1 | -1 } = {}) {
+  async show({ turned = false, place = 'fresh', slide }: { turned?: boolean; place?: 'keep' | 'fresh'; slide?: 1 | -1 } = {}) {
     const { host } = this;
+    this.finishSlide();
     const seq = ++this.seq; // a newer show() (turn, resize, edit) supersedes this one
     this.ahead.abort();
     this.ahead = new AbortController();
@@ -159,7 +197,8 @@ export class Screen {
     }
     this.slotList = placeSlots(on, frame, sc.boxes, sc.part !== undefined);
     for (const s of this.slotList) this.draw(s, cur.state);
-    host.screen.replaceChildren(...this.slotList.map((s) => s.box), ...extra);
+    this.put([...this.slotList.map((s) => s.box), ...extra], slide, strip.along, stripDistance(strip, this.firstFrame, frame));
+    this.firstFrame = frame;
     if (place === 'fresh') this.zoom.placeFresh();
     // The score's pages are its frames; in a setlist, the excerpt's own. Only whole frames count.
     const last = this.lastWhole + 1;
@@ -197,6 +236,9 @@ export class Screen {
     // One A4 frame alone, centred, with nothing beside it.
     const box = blankBox(undefined, { title, why });
     placeBoxes([box], stripScreen(layStrip([A4], W, H, dpr(), smallestScale()), 0).boxes);
+    this.finishSlide();
+    this.boxes = [box];
+    this.firstFrame = 0;
     host.screen.replaceChildren(box);
     if (place === 'fresh') this.zoom.placeFresh();
     host.showedUnread({ access: 'Needs access', missing: 'Missing', unsaved: 'Not saved' }[why]);
@@ -256,6 +298,7 @@ export class Screen {
 
   /** The reader is closing, or the screen is going: no screen being drawn shows, and drawing ahead stops. */
   stop() {
+    this.finishSlide();
     this.seq++;
     this.ahead.abort();
   }
