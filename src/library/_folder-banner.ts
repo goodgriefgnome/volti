@@ -10,6 +10,7 @@ import { showMenu } from '../ui/overlay';
 import type { LibraryHost } from './_host';
 import { openFaceGestures } from '../dialogs/face-gestures';
 import { openMarkingColors } from './_marking-colors';
+import { openPageScale } from './_page-scale';
 import { openRecentlyRemoved } from './_removed';
 import { storageView } from './_storage';
 import { moreButton } from './_rows';
@@ -42,6 +43,7 @@ export class FolderBanner {
       { label: 'Recently removed…', run: () => void openRecentlyRemoved(lib) },
       { label: 'Marking colours…', run: openMarkingColors },
       { label: 'Face gestures…', run: () => openFaceGestures() },
+      { label: 'Page scale…', run: () => openPageScale(() => lib.pin()) },
       'Storage used on this tablet',
       storageView(),
       `Version ${__VERSION__}`,

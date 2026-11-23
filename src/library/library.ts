@@ -336,7 +336,7 @@ export class Library implements LibraryHost {
   setlist(id: string) { return this.setlists.find((s) => s.id === id); }
 
   /** Keep the setlists' pages saved offline, and show how much is. */
-  private pin() {
+  pin() {
     pinSetlistPages(this.originals, this.setlists, (s) => {
       this.offline = s;
       this.setlistsSection.showOffline();

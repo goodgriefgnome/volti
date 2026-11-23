@@ -45,6 +45,8 @@ import { gateTurn, type TurnGate } from './_turn-gate';
 import { nextWatching, type WatchEvent, type Watching } from './_face-watch';
 import { resumeAt } from './_last-read';
 import { loadLastRead } from './_store';
+import { saveAdvance } from '../settings/store';
+import { advance } from '../settings/turning';
 import type { ReaderView } from './_view';
 import { failed, failedOnce, showFailuresWith } from '../ui/failure';
 
@@ -283,6 +285,11 @@ class Reader {
       panel: (t) => this.desk.panel(t),
       undo: () => this.changes.undo(),
       redo: () => this.changes.redo(),
+      advance: () => {
+        void saveAdvance(advance() === 'page' ? 'screen' : 'page').catch((e) => failedOnce('save how pages advance', e));
+        this.syncBar();
+        void this.screen.show();
+      },
       toggleCuts: () => void this.access.withAccess(() => { this.editor.setEnabled(!this.editor.enabled); this.syncBar(); this.decorate(); }),
     }, this.desk.tools);
     // Faces the tools set before the toolbar was there.
@@ -387,6 +394,7 @@ class Reader {
       cuts: this.editor.enabled,
       canUndo: this.changes.canUndo,
       canRedo: this.changes.canRedo,
+      advance: advance(),
     });
     this.scope.hidden = this.reading.what.kind === 'score' || !this.editor.enabled;
     this.root.classList.toggle('writing', this.desk.active !== 'hand');

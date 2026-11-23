@@ -5,11 +5,14 @@ import { BACK, CHEVRON, DOTS, el, icon } from '../ui/dom';
 import { onLongPress } from '../ui/long-press';
 import { TOOL_LABELS, type ButtonFace, type Tool, type ToolName } from './_tools/_tool';
 import { TOOLBAR } from './_tools/_tools';
+import type { Advance } from '../settings/turning';
 import { barRows } from './_bar-rows';
 
 const SCISSORS = 'M6 3a3 3 0 1 0 .01 0M6 15a3 3 0 1 0 .01 0M8.5 7.5L20 19M8.5 16.5L20 5';
 const UNDO = 'M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3';
 const REDO = 'M15 14l5-5-5-5M20 9H10a6 6 0 0 0 0 12h3';
+/** Two pages side by side, with an arrow from the left one to the right one. */
+const PAGES = 'M3 6h7v12H3zM14 6h7v12h-7zM10.5 12h3M12.5 10.5L14 12l-1.5 1.5';
 
 /** The solid triangle in a page-turn band, pointing the way the band turns. */
 export function turnIcon(dir: 'prev' | 'next'): SVGSVGElement {
@@ -36,6 +39,8 @@ export interface ToolbarActions {
   redo(): void;
   /** Show or hide the cut editor's tabs, room shading and space line. */
   toggleCuts(): void;
+  /** Switch between advancing a page and a screen. */
+  advance(): void;
 }
 
 /** What the toolbar shows. */
@@ -47,6 +52,8 @@ export interface ToolbarView {
   cuts: boolean;
   canUndo: boolean;
   canRedo: boolean;
+  /** What a turn advances by. */
+  advance: Advance;
 }
 
 export class Toolbar {
@@ -55,6 +62,8 @@ export class Toolbar {
   /** The title as a button, with a chevron, to open the title menu. */
   readonly titleButton: HTMLButtonElement;
   readonly info = el('span', 'page-info');
+  /** The Advance button's value: Page or Screen. */
+  private advanceLabel = el('span', 'label', 'Page');
   private buttons: Record<string, HTMLButtonElement> = {};
   /** The key of what each tool's button shows now, to draw it again only when it changes. */
   private faces = new Map<ToolName, string>();
@@ -91,11 +100,13 @@ export class Toolbar {
     };
     const cuts = this.button('cuts', '', act.toggleCuts, 'cuts-button');
     cuts.append(icon(SCISSORS), el('span', 'label', 'Cuts'));
+    const advance = this.button('advance', '', act.advance, 'advance-button');
+    advance.append(icon(PAGES), this.advanceLabel);
     const rule = () => { const r = el('span', 'rule'); r.setAttribute('aria-hidden', 'true'); return r; };
     const group = el('div', 'group tools');
     group.append(
       ...TOOLBAR.flatMap((g, i) => [...(i ? [rule()] : []), ...g.map(toolButton)]), rule(),
-      cuts, rule(),
+      cuts, advance, rule(),
       iconButton('undo', UNDO, 'Undo', act.undo), iconButton('redo', REDO, 'Redo', act.redo),
     );
 
@@ -171,6 +182,10 @@ export class Toolbar {
     for (const t of toolKeys) pressed(t, v.tool === t);
     pressed('cuts', v.cuts);
     for (const k of [...toolKeys, 'cuts']) if (this.buttons[k]) this.buttons[k].disabled = !v.open;
+    const word = v.advance === 'page' ? 'page' : 'screen';
+    this.advanceLabel.textContent = word === 'page' ? 'Page' : 'Screen';
+    this.buttons.advance.title = `Advance a ${word}`;
+    this.buttons.advance.setAttribute('aria-label', `Advance a ${word}`);
     this.buttons.undo.disabled = !v.canUndo;
     this.buttons.redo.disabled = !v.canRedo;
   }

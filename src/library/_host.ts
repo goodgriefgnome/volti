@@ -38,6 +38,8 @@ export interface LibraryHost {
   /** A score's title, even when its original is missing. */
   titleOf(scoreId: string): string;
   setlist(id: string): Setlist | undefined;
+  /** Keep the setlists' pages saved offline again, as the widths they are drawn at changed. */
+  pin(): void;
   /** Change the setlists, save the ones that changed (with `also`, other records that go with them), and show them. */
   change(next: Setlist[], also?: [string, unknown][]): Promise<void>;
   /** Change one setlist. */
