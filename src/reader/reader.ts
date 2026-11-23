@@ -4,18 +4,14 @@
 // _toolbar-menus.ts. Code that can stand on its own goes in one of them.
 
 import { ends } from '../scores/excerpts';
-import { type Marking } from '../markings/model';
 import { folderStatus, unlockFolder } from '../originals/linked-folder';
 import { knownTitles } from '../originals/library-files';
-import { NoAccess, type SourceFile } from '../originals/types';
+import type { SourceFile } from '../originals/types';
 import { canvasesOf } from '../page-cache/cache';
-import { NotSaved, type Drawn } from '../page-cache/types';
 import { titleOf } from '../originals/path-utils';
-import { framesOnScreen } from '../render/layout';
-import { pageWidths, screenAt } from '../render/screen';
 import { type Hatches } from '../render/draw';
 import type { Selected } from '../scores/placing';
-import { A4, type Aspects, type NamedExcerpt, type State } from '../scores/model';
+import { type Aspects, type NamedExcerpt, type State } from '../scores/model';
 import { frameOf, pack, type Frame } from '../scores/frames';
 import { loadScore } from '../scores/store';
 import { loadSetlists } from '../setlists/store';
@@ -38,10 +34,11 @@ import { OpenScores, openPages, type DrawPage, type DrawProgressive, type Item, 
 import { Reading, setlistItems, type ReadingKind, type ReadingSnapshot } from './_reading';
 import { lastScreenStart, afterEdit, relistTarget } from './_landing';
 import { Saver } from './_saver';
+import { Screen } from './_screen';
 import { StageZoom } from './_stage-zoom';
 import { ToolDesk, type DeskBase } from './_tool-desk';
-import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
-import { drawSlot, drawSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_slots';
+import { ScoreCard, showSetlistTitle } from './_setlist';
+import type { FrameSlot } from './_slots';
 import { Loupe } from './_loupe';
 import { Toolbar, turnIcon } from './_toolbar';
 import { ReaderMenus } from './_toolbar-menus';
@@ -122,8 +119,6 @@ class Reader {
   private turnGate: TurnGate = {};
   private toolbar: Toolbar;
 
-  /** How many frames the screen shows. */
-  private shown = 1;
   /** The item being read. */
   private k = 0;
   /** The first frame on the screen, among the current item's. */
@@ -134,12 +129,7 @@ class Reader {
   private goSeq = 0;
   private loading = false;
   private card = new ScoreCard(this.root);
-  private seq = 0;
-  /** Aborted when the screen changes: the pages drawn ahead for it are no longer wanted. */
-  private ahead = new AbortController();
-  private slots: FrameSlot[] = [];
-  /** Page canvases drawn at the frame's width, by 0-based page, for the frames on screen. */
-  private pages = new Map<number, HTMLCanvasElement>();
+  private screen: Screen;
 
   private zoomer: StageZoom;
   private closeUp: CloseUp;
@@ -162,15 +152,13 @@ class Reader {
   private resizeTimer: ReturnType<typeof setTimeout> | undefined;
   private observer = new ResizeObserver(() => {
     clearTimeout(this.resizeTimer);
-    this.resizeTimer = setTimeout(() => void this.show(), 150);
+    this.resizeTimer = setTimeout(() => void this.screen.show(), 150);
   });
 
   private barObserver = new ResizeObserver(() => this.barResized());
 
   private reading: Reading;
   private menus: ReaderMenus;
-  /** The toast asking for access to the scores folder shows, until a page is drawn. */
-  private askingAccess = false;
   /** Scores' files renamed, moved or removed here, for the library to show on going back. */
   /** The score offered by turning past this one's end: turning that way again while it is offered opens it. */
   private offered: Offer | null = null;
@@ -198,6 +186,39 @@ class Reader {
       barHeight: () => this.toolbar.el.offsetHeight,
       changed: () => { this.desk.drawChromes(); this.syncBar(); this.closeUp.update(); },
     });
+    this.screen = new Screen({
+      stage: this.stage,
+      screen: this.screenEl,
+      toast: this.toast,
+      item: () => this.items[this.k],
+      current: () => this.current,
+      frames: () => this.frames,
+      frame: () => this.frame,
+      setFrame: (f) => { this.frame = f; },
+      loading: () => this.loading,
+      inSetlist: () => !!this.reading.setlistId,
+      nextTitle: () => this.items[this.k + 1]?.title,
+      next: async () => {
+        if (this.k + 1 >= this.items.length) return null;
+        const cur = await this.scores.ensure(this.k + 1);
+        return cur?.draw ? { draw: cur.draw, frames: this.framesFor(this.k + 1) } : null;
+      },
+      info: (text) => { this.toolbar.info.textContent = text; },
+      title: () => this.showTitle(),
+      showed: (first, info) => {
+        this.decorate();
+        this.desk.drawChromes();
+        this.desk.refreshSelection();
+        this.toolbar.info.textContent = info;
+        this.showCard();
+        this.saveSpot(first);
+      },
+      showedUnread: (info) => {
+        this.toolbar.info.textContent = info;
+        this.showCard();
+      },
+      allowAccess: () => this.allowAccess(),
+    }, this.zoomer);
     this.saver = new Saver(() => this.reading.setlists, setlists, (e) => this.say(`${failed('save your changes', e)} Volti keeps trying.`));
     const view: ReaderView = {
       stage: this.stage,
@@ -206,7 +227,7 @@ class Reader {
       drawProgressive: () => this.drawProgressive,
       state: () => this.state,
       frames: () => this.frames,
-      slots: () => this.slots,
+      slots: () => this.screen.slots,
       zoom: () => this.zoomer.zoom,
     };
     this.editor = new CutEditor({
@@ -223,14 +244,14 @@ class Reader {
     const base: DeskBase = {
       ...view,
       editor: this.editor,
-      drawState: (slot, s) => this.drawInk(slot, s),
+      drawState: (slot, s) => this.screen.drawInk(slot, s),
       say: (t) => this.say(t),
       setZoom: (z) => this.zoomer.set(z),
       view: () => this.zoomer.view(),
       minScale: () => this.zoomer.minScale,
       annotating: () => this.annotating,
       act: (g) => this.act(g),
-      drawInk: (slot, extra) => this.drawInk(slot, this.state, extra),
+      drawInk: (slot, extra) => this.screen.drawInk(slot, this.state, extra),
       commit: (s, focus, selected) => this.commit(s, focus, selected),
       show: (s, slot) => this.showState(s, slot),
       undoTo: (before, slot) => this.undoTo(before, slot),
@@ -242,7 +263,7 @@ class Reader {
     };
     this.desk = new ToolDesk(base, {
       toolbar: () => this.toolbar,
-      slots: () => this.slots,
+      slots: () => this.screen.slots,
       current: () => this.current,
       changed: () => this.syncBar(),
       say: (t) => this.say(t),
@@ -269,7 +290,7 @@ class Reader {
       replay: () => {
         this.frames = this.framesFor(this.k);
         this.frame = 0;
-        void this.show();
+        void this.screen.show();
       },
       retitle: () => this.showTitle(),
       dismiss: () => this.editor.dismiss(),
@@ -281,13 +302,13 @@ class Reader {
         this.reading.readWhole();
         this.frames = this.framesFor(this.k);
         this.frame = 0;
-        void this.show();
+        void this.screen.show();
       },
       playExcerpt: (excerpt) => {
         this.reading.play(this.k, excerpt);
         this.frames = this.framesFor(this.k);
         this.frame = 0;
-        void this.show();
+        void this.screen.show();
       },
       leave: () => history.back(),
       access: () => this.allowAccess(),
@@ -377,7 +398,7 @@ class Reader {
     const f = at === 'last' ? this.lastScreen(this.frames) : at && at !== 'first' ? frameOf(this.frames, at) : 0;
     this.frame = Math.max(0, f);
     this.syncBar();
-    await this.show({ turned });
+    await this.screen.show({ turned });
     this.scores.keepNear(this.k);
   }
 
@@ -397,7 +418,7 @@ class Reader {
       // Still reading the same entry, only somewhere else in the setlist.
       this.k = k;
       this.syncBar();
-      void this.show({ place: 'keep' });
+      void this.screen.show({ place: 'keep' });
       this.scores.keepNear(k);
       return Promise.resolve();
     }
@@ -485,133 +506,9 @@ class Reader {
 
   /* ---------- frames ---------- */
 
-  /**
-   * The screen starting at frame f of `frames`: the frames on it (as many as f's shape decides,
-   * fewer at the end), how many it wanted, and where they go, a setlist keeping room for the box
-   * after a score's last frame.
-   */
-  private screenAt(frames: Frame[], f: number, W: number, H: number, scale: number) {
-    return screenAt(frames, f, W, H, scale, !!this.reading.setlistId);
-  }
-
   /** Where a score's last screen starts: at its last two frames when the one before last shows two. */
   private lastScreen(frames: Frame[]): number {
     return lastScreenStart(frames, this.stage.clientWidth, this.stage.clientHeight);
-  }
-
-  /** In a setlist, what fills the rest of a score's last screen. */
-  private blank(): HTMLElement {
-    return blankBox(this.items[this.k + 1]?.title);
-  }
-
-  /**
-   * Show the screen. `turned`, from a tap that turned to it: a screen that can't be shown at all
-   * without access to the scores folder asks for it then. Otherwise only the toolbar asks.
-   * `place`: a new screen is placed fresh (see placeFresh); 'keep' leaves the screen where it is.
-   */
-  private async show({ turned = false, place = 'fresh' }: { turned?: boolean; place?: 'keep' | 'fresh' } = {}) {
-    const seq = ++this.seq; // a newer show() (turn, resize, edit) supersedes this one
-    this.ahead.abort();
-    this.ahead = new AbortController();
-    const W = this.stage.clientWidth;
-    const H = this.stage.clientHeight;
-    if (!W || !H || this.loading) return;
-    this.showTitle();
-    const it = this.items[this.k];
-    if (!this.current?.draw) {
-      // A score that can't be opened: say so, and carry on with the next one.
-      this.showUnread(it.title, it.needsAccess ? 'access' : 'missing', W, H, turned, place);
-      return;
-    }
-    this.frame = Math.max(0, Math.min(this.frame, this.frames.length - 1));
-    const scale = dpr();
-    const { on, wanted, rects } = this.screenAt(this.frames, this.frame, W, H, scale);
-    this.shown = on.length;
-    const widths = pageWidths(on, rects.map((r) => r.w));
-    // Each page's first yield (a stand-in, or the exact page) shows the screen; the rest sharpen it.
-    const progressive = this.drawProgressive;
-    const drawing = [...widths].map(([p, w]) => progressive(p + 1, Math.round(w * scale), { priority: 'now' })[Symbol.asyncIterator]());
-    let first: Drawn[];
-    try {
-      first = (await Promise.all(drawing.map(async (it) => {
-        const r = await it.next();
-        if (r.done) throw new Error('Nothing drawn');
-        return r.value;
-      })));
-    } catch (e) {
-      for (const it of drawing) void it.return?.().catch(() => {});
-      if (seq !== this.seq) return;
-      // A page not saved as a picture: of a PDF that can't be read until access is allowed, or of a file that is gone.
-      if (e instanceof NoAccess || e instanceof NotSaved) { this.showUnread(it.title, it.fileGone ? 'unsaved' : 'access', W, H, turned, place); return; }
-      this.toolbar.info.textContent = failed('draw this page', e);
-      return;
-    }
-    if (seq !== this.seq) {
-      for (const it of drawing) void it.return?.().catch(() => {});
-      return;
-    }
-    if (this.askingAccess) { this.askingAccess = false; this.toast.hide(); }
-    // Full screen missed as the reader opened (access took long to allow): asked for again by a turn
-    // that shows its screen, not before, as asking for access needs the turn's tap more.
-    if (turned && !document.fullscreenElement) void document.documentElement.requestFullscreen?.().catch(() => {});
-    this.pages = new Map([...widths.keys()].map((p, i) => [p, first[i].canvas]));
-
-    // In a setlist each score starts on a fresh screen, so a score's last screen may have room left.
-    const extra = this.reading.setlistId && on.length < wanted ? [this.blank()] : [];
-    this.slots = placeSlots(on, this.frame, W, H, scale, extra);
-    for (const s of this.slots) this.drawPagesAndInk(s, this.state);
-    this.screenEl.replaceChildren(...this.slots.map((s) => s.box), ...extra);
-    if (place === 'fresh') this.zoomer.placeFresh();
-    this.decorate();
-    this.desk.drawChromes();
-    this.desk.refreshSelection();
-    // The score's pages are its frames; in a setlist, the excerpt's own.
-    const last = this.frame + on.length;
-    this.toolbar.info.textContent = on.length > 1 ? `Pages ${this.frame + 1}–${last} of ${this.frames.length}` : `Page ${last} of ${this.frames.length}`;
-    this.showCard();
-    this.saveSpot(on[0]?.items[0]?.cut.id);
-    void this.predraw(seq, widths, scale);
-    [...widths.keys()].forEach((p, i) => void this.sharpen(seq, p, drawing[i]));
-  }
-
-  /**
-   * Page p's draws after its first: as each arrives, put it in `pages` and redraw the slots that
-   * show it, unless the screen has moved on. A failure keeps the page that is shown.
-   */
-  private async sharpen(seq: number, p: number, drawing: AsyncIterator<Drawn>) {
-    try {
-      for (let r = await drawing.next(); !r.done; r = await drawing.next()) {
-        if (seq !== this.seq) { void drawing.return?.().catch(() => {}); return; }
-        this.pages.set(p, r.value.canvas);
-        for (const s of this.slots) if (s.frame.items.some((i) => i.cut.page === p)) this.drawPagesAndInk(s, this.state);
-      }
-    } catch (e) {
-      if (seq !== this.seq) return;
-      this.toolbar.info.textContent = failed('draw this page', e);
-    }
-  }
-
-
-  /**
-   * In place of the screen, a score that can't be shown: missing; (`access`) in the scores folder,
-   * which Volti may not read until access is allowed, offered from a tap (and asked for at once when
-   * `turned` to); or (`unsaved`) a gone file whose saved pages don't include this screen's.
-   */
-  private showUnread(title: string, why: Unread, W: number, H: number, turned = false, place: 'keep' | 'fresh' = 'fresh') {
-    this.slots = [];
-    this.shown = 1;
-    const boxes = [blankBox(undefined, { title, why }), ...(framesOnScreen(A4, W, H) === 2 ? [this.blank()] : [])];
-    placeBoxes(boxes, boxes.map(() => A4), W, H, dpr());
-    this.screenEl.replaceChildren(...boxes);
-    if (place === 'fresh') this.zoomer.placeFresh();
-    this.toolbar.info.textContent = { access: 'Needs access', missing: 'Missing', unsaved: 'Not saved' }[why];
-    this.showCard();
-    // Offered until the screen shows something else, as the page can't be read without it.
-    if (why === 'access') {
-      this.toast.say('Volti needs access to the scores folder to show this.', ['Allow access', () => void this.allowAccess()], true);
-      this.askingAccess = true;
-      if (turned) void this.allowAccess();
-    } else this.saveSpot(undefined);
   }
 
   /** Whether the score read can be read from its PDF, or couldn't be as access to the scores folder isn't allowed. */
@@ -632,7 +529,7 @@ class Reader {
       return false;
     }
     if (await this.readable()) return true;
-    const at = this.slots[0]?.frame.items[0]?.cut.id;
+    const at = this.screen.slots[0]?.frame.items[0]?.cut.id;
     await unlockFolder().catch(() => false);
     this.scores.accessAllowed();
     await this.scores.ensure(this.k, true);
@@ -666,65 +563,29 @@ class Reader {
     } else save({ kind: 'excerpt', id: item.scoreId, ...(what.kind === 'excerpt' ? ends(what.excerpt) : {}), cut });
   }
 
-  /** Draw a frame's music and ink at its current layout. */
-  private drawPagesAndInk(slot: FrameSlot, s: State, hatches?: Hatches, extra?: Marking) {
-    drawSlot(slot, this.pages, this.aspects, s.ink, hatches, extra);
-  }
-
-  private drawInk(slot: FrameSlot, s: State, extra?: Marking) {
-    drawSlotInk(slot, this.aspects, s.ink, extra);
-  }
-
   private decorate() {
-    this.editor.decorate(this.slots, this.frames);
+    this.editor.decorate(this.screen.slots, this.frames);
   }
 
   /** While a cut is dragged: show it with the layout frozen, the music being cut away hatched. */
   private preview(s: State | null, frames: Frame[] | null, hatches?: Hatches) {
     const all = frames ?? this.frames;
     this.closeUp.drop();
-    for (const slot of this.slots) {
-      slot.frame = all[slot.index] ?? slot.frame;
-      this.drawPagesAndInk(slot, s ?? this.state, hatches);
-    }
-    this.editor.decorate(this.slots, all, !!frames);
+    this.screen.redraw(all, s ?? this.state, hatches);
+    this.editor.decorate(this.screen.slots, all, !!frames);
   }
-
-  /** Draw the next and previous screens' pages in the background; `widths` are the current screen's. */
-  private async predraw(seq: number, widths: Map<number, number>, scale: number) {
-    const W = this.stage.clientWidth, H = this.stage.clientHeight;
-    const starts = [this.frame + this.shown, ...(this.frame > 0 ? [Math.max(0, this.frame - this.shown)] : [])].filter((f) => f < this.frames.length);
-    // Each page at one width: the current screen's where it is on it.
-    const near = new Map<number, number>();
-    for (const f of starts) {
-      const { on, rects } = this.screenAt(this.frames, f, W, H, scale);
-      for (const [p, w] of pageWidths(on, rects.map((r) => r.w))) near.set(p, w);
-    }
-    for (const [p, w] of widths) near.set(p, w);
-    const { signal } = this.ahead, draw = this.draw;
-    await Promise.all([...near].map(([p, w]) => draw(p + 1, Math.round(w * scale), { priority: 'ahead', signal }).catch(() => {})));
-    if (seq !== this.seq) return;
-    // On a score's last screen in a setlist, draw the next score's first screen too.
-    if (!this.reading.setlistId || this.frame + this.shown < this.frames.length || this.k + 1 >= this.items.length) return;
-    const cur = await this.scores.ensure(this.k + 1);
-    if (seq !== this.seq || !cur?.draw) return;
-    const { on, rects } = this.screenAt(this.framesFor(this.k + 1), 0, W, H, scale);
-    const next = cur.draw;
-    await Promise.all([...pageWidths(on, rects.map((r) => r.w))].map(([p, w]) => next(p + 1, Math.round(w * scale), { priority: 'ahead', signal }).catch(() => {})));
-  }
-
 
   /** Turn a screen; in a setlist, past a score's end into the next one, or back into the one before. */
   private turn(dir: 1 | -1) {
     if (this.loading) return;
-    const place = { k: this.k, items: this.items.length, frame: this.frame, shown: this.shown, frames: this.frames.length };
+    const place = { k: this.k, items: this.items.length, frame: this.frame, shown: this.screen.shown, frames: this.frames.length };
     const t = turnFrom(place, dir, this.reading.what.kind);
     if (t.to !== 'score') this.offered = null;
     if (t.to !== 'score') this.desk.deselect();
     if (t.to === 'frame') {
       this.frame = t.frame;
       this.syncBar();
-      void this.show({ turned: true });
+      void this.screen.show({ turned: true });
     } else if (t.to === 'item') {
       this.syncBar();
       void this.goTo(t.k, t.at, true);
@@ -770,7 +631,7 @@ class Reader {
       // Not opened (its password not given, say): stay where you were.
       this.loading = false;
       this.syncBar();
-      void this.show({ place: 'keep' });
+      void this.screen.show({ place: 'keep' });
       this.say(failed('open', e, titleOf(o.path)));
       return;
     }
@@ -817,25 +678,22 @@ class Reader {
     this.saver.soon(cur);
     this.syncBar();
     this.frames = this.framesFor(this.k);
-    const after = afterEdit(shown, this.frames, this.frame, this.shown, focus);
+    const after = afterEdit(shown, this.frames, this.frame, this.screen.shown, focus);
     if (after.kind === 'redraw') {
-      for (const slot of this.slots) {
-        slot.frame = this.frames[slot.index];
-        this.drawInk(slot, s);
-      }
+      this.screen.reframe(this.frames, s);
       this.decorate();
       this.desk.refreshSelection();
       return;
     }
     this.frame = after.frame;
-    void this.show({ place: after.place });
+    void this.screen.show({ place: after.place });
   }
 
   /** The eraser took strokes away: show and save them gone, but leave the undo step until it lifts. */
   private showState(s: State, slot: FrameSlot) {
     this.current!.state = s;
     this.saver.soon(this.current);
-    this.drawInk(slot, s);
+    this.screen.drawInk(slot, s);
   }
 
   /** One undo step for the whole sweep of the eraser. */
@@ -904,8 +762,7 @@ class Reader {
     this.toolbar.dispose();
     this.barObserver.disconnect();
     this.closeUp.stop();
-    this.seq++;
-    this.ahead.abort();
+    this.screen.stop();
     this.card.stop();
     void this.wake?.release().catch(() => {});
     // Leaving full screen settles before the library is shown, so it doesn't undo the library's scroll.
