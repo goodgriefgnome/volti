@@ -14,36 +14,32 @@ import { titleOf } from '../originals/path-utils';
 import { framesOnScreen } from '../render/layout';
 import { pageWidths, screenAt } from '../render/screen';
 import { type Hatches } from '../render/draw';
-import { replaceMarking } from '../scores/edits';
-import { shows } from '../scores/ownership';
-import { setThisTimeOnly, type Selected } from '../scores/placing';
+import type { Selected } from '../scores/placing';
 import { A4, type Aspects, type NamedExcerpt, type State } from '../scores/model';
 import { frameOf, pack, type Frame } from '../scores/frames';
 import { loadScore } from '../scores/store';
 import { loadSetlists } from '../setlists/store';
 import { type Setlist } from '../setlists/model';
 import { closeOverlay } from '../ui/overlay';
-import { loadToolSettings, saveToolSettings } from '../markings/store';
 import { buttonStatus } from '../face/button-status';
 import { openFaceGestures } from '../dialogs/face-gestures';
 import { faceButton, type FaceButton } from '../face/face-button';
 import { activeOf, hasGestures, NO_GESTURES, type FaceSettings } from '../face/gestures';
 import { loadFaceSettings } from '../face/store';
 import { FaceWatcher, type CameraStatus } from '../face/watcher';
-import { DEFAULT_TOOL_SETTINGS, type ToolSettings } from '../markings/tool-settings';
 import { BACK, dpr, el, icon } from '../ui/dom';
 import { Toast } from '../ui/toast';
 import { CutEditor } from './_cuts/_editor';
 import { CloseUp } from './_close-up';
 import type { Gesture } from './_gestures';
 import { History } from './_history';
-import { Input, type InputHost } from './_input';
+import { Input } from './_input';
 import { OpenScores, openPages, type DrawPage, type DrawProgressive, type Item, type OpenScore } from './_open-scores';
 import { Reading, setlistItems, type ReadingKind, type ReadingSnapshot } from './_reading';
 import { lastScreenStart, afterEdit, relistTarget } from './_landing';
 import { Saver } from './_saver';
 import { StageZoom } from './_stage-zoom';
-import { LendStack, type StackChange } from './_lending';
+import { ToolDesk, type DeskBase } from './_tool-desk';
 import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
 import { drawSlot, drawSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_slots';
 import { Loupe } from './_loupe';
@@ -52,8 +48,6 @@ import { ReaderMenus } from './_toolbar-menus';
 import { offerScore, turnFrom, type Offer } from './_turning';
 import { gateTurn, type TurnGate } from './_turn-gate';
 import { nextWatching, type WatchEvent, type Watching } from './_face-watch';
-import { makeTools } from './_tools/_tools';
-import type { ButtonFace, HandHost, Tool, ToolName } from './_tools/_tool';
 import { resumeAt, type LastRead } from './_last-read';
 import { loadLastRead, saveLastRead } from './_store';
 import type { ReaderView } from './_view';
@@ -150,18 +144,7 @@ class Reader {
   private zoomer: StageZoom;
   private closeUp: CloseUp;
 
-  /** The tool equipped by its button, with the tools a selection has lent on top of it. */
-  private stack = new LendStack<ToolName>('hand');
-  /** The tools' being told of the stack's changes, in order. */
-  private told: Promise<void> = Promise.resolve();
-  /** The tools, made for this reader. */
-  private tools!: Record<ToolName, Tool>;
-  /** What each tool's button shows, as the tool last set it. */
-  private faces = new Map<ToolName, ButtonFace>();
-  /** The active tool: the one on top of the stack. */
-  private get tool(): ToolName { return this.stack.active; }
-  /** Each tool's settings for new markings; kept across restarts. */
-  private settings: ToolSettings = DEFAULT_TOOL_SETTINGS;
+  private desk: ToolDesk;
   /** Face gestures: their settings, whether the camera is being watched, what it says, and the button. */
   private faceSettings: FaceSettings = NO_GESTURES;
   private watching: Watching = 'off';
@@ -169,8 +152,6 @@ class Reader {
   private faceSeen = false;
   private face: FaceWatcher;
   private faceButton: FaceButton;
-  /** The placed marking showing its box, while a symbol is the tool. */
-  private selected: Selected | undefined;
   private loupe: Loupe;
   private undos = new History<Undo>();
   private saver: Saver;
@@ -215,7 +196,7 @@ class Reader {
       screen: this.screenEl,
       annotating: () => this.annotating,
       barHeight: () => this.toolbar.el.offsetHeight,
-      changed: () => { this.drawChromes(); this.syncBar(); this.closeUp.update(); },
+      changed: () => { this.desk.drawChromes(); this.syncBar(); this.closeUp.update(); },
     });
     this.saver = new Saver(() => this.reading.setlists, setlists, (e) => this.say(`${failed('save your changes', e)} Volti keeps trying.`));
     const view: ReaderView = {
@@ -239,17 +220,10 @@ class Reader {
     });
     this.closeUp = new CloseUp(view);
     this.loupe = new Loupe(this.root, view);
-    const base: Omit<InputHost & HandHost, 'layer' | 'setButtonFace'> = {
+    const base: DeskBase = {
       ...view,
       editor: this.editor,
-      tool: () => this.tool,
       drawState: (slot, s) => this.drawInk(slot, s),
-      selected: () => this.selected,
-      select: (s) => this.select(s),
-      delete: () => this.deleteSelected(),
-      setThisTimeOnly: (on) => this.setThisTimeOnly(on),
-      settings: () => this.settings,
-      setSettings: (change) => this.setSettings(change),
       say: (t) => this.say(t),
       setZoom: (z) => this.zoomer.set(z),
       view: () => this.zoomer.view(),
@@ -260,35 +234,31 @@ class Reader {
       commit: (s, focus, selected) => this.commit(s, focus, selected),
       show: (s, slot) => this.showState(s, slot),
       undoTo: (before, slot) => this.undoTo(before, slot),
-      lendForPress: (tool) => { this.tell(this.stack.lend(tool, 'press')); this.refreshSelection(); },
-      endPressLend: () => { this.tell(this.stack.end('press')); this.refreshSelection(); },
-      unequip: () => { this.useTool('hand'); this.syncBar(); },
       lift: (px) => { this.stage.style.translate = px ? `0 -${px}px` : ''; },
       toggleToolbar: () => this.act('toggleChrome'),
       cutsOn: () => this.editor.enabled,
       cutMenu: (p) => this.editor.menuAt(p.x, p.y),
       loupe: () => this.loupe,
     };
-    // Each tool gets a host whose chrome layers and button face are its own.
-    const hostFor = (tool: ToolName): InputHost & HandHost => ({
-      ...base,
-      layer: (slot) => this.layerFor(tool, slot),
-      setButtonFace: (face) => this.setFace(tool, face),
+    this.desk = new ToolDesk(base, {
+      toolbar: () => this.toolbar,
+      slots: () => this.slots,
+      current: () => this.current,
+      changed: () => this.syncBar(),
+      say: (t) => this.say(t),
     });
-    const host = hostFor('hand');
-    this.tools = makeTools(hostFor, host);
     this.toolbar = new Toolbar(what.kind, {
       close: () => history.back(),
       titleMenu: () => this.menus.titleMenu(),
       more: () => void this.menus.more(),
-      tool: (t) => this.setTool(t),
-      panel: (t) => this.panel(t),
+      tool: (t) => this.desk.setTool(t),
+      panel: (t) => this.desk.panel(t),
       undo: () => this.undo(),
       redo: () => this.redo(),
       toggleCuts: () => void this.withAccess(() => { this.editor.setEnabled(!this.editor.enabled); this.syncBar(); this.decorate(); }),
-    }, this.tools);
+    }, this.desk.tools);
     // Faces the tools set before the toolbar was there.
-    for (const [tool, face] of this.faces) this.toolbar.setFace(tool, face);
+    this.desk.showFaces(this.toolbar);
     this.menus = new ReaderMenus({
       reading: this.reading,
       toolbar: this.toolbar,
@@ -323,7 +293,6 @@ class Reader {
       access: () => this.allowAccess(),
     });
     this.syncBar();
-    void loadToolSettings().then((s) => { this.settings = s; this.syncBar(); }, (e) => failedOnce("load the tools' settings", e));
     this.stage.append(this.screenEl);
     this.scope.hidden = true;
     // While the toolbar is hidden, a button at the top right watches the front camera for face gestures.
@@ -366,7 +335,7 @@ class Reader {
     document.body.classList.add('reading');
     document.documentElement.dataset.theme = 'light';
 
-    this.input = new Input(host, this.tools);
+    this.input = new Input(this.desk.handHost, this.desk.tools);
     document.addEventListener('visibilitychange', this.onVisible);
     window.addEventListener('popstate', this.onPop);
     history.pushState({ reader: true }, '');
@@ -398,7 +367,7 @@ class Reader {
   private async goTo(k: number, at?: string | 'first' | 'last', turned = false) {
     const seq = ++this.goSeq;
     this.loading = true;
-    this.deselect();
+    this.desk.deselect();
     if (k !== this.k) { this.editor.dismiss(); this.toolbar.info.textContent = 'Opening…'; }
     await this.scores.ensure(k, true);
     if (seq !== this.goSeq || this.scores.closed) return;
@@ -435,149 +404,18 @@ class Reader {
     return this.goTo(k, 'first');
   }
 
-  /* ---------- toolbar ---------- */
-
-  /** Tapping the active tool again puts it away. */
-  private setTool(t: ToolName) {
-    this.useTool(this.tool === t ? 'hand' : t);
-    this.syncBar();
-  }
-
-  /** Change the tool; the selection ends with it, between Text and a symbol too, and nothing is given back. */
-  private useTool(t: ToolName) {
-    if (t !== this.tool) {
-      this.tell(this.stack.equip(t));
-      this.deselect();
-    }
-  }
-
-  /** Tell the tools what the change to the stack did: each is told in turn, waiting for the one before, and then the new tool draws its chrome. */
-  private tell(change: StackChange<ToolName>) {
-    if (!change.unequipped.length && !change.equipped.length) return;
-    this.told = this.told.then(async () => {
-      for (const t of change.unequipped) await this.tools[t].onUnequipped?.();
-      for (const t of change.equipped) { await this.tools[t].onEquipped?.(); this.tools[t].drawChrome?.(); }
-    }).catch((e) => failedOnce('switch tools', e));
-  }
-
-  /** End the selection and hide its box; the tool its marking lent, if any, goes back to what it was. The caller shows the toolbar. */
-  private deselect() {
-    this.tell(this.stack.end('selection'));
-    this.selected = undefined;
-    this.selectionChanged();
-  }
-
-  /** Every tool is told the selection changed, to draw its chrome again. */
-  private selectionChanged() {
-    this.showLayers();
-    for (const t of Object.values(this.tools ?? {})) t.onSelectionChanged?.();
-  }
-
-  /** Selecting a marking lends the tool for its kind, keeping the selection; ending the selection takes the lend off. */
-  private lend(kind: ToolName) {
-    if (this.tool === kind) return;
-    this.tell(this.stack.lend(kind, 'selection'));
-  }
-
-  /** A long press on a tool's button makes it the tool, if it isn't; when it is, the press leaves it be. */
-  private useOnLongPress(tool: ToolName) {
-    if (this.tool === tool) return;
-    this.useTool(tool);
-    this.syncBar();
-  }
-
-  /** A long press on a tool's button: it becomes the tool, and its panel shows under the button. */
-  private panel(tool: Exclude<ToolName, 'hand'>) {
-    this.useOnLongPress(tool);
-    this.tools[tool].showPanel?.(this.toolbar.anchor(tool));
-  }
-
-  /** A tool's button shows `face` from now on. */
-  private setFace(tool: ToolName, face: ButtonFace) {
-    this.faces.set(tool, face);
-    this.toolbar?.setFace(tool, face);
-  }
-
-  /** The tool's chrome layer in a frame, made the first time it is asked for and shown while the tool is active. */
-  private layerFor(tool: ToolName, slot: FrameSlot): HTMLElement {
-    slot.layers ??= {};
-    let layer = slot.layers[tool];
-    if (!layer) {
-      layer = el('div', 'tool-layer');
-      layer.hidden = tool !== this.tool;
-      slot.box.append(layer);
-      slot.layers[tool] = layer;
-    }
-    return layer;
-  }
-
-  /** Only the chrome of the active tool shows. */
-  private showLayers() {
-    for (const slot of this.slots) for (const [tool, layer] of Object.entries(slot.layers ?? {})) layer.hidden = tool !== this.tool;
-  }
-
-  /** Every tool draws its chrome again: the layout or the zoom changed. */
-  private drawChromes() {
-    for (const t of Object.values(this.tools ?? {})) t.drawChrome?.();
-  }
-
-  /** Change the tools' settings, save them, and show them. */
-  private setSettings(change: (s: ToolSettings) => ToolSettings): void {
-    this.settings = change(this.settings);
-    saveToolSettings(this.settings).catch((e) => this.say(failed("save the tools' settings", e)));
-    this.syncBar();
-  }
-
-  /* ---------- the selection ---------- */
-
-  private select(s: Selected | undefined) {
-    if (s) {
-      this.selected = s;
-      const owner = Object.values(this.tools).find((t) => t.ownsMarking?.(s.marking));
-      if (owner) this.lend(owner.name);
-    } else this.deselect();
-    this.refreshSelection();
-  }
-
-  /** The selected marking's delete button: take it away, as one undo step. */
-  private deleteSelected() {
-    const sel = this.selected;
-    if (sel) this.commit(replaceMarking(this.state, sel.page, sel.marking), sel.cut);
-  }
-
-  /** The selected marking's "This time only": its cut's pass (on) or none (off), as one undo step; it stays selected. */
-  private setThisTimeOnly(on: boolean) {
-    const sel = this.selected;
-    if (!sel) return;
-    const { state, selected } = setThisTimeOnly(this.state, sel, on);
-    this.commit(state, sel.cut, selected);
-  }
-
-  /**
-   * Tell the tools what is selected: a selection ends when its marking is gone from its page's ink,
-   * or the cut it was selected in is no longer played or no longer shows it.
-   */
-  private refreshSelection() {
-    const sel = this.selected, cur = this.current;
-    const cut = sel && cur?.state.score.cuts.find((c) => c.id === sel.cut);
-    if (sel && (!cur || !cut || !cur.state.ink[sel.page]?.includes(sel.marking) || !shows(cut, sel.marking))) this.deselect();
-    this.selectionChanged();
-    if (cur) this.syncBar();
-  }
-
   private syncBar() {
     const cur = this.current;
-    for (const t of Object.values(this.tools ?? {})) t.onSettingsChanged?.();
-    this.showLayers();
+    this.desk.sync();
     this.toolbar.sync({
       open: !!cur,
-      tool: this.tool,
+      tool: this.desk.active,
       cuts: this.editor.enabled,
       canUndo: this.undos.canUndo,
       canRedo: this.undos.canRedo,
     });
     this.scope.hidden = this.reading.what.kind === 'score' || !this.editor.enabled;
-    this.root.classList.toggle('writing', this.tool !== 'hand');
+    this.root.classList.toggle('writing', this.desk.active !== 'hand');
     this.root.classList.toggle('editing', this.editor.enabled);
     this.barResized();
   }
@@ -725,8 +563,8 @@ class Reader {
     this.screenEl.replaceChildren(...this.slots.map((s) => s.box), ...extra);
     if (place === 'fresh') this.zoomer.placeFresh();
     this.decorate();
-    this.drawChromes();
-    this.refreshSelection();
+    this.desk.drawChromes();
+    this.desk.refreshSelection();
     // The score's pages are its frames; in a setlist, the excerpt's own.
     const last = this.frame + on.length;
     this.toolbar.info.textContent = on.length > 1 ? `Pages ${this.frame + 1}–${last} of ${this.frames.length}` : `Page ${last} of ${this.frames.length}`;
@@ -882,7 +720,7 @@ class Reader {
     const place = { k: this.k, items: this.items.length, frame: this.frame, shown: this.shown, frames: this.frames.length };
     const t = turnFrom(place, dir, this.reading.what.kind);
     if (t.to !== 'score') this.offered = null;
-    if (t.to !== 'score') this.deselect();
+    if (t.to !== 'score') this.desk.deselect();
     if (t.to === 'frame') {
       this.frame = t.frame;
       this.syncBar();
@@ -965,7 +803,7 @@ class Reader {
    */
   private commit(s: State, focus?: string, selected?: Selected) {
     const cur = this.current!;
-    if (selected) this.selected = selected;
+    if (selected) this.desk.keepSelected(selected);
     this.undos.record({ open: cur, state: cur.state, reading: this.reading.snapshot(), k: this.k, focus });
     // Every setlist's excerpts of the score, and its named excerpts, follow the edit.
     this.setState(this.reading.edited(this.k, cur.id, cur.state.score.cuts, s), focus);
@@ -986,7 +824,7 @@ class Reader {
         this.drawInk(slot, s);
       }
       this.decorate();
-      this.refreshSelection();
+      this.desk.refreshSelection();
       return;
     }
     this.frame = after.frame;
@@ -1051,8 +889,7 @@ class Reader {
 
   private async close() {
     // Every tool on the stack is unequipped: Text finishes typing.
-    this.tell(this.stack.equip('hand'));
-    await this.told;
+    await this.desk.finish();
     closeOverlay();
     this.editor.dismiss();
     if (!(await this.savedForClosing())) return;
