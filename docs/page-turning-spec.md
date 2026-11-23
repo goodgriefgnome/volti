@@ -34,14 +34,14 @@ has room for three.
 Each frame is shown at its **fitted size**. Its **full size** is the size it has when it alone
 fills the stage: as large as fits the stage whole, as now for a frame alone on a screen. A frame
 may shrink below that to fill a **share** of the stage along, 1/n of it (gaps included), but to no
-less than the **smallest size** (below) of its full size. Its fitted size is that of the largest n
+less than the **smallest scale** (below) of its full size. Its fitted size is that of the largest n
 it can reach so, never larger than its full size; where it can't reach even a half, it is its full
 size. Frames never grow to fill a share.
 
 Frames of both shapes, and of different sizes, sit on the strip together, centred across, 6 px
 apart along (`GAP`, `render/screen.ts`, as now). Each frame decides its own fitted size.
 
-So at the smallest size of 90% (the default):
+So at the smallest scale of 90% (the default):
 
 - On a 16:10 tablet held landscape, a portrait A4 frame at full size already fits in half the
   stage, so it stays at full size: two fit, and part of a third. A landscape frame fills the height,
@@ -51,15 +51,15 @@ So at the smallest size of 90% (the default):
   one above the other.
 - A narrow score, or a wide stage, fits three or more where a third is within reach.
 
-A lower smallest size packs more frames on a screen; 100% never shrinks a frame.
+A lower smallest scale packs more frames on a screen; 100% never shrinks a frame.
 
-### The smallest size
+### The smallest scale
 
 An app setting, from 10% to 100% in steps of 5%, 90% without the key. It is set in a dialog,
-**Page size…**, from the library's ⋯ menu beside **Marking colours…** and **Face gestures…**
+**Page scale…**, from the library's ⋯ menu beside **Marking colours…** and **Face gestures…**
 (`library/_folder-banner.ts`): a slider with its value, "Pages may shrink to fit more on a screen,
-down to 90% of their size." Changing it applies at once, also to a reader opened after. It is kept
-per device, in a new kv key `smallest-page-size` (a whole number of percent), never synced.
+down to 90% of their full size." Changing it applies at once, also to a reader opened after. It is
+kept per device, in a new kv key `smallest-page-scale` (a whole number of percent), never synced.
 
 ### When the whole item fits
 
@@ -69,7 +69,7 @@ stage's leading edge (left, or top), and what is left over shows the next frame'
 
 ## The list of screens
 
-Each item has one list of screens, worked out from its frames, the stage's size, the smallest size
+Each item has one list of screens, worked out from its frames, the stage's size, the smallest scale
 and Advance alone.
 The reader is always on one of them. Nothing else decides where a screen starts: not the screens
 shown before, nor how the reader got there. The first screen starts at the first frame. Then:
@@ -117,7 +117,7 @@ end. That covers:
 - after an edit that moves the music (cuts split, merged, archived; the frames packed again);
 - a rotation or any resize, which makes a new list: the reader lands on the first frame it was
   showing;
-- changing Advance, or the smallest size, which makes a new list in the same way.
+- changing Advance, or the smallest scale, which makes a new list in the same way.
 
 Going to an item's last screen (turning back into a setlist's previous entry) is the last screen in
 its list. `lastScreen`'s own rule (`reader/reader.ts`) goes.
@@ -150,10 +150,11 @@ screen is now (whole below the toolbar when it shows).
 
 - **Drawing ahead** draws the next and previous screens in the list, parts included.
 - **Pages kept offline** (`offline/pages.ts`) are drawn at the widths the strip gives: each frame's
-  page at the size it has filling the stage, in each orientation. These don't depend on Advance.
+  page at its fitted size, in each orientation. These depend on the smallest scale, not on
+  Advance.
 - `screenAt`, `framesOnScreen` and `Place.shown` give way to the list.
-- `STORAGE.md` lists `advance` and `smallest-page-size`. `ARCHITECTURE.md`'s words take **strip**, **screen**, **whole**,
-  **part** and **Advance**.
+- `STORAGE.md` lists `advance` and `smallest-page-scale`. `ARCHITECTURE.md`'s words take
+  **strip**, **screen**, **whole**, **part**, **fitted size**, **smallest scale** and **Advance**.
 - `TODO.md`: "Turning back so forward restores the screen" and "Page-turn strategies" go. "Half
   turns on screens of one" takes the latter's place, for a frame that fills the screen alone:
   turning it by half a frame, a choice of its own, separate from Advance. "Square frames" goes too:
@@ -173,8 +174,8 @@ Nothing stored is dropped.
   demo used about 300 ms.
 - A jump doesn't slide.
 - Without the key, Advance is Screen, what screens of two do now.
-- A frame takes the largest share it can reach, so lowering the smallest size fits more frames on a
+- A frame takes the largest share it can reach, so lowering the smallest scale fits more frames on a
   screen, not only two; one shown alone (an item's last) keeps its fitted size, so nothing changes
   size as the reader turns.
-- The smallest size is per device, like Advance, as it depends on the screen; it is set in its own
-  dialog, **Page size…**, in steps of 5%.
+- The smallest scale is per device, like Advance, as it depends on the screen; it is set in its own
+  dialog, **Page scale…**, in steps of 5%.
