@@ -55,7 +55,7 @@ export function freeze(frames: Frame[], cuts: readonly Cut[], aspects: Aspects):
   });
 }
 
-export const frameOf = (frames: Frame[], id: string) => frames.findIndex((f) => f.items.some((p) => p.cut.id === id));
+export const frameOf = (frames: readonly Frame[], id: string) => frames.findIndex((f) => f.items.some((p) => p.cut.id === id));
 
 /**
  * The room left on the frame before frame `n`, in page widths, when it is more than ROOM_CUE

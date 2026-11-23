@@ -18,7 +18,7 @@ import { type Hatches } from '../render/draw';
 import { replaceMarking } from '../scores/edits';
 import { shows } from '../scores/ownership';
 import { setThisTimeOnly, type Selected } from '../scores/placing';
-import { A4, type Aspects, type Cut, type NamedExcerpt, type State } from '../scores/model';
+import { A4, type Aspects, type NamedExcerpt, type State } from '../scores/model';
 import { frameOf, pack, type Frame } from '../scores/frames';
 import { loadScore } from '../scores/store';
 import { loadSetlists } from '../setlists/store';
@@ -41,6 +41,7 @@ import { History } from './_history';
 import { Input, type InputHost } from './_input';
 import { OpenScores, openPages, type DrawPage, type DrawProgressive, type Item, type OpenScore } from './_open-scores';
 import { Reading, setlistItems, type ReadingKind, type ReadingSnapshot } from './_reading';
+import { lastScreenStart, afterEdit, relistTarget } from './_landing';
 import { Saver } from './_saver';
 import { LendStack, type StackChange } from './_lending';
 import { blankBox, ScoreCard, showSetlistTitle, type Unread } from './_setlist';
@@ -73,11 +74,6 @@ export type ToRead =
 
 /** How long the next score is offered after turning past a score's end: as long as the toast saying so shows. */
 const OFFER_MS = 3500;
-
-/** Whether two played orders put the same music in the same places. */
-const sameLayout = (a: readonly Cut[], b: readonly Cut[]) =>
-  a.length === b.length && a.every((c, i) => c.id === b[i].id && c.page === b[i].page && c.y0 === b[i].y0 && c.y1 === b[i].y1 && c.pad === b[i].pad);
-
 
 /** Open a score, or a setlist as one continuous score. A score that can't be opened throws; a setlist carries on past it. */
 export async function openReader(what: ToRead, onClose: () => void, fullscreen?: Promise<void>): Promise<void> {
@@ -422,8 +418,8 @@ class Reader {
     const titles = Object.fromEntries(this.items.map((it) => [it.scoreId, it.title]));
     const was = this.items[this.k]?.entryId;
     this.reading.relist(setlistItems(s, new Map(this.library.map((o) => [o.id, o])), titles));
-    const k = entryId ? this.items.findIndex((it) => it.entryId === entryId) : -1;
-    if (k >= 0 && entryId === was) {
+    const { k, same } = relistTarget(this.items, entryId, was, at);
+    if (same) {
       // Still reading the same entry, only somewhere else in the setlist.
       this.k = k;
       this.syncBar();
@@ -431,7 +427,7 @@ class Reader {
       this.scores.keepNear(k);
       return Promise.resolve();
     }
-    return this.goTo(k >= 0 ? k : Math.min(at, this.items.length - 1), 'first');
+    return this.goTo(k, 'first');
   }
 
   /* ---------- toolbar ---------- */
@@ -658,8 +654,7 @@ class Reader {
 
   /** Where a score's last screen starts: at its last two frames when the one before last shows two. */
   private lastScreen(frames: Frame[]): number {
-    const n = frames.length, W = this.stage.clientWidth, H = this.stage.clientHeight;
-    return n >= 2 && framesOnScreen(frames[n - 2].aspect, W, H) === 2 ? n - 2 : n - 1;
+    return lastScreenStart(frames, this.stage.clientWidth, this.stage.clientHeight);
   }
 
   /** In a setlist, what fills the rest of a score's last screen. */
@@ -980,11 +975,8 @@ class Reader {
     this.saver.soon(cur);
     this.syncBar();
     this.frames = this.framesFor(this.k);
-    const moved = !sameLayout(this.frames.flatMap((f) => f.items.map((p) => p.cut)), shown);
-    const f = focus ? frameOf(this.frames, focus) : -1;
-    // A cut on this screen stays put; one elsewhere opens the screen starting at its frame.
-    const target = f >= 0 && (f < this.frame || f >= this.frame + this.shown) ? f : this.frame;
-    if (!moved && target === this.frame) {
+    const after = afterEdit(shown, this.frames, this.frame, this.shown, focus);
+    if (after.kind === 'redraw') {
       for (const slot of this.slots) {
         slot.frame = this.frames[slot.index];
         this.drawInk(slot, s);
@@ -993,9 +985,8 @@ class Reader {
       this.refreshSelection();
       return;
     }
-    const sameScreen = target === this.frame;
-    this.frame = Math.min(target, Math.max(0, this.frames.length - 1));
-    void this.show({ place: sameScreen ? 'keep' : 'fresh' });
+    this.frame = after.frame;
+    void this.show({ place: after.place });
   }
 
   /** The eraser took strokes away: show and save them gone, but leave the undo step until it lifts. */
