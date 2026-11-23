@@ -74,10 +74,13 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   markings, excerpts and place in setlists, and a setlist's **Missing** score plays again once its
   PDF is back. A PDF changed by another app is a new score. Volti reads a PDF whole the first time
   it sees it (and after it changes), so linking a big folder takes a moment.
-- Each page on the screen takes the shape of the PDF pages it shows. A page of the screen's own
-  orientation fills it; one of the other shares it with the next: portrait pages side by side on a
-  landscape screen, landscape pages one above the other on a portrait one. Rotating the tablet
-  keeps the music at the top of the screen in place.
+- Each page on the screen takes the shape of the PDF pages it shows, and the pages sit end to end
+  as a strip: side by side on a landscape screen, one above the other on a portrait one. A page may
+  shrink a little (to 90% of its full size, set in the ⋯ menu's Page scale…) to fit more on a
+  screen, and after the pages that fit whole, as much of the next as fits shows beside them. A turn
+  slides the strip along. The toolbar's Page / Screen button says whether a turn moves on by a page
+  or by a whole screen; turning back always undoes turning forward. Rotating the tablet keeps the
+  music at the top of the screen in place.
 - A score, excerpt or setlist opens ready to play, with the toolbar hidden. Press the right side for
   the next page and the left side for the previous one; tap the middle to show the toolbar. While
   the toolbar shows, the shaded bands at the sides turn the page. The back arrow at the top left, there with the toolbar hidden too, goes

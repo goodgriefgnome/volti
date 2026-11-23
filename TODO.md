@@ -116,15 +116,9 @@ scores.
   or only left and right (cuts already trim top and bottom); how it changes the pages' shape, and
   so frames and orientation; markings, which are placed on the page and must stay on the music;
   and exports and thumbnails, which would show the cropped pages.
-- **Turning back so forward restores the screen:** turning back should show the screen that
-  turning forward from would come back to the current one. With the first frame on screen f:
-  frames f−2 and f−1 when f−2 would open a screen of two; otherwise f−1 alone (also when f−1 would
-  open a screen of two, which would take in f). For now it goes back by as many frames as show
-  (`turnFrom`, `reader/_turning.ts`).
-- **Square frames:** a frame neither wider nor taller is both portrait and landscape; decide how
-  it lays out on the screen. For now it counts as portrait (`isLandscape`, `scores/frames.ts`), so
-  two sit side by side.
-- **Page-turn strategies** (half-page turns and the like): to be discussed separately.
+- **Half turns on screens of one:** for a frame that fills the screen alone, turning it by half a
+  frame: the top half of the next page over the bottom half of this one. A choice of its own,
+  separate from Advance.
 - **Exporting the library** (scores, setlists, markings, reading positions) as files, for backup
   and for moving to another device; probably written into the linked scores folder.
 - **The first open of a PDF still lags**: the first time a PDF is opened since

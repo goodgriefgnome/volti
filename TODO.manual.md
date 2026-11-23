@@ -578,3 +578,27 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - Every tool is reachable; a long press on a tool still opens its panel, but scrolling the row by
     a press on a tool doesn't; a swipe on the bar doesn't turn the page.
   - Turn the phone: the turn bands start just below the bar, in each layout.
+- **Turning by the strip** (a tablet in both orientations, and Chrome's device mode at 1024 × 768):
+  - A score of portrait pages, the tablet landscape: two pages and a sliver of the third, the first
+    flush left. The toolbar's Advance shows Page. Turn: one page along, sliding. Back: exactly the
+    screen before.
+  - Tap Advance: Screen. The same pages show. Turn: two pages along. Back, forward, back: always the
+    same screens. Close and open the app: Advance is kept.
+  - A score with a landscape page after an odd number of portrait ones: the last portrait page shows
+    with part of the landscape page; the next screen is the landscape page whole, at the same
+    height, with a sliver of the page after.
+  - A two-page score: centred, one screen; turning goes to the next score (offered first) as now.
+  - At 1024 × 768 two portrait pages fill the width exactly, a little smaller than before.
+  - Rotate to portrait: landscape pages stack, top first; the page at the top is the first page shown
+    before. Rotate back.
+  - A setlist: the last screen of an entry shows the next title in its empty part; turn on, and back
+    into the entry's last screen.
+  - Library ⋯ → Page scale…: 60%: three portrait pages a screen; 100% on a 4:3 tablet: one page and
+    a part; 90% again. Close and open the app: the scale is kept.
+  - Edit cuts on the screen: the cut tabs show on whole pages, not on the part; a cut made keeps the
+    reader near it. Cut a frame in two on the screen; remove a cut on an earlier screen: the reader
+    lands sensibly. Pinch out with the toolbar showing: the part stays cut at the stage's edge.
+  - Turn quickly, and with a pedal or a face gesture: every turn slides, none leaves pages behind.
+    With reduce motion on, turns are instant; jumps (the title menu, the Advance button, rotating)
+    never slide.
+  - Offline: a setlist's pages are all saved again after changing the page scale.
