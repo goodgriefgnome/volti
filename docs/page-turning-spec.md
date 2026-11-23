@@ -1,55 +1,71 @@
 # Page turning: spec
 
-What a screen shows and where a turn goes once this work is done: a fixed sequence of screens
-for each score, a setting for how a screen of two turns, half of a landscape frame where a blank
-used to be, and a slide between screens. How to get there is in `page-turning-plan.md`; where the
-two disagree, this file wins.
+What a screen shows and where a turn goes once this work is done: an item's frames laid end to end
+as a strip, each at the size it has filling the screen; a screen as a window onto the strip; a
+fixed list of screens for each item; a setting for whether a turn advances a page or a screen; and
+a slide between screens. How to get there is in `page-turning-plan.md`; where the two disagree,
+this file wins.
 
 ## Why
 
 Turning back doesn't undo turning forward. Back goes by as many frames as show now (`turnFrom`,
 `reader/_turning.ts`), so where screens hold different numbers of frames, forward then back lands
-somewhere else. And a screen of two can only turn by two, where a player often wants the second
-page moved to the left and the next one beside it.
+somewhere else. A screen of two can only turn by two, where a player often wants the second page
+moved to the left and the next one beside it. And the number of frames on a screen is fixed at one
+or two (`framesOnScreen`, `render/layout.ts`), though a narrow score, or a wide tablet in landscape,
+has room for three.
 
 ## Words
 
-- A frame is **portrait** or **landscape** (`isLandscape`, `scores/frames.ts`; a square one counts
-  as portrait, as now). The **screen's shape** is the stage's: landscape when wider than tall.
-- A frame **shaped like the screen** has the screen to itself. A frame **opposite** to the screen
-  shares it: two side by side on a landscape screen, one above the other on a portrait one. These
-  are **screens of two**; the rest are **screens of one**.
-- A **run** is a longest stretch of consecutive frames opposite to the screen.
-- A **half** is the first half of a frame shaped like the screen, cut across its long side: the
-  left half of a landscape frame on a landscape screen, the top half of a portrait frame on a
-  portrait one. A half is opposite to the screen, so it fills a slot of a screen of two. For A4 and
-  US Letter, half a frame is the shape of a whole one turned.
-- **Turn by** is the setting: **2** or **1**. It decides how screens of two follow one another. It
-  changes nothing for screens of one.
+- The **stage** is the screen the music is shown on, as now. It is **landscape** when wider than
+  tall, else **portrait**.
+- The **strip** is an item's frames (a score's, an excerpt's, a setlist entry's) in order, end to
+  end: left to right on a landscape stage, top to bottom on a portrait one. The strip's direction
+  is **along**; the other is **across**.
+- A **screen** is the stretch of the strip that fills the stage along, starting at the leading edge
+  of one frame, its **first frame**. Its first frame is always whole.
+- A frame is **whole** on a screen when all of it is on it. After the whole frames, a screen shows
+  as much of the next frame as fits, cut off at the stage's edge: a **part**. Past the item's last
+  frame, a screen is **empty**.
+- **Advance** is the setting: **Page** or **Screen**.
 
-## The screen sequence
+## The strip
 
-Each item read (a score, an excerpt, a setlist's entry) has one list of screens, worked out from
-its frames, the screen's shape and Turn by alone. The reader is always on one of them. Nothing else
-decides where a screen starts: not the screens shown before, nor how the reader got there.
+Each frame is shown at the size it has when it alone fills the stage: as large as fits the stage
+whole, as now for a frame alone on a screen. Frames of both shapes, and of different sizes, sit on
+the strip together, centred across, 6 px apart along (`GAP`, `render/screen.ts`, as now).
 
-The list, from the first frame on: each frame shaped like the screen is a screen of one. Each run
-of frames r₁ … rₙ gives, in order:
+So on a landscape tablet, a portrait frame fills the stage's height, and two of them and part of a
+third fit along; a landscape frame fills the height too where the stage is wide enough, and part of
+the next frame fits beside it. On a portrait tablet, a landscape frame fills the stage's width, and
+two of them fit one above the other; a portrait frame fills most of the stage alone. A narrow score
+or a wide stage fits three or more.
 
-- **Turn by 2:** pairs from the run's start, (r₁ r₂), (r₃ r₄), …. When n is odd, rₙ is left over:
-  (rₙ, half of the next frame), or (rₙ, blank) when the run ends the item.
-- **Turn by 1:** each frame with the next, (r₁ r₂), (r₂ r₃), … (rₙ₋₁ rₙ). Then, when a frame follows
-  the run, (rₙ, half of the next frame); when the run ends the item, nothing more, except that a run
-  of one is (r₁, blank).
+## The list of screens
 
-With frames P1 P2 P3 P4 P5 L6 P7 L8 P9 P10 on a landscape screen (P portrait, L landscape):
+Each item has one list of screens, worked out from its frames, the stage's size and Advance alone.
+The reader is always on one of them. Nothing else decides where a screen starts: not the screens
+shown before, nor how the reader got there. The first screen starts at the first frame. Then:
 
-- Turn by 2: (P1 P2), (P3 P4), (P5 ½L6), L6, (P7 ½L8), L8, (P9 P10).
-- Turn by 1: (P1 P2), (P2 P3), (P3 P4), (P4 P5), (P5 ½L6), L6, (P7 ½L8), L8, (P9 P10).
+- **Advance Page:** the next screen starts at the next frame, so the first frame leaves the screen.
+  The list stops at the first screen on which the item's last frame is whole.
+- **Advance Screen:** the next screen starts at the first frame that isn't whole on this one, so
+  every whole frame leaves the screen and a part becomes the next screen's first frame. The list
+  stops at the screen on which the item's last frame is whole.
 
-A frame is never beside a frame of the other shape. The only blank is beside the item's last
-frame; in a setlist it holds the next entry's title, as the blank after a score's last frame does
-now (`blankBox`, `reader/reader.ts`).
+The last screen may be partly empty. In a setlist, the empty part holds the next entry's title, as
+the blank after a score's last frame does now (`blankBox`, `reader/reader.ts`). Nowhere else is
+anything empty.
+
+With frames P1 P2 P3 P4 P5 L6 P7 L8 P9 P10 (P portrait, L landscape, A4) on a 16:10 tablet held
+landscape, where two portrait frames and about a quarter of a third fit, and a landscape frame and
+about a quarter of a portrait one:
+
+- Advance Screen: (P1 P2 ·P3), (P3 P4 ·P5), (P5 ·L6), (L6 ·P7), (P7 ·L8), (L8 ·P9), (P9 P10).
+- Advance Page: (P1 P2 ·P3), (P2 P3 ·P4), (P3 P4 ·P5), (P4 P5 ·L6), (P5 ·L6), (L6 ·P7), (P7 ·L8),
+  (L8 ·P9), (P9 P10).
+
+(·X is a part of X.)
 
 ## Turning
 
@@ -63,87 +79,72 @@ now (`blankBox`, `reader/reader.ts`).
 
 ## Landing somewhere other than by turning
 
-Wherever the reader goes to a frame without turning, it shows the first screen in the list that
-holds that frame (whole, not as a half). That covers:
+Wherever the reader goes to a frame without turning, it shows the screen that starts at that frame,
+or, when there is none, the last screen that starts before it. With Advance Screen that is the
+screen on which the frame is whole; with Advance Page, the screen it starts, except near the item's
+end. That covers:
 
-- opening something, and resuming where it was last read (`last-read` keeps the cut, as now);
+- opening something, and resuming where it was last read (`last-read` keeps the cut of the first
+  frame, as now);
 - the title menu, and going to an entry or an excerpt;
 - after an edit that moves the music (cuts split, merged, archived; the frames packed again);
-- a rotation or any resize that changes the screen's shape, which makes a new list: the reader
-  shows the screen there that holds the first frame it was showing;
-- changing Turn by, which makes a new list in the same way.
-
-So with Turn by 1 on (P3 P4), switching to 2 shows (P3 P4); on (P2 P3), it shows (P1 P2).
+- a rotation or any resize, which makes a new list: the reader lands on the first frame it was
+  showing;
+- changing Advance, which makes a new list in the same way.
 
 Going to an item's last screen (turning back into a setlist's previous entry) is the last screen in
 its list. `lastScreen`'s own rule (`reader/reader.ts`) goes.
 
-## The strip and the slide
+## The slide
 
-An item's frames are laid end to end along the screen's long side, in order, a gap apart, as one
-**strip**, each frame scaled to the same size across that side: the same height on a landscape
-screen, the same width on a portrait one. That size is the largest at which every screen in the
-list fits the stage. A screen is a stretch of the strip, centred on the stage: a frame alone, a
-pair with the gap between them, or a frame and the half beside it, which is simply the next frame
-cut off at its middle.
+A turn **slides** the strip along, from one screen to the next, over `--quick` (160 ms). Everything
+on the strip between the two screens shows as it passes; nothing beyond the stage's edges does.
 
-For A4 and US Letter on a tablet, frames show at the size they show now: a pair and a landscape
-frame each fill the stage's height on a landscape screen.
-
-A turn **slides** the strip to the next screen: along the long side, over `--quick` (160 ms), with
-the pages of both screens and of what lies between them showing as it moves. Only what is inside
-the moving window shows; nothing beyond the window's edges does. The window's size moves from the
-old screen's to the new one's as it slides. So:
-
-- with Turn by 2, a pair slides out by two frames and the next pair slides in;
-- with Turn by 1, the pair moves along by one frame;
-- from (P5 ½L6) to L6, P5 slides out and the rest of L6 slides in, at the same size.
-
-Jumps (above) don't slide: the new screen shows at once, as now. With reduced motion turns don't
-slide either. A turn while a slide is moving finishes that slide at once and starts its own from
-there. The turn is taken (the place remembered, drawing ahead started, the gate passed) when it
-starts, not when the slide ends.
+Landing somewhere other than by turning (above) doesn't slide: the new screen shows at once, as
+now. With reduced motion turns don't slide either. A turn while a slide is moving finishes that
+slide at once and starts its own from there. The turn is taken (the place remembered, drawing ahead
+started, the gate passed) when it starts, not when the slide ends.
 
 What the zoom and the toolbar do on a turn doesn't change: the new screen is placed as a turned-to
 screen is now (whole below the toolbar when it shows).
 
-## Turn by on the toolbar
+## Advance on the toolbar
 
-- A button on the reader's toolbar, beside **Cuts** and in its style: an icon and its value, **2**
-  or **1**. Its label (for screen readers and the tooltip) is "Turn by 2 frames" or "Turn by 1
-  frame".
-- It is always there and always enabled, whatever the screen shows. A tap switches between 2 and 1,
-  and the reader shows the screen that holds the first frame it was showing (above).
-- It is the only place Turn by is set. It applies to everything read on the device.
-- It is kept per device, in a new kv key `turn-by` (`1 | 2`), never synced. Without the key, 2:
-  what screens of two do now.
+- A button on the reader's toolbar, beside **Cuts** and in its style: an icon and its value,
+  **Page** or **Screen**. Its label (for screen readers and the tooltip) is "Advance a page" or
+  "Advance a screen".
+- It is always there and always enabled, whatever the screen shows. A tap switches between the
+  two, and the reader lands on the first frame it was showing (above).
+- It is the only place Advance is set. It applies to everything read on the device.
+- It is kept per device, in a new kv key `advance` (`'page' | 'screen'`), never synced. Without the
+  key, Screen.
 
 ## What else follows
 
-- **Drawing ahead** draws the next and previous screens in the list, a half's frame at its full
-  size.
-- **Pages kept offline** (`offline/pages.ts`) are drawn at the widths the strip gives. These don't
-  depend on Turn by, as every frame is the same size along the strip whichever it is.
-- `screenAt`, `framesOnScreen`'s use for counting frames, and `Place.shown` give way to the list.
-- `STORAGE.md` lists `turn-by`. `ARCHITECTURE.md`'s words take **screen of two**, **run**, **half**
-  and **Turn by**.
-- `TODO.md`: "Turning back so forward restores the screen" goes. "Page-turn strategies" becomes
-  "Half turns on screens of one": turning a screen of one by half a frame, a choice of its own,
-  separate from Turn by. `TODO.manual.md` gets the checks.
+- **Drawing ahead** draws the next and previous screens in the list, parts included.
+- **Pages kept offline** (`offline/pages.ts`) are drawn at the widths the strip gives: each frame's
+  page at the size it has filling the stage, in each orientation. These don't depend on Advance.
+- `screenAt`, `framesOnScreen` and `Place.shown` give way to the list.
+- `STORAGE.md` lists `advance`. `ARCHITECTURE.md`'s words take **strip**, **screen**, **whole**,
+  **part** and **Advance**.
+- `TODO.md`: "Turning back so forward restores the screen" and "Page-turn strategies" go. "Half
+  turns on screens of one" takes the latter's place, for a frame that fills the screen alone:
+  turning it by half a frame, a choice of its own, separate from Advance. "Square frames" goes too:
+  a square frame is laid on the strip at its fitted size like any other. `TODO.manual.md` gets the
+  checks.
 
 Nothing stored is dropped.
 
 ## Decisions not discussed
 
-- The half is taken across the long side of a frame shaped like the screen (left half on a
-  landscape screen, top half on a portrait one), and the strip runs vertically on a portrait screen:
-  the landscape case turned.
-- One size along the strip for the whole item, so a slide never changes the frames' size. Where
-  frames aren't A4 or Letter, some screens may then not fill the stage.
+- A screen starts at the stage's leading edge: its first frame is flush with the stage's left (or
+  top) edge, not centred, and what is left over shows the next frame's part.
+- A part is cut at the stage's edge, whatever its size; it isn't rounded to half a frame.
+- Landing on a frame shows the screen that starts there when there is one, so with Advance Page a
+  jump puts the frame at the left, not on the right of an earlier screen.
+- The last screen may be partly empty (the decision we did discuss); in a setlist the next entry's
+  title fills it, as now, rather than part of the next entry's first frame.
 - The slide takes `--quick`, as everything that answers a tap does (`css-harmony-spec.md`); the
   demo used about 300 ms.
 - A jump doesn't slide.
-- The button's label says "frames", the reader's word for what fills a slot; its face shows only
-  the number.
-- In a setlist, the blank beside an entry's last frame holds the next entry's title, as now, rather
-  than half of the next entry's first frame.
+- Without the key, Advance is Screen, what screens of two do now.
