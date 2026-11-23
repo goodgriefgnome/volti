@@ -4,7 +4,6 @@
 // _toolbar-menus.ts. Code that can stand on its own goes in one of them.
 
 import { ends } from '../scores/excerpts';
-import { folderStatus, unlockFolder } from '../originals/linked-folder';
 import { knownTitles } from '../originals/library-files';
 import type { SourceFile } from '../originals/types';
 import { canvasesOf } from '../page-cache/cache';
@@ -30,6 +29,7 @@ import type { Gesture } from './_gestures';
 import { Input } from './_input';
 import { OpenScores, openPages, type DrawPage, type DrawProgressive, type Item, type OpenScore } from './_open-scores';
 import { Reading, setlistItems, type ReadingKind } from './_reading';
+import { FolderAccess } from './_access';
 import { Changes } from './_changes';
 import { Pager } from './_pager';
 import { Screen } from './_screen';
@@ -124,6 +124,7 @@ class Reader {
   private faceButton: FaceButton;
   private loupe: Loupe;
   private changes: Changes;
+  private access: FolderAccess;
   private editor: CutEditor;
   private input: Input;
 
@@ -194,7 +195,7 @@ class Reader {
         this.toolbar.info.textContent = info;
         this.showCard();
       },
-      allowAccess: () => this.allowAccess(),
+      allowAccess: () => this.access.allow(),
     }, this.zoomer);
     const view: ReaderView = {
       stage: this.stage,
@@ -265,6 +266,11 @@ class Reader {
       changed: () => this.syncBar(),
       saveFailed: (e) => this.say(`${failed('save your changes', e)} Volti keeps trying.`),
     }, this.pager, this.screen, setlists);
+    this.access = new FolderAccess({
+      scores: this.scores,
+      say: (t) => this.say(t),
+      hideToast: () => this.toast.hide(),
+    }, this.pager, this.screen);
     this.toolbar = new Toolbar(what.kind, {
       close: () => history.back(),
       titleMenu: () => this.menus.titleMenu(),
@@ -273,7 +279,7 @@ class Reader {
       panel: (t) => this.desk.panel(t),
       undo: () => this.changes.undo(),
       redo: () => this.changes.redo(),
-      toggleCuts: () => void this.withAccess(() => { this.editor.setEnabled(!this.editor.enabled); this.syncBar(); this.decorate(); }),
+      toggleCuts: () => void this.access.withAccess(() => { this.editor.setEnabled(!this.editor.enabled); this.syncBar(); this.decorate(); }),
     }, this.desk.tools);
     // Faces the tools set before the toolbar was there.
     this.desk.showFaces(this.toolbar);
@@ -300,7 +306,7 @@ class Reader {
         this.pager.replay();
       },
       leave: () => history.back(),
-      access: () => this.allowAccess(),
+      access: () => this.access.allow(),
     });
     this.syncBar();
     this.stage.append(this.screenEl);
@@ -445,45 +451,6 @@ class Reader {
 
   private showCard() {
     if (this.reading.setlistId) this.card.show(this.pager.k, this.items.length, this.items[this.pager.k].title);
-  }
-
-  /** Whether the score read can be read from its PDF, or couldn't be as access to the scores folder isn't allowed. */
-  private async readable(): Promise<boolean> {
-    if (this.items[this.pager.k]?.needsAccess) return false;
-    const cur = this.current;
-    return !cur?.draw || !!cur.readable;
-  }
-
-  /**
-   * When the score read couldn't be read from its PDF for want of access to the scores folder, ask
-   * for it, from a tap: then read the scores from their PDFs, and show the screen again. False,
-   * having said why, when it isn't allowed.
-   */
-  private async allowAccess(): Promise<boolean> {
-    if (this.items[this.pager.k]?.fileGone) {
-      this.say('The file for this score is gone, so only its saved pages can be shown.');
-      return false;
-    }
-    if (await this.readable()) return true;
-    const at = this.screen.slots[0]?.frame.items[0]?.cut.id;
-    await unlockFolder().catch(() => false);
-    this.scores.accessAllowed();
-    await this.scores.ensure(this.pager.k, true);
-    if (!(await this.readable())) {
-      const folder = await folderStatus();
-      this.say(folder.kind !== 'none' && folder.place === 'drive'
-        ? 'Sign in to Google Drive from the library to read this score.'
-        : 'Volti can’t read the scores folder without access.');
-      return false;
-    }
-    this.toast.hide();
-    void this.pager.goTo(this.pager.k, at);
-    return true;
-  }
-
-  /** Do something that needs the PDFs (editing cuts, picking an excerpt), asking for access first if need be. */
-  private async withAccess(f: () => void) {
-    if (await this.allowAccess()) f();
   }
 
   private decorate() {
