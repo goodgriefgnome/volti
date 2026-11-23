@@ -12,7 +12,7 @@ import { titleOf } from '../originals/path-utils';
 import { type Hatches } from '../render/draw';
 import type { Selected } from '../scores/placing';
 import { type Aspects, type NamedExcerpt, type State } from '../scores/model';
-import { frameOf, pack, type Frame } from '../scores/frames';
+import type { Frame } from '../scores/frames';
 import { loadScore } from '../scores/store';
 import { loadSetlists } from '../setlists/store';
 import { type Setlist } from '../setlists/model';
@@ -32,8 +32,8 @@ import { History } from './_history';
 import { Input } from './_input';
 import { OpenScores, openPages, type DrawPage, type DrawProgressive, type Item, type OpenScore } from './_open-scores';
 import { Reading, setlistItems, type ReadingKind, type ReadingSnapshot } from './_reading';
-import { lastScreenStart, afterEdit, relistTarget } from './_landing';
 import { Saver } from './_saver';
+import { Pager } from './_pager';
 import { Screen } from './_screen';
 import { StageZoom } from './_stage-zoom';
 import { ToolDesk, type DeskBase } from './_tool-desk';
@@ -42,11 +42,10 @@ import type { FrameSlot } from './_slots';
 import { Loupe } from './_loupe';
 import { Toolbar, turnIcon } from './_toolbar';
 import { ReaderMenus } from './_toolbar-menus';
-import { offerScore, turnFrom, type Offer } from './_turning';
 import { gateTurn, type TurnGate } from './_turn-gate';
 import { nextWatching, type WatchEvent, type Watching } from './_face-watch';
-import { resumeAt, type LastRead } from './_last-read';
-import { loadLastRead, saveLastRead } from './_store';
+import { resumeAt } from './_last-read';
+import { loadLastRead } from './_store';
 import type { ReaderView } from './_view';
 import { failed, failedOnce, showFailuresWith } from '../ui/failure';
 
@@ -62,9 +61,6 @@ export type ToRead =
   | { kind: 'score'; original: SourceFile; library: readonly SourceFile[] }
   | { kind: 'excerpt'; original: SourceFile; excerpt: NamedExcerpt }
   | { kind: 'setlist'; setlistId: string; originals: readonly SourceFile[]; startEntry?: string };
-
-/** How long the next score is offered after turning past a score's end: as long as the toast saying so shows. */
-const OFFER_MS = 3500;
 
 /** Open a score, or a setlist as one continuous score. A score that can't be opened throws; a setlist carries on past it. */
 export async function openReader(what: ToRead, onClose: () => void, fullscreen?: Promise<void>): Promise<void> {
@@ -119,17 +115,10 @@ class Reader {
   private turnGate: TurnGate = {};
   private toolbar: Toolbar;
 
-  /** The item being read. */
-  private k = 0;
-  /** The first frame on the screen, among the current item's. */
-  private frame = 0;
-  /** The current item's frames. */
-  private frames: Frame[] = [];
   private scores: OpenScores;
-  private goSeq = 0;
-  private loading = false;
   private card = new ScoreCard(this.root);
   private screen: Screen;
+  private pager: Pager;
 
   private zoomer: StageZoom;
   private closeUp: CloseUp;
@@ -160,8 +149,6 @@ class Reader {
   private reading: Reading;
   private menus: ReaderMenus;
   /** Scores' files renamed, moved or removed here, for the library to show on going back. */
-  /** The score offered by turning past this one's end: turning that way again while it is offered opens it. */
-  private offered: Offer | null = null;
 
   constructor(
     items: Item[],
@@ -190,18 +177,18 @@ class Reader {
       stage: this.stage,
       screen: this.screenEl,
       toast: this.toast,
-      item: () => this.items[this.k],
+      item: () => this.items[this.pager.k],
       current: () => this.current,
-      frames: () => this.frames,
-      frame: () => this.frame,
-      setFrame: (f) => { this.frame = f; },
-      loading: () => this.loading,
+      frames: () => this.pager.frames,
+      frame: () => this.pager.frame,
+      setFrame: (f) => { this.pager.frame = f; },
+      loading: () => this.pager.loading,
       inSetlist: () => !!this.reading.setlistId,
-      nextTitle: () => this.items[this.k + 1]?.title,
+      nextTitle: () => this.items[this.pager.k + 1]?.title,
       next: async () => {
-        if (this.k + 1 >= this.items.length) return null;
-        const cur = await this.scores.ensure(this.k + 1);
-        return cur?.draw ? { draw: cur.draw, frames: this.framesFor(this.k + 1) } : null;
+        if (this.pager.k + 1 >= this.items.length) return null;
+        const cur = await this.scores.ensure(this.pager.k + 1);
+        return cur?.draw ? { draw: cur.draw, frames: this.pager.framesFor(this.pager.k + 1) } : null;
       },
       info: (text) => { this.toolbar.info.textContent = text; },
       title: () => this.showTitle(),
@@ -211,7 +198,7 @@ class Reader {
         this.desk.refreshSelection();
         this.toolbar.info.textContent = info;
         this.showCard();
-        this.saveSpot(first);
+        this.pager.saveSpot(first);
       },
       showedUnread: (info) => {
         this.toolbar.info.textContent = info;
@@ -226,7 +213,7 @@ class Reader {
       draw: () => this.draw,
       drawProgressive: () => this.drawProgressive,
       state: () => this.state,
-      frames: () => this.frames,
+      frames: () => this.pager.frames,
       slots: () => this.screen.slots,
       zoom: () => this.zoomer.zoom,
     };
@@ -268,6 +255,19 @@ class Reader {
       changed: () => this.syncBar(),
       say: (t) => this.say(t),
     });
+    this.pager = new Pager({
+      reading: this.reading,
+      scores: this.scores,
+      stage: this.stage,
+      library: this.library,
+      dismissEditor: () => this.editor.dismiss(),
+      decorate: () => this.decorate(),
+      info: (text) => { this.toolbar.info.textContent = text; },
+      say: (t) => this.say(t),
+      hideToast: () => this.toast.hide(),
+      changed: () => this.syncBar(),
+      leave: () => history.back(),
+    }, this.screen, this.desk);
     this.toolbar = new Toolbar(what.kind, {
       close: () => history.back(),
       titleMenu: () => this.menus.titleMenu(),
@@ -284,31 +284,23 @@ class Reader {
       reading: this.reading,
       toolbar: this.toolbar,
       saver: this.saver,
-      k: () => this.k,
+      k: () => this.pager.k,
       open: (k) => this.scores.get(this.items[k].scoreId),
-      goTo: (k, at) => void this.goTo(k, at, true),
-      replay: () => {
-        this.frames = this.framesFor(this.k);
-        this.frame = 0;
-        void this.screen.show();
-      },
+      goTo: (k, at) => void this.pager.goTo(k, at, true),
+      replay: () => this.pager.replay(),
       retitle: () => this.showTitle(),
       dismiss: () => this.editor.dismiss(),
       say: (t, action) => this.toast.say(t, action),
       library: this.library,
-      relisted: (entryId, at) => this.relisted(entryId, at),
+      relisted: (entryId, at) => this.pager.relisted(entryId, at),
       ensure: (k) => this.scores.ensure(k, true),
       readWhole: () => {
         this.reading.readWhole();
-        this.frames = this.framesFor(this.k);
-        this.frame = 0;
-        void this.screen.show();
+        this.pager.replay();
       },
       playExcerpt: (excerpt) => {
-        this.reading.play(this.k, excerpt);
-        this.frames = this.framesFor(this.k);
-        this.frame = 0;
-        void this.screen.show();
+        this.reading.play(this.pager.k, excerpt);
+        this.pager.replay();
       },
       leave: () => history.back(),
       access: () => this.allowAccess(),
@@ -365,7 +357,7 @@ class Reader {
     // its first report would show the screen before `goTo` has set it.
     const full = fullscreen ?? document.documentElement.requestFullscreen?.().catch(() => {}) ?? Promise.resolve();
     void this.requestWake();
-    void full.then(() => { void this.goTo(k, position); this.observer.observe(this.stage); });
+    void full.then(() => { void this.pager.goTo(k, position); this.observer.observe(this.stage); });
   }
 
   /* ---------- the scores read ---------- */
@@ -373,57 +365,11 @@ class Reader {
   private get items() { return this.reading.items; }
 
   /** The current item's score, once open; undefined while it opens or when it can't be. */
-  private get current(): OpenScore | undefined { return this.scores.get(this.items[this.k].scoreId); }
+  private get current(): OpenScore | undefined { return this.pager.current; }
   private get state(): State { return this.current!.state; }
   private get aspects(): Aspects { return this.current!.aspects; }
   private get draw(): DrawPage { return this.current!.draw!; }
   private get drawProgressive(): DrawProgressive { return this.current!.drawProgressive!; }
-
-  private framesFor(k: number): Frame[] {
-    const cur = this.scores.get(this.items[k].scoreId);
-    return cur ? pack(this.reading.playedCuts(k, cur.state.score.cuts), cur.aspects) : [];
-  }
-
-  /** Go to item k: its first or last screen, or the screen holding a cut; `turned` as show() says. */
-  private async goTo(k: number, at?: string | 'first' | 'last', turned = false) {
-    const seq = ++this.goSeq;
-    this.loading = true;
-    this.desk.deselect();
-    if (k !== this.k) { this.editor.dismiss(); this.toolbar.info.textContent = 'Opening…'; }
-    await this.scores.ensure(k, true);
-    if (seq !== this.goSeq || this.scores.closed) return;
-    this.loading = false;
-    this.k = k;
-    this.frames = this.framesFor(k);
-    const f = at === 'last' ? this.lastScreen(this.frames) : at && at !== 'first' ? frameOf(this.frames, at) : 0;
-    this.frame = Math.max(0, f);
-    this.syncBar();
-    await this.screen.show({ turned });
-    this.scores.keepNear(this.k);
-  }
-
-  /**
-   * The setlist's entries changed: list them again, and read entry `entryId` where it is now, or,
-   * when it's gone, the entry now at `at` (or the last); with none left, back to the library.
-   * Done when the entry is on its way to the screen.
-   */
-  private relisted(entryId?: string, at = this.k): Promise<void> {
-    const s = this.reading.setlist;
-    if (!s?.entries.length) { history.back(); return Promise.resolve(); }
-    const titles = Object.fromEntries(this.items.map((it) => [it.scoreId, it.title]));
-    const was = this.items[this.k]?.entryId;
-    this.reading.relist(setlistItems(s, new Map(this.library.map((o) => [o.id, o])), titles));
-    const { k, same } = relistTarget(this.items, entryId, was, at);
-    if (same) {
-      // Still reading the same entry, only somewhere else in the setlist.
-      this.k = k;
-      this.syncBar();
-      void this.screen.show({ place: 'keep' });
-      this.scores.keepNear(k);
-      return Promise.resolve();
-    }
-    return this.goTo(k, 'first');
-  }
 
   private syncBar() {
     const cur = this.current;
@@ -494,26 +440,19 @@ class Reader {
   }
 
   private showTitle() {
-    const it = this.items[this.k], cur = this.current;
-    if (this.reading.what.kind === 'excerpt' && cur) this.toolbar.title.textContent = `${this.reading.excerptName(this.k, cur.state.score, cur.aspects)} · ${it.title}`;
+    const it = this.items[this.pager.k], cur = this.current;
+    if (this.reading.what.kind === 'excerpt' && cur) this.toolbar.title.textContent = `${this.reading.excerptName(this.pager.k, cur.state.score, cur.aspects)} · ${it.title}`;
     else if (!this.reading.setlistId) this.toolbar.title.textContent = it.title;
-    else showSetlistTitle(this.toolbar.title, this.k, this.items.length, it.title);
+    else showSetlistTitle(this.toolbar.title, this.pager.k, this.items.length, it.title);
   }
 
   private showCard() {
-    if (this.reading.setlistId) this.card.show(this.k, this.items.length, this.items[this.k].title);
-  }
-
-  /* ---------- frames ---------- */
-
-  /** Where a score's last screen starts: at its last two frames when the one before last shows two. */
-  private lastScreen(frames: Frame[]): number {
-    return lastScreenStart(frames, this.stage.clientWidth, this.stage.clientHeight);
+    if (this.reading.setlistId) this.card.show(this.pager.k, this.items.length, this.items[this.pager.k].title);
   }
 
   /** Whether the score read can be read from its PDF, or couldn't be as access to the scores folder isn't allowed. */
   private async readable(): Promise<boolean> {
-    if (this.items[this.k]?.needsAccess) return false;
+    if (this.items[this.pager.k]?.needsAccess) return false;
     const cur = this.current;
     return !cur?.draw || !!cur.readable;
   }
@@ -524,7 +463,7 @@ class Reader {
    * having said why, when it isn't allowed.
    */
   private async allowAccess(): Promise<boolean> {
-    if (this.items[this.k]?.fileGone) {
+    if (this.items[this.pager.k]?.fileGone) {
       this.say('The file for this score is gone, so only its saved pages can be shown.');
       return false;
     }
@@ -532,7 +471,7 @@ class Reader {
     const at = this.screen.slots[0]?.frame.items[0]?.cut.id;
     await unlockFolder().catch(() => false);
     this.scores.accessAllowed();
-    await this.scores.ensure(this.k, true);
+    await this.scores.ensure(this.pager.k, true);
     if (!(await this.readable())) {
       const folder = await folderStatus();
       this.say(folder.kind !== 'none' && folder.place === 'drive'
@@ -541,7 +480,7 @@ class Reader {
       return false;
     }
     this.toast.hide();
-    void this.goTo(this.k, at);
+    void this.pager.goTo(this.pager.k, at);
     return true;
   }
 
@@ -550,95 +489,16 @@ class Reader {
     if (await this.allowAccess()) f();
   }
 
-  /**
-   * Remember what is read and its first cut on the screen, to come back to (reader/_last-read.ts):
-   * a score as an excerpt with no ends, an excerpt by the ends it plays now, a setlist by its entry.
-   */
-  private saveSpot(cut: string | undefined) {
-    if (!cut) return;
-    const what = this.reading.what, item = this.items[this.k];
-    const save = (last: LastRead) => void saveLastRead(last).catch((e) => failedOnce('save where this was read', e));
-    if (what.kind === 'setlist') {
-      if (item.entryId) save({ kind: 'setlist', id: what.id, entry: item.entryId, cut });
-    } else save({ kind: 'excerpt', id: item.scoreId, ...(what.kind === 'excerpt' ? ends(what.excerpt) : {}), cut });
-  }
-
   private decorate() {
-    this.editor.decorate(this.screen.slots, this.frames);
+    this.editor.decorate(this.screen.slots, this.pager.frames);
   }
 
   /** While a cut is dragged: show it with the layout frozen, the music being cut away hatched. */
   private preview(s: State | null, frames: Frame[] | null, hatches?: Hatches) {
-    const all = frames ?? this.frames;
+    const all = frames ?? this.pager.frames;
     this.closeUp.drop();
     this.screen.redraw(all, s ?? this.state, hatches);
     this.editor.decorate(this.screen.slots, all, !!frames);
-  }
-
-  /** Turn a screen; in a setlist, past a score's end into the next one, or back into the one before. */
-  private turn(dir: 1 | -1) {
-    if (this.loading) return;
-    const place = { k: this.k, items: this.items.length, frame: this.frame, shown: this.screen.shown, frames: this.frames.length };
-    const t = turnFrom(place, dir, this.reading.what.kind);
-    if (t.to !== 'score') this.offered = null;
-    if (t.to !== 'score') this.desk.deselect();
-    if (t.to === 'frame') {
-      this.frame = t.frame;
-      this.syncBar();
-      void this.screen.show({ turned: true });
-    } else if (t.to === 'item') {
-      this.syncBar();
-      void this.goTo(t.k, t.at, true);
-    } else if (t.to === 'score') {
-      this.offerScore(t.dir);
-    }
-  }
-
-  /**
-   * Past a score's end (or before its start), in its own reader: offer the library's next score (or
-   * the one before), and open it when turned that way again while the offer shows.
-   */
-  private offerScore(dir: 1 | -1) {
-    const here = this.library.findIndex((o) => o.id === this.items[0].scoreId);
-    const o = here < 0 ? undefined : this.library[here + dir];
-    const { open, offered } = offerScore(this.offered, dir, o?.id, Date.now(), OFFER_MS);
-    this.offered = offered;
-    if (!o) this.say(dir > 0 ? 'This is the last score.' : 'This is the first score.');
-    else if (!open) this.say(`Tap again for “${titleOf(o.path)}”`);
-    else {
-      this.toast.hide();
-      void this.turnToScore(o, dir);
-    }
-  }
-
-  /** Read score `o` instead: from its start going forward, from its last screen going back. */
-  private async turnToScore(o: SourceFile, dir: 1 | -1) {
-    this.loading = true;
-    this.editor.dismiss();
-    this.toolbar.info.textContent = 'Opening…';
-    let open: OpenScore;
-    try {
-      const { draw, drawProgressive, aspects, readable, close } = await openPages(o.id, o, true, true);
-      if (this.scores.closed) { close?.(); return; }
-      try {
-        const { state } = await loadScore(o.id, aspects);
-        open = { id: o.id, original: o, aspects, state, draw, drawProgressive, readable, close };
-      } catch (e) {
-        close?.();
-        throw e;
-      }
-    } catch (e) {
-      // Not opened (its password not given, say): stay where you were.
-      this.loading = false;
-      this.syncBar();
-      void this.screen.show({ place: 'keep' });
-      this.say(failed('open', e, titleOf(o.path)));
-      return;
-    }
-    this.scores.adopt(open);
-    this.reading.turnTo({ scoreId: o.id, title: titleOf(o.path), original: o });
-    this.loading = false;
-    await this.goTo(0, dir > 0 ? 'first' : 'last');
   }
 
   /** Do what a gesture asks; whether a page turn went through the gate (which drops one too soon after the last). */
@@ -647,7 +507,7 @@ class Reader {
       const { gate, pass } = gateTurn(this.turnGate, performance.now());
       this.turnGate = gate;
       if (!pass) return false;
-      this.turn(g === 'next' ? 1 : -1);
+      this.pager.turn(g === 'next' ? 1 : -1);
       return true;
     }
     this.showChrome(!this.annotating);
@@ -665,28 +525,18 @@ class Reader {
   private commit(s: State, focus?: string, selected?: Selected) {
     const cur = this.current!;
     if (selected) this.desk.keepSelected(selected);
-    this.undos.record({ open: cur, state: cur.state, reading: this.reading.snapshot(), k: this.k, focus });
+    this.undos.record({ open: cur, state: cur.state, reading: this.reading.snapshot(), k: this.pager.k, focus });
     // Every setlist's excerpts of the score, and its named excerpts, follow the edit.
-    this.setState(this.reading.edited(this.k, cur.id, cur.state.score.cuts, s), focus);
+    this.setState(this.reading.edited(this.pager.k, cur.id, cur.state.score.cuts, s), focus);
   }
 
   /** Show the current score in state `s`, saving it; the setlists have been changed already. */
   private setState(s: State, focus?: string) {
     const cur = this.current!;
-    const shown = this.frames.flatMap((f) => f.items.map((p) => p.cut));
     cur.state = s;
     this.saver.soon(cur);
     this.syncBar();
-    this.frames = this.framesFor(this.k);
-    const after = afterEdit(shown, this.frames, this.frame, this.screen.shown, focus);
-    if (after.kind === 'redraw') {
-      this.screen.reframe(this.frames, s);
-      this.decorate();
-      this.desk.refreshSelection();
-      return;
-    }
-    this.frame = after.frame;
-    void this.screen.show({ place: after.place });
+    this.pager.relayout(s, focus);
   }
 
   /** The eraser took strokes away: show and save them gone, but leave the undo step until it lifts. */
@@ -698,9 +548,9 @@ class Reader {
 
   /** One undo step for the whole sweep of the eraser. */
   private undoTo(before: State, slot: FrameSlot) {
-    this.undos.record({ open: this.current!, state: before, reading: this.reading.snapshot(), k: this.k, focus: slot.frame.items[0]?.cut.id });
-    this.frames = this.framesFor(this.k);
-    slot.frame = this.frames[slot.index];
+    this.undos.record({ open: this.current!, state: before, reading: this.reading.snapshot(), k: this.pager.k, focus: slot.frame.items[0]?.cut.id });
+    this.pager.refreshFrames();
+    slot.frame = this.pager.frames[slot.index];
     this.syncBar();
   }
 
@@ -717,10 +567,10 @@ class Reader {
   /** Put back a score and the setlists as they were, showing the score where the edit was made. */
   private restore(e: Undo) {
     this.reading.restore(e.reading);
-    if (e.k === this.k && this.current === e.open) { this.setState(e.state, e.focus); return; }
+    if (e.k === this.pager.k && this.current === e.open) { this.setState(e.state, e.focus); return; }
     e.open.state = e.state;
     this.saver.soon(e.open);
-    void this.goTo(e.k, e.focus);
+    void this.pager.goTo(e.k, e.focus);
   }
 
   /* ---------- lifecycle ---------- */
@@ -751,7 +601,7 @@ class Reader {
     closeOverlay();
     this.editor.dismiss();
     if (!(await this.savedForClosing())) return;
-    this.scores.closed = true;
+    this.pager.stop();
     this.stopShowingFailures();
     window.removeEventListener('popstate', this.onPop);
     this.watchEvent({ kind: 'readerClosed' });
@@ -762,7 +612,6 @@ class Reader {
     this.toolbar.dispose();
     this.barObserver.disconnect();
     this.closeUp.stop();
-    this.screen.stop();
     this.card.stop();
     void this.wake?.release().catch(() => {});
     // Leaving full screen settles before the library is shown, so it doesn't undo the library's scroll.
