@@ -1,9 +1,9 @@
-// The frames on the reader's screen as elements: putting their boxes where render/screen.ts says,
+// The frames on the reader's screen as elements: putting their boxes where render/strip.ts says,
 // and drawing them. FrameSlot, the reader's record of a frame on the screen, is defined here.
 
 import type { Marking } from '../markings/model';
 import { drawFrame, drawFrameInk, type Hatches } from '../render/draw';
-import { placeScreen, type ScreenBox } from '../render/screen';
+import type { ScreenBox } from '../render/layout';
 import type { Aspects, ScoreInk } from '../scores/model';
 import type { Frame } from '../scores/frames';
 import { el } from '../ui/dom';
@@ -25,22 +25,19 @@ export interface FrameSlot {
   ui?: HTMLElement;
   /** Each tool's chrome layer over the frame, once it has asked for it. */
   layers?: Partial<Record<ToolName, HTMLElement>>;
+  /** Only part of the frame is on the screen: it runs past the stage's edge, where the screen cuts it off. */
+  part?: boolean;
 }
 
-/** Put boxes where `placeScreen` says, with `aspects` their heights over widths. */
-export function placeBoxes(boxes: HTMLElement[], aspects: readonly number[], W: number, H: number, scale: number): ScreenBox[] {
-  const rects = placeScreen(aspects, W, H, scale);
+/** Put boxes where the strip says (render/strip.ts), `rects` in the order of `boxes`. */
+export function placeBoxes(boxes: HTMLElement[], rects: readonly ScreenBox[]): void {
   boxes.forEach((box, i) => Object.assign(box.style, { left: rects[i].x + 'px', top: rects[i].y + 'px', width: rects[i].w + 'px', height: rects[i].h + 'px' }));
-  return rects;
 }
 
-/**
- * Slots for `frames`, the first being frame number `first`, placed with `after` (boxes shaped like
- * the first frame, that fill the rest of the screen) following them.
- */
-export function placeSlots(frames: Frame[], first: number, W: number, H: number, scale: number, after: HTMLElement[] = []): FrameSlot[] {
+/** Slots for `frames`, the first being frame number `first`, placed at `rects`; the last is a part when `part`. */
+export function placeSlots(frames: Frame[], first: number, rects: readonly ScreenBox[], part = false): FrameSlot[] {
   const boxes = frames.map(() => el('div', 'page'));
-  const rects = placeBoxes([...boxes, ...after], [...frames.map((f) => f.aspect), ...after.map(() => frames[0].aspect)], W, H, scale);
+  placeBoxes(boxes, rects);
   return frames.map((frame, i) => {
     const r = rects[i];
     const slot: FrameSlot = {
@@ -51,6 +48,7 @@ export function placeSlots(frames: Frame[], first: number, W: number, H: number,
       canvas: Object.assign(el('canvas'), { width: r.fw, height: r.fh }),
       under: Object.assign(el('canvas', 'ink under'), { width: r.fw, height: r.fh }),
       ink: Object.assign(el('canvas', 'ink'), { width: r.fw, height: r.fh }),
+      ...(part && i === frames.length - 1 ? { part: true } : {}),
     };
     slot.box.append(slot.canvas, slot.under, slot.ink);
     return slot;

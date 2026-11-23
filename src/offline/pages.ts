@@ -13,6 +13,7 @@ import { NoAccess, PasswordNotGiven, Unreachable, type Original, type SourceFile
 import { pinPages } from '../page-cache/cache';
 import type { PinnedKey, PinnedPage } from '../page-cache/types';
 import { offlinePageWidths } from '../render/screen';
+import { smallestScale } from '../settings/turning';
 import { loadScore } from '../scores/store';
 import { pack } from '../scores/frames';
 import type { Entry, Setlist } from '../setlists/model';
@@ -83,7 +84,7 @@ async function make(signal: AbortSignal, originals: readonly SourceFile[], setli
     const widths = new Map<number, Set<number>>();
     for (const e of entries.filter((e) => e.scoreId === id)) {
       const keys: string[] = [];
-      for (const [p, ws] of offlinePageWidths(pack(excerptCuts(state.score.cuts, e), aspects), W, H, scale)) {
+      for (const [p, ws] of offlinePageWidths(pack(excerptCuts(state.score.cuts, e), aspects), W, H, scale, smallestScale())) {
         for (const w of ws) {
           const pxWidth = Math.round(w * scale);
           widths.set(p + 1, (widths.get(p + 1) ?? new Set()).add(pxWidth));

@@ -5,8 +5,7 @@
 
 import type { Frame } from '../scores/frames';
 import type { Advance } from '../settings/turning';
-import { _placeFrames } from './layout';
-import { GAP, type ScreenBox } from './screen';
+import { GAP, _placeFrames, type ScreenBox } from './layout';
 
 /** A frame on the strip, in device pixels: where it starts along, its length along, its size across and where it sits across. */
 export interface StripFrame { at: number; len: number; size: number; off: number }

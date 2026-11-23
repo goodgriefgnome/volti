@@ -1,21 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { A4 } from '../scores/model';
-import { framesOnScreen, _placeFrames, _sideBySide } from './layout';
+import { _placeFrames } from './layout';
 
 const LETTER = 11 / 8.5, WIDE = 1 / A4;
-
-describe('framesOnScreen', () => {
-  it('shows one frame of the screen\'s own orientation, two of the other', () => {
-    expect(framesOnScreen(A4, 800, 1280)).toBe(1);
-    expect(framesOnScreen(A4, 1280, 800)).toBe(2);
-    expect(framesOnScreen(WIDE, 1280, 800)).toBe(1);
-    expect(framesOnScreen(WIDE, 800, 1280)).toBe(2);
-  });
-  it('sets portrait frames side by side, landscape ones one above the other', () => {
-    expect(_sideBySide(A4)).toBe(true);
-    expect(_sideBySide(WIDE)).toBe(false);
-  });
-});
 
 describe('placeFrames', () => {
   it('fills the height with one portrait frame on a portrait screen when it is narrow enough', () => {

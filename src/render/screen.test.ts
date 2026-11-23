@@ -1,42 +1,36 @@
 import { describe, expect, it } from 'vitest';
 import { pack } from '../scores/frames';
 import { aspects, cut, sarabande } from '../scores/testing';
-import { offlinePageWidths, readPageWidths, screenAt } from './screen';
+import { offlinePageWidths, pageWidths } from './screen';
+import { stripPageWidths } from './strip';
 
-describe('screenAt', () => {
-  it('in a setlist, keeps the room left on a score\'s last screen', () => {
-    const frames = pack(sarabande().score.cuts, aspects).slice(0, 3);
-    expect(screenAt(frames, 2, 1280, 800, 1, true).rects).toHaveLength(2);
-    expect(screenAt(frames, 2, 1280, 800, 1, false).rects).toHaveLength(1);
-  });
-});
-
-describe('readPageWidths', () => {
-  it('gives each page shown, a screen at a time, at the widths it is drawn', () => {
-    const frames = pack(sarabande().score.cuts, aspects);
-    const widths = readPageWidths(frames, 1280, 800, 1);
-    // Three pages on four frames, two to a landscape screen: every page, at one width, the same for all.
-    expect([...widths.keys()].sort()).toEqual([0, 1, 2]);
-    const all = new Set([...widths.values()].flatMap((w) => [...w]));
-    expect(all.size).toBe(1);
-  });
-  it('gives only the pages an excerpt plays', () => {
-    const widths = readPageWidths(pack([cut(0, 0, 1), cut(2, 0, 1)], aspects), 800, 1280, 1);
-    expect([...widths.keys()]).toEqual([0, 2]);
+describe('pageWidths', () => {
+  it('gives each page the widest of the slots it is drawn into', () => {
+    const frames = pack([cut(0, 0, 1), cut(1, 0, 1)], aspects);
+    expect(pageWidths(frames, [500, 600])).toEqual(new Map([[0, 500], [1, 600]]));
   });
 });
 
 describe('offlinePageWidths', () => {
   const frames = pack(sarabande().score.cuts, aspects);
-  it('on a square screen is readPageWidths', () => {
-    expect(offlinePageWidths(frames, 1000, 1000, 1)).toEqual(readPageWidths(frames, 1000, 1000, 1));
+  it('on a square screen is the strip\'s', () => {
+    expect(offlinePageWidths(frames, 1000, 1000, 1, 0.9)).toEqual(stripPageWidths(frames, 1000, 1000, 1, 0.9));
   });
   it('holds the widths of both orientations, and nothing else', () => {
-    const both = offlinePageWidths(frames, 1280, 800, 1);
-    const a = readPageWidths(frames, 1280, 800, 1), b = readPageWidths(frames, 800, 1280, 1);
+    const both = offlinePageWidths(frames, 1280, 800, 1, 0.9);
+    const a = stripPageWidths(frames, 1280, 800, 1, 0.9), b = stripPageWidths(frames, 800, 1280, 1, 0.9);
     for (const p of new Set([...a.keys(), ...b.keys()])) {
       expect([...both.get(p)!].sort()).toEqual([...new Set([...(a.get(p) ?? []), ...(b.get(p) ?? [])])].sort());
     }
     expect([...both.keys()].sort()).toEqual([...new Set([...a.keys(), ...b.keys()])].sort());
+  });
+  it('gives only the pages an excerpt plays', () => {
+    const widths = offlinePageWidths(pack([cut(0, 0, 1), cut(2, 0, 1)], aspects), 800, 1280, 1, 0.9);
+    expect([...widths.keys()]).toEqual([0, 2]);
+  });
+  it('gives more widths where a lower smallest scale fits more frames', () => {
+    const tall = pack([cut(0), cut(1), cut(2)], aspects);
+    const at90 = offlinePageWidths(tall, 1280, 800, 1, 0.9), at60 = offlinePageWidths(tall, 1280, 800, 1, 0.6);
+    expect(Math.min(...[...at60.get(0)!])).toBeLessThan(Math.min(...[...at90.get(0)!]));
   });
 });

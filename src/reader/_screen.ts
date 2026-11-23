@@ -7,10 +7,11 @@ import type { Marking } from '../markings/model';
 import { NoAccess } from '../originals/types';
 import { NotSaved, type Drawn } from '../page-cache/types';
 import type { Hatches } from '../render/draw';
-import { framesOnScreen } from '../render/layout';
-import { pageWidths, screenAt } from '../render/screen';
+import { pageWidths } from '../render/screen';
+import { layStrip, stripScreen } from '../render/strip';
 import type { Frame } from '../scores/frames';
 import { A4, type State } from '../scores/model';
+import { smallestScale } from '../settings/turning';
 import { dpr } from '../ui/dom';
 import { failed } from '../ui/failure';
 import type { Toast } from '../ui/toast';
@@ -18,6 +19,7 @@ import type { DrawPage, Item, OpenScore } from './_open-scores';
 import { blankBox, type Unread } from './_setlist';
 import { drawSlot, drawSlotInk, placeBoxes, placeSlots, type FrameSlot } from './_slots';
 import type { StageZoom } from './_stage-zoom';
+import type { Strip, StripScreen } from '../render/strip';
 
 export interface ScreenHost {
   stage: HTMLElement;
@@ -33,6 +35,10 @@ export interface ScreenHost {
   frame(): number;
   /** The first frame on the screen, brought within the item's frames. */
   setFrame(f: number): void;
+  /** The strip of the item's frames (or of `frames`) on the stage. */
+  strip(frames?: Frame[]): Strip;
+  /** The first frames of the screens before and after this one in the item's list, those there are. */
+  neighbours(): number[];
   /** An item is opening: nothing is shown until it has. */
   loading(): boolean;
   /** Reading a setlist: each score starts on a screen of its own, and the next one's first screen is drawn ahead. */
@@ -55,7 +61,9 @@ export interface ScreenHost {
 
 export class Screen {
   private slotList: FrameSlot[] = [];
-  private count = 1;
+  /** The last frame on the screen, whole or part, and the last whole one. */
+  private lastShown = 0;
+  private lastWhole = 0;
   private seq = 0;
   /** Aborted when the screen changes: the pages drawn ahead for it are no longer wanted. */
   private ahead = new AbortController();
@@ -69,16 +77,13 @@ export class Screen {
   /** The frames on the screen. */
   get slots(): FrameSlot[] { return this.slotList; }
 
-  /** How many frames the screen shows. */
-  get shown(): number { return this.count; }
+  /** The last frame on the screen, whole or part. */
+  get last(): number { return this.lastShown; }
 
-  /**
-   * The screen starting at frame f of `frames`: the frames on it (as many as f's shape decides,
-   * fewer at the end), how many it wanted, and where they go, a setlist keeping room for the box
-   * after a score's last frame.
-   */
-  private screenAt(frames: Frame[], f: number, W: number, H: number, scale: number) {
-    return screenAt(frames, f, W, H, scale, this.host.inSetlist());
+  /** The frames of the screen at `sc` of `frames`, whole ones then the part, and the widths of their boxes. */
+  private framesOf(frames: Frame[], sc: StripScreen) {
+    const on = [...sc.whole, ...(sc.part === undefined ? [] : [sc.part])].map((i) => frames[i]);
+    return { on, widths: pageWidths(on, sc.boxes.map((b) => b.w)) };
   }
 
   /** In a setlist, what fills the rest of a score's last screen. */
@@ -91,7 +96,7 @@ export class Screen {
    * without access to the scores folder asks for it then. Otherwise only the toolbar asks.
    * `place`: a new screen is placed fresh (see placeFresh); 'keep' leaves the screen where it is.
    */
-  async show({ turned = false, place = 'fresh' }: { turned?: boolean; place?: 'keep' | 'fresh' } = {}) {
+  async show({ turned = false, place = 'fresh' }: { turned?: boolean; place?: 'keep' | 'fresh'; slide?: 1 | -1 } = {}) {
     const { host } = this;
     const seq = ++this.seq; // a newer show() (turn, resize, edit) supersedes this one
     this.ahead.abort();
@@ -111,9 +116,11 @@ export class Screen {
     host.setFrame(Math.max(0, Math.min(host.frame(), frames.length - 1)));
     const frame = host.frame();
     const scale = dpr();
-    const { on, wanted, rects } = this.screenAt(frames, frame, W, H, scale);
-    this.count = on.length;
-    const widths = pageWidths(on, rects.map((r) => r.w));
+    const strip = host.strip();
+    const sc = stripScreen(strip, frame);
+    const { on, widths } = this.framesOf(frames, sc);
+    this.lastShown = frame + on.length - 1;
+    this.lastWhole = frame + sc.whole.length - 1;
     // Each page's first yield (a stand-in, or the exact page) shows the screen; the rest sharpen it.
     const progressive = cur.drawProgressive!;
     const drawing = [...widths].map(([p, w]) => progressive(p + 1, Math.round(w * scale), { priority: 'now' })[Symbol.asyncIterator]());
@@ -142,15 +149,21 @@ export class Screen {
     if (turned && !document.fullscreenElement) void document.documentElement.requestFullscreen?.().catch(() => {});
     this.pages = new Map([...widths.keys()].map((p, i) => [p, first[i].canvas]));
 
-    // In a setlist each score starts on a fresh screen, so a score's last screen may have room left.
-    const extra = host.inSetlist() && on.length < wanted ? [this.blank()] : [];
-    this.slotList = placeSlots(on, frame, W, H, scale, extra);
+    // In a setlist the empty stretch past a score's last frame holds the next entry's title.
+    const extra: HTMLElement[] = [];
+    if (host.inSetlist() && sc.empty) {
+      const blank = this.blank(), end = sc.boxes[sc.whole.length - 1], e = sc.empty;
+      const [x, y, w, h] = strip.along === 'x' ? [e.at, end.y, e.len, end.h] : [end.x, e.at, end.w, e.len];
+      Object.assign(blank.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px' });
+      extra.push(blank);
+    }
+    this.slotList = placeSlots(on, frame, sc.boxes, sc.part !== undefined);
     for (const s of this.slotList) this.draw(s, cur.state);
     host.screen.replaceChildren(...this.slotList.map((s) => s.box), ...extra);
     if (place === 'fresh') this.zoom.placeFresh();
-    // The score's pages are its frames; in a setlist, the excerpt's own.
-    const last = frame + on.length;
-    host.showed(on[0]?.items[0]?.cut.id, on.length > 1 ? `Pages ${frame + 1}–${last} of ${frames.length}` : `Page ${last} of ${frames.length}`);
+    // The score's pages are its frames; in a setlist, the excerpt's own. Only whole frames count.
+    const last = this.lastWhole + 1;
+    host.showed(on[0]?.items[0]?.cut.id, sc.whole.length > 1 ? `Pages ${frame + 1}–${last} of ${frames.length}` : `Page ${last} of ${frames.length}`);
     void this.predraw(seq, widths, scale);
     [...widths.keys()].forEach((p, i) => void this.sharpen(seq, p, drawing[i]));
   }
@@ -180,10 +193,11 @@ export class Screen {
   private showUnread(title: string, why: Unread, W: number, H: number, turned = false, place: 'keep' | 'fresh' = 'fresh') {
     const { host } = this;
     this.slotList = [];
-    this.count = 1;
-    const boxes = [blankBox(undefined, { title, why }), ...(framesOnScreen(A4, W, H) === 2 ? [this.blank()] : [])];
-    placeBoxes(boxes, boxes.map(() => A4), W, H, dpr());
-    host.screen.replaceChildren(...boxes);
+    this.lastShown = this.lastWhole = 0;
+    // One A4 frame alone, centred, with nothing beside it.
+    const box = blankBox(undefined, { title, why });
+    placeBoxes([box], stripScreen(layStrip([A4], W, H, dpr(), smallestScale()), 0).boxes);
+    host.screen.replaceChildren(box);
     if (place === 'fresh') this.zoom.placeFresh();
     host.showedUnread({ access: 'Needs access', missing: 'Missing', unsaved: 'Not saved' }[why]);
     // Offered until the screen shows something else, as the page can't be read without it.
@@ -222,25 +236,22 @@ export class Screen {
   /** Draw the next and previous screens' pages in the background; `widths` are the current screen's. */
   private async predraw(seq: number, widths: Map<number, number>, scale: number) {
     const { host } = this;
-    const W = host.stage.clientWidth, H = host.stage.clientHeight;
-    const frames = host.frames(), frame = host.frame();
-    const starts = [frame + this.count, ...(frame > 0 ? [Math.max(0, frame - this.count)] : [])].filter((f) => f < frames.length);
+    const frames = host.frames(), strip = host.strip();
     // Each page at one width: the current screen's where it is on it.
     const near = new Map<number, number>();
-    for (const f of starts) {
-      const { on, rects } = this.screenAt(frames, f, W, H, scale);
-      for (const [p, w] of pageWidths(on, rects.map((r) => r.w))) near.set(p, w);
+    for (const start of host.neighbours()) {
+      for (const [p, w] of this.framesOf(frames, stripScreen(strip, start)).widths) near.set(p, w);
     }
     for (const [p, w] of widths) near.set(p, w);
     const { signal } = this.ahead, draw = host.current()!.draw!;
     await Promise.all([...near].map(([p, w]) => draw(p + 1, Math.round(w * scale), { priority: 'ahead', signal }).catch(() => {})));
     if (seq !== this.seq) return;
     // On a score's last screen in a setlist, draw the next score's first screen too.
-    if (!host.inSetlist() || frame + this.count < frames.length) return;
+    if (!host.inSetlist() || this.lastWhole < frames.length - 1) return;
     const next = await host.next();
     if (seq !== this.seq || !next) return;
-    const { on, rects } = this.screenAt(next.frames, 0, W, H, scale);
-    await Promise.all([...pageWidths(on, rects.map((r) => r.w))].map(([p, w]) => next.draw(p + 1, Math.round(w * scale), { priority: 'ahead', signal }).catch(() => {})));
+    const nextWidths = this.framesOf(next.frames, stripScreen(host.strip(next.frames), 0)).widths;
+    await Promise.all([...nextWidths].map(([p, w]) => next.draw(p + 1, Math.round(w * scale), { priority: 'ahead', signal }).catch(() => {})));
   }
 
   /** The reader is closing, or the screen is going: no screen being drawn shows, and drawing ahead stops. */

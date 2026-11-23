@@ -1,39 +1,9 @@
-// The frames on a screen: which frames a screen starting at a frame shows, where they sit, and the
-// widths their pages are drawn at. Pure: no DOM. The reader puts boxes where this says
-// (reader/_slots.ts); pages kept offline are drawn at the widths it gives (offline/pages.ts).
+// The frames on a screen: the widths their
+// pages are drawn at. Pure: no DOM. Where they sit is render/strip.ts's; pages kept offline are
+// drawn at the widths offlinePageWidths gives (offline/pages.ts).
 
 import type { Frame } from '../scores/frames';
-import { framesOnScreen, _placeFrames, _sideBySide } from './layout';
-
-/** Space between frames on one screen, in CSS pixels. */
-export const GAP = 6;
-
-/** Where a frame sits on the stage, in CSS pixels, with its size in device pixels (`fw` x `fh`). */
-export interface ScreenBox { x: number; y: number; w: number; h: number; fw: number; fh: number }
-
-/**
- * Where a screen's frames, of these aspects (height / width), go on a W x H stage: as the first one
- * decides, side by side or one above the other, on whole device pixels so they are shown exactly as
- * drawn, without resampling.
- */
-export function placeScreen(aspects: readonly number[], W: number, H: number, scale: number): ScreenBox[] {
-  const rects = _placeFrames(aspects, Math.round(W * scale), Math.round(H * scale), Math.round(GAP * scale), _sideBySide(aspects[0]));
-  return rects.map((r) => ({ x: r.x / scale, y: r.y / scale, w: r.w / scale, h: r.h / scale, fw: r.w, fh: r.h }));
-}
-
-/**
- * The screen starting at frame `f`: the frames on it, how many it has room for, and where they go.
- * In a setlist (`fill`), a score's last screen keeps the rest of its room, for frames shaped like
- * its first.
- */
-export function screenAt(frames: readonly Frame[], f: number, W: number, H: number, scale: number, fill: boolean) {
-  const first = frames[f];
-  if (!first) return { on: [] as Frame[], wanted: 1, rects: [] as ScreenBox[] };
-  const wanted = framesOnScreen(first.aspect, W, H);
-  const on = frames.slice(f, f + wanted);
-  const room = fill ? wanted - on.length : 0;
-  return { on, wanted, rects: placeScreen([...on.map((x) => x.aspect), ...Array<number>(room).fill(first.aspect)], W, H, scale) };
-}
+import { stripPageWidths } from './strip';
 
 /** Each page the frames are cut from, with the widest of their slots it is drawn into (CSS pixels). */
 export function pageWidths(frames: readonly Frame[], widths: readonly number[]): Map<number, number> {
@@ -43,26 +13,13 @@ export function pageWidths(frames: readonly Frame[], widths: readonly number[]):
 }
 
 /**
- * Every page shown reading the frames from the start, a screen at a time as a setlist does, with
- * the widths (CSS pixels) it is drawn at.
- */
-export function readPageWidths(frames: readonly Frame[], W: number, H: number, scale: number): Map<number, Set<number>> {
-  const out = new Map<number, Set<number>>();
-  for (let f = 0; f < frames.length;) {
-    const { on, rects } = screenAt(frames, f, W, H, scale, true);
-    for (const [p, w] of pageWidths(on, rects.map((r) => r.w))) out.set(p, (out.get(p) ?? new Set()).add(w));
-    f += on.length;
-  }
-  return out;
-}
-
-/**
  * The widths (CSS pixels) of every page shown reading the frames at `W`×`H` and, the screen turned,
- * at `H`×`W`: what is kept offline, as a tablet is read in either orientation.
+ * at `H`×`W`: what is kept offline, as a tablet is read in either orientation. Each frame is drawn
+ * at its fitted size (render/strip.ts), which depends on the smallest scale and not on Advance.
  */
-export function offlinePageWidths(frames: readonly Frame[], W: number, H: number, scale: number): Map<number, Set<number>> {
-  const out = readPageWidths(frames, W, H, scale);
-  for (const [p, ws] of readPageWidths(frames, H, W, scale)) {
+export function offlinePageWidths(frames: readonly Frame[], W: number, H: number, scale: number, smallest: number): Map<number, Set<number>> {
+  const out = stripPageWidths(frames, W, H, scale, smallest);
+  for (const [p, ws] of stripPageWidths(frames, H, W, scale, smallest)) {
     const have = out.get(p) ?? new Set<number>();
     for (const w of ws) have.add(w);
     out.set(p, have);

@@ -1,20 +1,13 @@
-// Fitting frames to the screen: how many a screen shows, which way they sit, and how large. Pure
-// maths.
+// Fitting frames to the screen: the space between them, where a frame sits on the stage, and how
+// large a frame is that fills a share of it. Pure maths.
 
-import { isLandscape } from '../scores/frames';
+/** Space between frames on one screen, in CSS pixels. */
+export const GAP = 6;
+
+/** Where a frame sits on the stage, in CSS pixels, with its size in device pixels (`fw` x `fh`). */
+export interface ScreenBox { x: number; y: number; w: number; h: number; fw: number; fh: number }
 
 export interface _Rect { x: number; y: number; w: number; h: number }
-
-/**
- * How many frames a screen shows, decided by its first frame (`aspect`, height / width): one of the
- * screen's own orientation fills it; one of the other shares it with the next.
- */
-export function framesOnScreen(aspect: number, stageW: number, stageH: number): 1 | 2 {
-  return isLandscape({ aspect }) === stageW > stageH ? 1 : 2;
-}
-
-/** Two frames sit side by side when the first is portrait, one above the other when landscape. */
-export const _sideBySide = (firstAspect: number) => !isLandscape({ aspect: firstAspect });
 
 /**
  * Where frames of these aspects (height / width) go on a W x H stage, in whole pixels: each as

@@ -174,7 +174,9 @@ class Reader {
       current: () => this.current,
       frames: () => this.pager.frames,
       frame: () => this.pager.frame,
-      setFrame: (f) => { this.pager.frame = f; },
+      strip: (frames) => this.pager.strip(frames),
+      neighbours: () => this.pager.neighbours(),
+      setFrame: (f) => { this.pager.frame = f; this.pager.land(); },
       loading: () => this.pager.loading,
       inSetlist: () => !!this.reading.setlistId,
       nextTitle: () => this.items[this.pager.k + 1]?.title,
@@ -456,7 +458,7 @@ class Reader {
   }
 
   private decorate() {
-    this.editor.decorate(this.screen.slots, this.pager.frames);
+    this.editor.decorate(this.screen.slots.filter((s) => !s.part), this.pager.frames);
   }
 
   /** While a cut is dragged: show it with the layout frozen, the music being cut away hatched. */
@@ -464,7 +466,7 @@ class Reader {
     const all = frames ?? this.pager.frames;
     this.closeUp.drop();
     this.screen.redraw(all, s ?? this.state, hatches);
-    this.editor.decorate(this.screen.slots, all, !!frames);
+    this.editor.decorate(this.screen.slots.filter((s) => !s.part), all, !!frames);
   }
 
   /** Do what a gesture asks; whether a page turn went through the gate (which drops one too soon after the last). */

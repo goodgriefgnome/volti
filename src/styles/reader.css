@@ -9,8 +9,8 @@
 .page canvas.close-up { right: auto; bottom: auto; }
 /* What multiplies (highlights, backgrounds) is blended over the music beneath it. */
 .page canvas.under { mix-blend-mode: multiply; }
-/* Zooming scales the whole screen from the stage's top-left corner. */
-.screen { position: absolute; inset: 0; transform-origin: 0 0; }
+/* Zooming scales the whole screen from the stage's top-left corner; a part of a frame is cut off at the stage's edge, also when the zoom shrinks the screen. */
+.screen { position: absolute; inset: 0; transform-origin: 0 0; overflow: hidden; }
 
 .bar {
   position: absolute; top: 0; left: 0; right: 0; display: grid;

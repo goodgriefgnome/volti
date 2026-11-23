@@ -5,11 +5,14 @@
 import { ends } from '../scores/excerpts';
 import { titleOf } from '../originals/path-utils';
 import type { SourceFile } from '../originals/types';
+import { layStrip, landingIndex, screenStarts, type Strip } from '../render/strip';
 import { frameOf, pack, type Frame } from '../scores/frames';
+import { advance, smallestScale } from '../settings/turning';
 import { loadScore } from '../scores/store';
 import type { State } from '../scores/model';
+import { dpr } from '../ui/dom';
 import { failed, failedOnce } from '../ui/failure';
-import { afterEdit, lastScreenStart, relistTarget } from './_landing';
+import { afterEdit, relistTarget } from './_landing';
 import type { LastRead } from './_last-read';
 import { openPages, type Item, type OpenScore, type OpenScores } from './_open-scores';
 import { setlistItems, type Reading } from './_reading';
@@ -69,6 +72,28 @@ export class Pager {
   /** The current item's score, once open; undefined while it opens or when it can't be. */
   get current(): OpenScore | undefined { return this.host.scores.get(this.items[this.index].scoreId); }
 
+  /** The strip of the item's frames (or of `frames`) on the stage as it is now. */
+  strip(frames: Frame[] = this.list): Strip {
+    return layStrip(frames.map((f) => f.aspect), this.host.stage.clientWidth, this.host.stage.clientHeight, dpr(), smallestScale());
+  }
+
+  /** The first frame of each screen in the item's list (or of `frames`'s), for the Advance now. */
+  starts(frames?: Frame[]): number[] {
+    return screenStarts(this.strip(frames), advance());
+  }
+
+  /** The first frame on the screen is made the start of a screen in the list: the one starting there, else the last before it. */
+  land() {
+    const starts = this.starts();
+    this.first = starts[landingIndex(starts, this.first)];
+  }
+
+  /** The first frames of the screens before and after this one in the list, those there are. */
+  neighbours(): number[] {
+    const starts = this.starts(), i = landingIndex(starts, this.first);
+    return [starts[i - 1], starts[i + 1]].filter((s): s is number => s !== undefined);
+  }
+
   framesFor(k: number): Frame[] {
     const cur = this.host.scores.get(this.items[k].scoreId);
     return cur ? pack(this.host.reading.playedCuts(k, cur.state.score.cuts), cur.aspects) : [];
@@ -86,7 +111,7 @@ export class Pager {
     this.opening = false;
     this.index = k;
     this.list = this.framesFor(k);
-    const f = at === 'last' ? this.lastScreen(this.list) : at && at !== 'first' ? frameOf(this.list, at) : 0;
+    const f = at === 'last' ? this.starts(this.list).slice(-1)[0] : at && at !== 'first' ? frameOf(this.list, at) : 0;
     this.first = Math.max(0, f);
     host.changed();
     await this.screen.show({ turned });
@@ -133,7 +158,7 @@ export class Pager {
   relayout(s: State, focus?: string) {
     const before = this.list.flatMap((f) => f.items.map((p) => p.cut));
     this.list = this.framesFor(this.index);
-    const after = afterEdit(before, this.list, this.first, this.screen.shown, focus);
+    const after = afterEdit(before, this.list, this.first, this.screen.last, focus);
     if (after.kind === 'redraw') {
       this.screen.reframe(this.list, s);
       this.host.decorate();
@@ -142,11 +167,6 @@ export class Pager {
     }
     this.first = after.frame;
     void this.screen.show({ place: after.place });
-  }
-
-  /** Where a score's last screen starts: at its last two frames when the one before last shows two. */
-  private lastScreen(frames: Frame[]): number {
-    return lastScreenStart(frames, this.host.stage.clientWidth, this.host.stage.clientHeight);
   }
 
   /**
@@ -165,16 +185,17 @@ export class Pager {
   /** Turn a screen; in a setlist, past a score's end into the next one, or back into the one before. */
   turn(dir: 1 | -1) {
     if (this.opening) return;
-    const place = { k: this.index, items: this.items.length, frame: this.first, shown: this.screen.shown, frames: this.list.length };
+    const starts = this.starts();
+    const place = { k: this.index, items: this.items.length, screen: landingIndex(starts, this.first), screens: starts.length };
     const t = turnFrom(place, dir, this.host.reading.what.kind);
     if (t.to !== 'score') {
       this.offered = null;
       this.desk.deselect();
     }
-    if (t.to === 'frame') {
-      this.first = t.frame;
+    if (t.to === 'screen') {
+      this.first = starts[t.screen];
       this.host.changed();
-      void this.screen.show({ turned: true });
+      void this.screen.show({ turned: true, slide: dir });
     } else if (t.to === 'item') {
       this.host.changed();
       void this.goTo(t.k, t.at, true);

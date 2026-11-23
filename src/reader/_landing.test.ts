@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { A4, cut } from '../scores/testing';
 import { pack } from '../scores/frames';
-import { afterEdit, lastScreenStart, relistTarget, sameLayout } from './_landing';
+import { afterEdit, relistTarget, sameLayout } from './_landing';
 import type { Item } from './_open-scores';
 
 const aspects = [A4, A4, A4, A4];
@@ -31,8 +31,11 @@ describe('afterEdit', () => {
     expect(afterEdit(before, frames, 1, 1)).toEqual({ kind: 'redraw' });
     expect(afterEdit(before, frames, 1, 1, cuts[1].id)).toEqual({ kind: 'redraw' });
   });
+  it('counts a part as on the screen: a focus on it repaints only the ink', () => {
+    expect(afterEdit(before, frames, 0, 2, cuts[2].id)).toEqual({ kind: 'redraw' });
+  });
   it('shows the screen at a focus after it, placed fresh', () => {
-    expect(afterEdit(before, frames, 0, 2, cuts[3].id)).toEqual({ kind: 'show', frame: 3, place: 'fresh' });
+    expect(afterEdit(before, frames, 0, 1, cuts[3].id)).toEqual({ kind: 'show', frame: 3, place: 'fresh' });
   });
   it('shows the same screen, kept, when the layout moved', () => {
     const after = framesOf([cuts[0], cuts[2], cuts[3]]);
@@ -40,20 +43,7 @@ describe('afterEdit', () => {
   });
   it('brings a frame past the new end back to the last', () => {
     const after = framesOf([cuts[0], cuts[1]]);
-    expect(afterEdit(before, after, 3, 1)).toEqual({ kind: 'show', frame: 1, place: 'keep' });
-  });
-});
-
-describe('lastScreenStart', () => {
-  const portrait = framesOf([cut(0), cut(1), cut(2)]);
-  it('starts at the last two frames when two show on the stage', () => {
-    expect(lastScreenStart(portrait, 1000, 700)).toBe(1);
-  });
-  it('starts at the last frame when one shows', () => {
-    expect(lastScreenStart(portrait, 700, 1000)).toBe(2);
-  });
-  it('starts at 0 for one frame', () => {
-    expect(lastScreenStart(framesOf([cut(0)]), 1000, 700)).toBe(0);
+    expect(afterEdit(before, after, 3, 3)).toEqual({ kind: 'show', frame: 1, place: 'keep' });
   });
 });
 

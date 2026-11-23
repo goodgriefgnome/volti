@@ -1,23 +1,22 @@
-// Where turning the page goes: to another screen of what is read, to the next or previous entry of
+// Where turning the page goes: to another screen of what is read (the next in its list, or the one before), to the next or previous entry of
 // a setlist, to the library's next or previous score from a score's own reader (offered first, and
 // opened by turning that way again), or nowhere. Pure: reader.ts does the turning.
 
 import type { ReadingKind } from './_reading';
 
-/** Where the reader is: the item read, its first frame on the screen, and how many frames there are. */
+/** Where the reader is: the item read, and its screen in the item's list of screens. */
 export interface Place {
   /** The item read, and how many there are (a setlist's entries; one otherwise). */
   k: number;
   items: number;
-  /** The first frame on the screen, how many the screen shows, and how many the item has. */
-  frame: number;
-  shown: number;
-  frames: number;
+  /** The screen's index in the item's list of screens (render/strip.ts), and the list's length. */
+  screen: number;
+  screens: number;
 }
 
 export type Turn =
-  /** Another screen of the item read, starting at `frame`. */
-  | { to: 'frame'; frame: number }
+  /** Another screen of the item read: the one at this index in its list. */
+  | { to: 'screen'; screen: number }
   /** In a setlist, entry `k`: from its first screen going forward, its last going back. */
   | { to: 'item'; k: number; at: 'first' | 'last' }
   /** In a score's own reader, past its end or start: the library's next or previous score. */
@@ -27,9 +26,8 @@ export type Turn =
 
 /** Where turning forward (1) or back (-1) from `p` goes, reading a `kind`. */
 export function turnFrom(p: Place, dir: 1 | -1, kind: ReadingKind['kind']): Turn {
-  // Forward by the frames shown; back by as many (to the first frame, near the start).
-  const next = dir > 0 ? p.frame + p.shown : p.frame > 0 ? Math.max(0, p.frame - p.shown) : -1;
-  if (next >= 0 && next < p.frames) return { to: 'frame', frame: next };
+  const next = p.screen + dir;
+  if (next >= 0 && next < p.screens) return { to: 'screen', screen: next };
   if (kind === 'score') return { to: 'score', dir };
   const k = p.k + dir;
   return k < 0 || k >= p.items ? { to: 'none' } : { to: 'item', k, at: dir > 0 ? 'first' : 'last' };
