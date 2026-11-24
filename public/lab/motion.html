@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Whether this browser reports reduced motion, which makes the reader skip its slide, and the slide itself at 160 ms and 1 s. -->
+<title>Slide check</title>
+<style>
+:root { --bg: #f3f4f6; --fg: #1d232b; --muted: #5d6773; --accent: #2f6fd6; --card: #ffffff; --bad: #c2410c; --good: #15803d; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #15191f; --fg: #e6e9ee; --muted: #9aa4b1; --accent: #6b9cf0; --card: #1f252d; --bad: #fb923c; --good: #4ade80; color-scheme: dark; } }
+:root[data-theme="dark"] { --bg: #15191f; --fg: #e6e9ee; --muted: #9aa4b1; --accent: #6b9cf0; --card: #1f252d; --bad: #fb923c; --good: #4ade80; color-scheme: dark; }
+body { background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, sans-serif; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px; margin: 0; }
+main { max-width: 640px; margin: 0 auto; display: grid; gap: 16px; }
+h1 { font-size: 1.3rem; margin: 0; }
+.result { background: var(--card); border-radius: 10px; padding: 14px 16px; display: grid; gap: 6px; }
+.result b.yes { color: var(--bad); } .result b.no { color: var(--good); }
+.track { position: relative; height: 90px; background: var(--card); border-radius: 10px; overflow: hidden; }
+.box { position: absolute; top: 15px; left: 16px; width: 60px; height: 60px; border-radius: 6px; background: var(--accent); }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+button { font: inherit; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--muted); background: var(--card); color: var(--fg); }
+p { margin: 0; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Slide check</h1>
+  <p>Open this in the browser Volti runs in.</p>
+  <div class="result">
+    <div>Reduce motion, as Chrome reports it: <b id="rm">…</b></div>
+    <div>Web Animations available: <b id="waapi">…</b></div>
+  </div>
+  <div class="track"><div class="box" id="box"></div></div>
+  <div class="row">
+    <button id="fast">Slide as Volti does (160 ms)</button>
+    <button id="slow">Slide slowly (1 s)</button>
+  </div>
+  <p id="note">Tap each button. The square should glide across.</p>
+</main>
+<script>
+const rm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const rmEl = document.getElementById('rm');
+rmEl.textContent = rm ? 'yes: Volti skips the slide' : 'no';
+rmEl.className = rm ? 'yes' : 'no';
+document.getElementById('waapi').textContent = typeof Element.prototype.animate === 'function' ? 'yes' : 'no';
+let at = 0;
+function slide(ms) {
+  const box = document.getElementById('box');
+  const d = box.parentElement.clientWidth - 92;
+  const from = at, to = at ? 0 : d;
+  at = to;
+  box.animate([{ transform: `translateX(${from}px)` }, { transform: `translateX(${to}px)` }], { duration: ms, easing: 'ease-out', fill: 'forwards' });
+}
+document.getElementById('fast').onclick = () => slide(160);
+document.getElementById('slow').onclick = () => slide(1000);
+</script>
+</body>
+</html>
