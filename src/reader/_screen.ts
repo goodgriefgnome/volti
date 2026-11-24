@@ -76,6 +76,7 @@ export class Screen {
   private firstFrame = 0;
   /** A slide that is running: its animations, and the boxes it is taking away. */
   private sliding: { animations: Animation[]; old: HTMLElement[] } | null = null;
+  private slideStart = 0; // TEMPORARY (slide check)
 
   constructor(private host: ScreenHost, private zoom: StageZoom) {}
 
@@ -86,8 +87,10 @@ export class Screen {
   get last(): number { return this.lastShown; }
 
   /** A slide that is moving ends at once: the boxes it takes away go. */
-  private finishSlide() {
+  private finishSlide(why = 'finished') {
     if (!this.sliding) return;
+    // TEMPORARY (slide check on the tablet): say when a slide is cut short.
+    if (why !== 'finished') this.host.toast.say(`Slide cut short by ${why} after ${Math.round(performance.now() - this.slideStart)} ms`);
     for (const a of this.sliding.animations) a.cancel();
     for (const box of this.sliding.old) box.remove();
     this.sliding = null;
@@ -100,14 +103,17 @@ export class Screen {
    */
   private put(boxes: HTMLElement[], slide: 1 | -1 | undefined, along: 'x' | 'y', distance: number) {
     const { screen } = this.host, old = this.boxes;
-    this.finishSlide();
+    this.finishSlide('put');
     this.boxes = boxes;
     if (!slide || !old.length || !distance || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      // TEMPORARY (slide check on the tablet): say why a turn doesn't slide.
+      if (slide) this.host.toast.say(`No slide: ${!old.length ? 'no old boxes' : !distance ? 'distance 0' : 'reduced motion'}`);
       screen.replaceChildren(...boxes);
       return;
     }
+    this.slideStart = performance.now();
     const move = (d: number) => `translate${along === 'x' ? 'X' : 'Y'}(${d}px)`;
-    const options = { duration: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--quick')) || 160, easing: 'ease-out' };
+    const options = { duration: 1000, easing: 'ease-out' }; // TEMPORARY (slide check): was --quick
     screen.append(...boxes);
     const animations = [
       ...old.map((box) => box.animate([{ transform: move(0) }, { transform: move(-distance) }], options)),
@@ -135,7 +141,7 @@ export class Screen {
    */
   async show({ turned = false, place = 'fresh', slide }: { turned?: boolean; place?: 'keep' | 'fresh'; slide?: 1 | -1 } = {}) {
     const { host } = this;
-    this.finishSlide();
+    this.finishSlide('another show()');
     const seq = ++this.seq; // a newer show() (turn, resize, edit) supersedes this one
     this.ahead.abort();
     this.ahead = new AbortController();
@@ -236,7 +242,7 @@ export class Screen {
     // One A4 frame alone, centred, with nothing beside it.
     const box = blankBox(undefined, { title, why });
     placeBoxes([box], stripScreen(layStrip([A4], W, H, dpr(), smallestScale()), 0).boxes);
-    this.finishSlide();
+    this.finishSlide('an unread screen');
     this.boxes = [box];
     this.firstFrame = 0;
     host.screen.replaceChildren(box);
@@ -298,7 +304,7 @@ export class Screen {
 
   /** The reader is closing, or the screen is going: no screen being drawn shows, and drawing ahead stops. */
   stop() {
-    this.finishSlide();
+    this.finishSlide('stop()');
     this.seq++;
     this.ahead.abort();
   }
