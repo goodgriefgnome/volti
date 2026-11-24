@@ -34,12 +34,14 @@ has room for three.
 Each frame is shown at its **fitted size**. Its **full size** is the size it has when it alone
 fills the stage: as large as fits the stage whole, as now for a frame alone on a screen. A frame
 may shrink below that to fill a **share** of the stage along, 1/n of it (gaps included), but to no
-less than the **smallest scale** (below) of its full size. Its fitted size is that of the largest n
-it can reach so, never larger than its full size; where it can't reach even a half, it is its full
-size. Frames never grow to fill a share.
+less than the **smallest scale** (below) of its full size, and n no more than the number of frames
+in the item. Its fitted size is that of the largest n it can reach so, never larger than its full
+size; where it can't reach even a half, it is its full size. Frames never grow to fill a share.
 
 Frames of both shapes, and of different sizes, sit on the strip together, centred across, 6 px
-apart along (`GAP`, `render/screen.ts`, as now). Each frame decides its own fitted size.
+apart along (`GAP`, `render/screen.ts`, as now). Each frame decides its own fitted size, from its
+own shape and the item's number of frames. So a page of a two-frame item never shrinks to a third,
+and an item of one frame is at full size.
 
 So at the smallest scale of 90% (the default):
 
@@ -195,3 +197,6 @@ Nothing stored is dropped.
 - The smallest scale is per device, like Advance, as it depends on the screen; it is set in steps
   of 5%.
 - The slide time is set in steps of 50 ms, up to 1 s.
+- A frame shrinks to no smaller share than its item has frames: two frames shrunk to thirds left
+  the stage a third empty. So a short excerpt's pages may show larger than the same pages in the
+  whole score.

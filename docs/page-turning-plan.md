@@ -428,6 +428,26 @@ reduce motion on, the hint says turns don't slide, and they don't."
 Check in the app: ⋯ → Page turning… shows both sliders, at 90% and 300 ms. Turn: the slide is
 visible. Off: instant. Reload: kept. DevTools shows `slide-ms`.
 
+## Stage 8: no more shares than the item has frames
+
+A two-page score of narrow pages shrank both to a third of the stage, leaving a third empty. A
+frame now shrinks to no smaller share than 1/(the item's number of frames).
+
+- `render/strip.ts`: `_fitted` gets a last parameter, `count: number` (the item's number of
+  frames), and takes `n = Math.min(n, count)` before `if (n < 2)`. Its doc comment says so.
+  `layStrip` passes `aspects.length`. Nothing else changes: the pager, `showUnread` (one frame,
+  so full size) and the offline widths (`offline/pages.ts` lays each entry's frames on their own)
+  all go through `layStrip`.
+- Tests in `render/strip.test.ts`: the existing `_fitted` calls pass a large count (e.g. 10) and
+  keep their results. New: a narrow portrait aspect (1.75) at 1280 × 800, 0.9: with count 10 it
+  takes a third (w ≤ ⌊(1280 − 12) / 3⌋); with count 2 it is at full size (h 800); with count 1 at
+  full size. `layStrip([N, N], 1280, 800, 1, 0.9)` (N = 1.75) has both frames 800 high, and is
+  centred; `layStrip(Array(5).fill(N), …)` keeps them at a third.
+- `TODO.manual.md`, "Turning by the strip": "A two-page score of narrow pages, landscape: both
+  pages at the screen's full height, centred."
+
+Check in the app: a two-page score that showed small in landscape shows both pages at full height.
+
 ## Manual checks for the whole
 
 1. A score of portrait pages, the tablet landscape: two pages and a sliver of the third, the first
