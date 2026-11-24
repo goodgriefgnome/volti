@@ -108,10 +108,11 @@
 .incoming-fields .hint { margin: 0; }
 .incoming-fields > button { justify-self: start; }
 @container dialog (width < 552px) { .incoming-row { grid-template-columns: minmax(0, 1fr); } }
-.marking-colors-row, .page-scale-row { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) 0; }
+.marking-colors-row, .page-turning-row { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) 0; }
 .marking-colors-row .name { flex: 1; min-width: 0; }
-.page-scale-row input[type=range] { flex: 1; min-width: 0; accent-color: var(--accent); }
-.page-scale-row .value { min-width: 4ch; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+.page-turning-row input[type=range] { flex: 1; min-width: 0; accent-color: var(--accent); }
+.page-turning-row .name { flex: none; width: 11em; }
+.page-turning-row .value { min-width: 4ch; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
 
 /* The folder picker for a Google Drive folder. */
 .drive-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); margin-bottom: var(--space-2); }

@@ -593,8 +593,10 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     before. Rotate back.
   - A setlist: the last screen of an entry shows the next title in its empty part; turn on, and back
     into the entry's last screen.
-  - Library ⋯ → Page scale…: 60%: three portrait pages a screen; 100% on a 4:3 tablet: one page and
-    a part; 90% again. Close and open the app: the scale is kept.
+  - Library ⋯ → Page turning…: 60%: three portrait pages a screen; 100% on a 4:3 tablet: one page and
+    a part; 90% again. Close and open the app: the scale is kept. The slide is at 300 ms and a
+    turn visibly slides. Set it to Off: turns are instant. 1,000 ms: a slow slide. With the device's
+    reduce motion on, the hint says turns don't slide, and they don't.
   - Edit cuts on the screen: the cut tabs show on whole pages, not on the part; a cut made keeps the
     reader near it. Cut a frame in two on the screen; remove a cut on an earlier screen: the reader
     lands sensibly. Pinch out with the toolbar showing: the part stays cut at the stage's edge.

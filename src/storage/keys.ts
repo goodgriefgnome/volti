@@ -41,6 +41,8 @@ export const keys = {
   advance: 'advance',
   /** How far a page may shrink to fit more on a screen, in percent, 10 to 100; the device's own (settings/store.ts). */
   smallestPageScale: 'smallest-page-scale',
+  /** How long a turn slides, in ms, 0 to 1000 in steps of 50; the device's own (settings/store.ts). */
+  slideMs: 'slide-ms',
 
   /** The face gestures the person defined, a FaceSettings: each with the fit its trials gave (face/store.ts). */
   faceGestures: 'face-gestures',

@@ -76,9 +76,9 @@ Live at **https://goodgriefgnome.github.io/volti/**. Open it in Chrome on the ta
   it sees it (and after it changes), so linking a big folder takes a moment.
 - Each page on the screen takes the shape of the PDF pages it shows, and the pages sit end to end
   as a strip: side by side on a landscape screen, one above the other on a portrait one. A page may
-  shrink a little (to 90% of its full size, set in the ⋯ menu's Page scale…) to fit more on a
+  shrink a little (to 90% of its full size, set in the ⋯ menu's Page turning…) to fit more on a
   screen, and after the pages that fit whole, as much of the next as fits shows beside them. A turn
-  slides the strip along. The toolbar's Page / Screen button says whether a turn moves on by a page
+  slides the strip along, for as long as the same dialog says. The toolbar's Page / Screen button says whether a turn moves on by a page
   or by a whole screen; turning back always undoes turning forward. Rotating the tablet keeps the
   music at the top of the screen in place.
 - A score, excerpt or setlist opens ready to play, with the toolbar hidden. Press the right side for

@@ -11,7 +11,7 @@ import { pageWidths } from '../render/screen';
 import { layStrip, stripDistance, stripScreen } from '../render/strip';
 import type { Frame } from '../scores/frames';
 import { A4, type State } from '../scores/model';
-import { smallestScale } from '../settings/turning';
+import { slideMs, smallestScale } from '../settings/turning';
 import { dpr } from '../ui/dom';
 import { failed } from '../ui/failure';
 import type { Toast } from '../ui/toast';
@@ -96,18 +96,18 @@ export class Screen {
   /**
    * Put `boxes` on the screen. With `slide` (a turn, 1 forward or -1 back, within the item), the old
    * boxes stay under them and the strip slides by `distance` (CSS pixels along, signed) over
-   * `--quick`; otherwise the old are replaced at once.
+   * the slide time (settings/turning.ts); otherwise the old are replaced at once.
    */
   private put(boxes: HTMLElement[], slide: 1 | -1 | undefined, along: 'x' | 'y', distance: number) {
     const { screen } = this.host, old = this.boxes;
     this.finishSlide();
     this.boxes = boxes;
-    if (!slide || !old.length || !distance || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (!slide || !old.length || !distance || !slideMs() || matchMedia('(prefers-reduced-motion: reduce)').matches) {
       screen.replaceChildren(...boxes);
       return;
     }
     const move = (d: number) => `translate${along === 'x' ? 'X' : 'Y'}(${d}px)`;
-    const options = { duration: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--quick')) || 160, easing: 'ease-out' };
+    const options = { duration: slideMs(), easing: 'ease-out' };
     screen.append(...boxes);
     const animations = [
       ...old.map((box) => box.animate([{ transform: move(0) }, { transform: move(-distance) }], options)),

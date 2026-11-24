@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { advanceFrom, setSmallestScalePercent, smallestScale, smallestScaleFrom } from './turning';
+import { advanceFrom, setSmallestScalePercent, slideMsFrom, smallestScale, smallestScaleFrom } from './turning';
 
 describe('advanceFrom', () => {
   it('lets page and screen through, and makes anything else page', () => {
@@ -20,5 +20,14 @@ describe('smallestScaleFrom', () => {
     setSmallestScalePercent(60);
     expect(smallestScale()).toBe(0.6);
     setSmallestScalePercent(90);
+  });
+});
+
+describe('slideMsFrom', () => {
+  it('lets whole multiples of 50 from 0 to 1,000 through', () => {
+    for (const ms of [0, 50, 300, 1000]) expect(slideMsFrom(ms)).toBe(ms);
+  });
+  it('makes anything else 300', () => {
+    for (const raw of [undefined, null, -50, 1050, 125, 300.5, '300']) expect(slideMsFrom(raw)).toBe(300);
   });
 });

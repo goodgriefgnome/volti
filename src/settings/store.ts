@@ -2,12 +2,13 @@
 
 import { keys } from '../storage/keys';
 import { kv } from '../storage/kv';
-import { advanceFrom, setAdvance, setSmallestScalePercent, smallestScaleFrom, type Advance } from './turning';
+import { advanceFrom, setAdvance, setSlideMs, setSmallestScalePercent, slideMsFrom, smallestScaleFrom, type Advance } from './turning';
 
-/** Load Advance and the smallest scale; what isn't stored keeps its default. */
+/** Load Advance, the smallest scale and the slide time; what isn't stored keeps its default. */
 export async function loadTurningSettings(): Promise<void> {
   setAdvance(advanceFrom(await kv.get<unknown>(keys.advance)));
   setSmallestScalePercent(smallestScaleFrom(await kv.get<unknown>(keys.smallestPageScale)));
+  setSlideMs(slideMsFrom(await kv.get<unknown>(keys.slideMs)));
 }
 
 export async function saveAdvance(a: Advance): Promise<void> {
@@ -18,4 +19,9 @@ export async function saveAdvance(a: Advance): Promise<void> {
 export async function saveSmallestScale(percent: number): Promise<void> {
   setSmallestScalePercent(percent);
   await kv.set(keys.smallestPageScale, percent);
+}
+
+export async function saveSlideMs(ms: number): Promise<void> {
+  setSlideMs(ms);
+  await kv.set(keys.slideMs, ms);
 }
