@@ -366,6 +366,68 @@ inside the screen.
 - `TODO.manual.md`: a group "**Turning by the strip** (a tablet in both orientations, and Chrome's
   device mode at 1024 × 768)" with the checks below.
 
+## Stage 7: the slide time, and the Page turning dialog
+
+The slide at `--quick` (160 ms) was too quick to see on the tablet. The slide time becomes a
+setting, and the Page scale dialog becomes **Page turning…**, holding it beside the smallest scale.
+
+**The setting.** In `settings/turning.ts` (its opening comment adds "and how long a turn slides"):
+
+```ts
+/** The slide time, in ms, from what is stored: a whole multiple of 50 from 0 to 1,000; anything else is 300. */
+export function slideMsFrom(raw: unknown): number;
+/** How long a turn slides, in ms; 0 is no slide. */
+export const slideMs = (): number => ms;
+export function setSlideMs(m: number): void { ms = slideMsFrom(m); }
+```
+
+with `let ms = 300;` beside `percent`. In `settings/store.ts`, `loadTurningSettings` also loads
+`keys.slideMs` through `slideMsFrom`, and:
+
+```ts
+export async function saveSlideMs(ms: number): Promise<void>;
+```
+
+as `saveSmallestScale` is. `storage/keys.ts`: `slideMs: 'slide-ms'`, with a comment as its
+neighbours have. `STORAGE.md`: a row for `slide-ms` beside `smallest-page-scale`, and its section
+("### `advance`, `smallest-page-scale` and `slide-ms`") says it is a whole number of ms, 0 to 1,000
+in steps of 50, 300 without it, per device, never synced.
+
+Tests (`settings/turning.test.ts`, beside `smallestScaleFrom`'s): `slideMsFrom` keeps 0, 50, 300
+and 1000; gives 300 for undefined, null, -50, 1050, 125, 300.5 and '300'.
+
+**The slide.** In `reader/_screen.ts` `put`: the duration is `slideMs()`, and the slide is skipped
+also when `slideMs() === 0`. Its doc comment says "over the slide time" in place of "over
+`--quick`". `--quick` stays in `base.css` for everything else that uses it.
+
+**The dialog.** `git mv src/library/_page-scale.ts src/library/_page-turning.ts`. Its opening
+comment: "The Page turning dialog, from the library's ⋯ menu: how far a page may shrink to fit
+more on a screen, and how long a turn slides." `openPageScale` becomes
+`openPageTurning(changed: () => void)`, with `showDialog('Page turning')`. Two rows, each a label,
+a range input and its value, each followed by its hint (lay the label out as the other dialogs
+label their rows, e.g. `_face-gestures.ts`):
+
+- **Smallest page scale**: as now.
+- **Slide**: `min` 0, `max` 1000, `step` 50, value `slideMs()`, `aria-label` "Slide time". The
+  value reads `300 ms`, or `Off` at 0. The hint: "A turn slides the pages along over 300 ms." with
+  the number following the slider, or "Turns show the next pages at once." at 0. When
+  `matchMedia('(prefers-reduced-motion: reduce)')` matches, the hint is "This device asks for
+  reduced motion, so turns don't slide." whatever the slider says. Each `input` saves through
+  `saveSlideMs`, with `failedOnce('save the slide time', e)`. It doesn't call `changed`: nothing
+  kept offline depends on it.
+
+Then Done. Rename the row class `page-scale-row` to `page-turning-row`, in the module and in
+`styles/library.css`. `library/_folder-banner.ts`: `{ label: 'Page turning…', run: () =>
+openPageTurning(() => lib.pin()) }` in place of Page scale…. Anywhere else the app or the docs
+(`TODO.manual.md`, `ARCHITECTURE.md`) say "Page scale" for the dialog, say "Page turning".
+
+`TODO.manual.md`, in "Turning by the strip": "Library ⋯ → Page turning…: the slide at 300 ms; a
+turn visibly slides. Set it to Off: turns are instant. 1,000 ms: a slow slide. With the device's
+reduce motion on, the hint says turns don't slide, and they don't."
+
+Check in the app: ⋯ → Page turning… shows both sliders, at 90% and 300 ms. Turn: the slide is
+visible. Off: instant. Reload: kept. DevTools shows `slide-ms`.
+
 ## Manual checks for the whole
 
 1. A score of portrait pages, the tablet landscape: two pages and a sliver of the third, the first
@@ -381,13 +443,13 @@ inside the screen.
    before. Rotate back.
 6. A setlist: the last screen of an entry shows the next title in its empty part; turn on, and back
    into the entry's last screen.
-7. Library ⋯ → Page scale…: 60%: three portrait pages a screen; 100% on a 4:3 tablet: one page and
+7. Library ⋯ → Page turning…: 60%: three portrait pages a screen; 100% on a 4:3 tablet: one page and
    a part; 90% again.
 8. Close and open the app: Advance and the page scale are kept.
 9. Edit cuts on the screen: the cut tabs show on whole pages, not on the part; a cut made keeps the
    reader near it.
 10. Turn quickly, and with a pedal or a face gesture: every turn slides, none leaves pages behind.
-11. With reduce motion on, turns are instant.
+11. With reduce motion on, turns are instant, and Page turning… says so. With the slide Off, too.
 12. Offline: a setlist's pages are all saved again after changing the page scale.
 
 ## Decisions not discussed
@@ -400,3 +462,5 @@ inside the screen.
 - The slide moves the boxes themselves with `Element.animate`, inside the zoomed screen, so the
   zoom and the slide don't fight.
 - Changing the page scale reruns the offline job, as its widths depend on it.
+- The slide time is per device, beside Advance and the smallest scale; changing it does not
+  rerun the offline job.

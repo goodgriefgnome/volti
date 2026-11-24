@@ -55,11 +55,9 @@ A lower smallest scale packs more frames on a screen; 100% never shrinks a frame
 
 ### The smallest scale
 
-An app setting, from 10% to 100% in steps of 5%, 90% without the key. It is set in a dialog,
-**Page scale…**, from the library's ⋯ menu beside **Marking colours…** and **Face gestures…**
-(`library/_folder-banner.ts`): a slider with its value, "Pages may shrink to fit more on a screen,
-down to 90% of their full size." Changing it applies at once, also to a reader opened after. It is
-kept per device, in a new kv key `smallest-page-scale` (a whole number of percent), never synced.
+An app setting, from 10% to 100% in steps of 5%, 90% without the key, set in the **Page turning…**
+dialog (below). Changing it applies at once, also to a reader opened after. It is kept per device,
+in a new kv key `smallest-page-scale` (a whole number of percent), never synced.
 
 ### When the whole item fits
 
@@ -124,8 +122,12 @@ its list. `lastScreen`'s own rule (`reader/reader.ts`) goes.
 
 ## The slide
 
-A turn **slides** the strip along, from one screen to the next, over `--quick` (160 ms). Everything
+A turn **slides** the strip along, from one screen to the next, over the **slide time**. Everything
 on the strip between the two screens shows as it passes; nothing beyond the stage's edges does.
+
+The slide time is an app setting, from 0 to 1,000 ms in steps of 50, 300 ms without the key, set in
+the **Page turning…** dialog (below). At 0 turns don't slide. It is kept per device, in a new kv key
+`slide-ms` (a whole number of milliseconds), never synced.
 
 Landing somewhere other than by turning (above) doesn't slide: the new screen shows at once, as
 now. With reduced motion turns don't slide either. A turn while a slide is moving finishes that
@@ -134,6 +136,21 @@ started, the gate passed) when it starts, not when the slide ends.
 
 What the zoom and the toolbar do on a turn doesn't change: the new screen is placed as a turned-to
 screen is now (whole below the toolbar when it shows).
+
+## The Page turning dialog
+
+A dialog, **Page turning…**, from the library's ⋯ menu beside **Marking colours…** and **Face
+gestures…** (`library/_folder-banner.ts`), in place of **Page scale…**. Two rows, each a slider with
+its value:
+
+- **Smallest page scale**, its value as "90%", with the hint "Pages may shrink to fit more on a
+  screen, down to 90% of their full size." (the number following the slider).
+- **Slide**, its value as "300 ms", or "Off" at 0, with the hint "A turn slides the pages along over
+  300 ms." (or "Turns show the next pages at once." at 0). Reduced motion turns the slide off
+  whatever this says; the hint says so when the device asks for it: "This device asks for reduced
+  motion, so turns don't slide."
+
+Then **Done**. Each change is saved as the slider moves.
 
 ## Advance on the toolbar
 
@@ -153,7 +170,7 @@ screen is now (whole below the toolbar when it shows).
   page at its fitted size, in each orientation. These depend on the smallest scale, not on
   Advance.
 - `screenAt`, `framesOnScreen` and `Place.shown` give way to the list.
-- `STORAGE.md` lists `advance` and `smallest-page-scale`. `ARCHITECTURE.md`'s words take
+- `STORAGE.md` lists `advance`, `smallest-page-scale` and `slide-ms`. `ARCHITECTURE.md`'s words take
   **strip**, **screen**, **whole**, **part**, **fitted size**, **smallest scale** and **Advance**.
 - `TODO.md`: "Turning back so forward restores the screen" and "Page-turn strategies" go. "Half
   turns on screens of one" takes the latter's place, for a frame that fills the screen alone:
@@ -170,11 +187,11 @@ Nothing stored is dropped.
   jump puts the frame at the left, not on the right of an earlier screen.
 - The last screen may be partly empty (the decision we did discuss); in a setlist the next entry's
   title fills it, as now, rather than part of the next entry's first frame.
-- The slide takes `--quick`, as everything that answers a tap does (`css-harmony-spec.md`); the
-  demo used about 300 ms.
+- The slide time defaults to 300 ms: `--quick` (160 ms) was too quick to see on the tablet.
 - A jump doesn't slide.
 - A frame takes the largest share it can reach, so lowering the smallest scale fits more frames on a
   screen, not only two; one shown alone (an item's last) keeps its fitted size, so nothing changes
   size as the reader turns.
-- The smallest scale is per device, like Advance, as it depends on the screen; it is set in its own
-  dialog, **Page scale…**, in steps of 5%.
+- The smallest scale is per device, like Advance, as it depends on the screen; it is set in steps
+  of 5%.
+- The slide time is set in steps of 50 ms, up to 1 s.
