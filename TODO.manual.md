@@ -587,6 +587,7 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
   - A score with a landscape page after an odd number of portrait ones: the last portrait page shows
     with part of the landscape page; the next screen is the landscape page whole, at the same
     height, with a sliver of the page after.
+  - A two-page score of narrow pages, landscape: both pages at the screen's full height, centred.
   - A two-page score: centred, one screen; turning goes to the next score (offered first) as now.
   - At 1024 × 768 two portrait pages fill the width exactly, a little smaller than before.
   - Rotate to portrait: landscape pages stack, top first; the page at the top is the first page shown

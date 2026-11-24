@@ -10,24 +10,30 @@ const GAP = 6;
 
 describe('_fitted', () => {
   it('keeps a portrait frame at full size where it already fits in half (1280 × 800)', () => {
-    expect(_fitted(P, 1280, 800, GAP, 0.9)).toEqual({ w: 565, h: 800 });
+    expect(_fitted(P, 1280, 800, GAP, 0.9, 10)).toEqual({ w: 565, h: 800 });
   });
   it('shrinks a portrait frame to fill half exactly (1024 × 768)', () => {
-    const f = _fitted(P, 1024, 768, GAP, 0.9);
+    const f = _fitted(P, 1024, 768, GAP, 0.9, 10);
     expect(f.w).toBe(509);
     expect(f.h).toBe(Math.floor(509 * A4));
   });
   it('keeps a landscape frame at full size', () => {
-    expect(_fitted(L, 1280, 800, GAP, 0.9)).toEqual({ w: 1131, h: 800 });
+    expect(_fitted(L, 1280, 800, GAP, 0.9, 10)).toEqual({ w: 1131, h: 800 });
   });
   it('never shrinks at 100%', () => {
-    expect(_fitted(P, 1024, 768, GAP, 1).w).toBe(543);
+    expect(_fitted(P, 1024, 768, GAP, 1, 10).w).toBe(543);
   });
   it('fits a third at 60%', () => {
-    expect(_fitted(P, 1280, 800, GAP, 0.6).w).toBe(422);
+    expect(_fitted(P, 1280, 800, GAP, 0.6, 10).w).toBe(422);
+  });
+  it('takes no smaller a share than the item has frames', () => {
+    const N = 1.75;
+    expect(_fitted(N, 1280, 800, GAP, 0.9, 10).w).toBeLessThanOrEqual(Math.floor((1280 - 12) / 3));
+    expect(_fitted(N, 1280, 800, GAP, 0.9, 2).h).toBe(800);
+    expect(_fitted(N, 1280, 800, GAP, 0.9, 1).h).toBe(800);
   });
   it('shrinks across the height on a portrait stage', () => {
-    const f = _fitted(L, 800, 1280, GAP, 0.9);
+    const f = _fitted(L, 800, 1280, GAP, 0.9, 10);
     expect(f.h).toBeLessThanOrEqual(637);
     expect(f.w).toBe(800);
   });
@@ -39,6 +45,13 @@ describe('layStrip', () => {
     s.frames.slice(1).forEach((f, i) => expect(f.at).toBe(s.frames[i].at + s.frames[i].len + GAP));
     expect(s.frames[0].off).toBe(0);
     expect(s.frames[5].size).toBe(800);
+  });
+  it('keeps a two-frame item of narrow pages at full height, centred, and five at a third', () => {
+    const N = 1.75;
+    const two = layStrip([N, N], 1280, 800, 1, 0.9);
+    expect(two.frames.map((f) => f.size)).toEqual([800, 800]);
+    expect(two.centred).not.toBeNull();
+    expect(layStrip(Array(5).fill(N), 1280, 800, 1, 0.9).frames[0].len).toBeLessThanOrEqual(Math.floor((1280 - 12) / 3));
   });
   it('runs down a portrait stage', () => {
     expect(layStrip(example, 800, 1280, 1, 0.9).along).toBe('y');

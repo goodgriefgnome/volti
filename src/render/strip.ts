@@ -25,12 +25,13 @@ export interface Strip {
  * A frame's fitted size on a W × H stage (device pixels), `aspect` its height over width: its full
  * size (as large as fits the stage), shrunk to the largest share 1/n of the stage along (gaps
  * included) it can reach without going below `smallest` of its full size; never larger than full.
+ * `count`, the item's number of frames, caps n: no frame shrinks to a smaller share than that.
  */
-export function _fitted(aspect: number, W: number, H: number, gap: number, smallest: number): { w: number; h: number } {
+export function _fitted(aspect: number, W: number, H: number, gap: number, smallest: number, count: number): { w: number; h: number } {
   const [full] = _placeFrames([aspect], W, H, gap, true);
   const along = W > H;
   const L = along ? W : H, f = along ? full.w : full.h;
-  const n = Math.floor((L + gap) / (f * smallest + gap) + 1e-6);
+  const n = Math.min(Math.floor((L + gap) / (f * smallest + gap) + 1e-6), count);
   if (n < 2) return { w: full.w, h: full.h };
   const share = Math.floor((L - gap * (n - 1)) / n);
   if (share >= f) return { w: full.w, h: full.h };
@@ -44,7 +45,7 @@ export function layStrip(aspects: readonly number[], W: number, H: number, scale
   const length = along === 'x' ? Wd : Hd, across = along === 'x' ? Hd : Wd;
   let at = 0;
   const frames = aspects.map((a): StripFrame => {
-    const { w, h } = _fitted(a, Wd, Hd, gap, smallest);
+    const { w, h } = _fitted(a, Wd, Hd, gap, smallest, aspects.length);
     const len = along === 'x' ? w : h, size = along === 'x' ? h : w;
     const f = { at, len, size, off: Math.floor((across - size) / 2) };
     at += len + gap;
