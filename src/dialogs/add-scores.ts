@@ -21,8 +21,8 @@ export interface _AddScoresHost {
   saved: ReadonlyMap<string, Score>;
   /** Open a score to preview; null if it can't be (having said why). */
   open(o: SourceFile): Promise<LibraryScore | null>;
-  /** Make sure a score's file can be read, asking for its password if need be; false when it isn't given. */
-  givePassword(o: SourceFile): Promise<boolean>;
+  /** Ask in the background for the passwords Volti doesn't know yet of the files of scores just added. */
+  askPasswords(files: readonly SourceFile[]): void;
   /** Add entries playing these to the end of the setlist; `scores` are the ones they pick excerpts of. */
   add(entries: { scoreId: string; excerpt: Excerpt }[], scores: ExcerptSource[]): void;
 }
@@ -56,19 +56,20 @@ export function openAddScores(h: _AddScoresHost) {
   const heading = d.querySelector('h2')!;
   const listView = el('div', 'view');
   const list = el('div', 'picklist');
-  const add = button('Add', () => void addPicked(), 'primary');
-  const addPicked = async () => {
-    // A score goes in only once its file can be read: one with a password not known yet asks for it now.
-    for (const o of h.originals) {
-      if (picks.has(o.id) && !(await h.givePassword(o))) picks.delete(o.id);
-    }
-    if (!count()) { sync(); fill(find.value); return; }
+  const add = button('Add', () => addPicked(), 'primary');
+  /** Set once Add is pressed: a second press, before the dialog has gone, adds nothing again. */
+  let added = false;
+  const addPicked = () => {
+    if (added || !count()) return;
+    added = true;
+    // In at once, the dialog closing on them; their files are read, and passwords asked for, after.
     closeOverlay();
     const picked = h.originals.flatMap((o) => (picks.get(o.id) ?? []).map((c) => [o.id, c] as const));
     h.add(
       picked.map(([scoreId, c]) => ({ scoreId, excerpt: c.excerpt })),
       [...new Set(picked.flatMap(([, c]) => (c.src ? [c.src] : [])))],
     );
+    h.askPasswords(h.originals.filter((o) => picks.has(o.id)));
   };
   const sync = () => {
     const n = count();

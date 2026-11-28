@@ -4,7 +4,7 @@
 
 import { canvasesOf } from '../page-cache/cache';
 import { addNamedExcerpt, changeNamedExcerpt, deleteNamedExcerpt, type NamedExcerptHost } from '../dialogs/named-excerpts';
-import { givePassword } from '../dialogs/passwords';
+import { askPasswordsOf } from '../dialogs/passwords';
 import { openAddScores } from '../dialogs/add-scores';
 import { openExcerptPicker } from '../dialogs/excerpt-picker';
 import { openScore } from '../dialogs/open-score';
@@ -232,7 +232,7 @@ async function addScores(h: MenusHost) {
     setlist: s,
     originals,
     saved: new Map(saved.filter((x): x is Score => !!x).map((x) => [x.id, x])),
-    givePassword: (o) => givePassword(o).catch((e) => { h.say(failed('open', e, titleOf(o.path))); return false; }),
+    askPasswords: (files) => void askPasswordsOf(files),
     open: (o) => openScore(o).catch((e) => {
       h.say(failed('open', e, titleOf(o.path)));
       return null;

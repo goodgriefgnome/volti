@@ -25,6 +25,8 @@ export class DriveRoot implements ScoreRoot {
   private files = new Map<string, Entry>();
   /** Each folder path's Drive folder ids: more than one when folders of one name are merged; '' is the linked folder. */
   private folders: Map<string, string[]>;
+  /** Downloads under way, by Drive id: a file read twice at once (its password checked as the offline job saves its pages) is downloaded once. */
+  private downloading = new Map<string, Promise<Blob>>();
 
   constructor(private folderId: string, private api: _DriveApi, private auth: { signedIn(): Promise<boolean> }, private cache: _ByteCache) {
     this.folders = new Map([['', [folderId]]]);
@@ -144,9 +146,20 @@ export class DriveRoot implements ScoreRoot {
     if (cached) return new File([cached], name);
     const entry = await this.entryAt(path);
     if (!entry) throw missing(path);
-    const bytes = await this.api.download(entry.fileId);
-    await this.cache.put(await hashBytes(await bytes.arrayBuffer()), bytes);
-    return new File([bytes], name);
+    return new File([await this.download(entry.fileId)], name);
+  }
+
+  /** Download a file and keep its copy, or join its download already under way. */
+  private download(fileId: string): Promise<Blob> {
+    const under = this.downloading.get(fileId);
+    if (under) return under;
+    const p = (async () => {
+      const bytes = await this.api.download(fileId);
+      await this.cache.put(await hashBytes(await bytes.arrayBuffer()), bytes);
+      return bytes;
+    })().finally(() => this.downloading.delete(fileId));
+    this.downloading.set(fileId, p);
+    return p;
   }
 
   async exists(path: string): Promise<boolean> {

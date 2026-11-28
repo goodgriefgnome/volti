@@ -132,6 +132,14 @@ describe('DriveRoot read', () => {
     expect(drive.requests.length).toBe(before);
   });
 
+  it('downloads a file read twice at once only once', async () => {
+    const { drive, root } = setup({ 'a.pdf': 'abc' });
+    await scan(root);
+    const [a, b] = await Promise.all([root.read('a.pdf'), root.read('a.pdf')]);
+    expect([await a.text(), await b.text()]).toEqual(['abc', 'abc']);
+    expect(drive.count('download')).toBe(1);
+  });
+
   it('is Unreachable offline when not cached', async () => {
     const { drive, root } = setup({ 'a.pdf': 'abc' });
     await scan(root);

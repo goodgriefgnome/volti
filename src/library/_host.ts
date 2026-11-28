@@ -76,10 +76,10 @@ export interface LibraryHost {
   remember(sc: ExcerptSource): void;
 
   /**
-   * Make sure a score's file can be read, asking for its password if it has one Volti doesn't know
-   * yet, as adding it to a setlist does; false when it isn't given.
+   * After scores are added to a setlist, ask in the background for the passwords Volti doesn't know
+   * yet of their files (see `askPasswordsOf`).
    */
-  givePassword(o: SourceFile): Promise<boolean>;
+  askPasswords(files: readonly SourceFile[]): void;
 
   /** Read a score from where it was left. */
   open(o: SourceFile): void;

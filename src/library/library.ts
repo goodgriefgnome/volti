@@ -3,7 +3,7 @@
 // files: the folder banner, the setlists and the scores, each given this as its LibraryHost.
 
 import { pickSetlist } from '../dialogs/setlists';
-import { givePassword } from '../dialogs/passwords';
+import { askPasswordsOf } from '../dialogs/passwords';
 import { openExportPdf } from '../dialogs/export-pdf';
 import { openScore, type LibraryScore } from '../dialogs/open-score';
 import { type NamedExcerptHost } from '../dialogs/named-excerpts';
@@ -393,19 +393,19 @@ export class Library implements LibraryHost {
    * `what`; the second opens a menu of setlists below `anchor`, with New setlist….
    */
   addToItems(anchor: Element, scoreId: string, what: string, excerpt: Excerpt = {}): MenuItem[] {
-    const add = async (s: Setlist) => {
-      const o = this.originalOf(scoreId);
-      if (o && !(await this.givePassword(o))) return;
+    const add = (s: Setlist) => {
       s = this.setlist(s.id) ?? s;
       this.openRows.add(s.id);
       this.addedTo(s.id);
       void this.change(withSetlist(this.setlists, addEntries(s, [{ scoreId, excerpt }])));
       this.toast.say(`Added “${what}” to “${s.title}”.`);
+      const o = this.originalOf(scoreId);
+      if (o) this.askPasswords([o]);
     };
     const d = defaultSetlist(this.setlists, this.lastAddedTo);
     return [
-      ...(d ? [{ label: `Add to “${d.title}”`, run: () => void add(d) }] : []),
-      { label: 'Add to setlist…', run: () => pickSetlist(anchor, `Add “${what}” to`, this.setlists, (s) => void add(s), scoreId) },
+      ...(d ? [{ label: `Add to “${d.title}”`, run: () => add(d) }] : []),
+      { label: 'Add to setlist…', run: () => pickSetlist(anchor, `Add “${what}” to`, this.setlists, add, scoreId) },
     ];
   }
 
@@ -473,15 +473,8 @@ export class Library implements LibraryHost {
     }
   }
 
-  async givePassword(o: SourceFile): Promise<boolean> {
-    try {
-      if (!(await givePassword(o))) return false;
-    } catch (e) {
-      this.toast.say(failed('open', e, titleOf(o.path)));
-      return false;
-    }
-    this.accessAllowed();
-    return true;
+  askPasswords(files: readonly SourceFile[]) {
+    void askPasswordsOf(files).then((any) => { if (any) this.accessAllowed(); });
   }
 
   /** A score was read from the scores folder, so access to it may just have been allowed: then read it again. */

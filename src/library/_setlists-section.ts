@@ -195,7 +195,7 @@ export class SetlistsSection {
       setlist: s,
       originals: lib.originals,
       saved: lib.saved,
-      givePassword: (o) => lib.givePassword(o),
+      askPasswords: (files) => lib.askPasswords(files),
       open: (o) => lib.openForDialog(o),
       add: (entries, scores) => {
         const now = lib.setlist(id);

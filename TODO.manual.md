@@ -147,6 +147,14 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     on a centred second row and Cuts is only its icon. At 700 px and wider, one row.
   - The side bands, their triangles, the hidden-toolbar back arrow and the cut tabs are all
     visible on the light stage.
+- **Adding to a setlist is instant** (Drive folder linked, scores never opened on this tablet):
+  - From a score's ⋯ menu, Add to “…”: the score shows in the setlist, with the toast, at once,
+    while it downloads.
+  - Add scores, several ticked, then Add: the dialog closes at once and they all show in the
+    setlist. Tapping Add several times quickly adds them once.
+  - Two ticked that both have passwords not known yet: both show in the setlist, then each password
+    is asked for in turn.
+  - The same from a setlist's reader (title menu › +).
 - **A PDF that opens without a password is marked checked by any read:** with a setlist holding a
   PDF not opened since PDFs stopped going through pdf-lib, restart Volti and wait for the setlists'
   pages to finish saving; then open that score from the library: it opens without the first-open
@@ -156,8 +164,9 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
 - **Protected PDFs** (with a password, or encrypted without one):
   - No lock icon anywhere.
   - A PDF with a user password asks for it the first time it is opened, previewed in the incoming
-    screen, or added to a setlist (from a score's ⋯ menu or Add scores; Cancel leaves it out); a
-    wrong one asks again, saying so. Close and open it again, and after a restart: not asked.
+    screen, or added to a setlist (from a score's ⋯ menu or Add scores, just after it shows in the
+    setlist; Cancel leaves it in, and the setlists section says it needs its password); a wrong
+    one asks again, saying so. Close and open it again, and after a restart: not asked.
   - One encrypted with only an owner password (it opens in Chrome without one; it may only stop
     printing): no password is asked, and it shows.
   - Ones from Acrobat (often AES-128, even when they only stop printing) and ones with a password

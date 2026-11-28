@@ -35,3 +35,17 @@ export async function givePassword(f: SourceFile): Promise<boolean> {
     throw e;
   }
 }
+
+/**
+ * Ask for the passwords Volti doesn't know yet of files just added to a setlist, one at a time, in
+ * the background: they are in it already, and reading one may mean downloading it. One whose
+ * password isn't given, or that can't be read, stays in; the setlists section says why its pages
+ * aren't saved, and opening it asks again. True when any could be read.
+ */
+export async function askPasswordsOf(files: readonly SourceFile[]): Promise<boolean> {
+  let any = false;
+  for (const f of files) {
+    try { any = (await givePassword(f)) || any; } catch { /* the setlists section says why */ }
+  }
+  return any;
+}
