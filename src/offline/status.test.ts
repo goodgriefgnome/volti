@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { offlineStatus, offlineText, pageKey, type OfflineStatus } from './status';
+import { offlineStatus, offlineText, pageKey, startingStatus, type OfflineStatus } from './status';
 
 const a1 = pageKey('a', 1, 800), a2 = pageKey('a', 2, 800), b1 = pageKey('b', 1, 800), c1 = pageKey('c', 1, 800);
 const none = new Map<string, { why: 'access'; title: string }>();
@@ -35,6 +35,30 @@ describe('offlineStatus', () => {
 
   it('gives no status to a setlist that needs no pages', () => {
     expect(offlineStatus(new Map([['x', []]]), new Set(), true, none).has('x')).toBe(false);
+  });
+});
+
+describe('startingStatus', () => {
+  const last = {
+    scores: new Map([['x', new Set(['a'])], ['y', new Set(['a', 'b'])]]),
+    statuses: new Map<string, OfflineStatus>([['x', { kind: 'ready' }], ['y', { kind: 'ready' }]]),
+  };
+
+  it('shows a setlist given a score as saving, with nothing counted yet', () => {
+    expect(startingStatus(new Map([['x', ['a', 'c']]]), last).get('x')).toEqual({ kind: 'saving', done: 0, of: 0 });
+  });
+
+  it('keeps the last status of a setlist with no score it lacked, one taken out too', () => {
+    expect(startingStatus(new Map([['y', ['a']]]), last).get('y')).toEqual({ kind: 'ready' });
+  });
+
+  it('shows a new setlist with scores as saving, and drops setlists no longer live', () => {
+    const s = startingStatus(new Map([['z', ['a']]]), last);
+    expect([...s]).toEqual([['z', { kind: 'saving', done: 0, of: 0 }]]);
+  });
+
+  it('gives an empty setlist none', () => {
+    expect(startingStatus(new Map([['z', []]]), last).has('z')).toBe(false);
   });
 });
 

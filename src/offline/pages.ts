@@ -19,7 +19,7 @@ import { pack } from '../scores/frames';
 import type { Entry, Setlist } from '../setlists/model';
 import { dpr } from '../ui/dom';
 import { failedOnce } from '../ui/failure';
-import { offlineStatus, pageKey, type Blocked, type OfflineStatus } from './status';
+import { offlineStatus, pageKey, startingStatus, type Blocked, type LastRun, type OfflineStatus } from './status';
 
 /** How long to wait after a change, so a burst of them is worked out once. */
 const SETTLE_MS = 2000;
@@ -29,6 +29,9 @@ const HEARD_MS = 250;
 let timer: ReturnType<typeof setTimeout> | undefined;
 /** Stops the run before when a new one starts. */
 let running: AbortController | undefined;
+/** Each setlist's scores when a run last finished, and the statuses heard last since: what the next run shows as it starts. */
+let lastRun: { scores: LastRun['scores'] } | undefined;
+let lastHeard = new Map<string, OfflineStatus>();
 
 /**
  * Bring the pages kept offline up to date with these setlists, in the background: after a setlist
@@ -40,14 +43,21 @@ export function pinSetlistPages(originals: readonly SourceFile[], setlists: read
   clearTimeout(timer);
   running?.abort();
   const mine = running = new AbortController();
-  timer = setTimeout(() => void make(mine.signal, originals, setlists, heard).catch((e) => failedOnce('keep pages offline', e)), SETTLE_MS);
+  const tell = (s: Map<string, OfflineStatus>) => { lastHeard = s; heard(s); };
+  // A setlist given a score shows it saving at once, while the score downloads and its pages are worked out.
+  if (lastRun) tell(startingStatus(scoresBySetlist(setlists.filter((s) => !s.archived)), { scores: lastRun.scores, statuses: lastHeard }));
+  timer = setTimeout(() => void make(mine.signal, originals, setlists, tell).catch((e) => failedOnce('keep pages offline', e)), SETTLE_MS);
 }
+
+/** Each setlist's scores, by id. */
+const scoresBySetlist = (setlists: readonly Setlist[]) => new Map(setlists.map((s) => [s.id, [...new Set(s.entries.map((e) => e.scoreId))]]));
 
 async function make(signal: AbortSignal, originals: readonly SourceFile[], setlists: readonly Setlist[], heard: (s: Map<string, OfflineStatus>) => void) {
   const byId = new Map(originals.map((o) => [o.id, o]));
   const titles = await knownTitles();
   const live = setlists.filter((s) => !s.archived);
   const entries = live.flatMap((s) => s.entries);
+  const scoresOf = scoresBySetlist(live);
   // The originals of these scores are kept on the tablet for good, as their pages are (only a Drive folder keeps copies; a device folder has its files).
   await pinOriginals([...new Set(entries.map((e) => e.scoreId))]);
   // The screen's size, not the library's window: the reader fills the screen (status bar and address
@@ -145,5 +155,7 @@ async function make(signal: AbortSignal, originals: readonly SourceFile[], setli
     } finally { original.close(); }
   }
   clearTimeout(pending);
-  if (!signal.aborted) tell(true);
+  if (signal.aborted) return;
+  tell(true);
+  lastRun = { scores: new Map([...scoresOf].map(([id, ids]) => [id, new Set(ids)])) };
 }

@@ -46,9 +46,28 @@ export function offlineStatus(
   return out;
 }
 
+/** Each setlist's scores when a run last finished, and each one's status heard last. */
+export interface LastRun { scores: ReadonlyMap<string, ReadonlySet<string>>; statuses: ReadonlyMap<string, OfflineStatus> }
+
+/**
+ * The statuses to show as a run starts, before its pages are worked out (which may mean
+ * downloading scores): the last run's, but a setlist with a score it didn't have then is `saving`
+ * with nothing counted yet (`of` 0), so a score just added shows at once. `scores` is each live
+ * setlist's scores now.
+ */
+export function startingStatus(scores: ReadonlyMap<string, readonly string[]>, last: LastRun): Map<string, OfflineStatus> {
+  const out = new Map<string, OfflineStatus>();
+  for (const [setlist, ids] of scores) {
+    const had = last.scores.get(setlist), was = last.statuses.get(setlist);
+    if (ids.some((id) => !had?.has(id))) out.set(setlist, { kind: 'saving', done: 0, of: 0 });
+    else if (was) out.set(setlist, was);
+  }
+  return out;
+}
+
 /** What a status says, in a toast and to screen readers. */
 export function offlineText(s: OfflineStatus): string {
-  if (s.kind === 'saving') return `${s.done} of ${s.of} pages saved for offline.`;
+  if (s.kind === 'saving') return s.of ? `${s.done} of ${s.of} pages saved for offline.` : 'Getting its scores to save for offline.';
   if (s.kind === 'ready') return 'Ready to play offline.';
   if (s.why === 'access') return `Volti needs access to the scores folder to save the rest (${s.of - s.done} pages).`;
   if (s.why === 'password') return `“${s.title}” needs its password before its pages can be saved.`;

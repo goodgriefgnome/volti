@@ -154,6 +154,9 @@ DevTools (Application → IndexedDB → `volti-scores` → `kv`) to watch the re
     setlist. Tapping Add several times quickly adds them once.
   - Two ticked that both have passwords not known yet: both show in the setlist, then each password
     is asked for in turn.
+  - The setlist's ring turns to an empty saving ring at once (tap it: "Getting its scores to save
+    for offline."), fills as the new score's pages are saved, then shows the tick. In airplane
+    mode afterwards, the score opens from the setlist: its PDF was kept on the tablet.
   - The same from a setlist's reader (title menu › +).
 - **A PDF that opens without a password is marked checked by any read:** with a setlist holding a
   PDF not opened since PDFs stopped going through pdf-lib, restart Volti and wait for the setlists'
